@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps } from 'react-native';
+import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 
 interface CustomButtonProps extends TouchableOpacityProps {
   title: string;
@@ -43,73 +44,73 @@ export default function CustomButton({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 10,
+    borderRadius: BORDER_RADIUS.MD,
     alignItems: 'center',
     justifyContent: 'center',
   },
   
   // Variants
   primary: {
-    backgroundColor: '#9c27b0',
+    backgroundColor: COLORS.PRIMARY,
   },
   secondary: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.GRAY_100,
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#9c27b0',
+    borderColor: COLORS.PRIMARY,
   },
   
   // Sizes
   small: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: SPACING.SM,
+    paddingHorizontal: SPACING.MD,
   },
   medium: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
+    paddingVertical: SPACING.MD - SPACING.XS,
+    paddingHorizontal: SPACING.MD + SPACING.XS,
   },
   large: {
-    paddingVertical: 18,
-    paddingHorizontal: 24,
+    paddingVertical: SPACING.LG - SPACING.SM,
+    paddingHorizontal: SPACING.LG,
   },
   
   // Disabled state
   disabled: {
-    backgroundColor: '#ccc',
-    borderColor: '#ccc',
+    backgroundColor: COLORS.GRAY_300,
+    borderColor: COLORS.GRAY_300,
   },
   
   // Text styles
   text: {
-    fontWeight: '600',
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
   
   // Variant text colors
   primaryText: {
-    color: 'white',
+    color: COLORS.WHITE,
   },
   secondaryText: {
-    color: '#333',
+    color: TEXT_COLORS.PRIMARY,
   },
   outlineText: {
-    color: '#9c27b0',
+    color: COLORS.PRIMARY,
   },
   
   // Size text sizes
   smallText: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.SIZE.SM,
   },
   mediumText: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.SIZE.MD,
   },
   largeText: {
-    fontSize: 18,
+    fontSize: TYPOGRAPHY.SIZE.LG,
   },
   
   // Disabled text
   disabledText: {
-    color: '#999',
+    color: TEXT_COLORS.DISABLED,
   },
 });

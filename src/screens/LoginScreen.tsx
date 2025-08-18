@@ -11,6 +11,7 @@ import {
 import { useAuthStore } from '../stores/authStore';
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
+import { COLORS, TEXT_COLORS, BG_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
@@ -98,46 +99,39 @@ export default function LoginScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: BG_COLORS.SECONDARY,
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    padding: SPACING.MD,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 50,
+    marginBottom: SPACING.XXL + SPACING.SM,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#9c27b0',
-    marginBottom: 10,
+    fontSize: TYPOGRAPHY.SIZE.XXXL,
+    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
+    color: COLORS.PRIMARY,
+    marginBottom: SPACING.SM,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: TEXT_COLORS.SECONDARY,
     textAlign: 'center',
   },
   formContainer: {
-    backgroundColor: 'white',
-    padding: 30,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    backgroundColor: BG_COLORS.CARD,
+    padding: SPACING.XL - SPACING.SM,
+    borderRadius: BORDER_RADIUS.XL + SPACING.XS,
+    ...SHADOWS.MEDIUM,
   },
   loginButton: {
-    marginTop: 10,
-    marginBottom: 20,
+    marginTop: SPACING.SM,
+    marginBottom: SPACING.MD,
   },
   signUpButton: {
-    marginTop: 10,
+    marginTop: SPACING.SM,
   },
 });

@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 
 interface DuplicateCheckButtonProps {
   onPress: () => void;
@@ -47,7 +48,7 @@ export default function DuplicateCheckButton({
       disabled={isLoading || isChecked}
     >
       {isLoading ? (
-        <ActivityIndicator size="small" color="#fff" />
+        <ActivityIndicator size="small" color={COLORS.WHITE} />
       ) : (
         <Text style={getTextStyle()}>{getButtonText()}</Text>
       )}
@@ -57,7 +58,7 @@ export default function DuplicateCheckButton({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 8,
+    borderRadius: BORDER_RADIUS.MD,
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 80,
@@ -65,49 +66,49 @@ const styles = StyleSheet.create({
   
   // Sizes
   small: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: SPACING.SM,
+    paddingHorizontal: SPACING.SM + SPACING.XS,
     minWidth: 70,
   },
   medium: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: SPACING.SM + SPACING.XS,
+    paddingHorizontal: SPACING.MD,
     minWidth: 80,
   },
   
   // States
   default: {
-    backgroundColor: '#9c27b0',
+    backgroundColor: COLORS.PRIMARY,
   },
   loading: {
-    backgroundColor: '#9c27b0',
+    backgroundColor: COLORS.PRIMARY,
   },
   available: {
-    backgroundColor: '#4caf50',
+    backgroundColor: COLORS.SUCCESS,
   },
   unavailable: {
-    backgroundColor: '#f44336',
+    backgroundColor: COLORS.ERROR,
   },
   
   // Text styles
   defaultText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
+    color: COLORS.WHITE,
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
   loadingText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
+    color: COLORS.WHITE,
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
   availableText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
+    color: COLORS.WHITE,
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
   unavailableText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
+    color: COLORS.WHITE,
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
 });
