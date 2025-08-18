@@ -64,3 +64,112 @@ export interface CreatePostResponse {
 export interface CategoriesResponse {
   categories: Category[];
 }
+
+// 게시물 상세 조회 관련 타입
+export interface PostDetailUser {
+  id: number;
+  nickname: string;
+  profile_img: string | null;
+}
+
+export interface PostDetailSubCategory {
+  id: number;
+  name: string;
+  category: {
+    id: number;
+    name: string;
+  };
+}
+
+export interface PostDetailContentBlock {
+  type: ContentBlockType;
+  value: string;
+  sequence: number;
+}
+
+export interface PostTag {
+  id: number;
+  name: string;
+}
+
+
+
+// 게시물 상세 정보
+export interface PostDetail {
+  id: number;
+  title: string;
+  post_type: PostType;
+  created_at: string;
+  updated_at: string;
+  user: PostDetailUser;
+  sub_category: PostDetailSubCategory;
+  content_blocks: PostDetailContentBlock[];
+  tags: PostTag[];
+  item_snapshots?: ItemSnapshot[];
+  like_count: number;
+  bookmark_count: number;
+  comment_count: number;
+  is_liked?: boolean;
+  is_bookmarked?: boolean;
+}
+
+// 게시물 상세 조회 응답
+export interface PostDetailResponse {
+  code: number;
+  message: string;
+  data: PostDetail;
+}
+
+// 댓글 관련 타입
+export interface CommentUser {
+  id: number;
+  nickname: string;
+  profile_img: string | null;
+}
+
+export interface MentionUser {
+  id: number;
+  nickname: string;
+}
+
+export interface Comment {
+  id: number;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  user: CommentUser;
+  parent_comment_id: number | null;
+  mention_user: MentionUser | null;
+  like_count: number;
+  is_liked?: boolean;
+  replies?: Comment[];
+}
+
+// 댓글 목록 조회 응답
+export interface CommentsResponse {
+  code: number;
+  message: string;
+  data: Comment[];
+}
+
+// 댓글 작성 요청
+export interface CreateCommentRequest {
+  content: string;
+  parent_comment_id?: number | null;
+  mention_user_id?: number | null;
+}
+
+// 댓글 수정 요청
+export interface UpdateCommentRequest {
+  content: string;
+}
+
+// 댓글 좋아요 응답
+export interface CommentLikeResponse {
+  code: number;
+  message: string;
+  data: {
+    is_liked: boolean;
+    like_count: number;
+  };
+}

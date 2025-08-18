@@ -4,6 +4,7 @@ export type AuthStackParamList = {
   SignUp: undefined;
   MainApp: undefined;
   CreatePost: undefined;
+  PostDetail: { postId: number };
   Profile: { userId: string };
   Settings: undefined;
 };

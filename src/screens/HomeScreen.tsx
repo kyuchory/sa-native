@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { View, FlatList, StyleSheet, SafeAreaView, RefreshControl } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { COLORS, BG_COLORS, SPACING } from '../constants/theme';
+import { AuthStackParamList } from '../types/navigation';
 
 // 컴포넌트 imports
 import HomeHeader from '../components/HomeHeader';
@@ -8,12 +11,15 @@ import CategorySelector from '../components/CategorySelector';
 import PostCard from '../components/PostCard';
 
 // 데이터 imports
-import { MOCK_CATEGORIES, MOCK_POSTS, filterPostsByCategory, sortPostsByLatest } from '../data/mockData';
+import { MOCK_CATEGORIES, STABLE_MOCK_POSTS as MOCK_POSTS, filterPostsByCategory, sortPostsByLatest } from '../data/stableMockData';
 import type { Post } from '../components/PostCard';
 
+type HomeNavigationProp = StackNavigationProp<AuthStackParamList, 'MainApp'>;
+
 export default function HomeScreen() {
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
-  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string>('');
+  const navigation = useNavigation<HomeNavigationProp>();
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0);
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number>(0);
   const [refreshing, setRefreshing] = useState(false);
   const [notificationCount] = useState(3); // 예시 알림 개수
 
@@ -23,12 +29,12 @@ export default function HomeScreen() {
   );
 
   // 카테고리 선택 핸들러
-  const handleCategorySelect = (categoryId: string) => {
+  const handleCategorySelect = (categoryId: number) => {
     setSelectedCategoryId(categoryId);
-    setSelectedSubcategoryId(''); // 대분류 변경시 소분류 초기화
+    setSelectedSubcategoryId(0); // 대분류 변경시 소분류 초기화
   };
 
-  const handleSubcategorySelect = (subcategoryId: string) => {
+  const handleSubcategorySelect = (subcategoryId: number) => {
     setSelectedSubcategoryId(subcategoryId);
   };
 
@@ -44,7 +50,9 @@ export default function HomeScreen() {
   // 게시물 상호작용 핸들러들
   const handlePostPress = (post: Post) => {
     console.log('Post pressed:', post.title);
-    // TODO: 게시물 상세 화면으로 이동
+    // 게시물 상세 화면으로 이동 (postId는 mock data에서 id를 string에서 number로 변환)
+    const postId = parseInt(post.id);
+    navigation.navigate('PostDetail', { postId });
   };
 
   const handleLikePress = (post: Post) => {

@@ -8,6 +8,7 @@ import { AuthStackParamList } from '../types/navigation';
 import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import CreatePostScreen from '../screens/CreatePostScreen';
+import PostDetailScreen from '../screens/PostDetailScreen';
 // import ProfileScreen from '../screens/ProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
@@ -37,6 +38,11 @@ export default function AuthNavigator() {
         <Stack.Screen 
           name="CreatePost" 
           component={CreatePostScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="PostDetail" 
+          component={PostDetailScreen}
           options={{ headerShown: false }}
         />
         {/* <Stack.Screen 

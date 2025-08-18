@@ -63,9 +63,9 @@ export const MOCK_POSTS: Post[] = [
     author: {
       id: 'user1',
       nickname: '뷰티러버',
-      profileImage: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face'
+      profileImage: 'https://picsum.photos/100/100?random=1'
     },
-    imageUrl: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=400&h=300&fit=crop',
+    imageUrl: 'https://picsum.photos/400/300?random=2',
     likeCount: 234,
     commentCount: 45,
     viewCount: 1203,
@@ -81,7 +81,7 @@ export const MOCK_POSTS: Post[] = [
       id: 'user2',
       nickname: '패션피플',
     },
-    imageUrl: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400&h=300&fit=crop',
+    imageUrl: 'https://picsum.photos/400/300?random=3',
     likeCount: 189,
     commentCount: 32,
     viewCount: 892,
@@ -96,9 +96,9 @@ export const MOCK_POSTS: Post[] = [
     author: {
       id: 'user3',
       nickname: '홈트마스터',
-      profileImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face'
+      profileImage: 'https://picsum.photos/100/100?random=4'
     },
-    imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
+    imageUrl: 'https://picsum.photos/400/300?random=5',
     likeCount: 567,
     commentCount: 89,
     viewCount: 2341,
@@ -114,7 +114,7 @@ export const MOCK_POSTS: Post[] = [
       id: 'user4',
       nickname: '카페탐험가',
     },
-    imageUrl: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=300&fit=crop',
+    imageUrl: 'https://picsum.photos/400/300?random=6',
     likeCount: 312,
     commentCount: 67,
     viewCount: 1456,

@@ -2,12 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 
-// 카테고리 타입 정의
-export interface Category {
-  id: string;
-  name: string;
-  subcategories: Subcategory[];
-}
+// 카테고리 타입 정의 - types/post.ts와 통일
+import { Category, SubCategory } from '../types/post';
 
 export interface Subcategory {
   id: string;
@@ -17,10 +13,10 @@ export interface Subcategory {
 
 interface CategorySelectorProps {
   categories: Category[];
-  selectedCategoryId?: string;
-  selectedSubcategoryId?: string;
-  onCategorySelect: (categoryId: string) => void;
-  onSubcategorySelect: (subcategoryId: string) => void;
+  selectedCategoryId?: number;
+  selectedSubcategoryId?: number;
+  onCategorySelect: (categoryId: number) => void;
+  onSubcategorySelect: (subcategoryId: number) => void;
 }
 
 export default function CategorySelector({
@@ -46,7 +42,7 @@ export default function CategorySelector({
             styles.categoryItem,
             !selectedCategoryId && styles.categoryItemActive
           ]}
-          onPress={() => onCategorySelect('')}
+          onPress={() => onCategorySelect(0)}
         >
           <Text style={[
             styles.categoryText,
@@ -76,7 +72,7 @@ export default function CategorySelector({
       </ScrollView>
 
       {/* 소분류 */}
-      {selectedCategory && selectedCategory.subcategories.length > 0 && (
+      {selectedCategory && selectedCategory.subCategories.length > 0 && (
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
@@ -88,7 +84,7 @@ export default function CategorySelector({
               styles.subcategoryItem,
               !selectedSubcategoryId && styles.subcategoryItemActive
             ]}
-            onPress={() => onSubcategorySelect('')}
+            onPress={() => onSubcategorySelect(0)}
           >
             <Text style={[
               styles.subcategoryText,
@@ -98,7 +94,7 @@ export default function CategorySelector({
             </Text>
           </TouchableOpacity>
           
-          {selectedCategory.subcategories.map((subcategory) => (
+          {selectedCategory.subCategories.map((subcategory) => (
             <TouchableOpacity
               key={subcategory.id}
               style={[
