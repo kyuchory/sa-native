@@ -1,0 +1,77 @@
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { useAuthStore } from '../stores/authStore';
+import { AuthStackParamList } from '../types/navigation';
+
+// Screens
+import LoginScreen from '../screens/LoginScreen';
+import SignUpScreen from '../screens/SignUpScreen';
+import CreatePostScreen from '../screens/CreatePostScreen';
+// import ProfileScreen from '../screens/ProfileScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+
+// Tab Navigator
+import TabNavigator from './TabNavigator';
+
+const Stack = createStackNavigator<AuthStackParamList>();
+
+export default function AuthNavigator() {
+  const { isAuthenticated } = useAuthStore();
+
+  return (
+    <NavigationContainer>
+      <Stack.Navigator 
+        screenOptions={{ 
+          headerShown: false 
+        }}
+      >
+        {isAuthenticated ? (
+          // 인증된 사용자: 메인 앱
+          <>
+        <Stack.Screen 
+          name="MainApp" 
+          component={TabNavigator}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="CreatePost" 
+          component={CreatePostScreen}
+          options={{ headerShown: false }}
+        />
+        {/* <Stack.Screen 
+          name="Profile" 
+          component={ProfileScreen} 
+          options={{ 
+            headerShown: true,
+            title: '프로필',
+            headerStyle: { backgroundColor: '#2c3e50' },
+            headerTintColor: '#fff',
+            headerTitleStyle: { fontWeight: 'bold' },
+            headerTitleAlign: 'center',
+          }}
+        /> */}
+        <Stack.Screen 
+          name="Settings" 
+          component={SettingsScreen} 
+          options={{ 
+            headerShown: true,
+            title: '설정',
+            headerStyle: { backgroundColor: '#2c3e50' },
+            headerTintColor: '#fff',
+            headerTitleStyle: { fontWeight: 'bold' },
+            headerTitleAlign: 'center',
+          }}
+        />
+          </>
+        ) : (
+          // 인증되지 않은 사용자: 로그인/회원가입 화면
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="SignUp" component={SignUpScreen} />
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
