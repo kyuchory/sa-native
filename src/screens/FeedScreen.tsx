@@ -1,8 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuthStore } from '../stores/authStore';
+import { AuthStackParamList } from '../types/navigation';
+
+type FeedScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'MainApp'>;
 
 export default function FeedScreen() {
+  const navigation = useNavigation<FeedScreenNavigationProp>();
   const { logout, user } = useAuthStore();
 
   const handleLogout = async () => {
@@ -26,8 +32,13 @@ export default function FeedScreen() {
           },
         },
       ]
-    );
+          );
   };
+
+  const handleChatPress = () => {
+    navigation.navigate('Chat');
+  };
+
   const feedItems = [
     { id: 1, title: '첫 번째 피드', content: '이것은 첫 번째 피드 내용입니다.' },
     { id: 2, title: '두 번째 피드', content: '이것은 두 번째 피드 내용입니다.' },
@@ -37,7 +48,7 @@ export default function FeedScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* 로그아웃 버튼 */}
       <View style={styles.header}>
         <View style={styles.userInfo}>
@@ -45,9 +56,14 @@ export default function FeedScreen() {
             {user?.nickname ? `${user.nickname}님 안녕하세요!` : '피드 화면'}
           </Text>
         </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>로그아웃</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.chatButton} onPress={handleChatPress}>
+            <Text style={styles.chatButtonText}>💬 채팅</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>로그아웃</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Text style={styles.title}>📰 피드 화면</Text>
@@ -63,7 +79,7 @@ export default function FeedScreen() {
           </View>
         ))}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -87,6 +103,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#2c3e50',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chatButton: {
+    backgroundColor: '#c03525',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+  },
+  chatButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   logoutButton: {
     backgroundColor: '#e74c3c',

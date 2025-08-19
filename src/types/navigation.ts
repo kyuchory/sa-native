@@ -7,6 +7,7 @@ export type AuthStackParamList = {
   PostDetail: { postId: number };
   Profile: { userId: string };
   Settings: undefined;
+  Chat: undefined;
 };
 
 export type TabParamList = {

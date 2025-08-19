@@ -1,0 +1,854 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  FlatList,
+  Image,
+  Alert,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { 
+  COLORS, 
+  TEXT_COLORS, 
+  BG_COLORS, 
+  TYPOGRAPHY, 
+  SPACING, 
+  BORDER_RADIUS, 
+  SHADOWS 
+} from '../constants/theme';
+import { AuthStackParamList } from '../types/navigation';
+import { ChatRoom, ChatType, ChatRequest } from '../types/chat';
+
+// Components
+import ChatHeader from '../components/ChatHeader';
+import ChatActionSheet from '../components/ChatActionSheet';
+import { CheckIcon, MuteIcon, DeleteIcon, CheckboxEmptyIcon, CheckboxFilledIcon } from '../components/ChatActionIcons';
+
+// Mock Data
+import { MOCK_DIRECT_CHATS, MOCK_GROUP_CHATS, MOCK_CHAT_REQUESTS } from '../data/chatMockData';
+
+type ChatScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Chat'>;
+
+export default function ChatScreen() {
+  const navigation = useNavigation<ChatScreenNavigationProp>();
+  
+  // 상태 관리
+  const [selectedTab, setSelectedTab] = useState<ChatType>('direct');
+  const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
+  const [chatRequests, setChatRequests] = useState<ChatRequest[]>([]);
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [selectedChatRoom, setSelectedChatRoom] = useState<ChatRoom | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedChatIds, setSelectedChatIds] = useState<Set<number>>(new Set());
+
+  // 컴포넌트 마운트 시 채팅방 데이터 로드
+  useEffect(() => {
+    loadChatRooms();
+  }, [selectedTab]);
+
+  // 채팅방 목록 로드
+  const loadChatRooms = () => {
+    if (selectedTab === 'request') {
+      setChatRequests(MOCK_CHAT_REQUESTS);
+      setChatRooms([]);
+    } else {
+      const rooms = selectedTab === 'direct' ? MOCK_DIRECT_CHATS : MOCK_GROUP_CHATS;
+      setChatRooms(rooms);
+      setChatRequests([]);
+    }
+  };
+
+  // 채팅방 생성 핸들러
+  const handleCreateChat = () => {
+    Alert.alert(
+      '채팅방 생성',
+      selectedTab === 'direct' ? '1:1 채팅방을 생성합니다.' : '그룹 채팅방을 생성합니다.',
+      [
+        { text: '확인', onPress: () => console.log('채팅방 생성:', selectedTab) }
+      ]
+    );
+  };
+
+  // 채팅방 선택 핸들러
+  const handleChatRoomPress = (chatRoom: ChatRoom) => {
+    Alert.alert(
+      '채팅방 입장',
+      `"${chatRoom.name}" 채팅방에 입장하시겠습니까?`,
+      [
+        { text: '취소', style: 'cancel' },
+        { 
+          text: '입장', 
+          onPress: () => {
+            console.log('채팅방 입장:', chatRoom.id);
+            // TODO: 채팅방 상세 화면으로 이동
+          }
+        }
+      ]
+    );
+  };
+
+  // 채팅 요청 처리 핸들러
+  const handleChatRequestAction = (request: ChatRequest, action: 'accept' | 'reject') => {
+    const actionText = action === 'accept' ? '수락' : '거절';
+    Alert.alert(
+      `채팅 요청 ${actionText}`,
+      `${request.sender.nickname}님의 채팅 요청을 ${actionText}하시겠습니까?`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: actionText,
+          onPress: () => {
+            setChatRequests(prev => 
+              prev.map(req => 
+                req.id === request.id 
+                  ? { ...req, status: action === 'accept' ? 'accepted' : 'rejected' }
+                  : req
+              )
+            );
+            console.log(`채팅 요청 ${actionText}:`, request.id);
+            // TODO: API 호출
+          }
+        }
+      ]
+    );
+  };
+
+  // 채팅방 길게 누르기 핸들러
+  const handleChatRoomLongPress = (chatRoom: ChatRoom) => {
+    setSelectedChatRoom(chatRoom);
+    setActionSheetVisible(true);
+  };
+
+  // 채팅방 삭제
+  const handleDeleteChat = () => {
+    if (!selectedChatRoom) return;
+    
+    Alert.alert(
+      '채팅방 삭제',
+      `"${getChatDisplayName(selectedChatRoom)}" 채팅방을 삭제하시겠습니까?\n삭제된 채팅방은 복구할 수 없습니다.`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: () => {
+            setChatRooms(prev => prev.filter(room => room.id !== selectedChatRoom.id));
+            console.log('채팅방 삭제:', selectedChatRoom.id);
+            // TODO: API 호출
+          }
+        }
+      ]
+    );
+  };
+
+  // 채팅방 읽음 처리
+  const handleMarkAsRead = () => {
+    if (!selectedChatRoom) return;
+    
+    setChatRooms(prev => 
+      prev.map(room => 
+        room.id === selectedChatRoom.id 
+          ? { ...room, unread_count: 0 }
+          : room
+      )
+    );
+    console.log('읽음 처리:', selectedChatRoom.id);
+    // TODO: API 호출
+  };
+
+  // 채팅방 음소거
+  const handleMuteChat = () => {
+    if (!selectedChatRoom) return;
+    
+    Alert.alert(
+      '알림 끄기',
+      `"${getChatDisplayName(selectedChatRoom)}" 채팅방의 알림을 끄시겠습니까?`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '알림 끄기',
+          onPress: () => {
+            console.log('알림 끄기:', selectedChatRoom.id);
+            // TODO: API 호출 및 상태 업데이트
+          }
+        }
+      ]
+    );
+  };
+
+  // 채팅방 표시 이름 가져오기
+  const getChatDisplayName = (chatRoom: ChatRoom) => {
+    return chatRoom.chat_type === 'direct' 
+      ? chatRoom.participants.find(p => p.id !== 8)?.nickname || '알 수 없음'
+      : chatRoom.name;
+  };
+
+  // 편집 모드 토글
+  const handleEditModeToggle = () => {
+    setIsEditMode(prev => !prev);
+    setSelectedChatIds(new Set()); // 편집 모드 변경 시 선택 초기화
+  };
+
+  // 채팅방 선택/해제
+  const handleChatSelect = (chatId: number) => {
+    setSelectedChatIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(chatId)) {
+        newSet.delete(chatId);
+      } else {
+        newSet.add(chatId);
+      }
+      return newSet;
+    });
+  };
+
+  // 전체 선택/해제
+  const handleSelectAll = () => {
+    if (selectedChatIds.size === chatRooms.length) {
+      setSelectedChatIds(new Set());
+    } else {
+      setSelectedChatIds(new Set(chatRooms.map(room => room.id)));
+    }
+  };
+
+  // 선택된 채팅방 삭제
+  const handleBulkDelete = () => {
+    if (selectedChatIds.size === 0) return;
+
+    Alert.alert(
+      '채팅방 삭제',
+      `선택한 ${selectedChatIds.size}개의 채팅방을 삭제하시겠습니까?\n삭제된 채팅방은 복구할 수 없습니다.`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: () => {
+            setChatRooms(prev => prev.filter(room => !selectedChatIds.has(room.id)));
+            setSelectedChatIds(new Set());
+            setIsEditMode(false);
+            console.log('다중 채팅방 삭제:', Array.from(selectedChatIds));
+            // TODO: API 호출
+          }
+        }
+      ]
+    );
+  };
+
+  // 시간 포맷팅
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return '방금';
+    if (diffInMinutes < 60) return `${diffInMinutes}분 전`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}시간 전`;
+    if (diffInMinutes < 2880) return '어제';
+    return date.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
+  };
+
+  // 프로필 이미지 렌더링
+  const renderProfileImage = (chatRoom: ChatRoom) => {
+    if (chatRoom.chat_type === 'direct') {
+      // 1:1 채팅의 경우 상대방 프로필 이미지
+      const otherUser = chatRoom.participants.find(p => p.id !== 8); // 현재 사용자 ID를 8로 가정
+      if (otherUser?.profile_img) {
+        return (
+          <Image 
+            source={{ uri: otherUser.profile_img }} 
+            style={styles.profileImage}
+          />
+        );
+      }
+      return (
+        <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
+          <Text style={styles.profileImageText}>
+            {otherUser?.nickname.charAt(0).toUpperCase() || '?'}
+          </Text>
+        </View>
+      );
+    } else {
+      // 그룹 채팅의 경우 그룹 프로필 이미지
+      if (chatRoom.profile_img) {
+        return (
+          <Image 
+            source={{ uri: chatRoom.profile_img }} 
+            style={styles.profileImage}
+          />
+        );
+      }
+      return (
+        <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
+          <Text style={styles.profileImageText}>
+            {chatRoom.name.charAt(0)}
+          </Text>
+        </View>
+      );
+    }
+  };
+
+  // 채팅방 아이템 렌더링
+  const renderChatRoomItem = ({ item }: { item: ChatRoom }) => {
+    const displayName = getChatDisplayName(item);
+    const isSelected = selectedChatIds.has(item.id);
+
+    const handlePress = () => {
+      if (isEditMode) {
+        handleChatSelect(item.id);
+      } else {
+        handleChatRoomPress(item);
+      }
+    };
+
+    const handleLongPress = () => {
+      if (!isEditMode) {
+        handleChatRoomLongPress(item);
+      }
+    };
+
+    return (
+      <TouchableOpacity 
+        style={[
+          styles.chatRoomItem,
+          isEditMode && styles.chatRoomItemEditMode,
+          isSelected && styles.chatRoomItemSelected
+        ]}
+        onPress={handlePress}
+        onLongPress={handleLongPress}
+        activeOpacity={0.7}
+        delayLongPress={500}
+      >
+        {/* 체크박스 (편집 모드일 때만) */}
+        {isEditMode && (
+          <TouchableOpacity 
+            style={styles.checkboxContainer}
+            onPress={() => handleChatSelect(item.id)}
+            activeOpacity={0.7}
+          >
+            {isSelected ? (
+              <CheckboxFilledIcon size={20} color={COLORS.PRIMARY} />
+            ) : (
+              <CheckboxEmptyIcon size={20} color={COLORS.GRAY_400} />
+            )}
+          </TouchableOpacity>
+        )}
+
+        {/* 프로필 이미지 */}
+        <View style={styles.profileContainer}>
+          {renderProfileImage(item)}
+        </View>
+
+        {/* 채팅방 정보 */}
+        <View style={styles.chatInfo}>
+          <View style={styles.chatHeader}>
+            <Text style={styles.chatName} numberOfLines={1}>
+              {displayName}
+            </Text>
+            <Text style={styles.timeText}>
+              {item.last_message ? formatTime(item.last_message.created_at) : ''}
+            </Text>
+          </View>
+          
+          <View style={styles.chatFooter}>
+            <Text style={styles.lastMessage} numberOfLines={1}>
+              {item.last_message ? item.last_message.content : '메시지가 없습니다.'}
+            </Text>
+            {item.unread_count > 0 && !isEditMode && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadText}>
+                  {item.unread_count > 99 ? '99+' : item.unread_count}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // 채팅 요청 아이템 렌더링
+  const renderChatRequestItem = ({ item }: { item: ChatRequest }) => {
+    if (item.status !== 'pending') return null;
+
+    return (
+      <View style={styles.chatRequestItem}>
+        {/* 프로필 이미지 */}
+        <View style={styles.profileContainer}>
+          {item.sender.profile_img ? (
+            <Image 
+              source={{ uri: item.sender.profile_img }} 
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
+              <Text style={styles.profileImageText}>
+                {item.sender.nickname.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* 요청 정보 */}
+        <View style={styles.requestInfo}>
+          <View style={styles.requestHeader}>
+            <Text style={styles.senderName} numberOfLines={1}>
+              {item.sender.nickname}
+            </Text>
+            <Text style={styles.timeText}>
+              {formatTime(item.created_at)}
+            </Text>
+          </View>
+          
+          <Text style={styles.requestMessage} numberOfLines={2}>
+            {item.message}
+          </Text>
+          
+          {/* 액션 버튼들 */}
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.rejectButton]}
+              onPress={() => handleChatRequestAction(item, 'reject')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.rejectButtonText}>거절</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.acceptButton]}
+              onPress={() => handleChatRequestAction(item, 'accept')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.acceptButtonText}>수락</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  // 탭 렌더링
+  const renderTabButton = (tabType: ChatType, label: string) => {
+    const isSelected = selectedTab === tabType;
+    return (
+      <TouchableOpacity
+        style={[styles.tabButton, isSelected && styles.tabButtonActive]}
+        onPress={() => setSelectedTab(tabType)}
+        activeOpacity={0.7}
+      >
+        <Text style={[styles.tabText, isSelected && styles.tabTextActive]}>
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* 헤더 */}
+      <ChatHeader onCreateChat={handleCreateChat} />
+
+      {/* 탭 버튼 */}
+      <View style={styles.tabContainer}>
+        {renderTabButton('direct', '채팅')}
+        {renderTabButton('group', '그룹채팅')}
+        {renderTabButton('request', '채팅요청')}
+      </View>
+
+      {/* 편집 버튼 (채팅/그룹채팅 탭에서만) */}
+      {selectedTab !== 'request' && (
+        <View style={styles.editButtonContainer}>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={handleEditModeToggle}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.editButtonText}>
+              {isEditMode ? '완료' : '편집'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* 채팅방 목록 또는 채팅 요청 목록 */}
+      {selectedTab === 'request' ? (
+        <FlatList
+          data={chatRequests.filter(req => req.status === 'pending')}
+          renderItem={renderChatRequestItem}
+          keyExtractor={(item) => item.id.toString()}
+          style={styles.chatList}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.chatListContent}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>새로운 채팅 요청이 없습니다.</Text>
+            </View>
+          )}
+        />
+      ) : (
+        <FlatList
+          data={chatRooms}
+          renderItem={renderChatRoomItem}
+          keyExtractor={(item) => item.id.toString()}
+          style={styles.chatList}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.chatListContent}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+        />
+      )}
+
+      {/* 채팅 액션 시트 */}
+      <ChatActionSheet
+        visible={actionSheetVisible}
+        onClose={() => {
+          setActionSheetVisible(false);
+          setSelectedChatRoom(null);
+        }}
+        chatName={selectedChatRoom ? getChatDisplayName(selectedChatRoom) : undefined}
+        actions={[
+          {
+            id: 'read',
+            title: '읽음으로 표시',
+            icon: <CheckIcon size={20} color={COLORS.PRIMARY} />,
+            color: COLORS.PRIMARY,
+            onPress: handleMarkAsRead,
+          },
+          {
+            id: 'mute',
+            title: '알림 끄기',
+            icon: <MuteIcon size={20} color={TEXT_COLORS.SECONDARY} />,
+            color: TEXT_COLORS.SECONDARY,
+            onPress: handleMuteChat,
+          },
+          {
+            id: 'delete',
+            title: '채팅방 삭제',
+            icon: <DeleteIcon size={20} color={COLORS.ERROR} />,
+            color: COLORS.ERROR,
+            onPress: handleDeleteChat,
+          },
+        ]}
+      />
+
+      {/* 편집 모드 하단 액션 바 */}
+      {isEditMode && selectedTab !== 'request' && (
+        <View style={styles.bottomActionBar}>
+          <TouchableOpacity
+            style={styles.selectAllButton}
+            onPress={handleSelectAll}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.selectAllText}>
+              {selectedChatIds.size === chatRooms.length ? '전체 해제' : '전체 선택'}
+            </Text>
+          </TouchableOpacity>
+          
+          <View style={styles.actionBarRight}>
+            <Text style={styles.selectedCountText}>
+              {selectedChatIds.size}개 선택됨
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.deleteButton,
+                selectedChatIds.size === 0 && styles.deleteButtonDisabled
+              ]}
+              onPress={handleBulkDelete}
+              disabled={selectedChatIds.size === 0}
+              activeOpacity={0.7}
+            >
+              <DeleteIcon 
+                size={16} 
+                color={selectedChatIds.size > 0 ? COLORS.WHITE : COLORS.GRAY_400} 
+              />
+              <Text style={[
+                styles.deleteButtonText,
+                selectedChatIds.size === 0 && styles.deleteButtonTextDisabled
+              ]}>
+                삭제
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: BG_COLORS.PRIMARY,
+  },
+  
+  // 탭 관련
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.WHITE,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.GRAY_200,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: SPACING.MD,
+    alignItems: 'center',
+    backgroundColor: COLORS.WHITE,
+  },
+  tabButtonActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: COLORS.PRIMARY,
+  },
+  tabText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    color: TEXT_COLORS.SECONDARY,
+  },
+  tabTextActive: {
+    color: COLORS.PRIMARY,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+  },
+
+  // 채팅 목록 관련
+  chatList: {
+    flex: 1,
+    backgroundColor: COLORS.WHITE,
+  },
+  chatListContent: {
+    padding: SPACING.MD,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: COLORS.GRAY_200,
+    marginLeft: 72, // 프로필 이미지 + 여백 너비만큼
+  },
+
+  // 채팅방 아이템 관련
+  chatRoomItem: {
+    flexDirection: 'row',
+    paddingVertical: SPACING.MD,
+    alignItems: 'center',
+  },
+  profileContainer: {
+    marginRight: SPACING.MD,
+  },
+  profileImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  profileImagePlaceholder: {
+    backgroundColor: COLORS.GRAY_300,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileImageText: {
+    fontSize: TYPOGRAPHY.SIZE.LG,
+    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
+    color: COLORS.WHITE,
+  },
+
+  // 채팅 정보 관련
+  chatInfo: {
+    flex: 1,
+  },
+  chatHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.XS,
+  },
+  chatName: {
+    flex: 1,
+    fontSize: TYPOGRAPHY.SIZE.LG,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: TEXT_COLORS.PRIMARY,
+    marginRight: SPACING.SM,
+  },
+  timeText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: TEXT_COLORS.SECONDARY,
+  },
+  chatFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  lastMessage: {
+    flex: 1,
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: TEXT_COLORS.SECONDARY,
+    marginRight: SPACING.SM,
+  },
+
+  // 읽지 않은 메시지 배지
+  unreadBadge: {
+    backgroundColor: COLORS.PRIMARY,
+    borderRadius: BORDER_RADIUS.ROUND,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.XS,
+  },
+  unreadText: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
+    color: COLORS.WHITE,
+  },
+
+  // 채팅 요청 관련
+  chatRequestItem: {
+    flexDirection: 'row',
+    paddingVertical: SPACING.MD,
+    alignItems: 'flex-start',
+  },
+  requestInfo: {
+    flex: 1,
+  },
+  requestHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.XS,
+  },
+  senderName: {
+    flex: 1,
+    fontSize: TYPOGRAPHY.SIZE.LG,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: TEXT_COLORS.PRIMARY,
+    marginRight: SPACING.SM,
+  },
+  requestMessage: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: TEXT_COLORS.SECONDARY,
+    lineHeight: 20,
+    marginBottom: SPACING.SM,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: SPACING.SM,
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: SPACING.SM,
+    paddingHorizontal: SPACING.MD,
+    borderRadius: BORDER_RADIUS.SM,
+    alignItems: 'center',
+  },
+  acceptButton: {
+    backgroundColor: COLORS.PRIMARY,
+  },
+  rejectButton: {
+    backgroundColor: COLORS.GRAY_300,
+  },
+  acceptButtonText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: COLORS.WHITE,
+  },
+  rejectButtonText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: TEXT_COLORS.PRIMARY,
+  },
+
+  // 빈 상태
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SPACING.XXL,
+  },
+  emptyText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: TEXT_COLORS.SECONDARY,
+    textAlign: 'center',
+  },
+
+  // 편집 버튼
+  editButtonContainer: {
+    backgroundColor: COLORS.WHITE,
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.SM,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.GRAY_200,
+    alignItems: 'flex-end',
+  },
+  editButton: {
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.XS,
+  },
+  editButtonText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: COLORS.PRIMARY,
+  },
+
+  // 편집 모드 채팅방 아이템
+  chatRoomItemEditMode: {
+    paddingLeft: SPACING.SM, // 체크박스 공간 확보
+  },
+  chatRoomItemSelected: {
+    backgroundColor: COLORS.GRAY_50,
+  },
+  checkboxContainer: {
+    marginRight: SPACING.SM,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // 하단 액션 바
+  bottomActionBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: COLORS.WHITE,
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.MD,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.GRAY_200,
+    ...SHADOWS.SMALL,
+  },
+  selectAllButton: {
+    paddingVertical: SPACING.SM,
+    paddingHorizontal: SPACING.MD,
+  },
+  selectAllText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    color: COLORS.PRIMARY,
+  },
+  actionBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.MD,
+  },
+  selectedCountText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: TEXT_COLORS.SECONDARY,
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.ERROR,
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.SM,
+    borderRadius: BORDER_RADIUS.SM,
+    gap: SPACING.XS,
+  },
+  deleteButtonDisabled: {
+    backgroundColor: COLORS.GRAY_300,
+  },
+  deleteButtonText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: COLORS.WHITE,
+  },
+  deleteButtonTextDisabled: {
+    color: COLORS.GRAY_400,
+  },
+});

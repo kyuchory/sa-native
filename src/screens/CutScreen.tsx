@@ -1,72 +1,353 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  StatusBar,
+  TouchableOpacity,
+  Image,
+  FlatList,
+  Animated,
+  TouchableWithoutFeedback,
+  Alert,
+  Platform,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import {
+  COLORS,
+  TEXT_COLORS,
+  TYPOGRAPHY,
+  SPACING,
+  BORDER_RADIUS,
+} from '../constants/theme';
+import { AuthStackParamList } from '../types/navigation';
+import { Cut } from '../types/cut';
+
+// Components
+import {
+  HeartIcon,
+  CommentIcon,
+  ShareIcon,
+  BackIcon,
+  MoreVerticalIcon,
+} from '../components/CutIcons';
+
+// Mock Data
+import { MOCK_CUTS } from '../data/cutMockData';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+type CutScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'MainApp'>;
+
+interface CutItemProps {
+  cut: Cut;
+  isActive: boolean;
+  onLike: (cutId: number) => void;
+  onComment: (cutId: number) => void;
+  onShare: (cutId: number) => void;
+  onToggleDescription: (cutId: number) => void;
+  isDescriptionExpanded: boolean;
+  tabBarHeight: number;
+}
+
+// 개별 컷 아이템 컴포넌트
+const CutItem: React.FC<CutItemProps> = ({
+  cut,
+  isActive,
+  onLike,
+  onComment,
+  onShare,
+  onToggleDescription,
+  isDescriptionExpanded,
+  tabBarHeight,
+}) => {
+  const descriptionAnimation = useRef(new Animated.Value(0)).current;
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    Animated.timing(descriptionAnimation, {
+      toValue: isDescriptionExpanded ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [isDescriptionExpanded, descriptionAnimation]);
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return '방금 전';
+    if (diffInHours < 24) return `${diffInHours}시간 전`;
+    if (diffInHours < 24 * 7) return `${Math.floor(diffInHours / 24)}일 전`;
+    return date.toLocaleDateString('ko-KR');
+  };
+
+  const formatCount = (count: number): string => {
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
+
+  const renderProfileImage = () => {
+    if (cut.user.profile_img) {
+      return (
+        <Image source={{ uri: cut.user.profile_img }} style={styles.profileImage} />
+      );
+    }
+    return (
+      <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
+        <Text style={styles.profileImageText}>
+          {cut.user.nickname.charAt(0).toUpperCase()}
+        </Text>
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.cutContainer}>
+      {/* 배경 이미지 */}
+      <Image 
+        source={{ uri: cut.image_url }} 
+        style={styles.backgroundImage}
+        onLoadStart={() => setImageLoading(true)}
+        onLoadEnd={() => setImageLoading(false)}
+        onError={() => {
+          setImageError(true);
+          setImageLoading(false);
+        }}
+      />
+      
+      {/* 로딩 인디케이터 */}
+      {imageLoading && (
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingSpinner} />
+          <Text style={styles.loadingText}>로딩 중...</Text>
+        </View>
+      )}
+      
+      {/* 에러 플레이스홀더 */}
+      {imageError && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>🎬</Text>
+          <Text style={styles.errorMessage}>이미지를 불러올 수 없습니다</Text>
+        </View>
+      )}
+      
+      {/* 오른쪽 액션 버튼들 */}
+      <View style={styles.rightActions}>
+        {/* 좋아요 */}
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => onLike(cut.id)}
+          activeOpacity={0.8}
+        >
+          <HeartIcon
+            size={28}
+            color={cut.is_liked ? COLORS.ERROR : COLORS.WHITE}
+            filled={cut.is_liked}
+          />
+          <Text style={styles.actionText}>{formatCount(cut.like_count)}</Text>
+        </TouchableOpacity>
+
+        {/* 댓글 */}
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => onComment(cut.id)}
+          activeOpacity={0.8}
+        >
+          <CommentIcon size={28} color={COLORS.WHITE} />
+          <Text style={styles.actionText}>{formatCount(cut.comment_count)}</Text>
+        </TouchableOpacity>
+
+        {/* 공유 */}
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => onShare(cut.id)}
+          activeOpacity={0.8}
+        >
+          <ShareIcon size={28} color={COLORS.WHITE} />
+          <Text style={styles.actionText}>{formatCount(cut.share_count)}</Text>
+        </TouchableOpacity>
+
+        {/* 프로필 */}
+        <TouchableOpacity style={styles.profileContainer} activeOpacity={0.8}>
+          {renderProfileImage()}
+        </TouchableOpacity>
+      </View>
+
+      {/* 하단 콘텐츠 오버레이 */}
+              <Animated.View
+          style={[
+            styles.bottomOverlay,
+            {
+              bottom: tabBarHeight, // 탭바 높이만큼 위로 올림
+              height: descriptionAnimation.interpolate({
+                inputRange: [0, 1],
+                outputRange: [140, 220], // 높이를 줄임
+              }),
+            },
+          ]}
+        >
+        <TouchableWithoutFeedback onPress={() => onToggleDescription(cut.id)}>
+          <View style={styles.contentArea}>
+            {/* 사용자 정보 */}
+            <View style={styles.userInfo}>
+              <Text style={styles.username}>@{cut.user.nickname}</Text>
+              <Text style={styles.timeText}>{formatTime(cut.created_at)}</Text>
+            </View>
+
+            {/* 설명 */}
+            <View style={styles.descriptionContainer}>
+              <Text
+                style={styles.description}
+                numberOfLines={isDescriptionExpanded ? undefined : 2}
+              >
+                {cut.description}
+              </Text>
+              {!isDescriptionExpanded && cut.description.length > 100 && (
+                <Text style={styles.moreText}>더보기</Text>
+              )}
+            </View>
+
+            {/* 태그 */}
+            {cut.tags && cut.tags.length > 0 && (
+              <View style={styles.tagsContainer}>
+                {cut.tags.map((tag, index) => (
+                  <Text key={index} style={styles.tag}>
+                    #{tag}
+                  </Text>
+                ))}
+              </View>
+            )}
+          </View>
+        </TouchableWithoutFeedback>
+      </Animated.View>
+    </View>
+  );
+};
 
 export default function CutScreen() {
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  
-  const categories = [
-    { id: 'all', name: '전체', icon: '✂️' },
-    { id: 'hair', name: '헤어', icon: '💇‍♀️' },
-    { id: 'nail', name: '네일', icon: '💅' },
-    { id: 'makeup', name: '메이크업', icon: '💄' },
-    { id: 'fashion', name: '패션', icon: '👗' },
-  ];
+  const navigation = useNavigation<CutScreenNavigationProp>();
+  const insets = useSafeAreaInsets();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [cuts, setCuts] = useState<Cut[]>(MOCK_CUTS);
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(new Set());
+  const flatListRef = useRef<FlatList>(null);
 
-  const cutItems = [
-    { id: 1, title: '트렌디한 단발 스타일', category: 'hair', price: '30,000원' },
-    { id: 2, title: '클래식 레이어드 컷', category: 'hair', price: '35,000원' },
-    { id: 3, title: '글램 네일 아트', category: 'nail', price: '25,000원' },
-    { id: 4, title: '데일리 메이크업', category: 'makeup', price: '40,000원' },
-    { id: 5, title: '스타일링 컨설팅', category: 'fashion', price: '50,000원' },
-  ];
+  // 탭바 높이 계산 (iOS: 49 + safeArea, Android: 56)
+  const tabBarHeight = Platform.OS === 'ios' ? 49 + insets.bottom : 56;
 
-  const filteredItems = selectedCategory === 'all' 
-    ? cutItems 
-    : cutItems.filter(item => item.category === selectedCategory);
+  // 좋아요 토글
+  const handleLike = (cutId: number) => {
+    setCuts(prev =>
+      prev.map(cut =>
+        cut.id === cutId
+          ? {
+              ...cut,
+              is_liked: !cut.is_liked,
+              like_count: cut.is_liked ? cut.like_count - 1 : cut.like_count + 1,
+            }
+          : cut
+      )
+    );
+  };
+
+  // 댓글 보기
+  const handleComment = (cutId: number) => {
+    Alert.alert('댓글', `컷 ${cutId}의 댓글을 보시겠습니까?`, [
+      { text: '취소', style: 'cancel' },
+      { text: '보기', onPress: () => console.log('댓글 보기:', cutId) },
+    ]);
+  };
+
+  // 공유하기
+  const handleShare = (cutId: number) => {
+    Alert.alert('공유하기', '어디로 공유하시겠습니까?', [
+      { text: '취소', style: 'cancel' },
+      { text: '카카오톡', onPress: () => console.log('카카오톡 공유:', cutId) },
+      { text: '인스타그램', onPress: () => console.log('인스타그램 공유:', cutId) },
+      { text: '링크 복사', onPress: () => console.log('링크 복사:', cutId) },
+    ]);
+  };
+
+  // 설명 토글
+  const handleToggleDescription = (cutId: number) => {
+    setExpandedDescriptions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(cutId)) {
+        newSet.delete(cutId);
+      } else {
+        newSet.add(cutId);
+      }
+      return newSet;
+    });
+  };
+
+  // 뒤로가기
+  const handleGoBack = () => {
+    navigation.goBack();
+  };
+
+  // 스크롤 이벤트 처리
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      setCurrentIndex(viewableItems[0].index || 0);
+    }
+  }).current;
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50,
+  }).current;
+
+  const renderCutItem = ({ item, index }: { item: Cut; index: number }) => (
+    <CutItem
+      cut={item}
+      isActive={index === currentIndex}
+      onLike={handleLike}
+      onComment={handleComment}
+      onShare={handleShare}
+      onToggleDescription={handleToggleDescription}
+      isDescriptionExpanded={expandedDescriptions.has(item.id)}
+      tabBarHeight={tabBarHeight}
+    />
+  );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>✂️ 컷 화면</Text>
-      <Text style={styles.description}>
-        다양한 스타일링 서비스를 확인해보세요.
-      </Text>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoryContainer}
-      >
-        {categories.map((category) => (
-          <TouchableOpacity
-            key={category.id}
-            style={[
-              styles.categoryButton,
-              selectedCategory === category.id && styles.selectedCategory
-            ]}
-            onPress={() => setSelectedCategory(category.id)}
-          >
-            <Text style={styles.categoryIcon}>{category.icon}</Text>
-            <Text style={[
-              styles.categoryText,
-              selectedCategory === category.id && styles.selectedCategoryText
-            ]}>
-              {category.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-      
-      <ScrollView style={styles.itemsContainer} showsVerticalScrollIndicator={false}>
-        {filteredItems.map((item) => (
-          <View key={item.id} style={styles.itemCard}>
-            <Text style={styles.itemTitle}>{item.title}</Text>
-            <Text style={styles.itemPrice}>{item.price}</Text>
-            <TouchableOpacity style={styles.bookButton}>
-              <Text style={styles.bookButtonText}>예약하기</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-      </ScrollView>
+      {/* 투명 헤더 */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={handleGoBack} activeOpacity={0.8}>
+          <BackIcon size={24} color={COLORS.WHITE} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Cuts</Text>
+        <TouchableOpacity style={styles.moreButton} activeOpacity={0.8}>
+          <MoreVerticalIcon size={32} color={COLORS.WHITE} />
+        </TouchableOpacity>
+      </View>
+
+      {/* 컷 리스트 */}
+      <FlatList
+        ref={flatListRef}
+        data={cuts}
+        renderItem={renderCutItem}
+        keyExtractor={(item) => item.id.toString()}
+        pagingEnabled
+        showsVerticalScrollIndicator={false}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        getItemLayout={(data, index) => ({
+          length: SCREEN_HEIGHT,
+          offset: SCREEN_HEIGHT * index,
+          index,
+        })}
+      />
     </View>
   );
 }
@@ -74,95 +355,193 @@ export default function CutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f3e5f5',
-    padding: 20,
+    backgroundColor: COLORS.BLACK,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#8e24aa',
-    marginBottom: 20,
-    textAlign: 'center',
+  
+  // 헤더
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: (StatusBar.currentHeight || 44) + SPACING.SM, // 8px 추가
+    paddingHorizontal: SPACING.MD,
+    paddingBottom: SPACING.SM,
+    zIndex: 10,
+    backgroundColor: 'transparent',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: TYPOGRAPHY.SIZE.LG,
+    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
+    color: COLORS.WHITE,
+  },
+  moreButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // 컷 컨테이너
+  cutContainer: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+    position: 'relative',
+  },
+  backgroundImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+
+  // 오른쪽 액션 버튼들
+  rightActions: {
+    position: 'absolute',
+    right: SPACING.MD,
+    bottom: 200,
+    alignItems: 'center',
+    gap: SPACING.LG,
+  },
+  actionButton: {
+    alignItems: 'center',
+    gap: SPACING.XS,
+  },
+  actionText: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: COLORS.WHITE,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  profileContainer: {
+    marginTop: SPACING.MD,
+  },
+  profileImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: COLORS.WHITE,
+  },
+  profileImagePlaceholder: {
+    backgroundColor: COLORS.GRAY_400,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileImageText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
+    color: COLORS.WHITE,
+  },
+
+  // 하단 오버레이
+  bottomOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: SPACING.MD,
+    paddingTop: SPACING.MD, // XL에서 MD로 줄임
+    paddingBottom: SPACING.LG,
+  },
+  contentArea: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingBottom: SPACING.XS, // 약간의 하단 패딩 추가
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.XS, // SM에서 XS로 줄임
+    gap: SPACING.SM,
+  },
+  username: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
+    color: COLORS.WHITE,
+  },
+  timeText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  descriptionContainer: {
+    marginBottom: SPACING.XS, // SM에서 XS로 줄임
   },
   description: {
-    fontSize: 16,
-    color: '#7f8c8d',
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: COLORS.WHITE,
+    lineHeight: 20,
+  },
+  moreText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: SPACING.XS,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.SM,
+  },
+  tag: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: COLORS.WHITE,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
+
+  // 로딩 상태
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: COLORS.BLACK,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SPACING.MD,
+  },
+  loadingSpinner: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 3,
+    borderColor: COLORS.GRAY_600,
+    borderTopColor: COLORS.PRIMARY,
+  },
+  loadingText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: COLORS.WHITE,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
+
+  // 에러 상태
+  errorContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: COLORS.GRAY_800,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SPACING.MD,
+  },
+  errorText: {
+    fontSize: 48,
+  },
+  errorMessage: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: COLORS.WHITE,
     textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 24,
-  },
-  categoryContainer: {
-    marginBottom: 30,
-  },
-  categoryButton: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 15,
-    marginRight: 15,
-    alignItems: 'center',
-    minWidth: 80,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  selectedCategory: {
-    backgroundColor: '#8e24aa',
-  },
-  categoryIcon: {
-    fontSize: 24,
-    marginBottom: 5,
-  },
-  categoryText: {
-    fontSize: 12,
-    color: '#8e24aa',
-    fontWeight: '600',
-  },
-  selectedCategoryText: {
-    color: 'white',
-  },
-  itemsContainer: {
-    flex: 1,
-  },
-  itemCard: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 15,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  itemTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 10,
-  },
-  itemPrice: {
-    fontSize: 16,
-    color: '#8e24aa',
-    fontWeight: '600',
-    marginBottom: 15,
-  },
-  bookButton: {
-    backgroundColor: '#8e24aa',
-    padding: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  bookButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
   },
 });
