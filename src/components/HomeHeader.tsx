@@ -39,7 +39,7 @@ export default function HomeHeader({
         <View style={styles.content}>
           {/* 로고 영역 */}
           <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>Maple</Text>
+            <Text style={styles.logoText}>Mom</Text>
             <Text style={styles.logoSubText}>Talk</Text>
           </View>
 

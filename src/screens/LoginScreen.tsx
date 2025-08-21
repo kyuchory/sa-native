@@ -53,7 +53,7 @@ export default function LoginScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Maple Talk</Text>
+          <Text style={styles.title}>Mom Talk</Text>
           <Text style={styles.subtitle}>SNS에 오신 것을 환영합니다</Text>
         </View>
 

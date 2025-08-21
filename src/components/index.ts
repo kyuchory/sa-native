@@ -24,6 +24,9 @@ export * from './ChatActionIcons';
 // 컷 관련
 export * from './CutIcons';
 
+// 검색 관련
+export * from './SearchIcons';
+
 export * from './TabIcons';
 export * from './ProfileIcons';
 export * from './HomeHeaderIcons';

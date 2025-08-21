@@ -8,6 +8,7 @@ export type AuthStackParamList = {
   Profile: { userId: string };
   Settings: undefined;
   Chat: undefined;
+  SelectChatUser: undefined;
 };
 
 export type TabParamList = {

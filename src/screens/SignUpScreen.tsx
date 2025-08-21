@@ -189,7 +189,7 @@ export default function SignUpScreen({ navigation }: any) {
       >
         <View style={styles.header}>
           <Text style={styles.title}>회원가입</Text>
-          <Text style={styles.subtitle}>Maple Talk SNS에 가입하세요</Text>
+          <Text style={styles.subtitle}>Mom Talk SNS에 가입하세요</Text>
         </View>
 
         <View style={styles.formContainer}>

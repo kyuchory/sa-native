@@ -147,3 +147,18 @@ export const useAuthStore = create<AuthState>()(
 export const getAccessToken = () => useAuthStore.getState().tokens?.accessToken;
 export const getRefreshToken = () => useAuthStore.getState().tokens?.refreshToken;
 export const isUserAuthenticated = () => useAuthStore.getState().isAuthenticated;
+
+// 토큰 관리 함수들 (apiClient에서 사용)
+export const setAccessToken = (accessToken: string) => {
+  const currentTokens = useAuthStore.getState().tokens;
+  if (currentTokens) {
+    useAuthStore.getState().setTokens({
+      ...currentTokens,
+      accessToken
+    });
+  }
+};
+
+export const clearTokens = async () => {
+  useAuthStore.getState().clearAuth();
+};

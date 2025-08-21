@@ -21,15 +21,15 @@ import {
   SHADOWS 
 } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
-import { ChatRoom, ChatType, ChatRequest } from '../types/chat';
+import { ChatRoom, ChatType } from '../types/chat';
 
 // Components
 import ChatHeader from '../components/ChatHeader';
 import ChatActionSheet from '../components/ChatActionSheet';
 import { CheckIcon, MuteIcon, DeleteIcon, CheckboxEmptyIcon, CheckboxFilledIcon } from '../components/ChatActionIcons';
 
-// Mock Data
-import { MOCK_DIRECT_CHATS, MOCK_GROUP_CHATS, MOCK_CHAT_REQUESTS } from '../data/chatMockData';
+// Services
+import { ChatService } from '../services/chatService';
 
 type ChatScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Chat'>;
 
@@ -37,9 +37,10 @@ export default function ChatScreen() {
   const navigation = useNavigation<ChatScreenNavigationProp>();
   
   // 상태 관리
-  const [selectedTab, setSelectedTab] = useState<ChatType>('direct');
-  const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
-  const [chatRequests, setChatRequests] = useState<ChatRequest[]>([]);
+  const [selectedTab, setSelectedTab] = useState<ChatType>('private');
+  const [allChatRooms, setAllChatRooms] = useState<ChatRoom[]>([]);
+  const [filteredChatRooms, setFilteredChatRooms] = useState<ChatRoom[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [selectedChatRoom, setSelectedChatRoom] = useState<ChatRoom | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -48,29 +49,44 @@ export default function ChatScreen() {
   // 컴포넌트 마운트 시 채팅방 데이터 로드
   useEffect(() => {
     loadChatRooms();
-  }, [selectedTab]);
+  }, []);
 
-  // 채팅방 목록 로드
-  const loadChatRooms = () => {
-    if (selectedTab === 'request') {
-      setChatRequests(MOCK_CHAT_REQUESTS);
-      setChatRooms([]);
-    } else {
-      const rooms = selectedTab === 'direct' ? MOCK_DIRECT_CHATS : MOCK_GROUP_CHATS;
-      setChatRooms(rooms);
-      setChatRequests([]);
+  // 탭 변경 시 필터링
+  useEffect(() => {
+    filterChatRooms();
+  }, [selectedTab, allChatRooms]);
+
+  // 채팅방 목록 로드 (API 호출)
+  const loadChatRooms = async () => {
+    try {
+      setIsLoading(true);
+      const chatRooms = await ChatService.getChatRooms();
+      setAllChatRooms(chatRooms);
+    } catch (error: any) {
+      console.error('채팅방 목록 로드 실패:', error);
+      Alert.alert('오류', error.message || '채팅방 목록을 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  // 채팅방 필터링 (탭에 따라)
+  const filterChatRooms = () => {
+    const filtered = allChatRooms.filter(room => room.type === selectedTab);
+    setFilteredChatRooms(filtered);
   };
 
   // 채팅방 생성 핸들러
   const handleCreateChat = () => {
-    Alert.alert(
-      '채팅방 생성',
-      selectedTab === 'direct' ? '1:1 채팅방을 생성합니다.' : '그룹 채팅방을 생성합니다.',
-      [
-        { text: '확인', onPress: () => console.log('채팅방 생성:', selectedTab) }
-      ]
-    );
+    if (selectedTab === 'private') {
+      navigation.navigate('SelectChatUser');
+    } else {
+      Alert.alert(
+        '그룹 채팅방 생성',
+        '그룹 채팅방 생성 기능은 준비 중입니다.',
+        [{ text: '확인' }]
+      );
+    }
   };
 
   // 채팅방 선택 핸들러
@@ -91,54 +107,34 @@ export default function ChatScreen() {
     );
   };
 
-  // 채팅 요청 처리 핸들러
-  const handleChatRequestAction = (request: ChatRequest, action: 'accept' | 'reject') => {
-    const actionText = action === 'accept' ? '수락' : '거절';
-    Alert.alert(
-      `채팅 요청 ${actionText}`,
-      `${request.sender.nickname}님의 채팅 요청을 ${actionText}하시겠습니까?`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: actionText,
-          onPress: () => {
-            setChatRequests(prev => 
-              prev.map(req => 
-                req.id === request.id 
-                  ? { ...req, status: action === 'accept' ? 'accepted' : 'rejected' }
-                  : req
-              )
-            );
-            console.log(`채팅 요청 ${actionText}:`, request.id);
-            // TODO: API 호출
-          }
-        }
-      ]
-    );
-  };
-
   // 채팅방 길게 누르기 핸들러
   const handleChatRoomLongPress = (chatRoom: ChatRoom) => {
     setSelectedChatRoom(chatRoom);
     setActionSheetVisible(true);
   };
 
-  // 채팅방 삭제
-  const handleDeleteChat = () => {
+  // 채팅방 삭제 (나가기)
+  const handleDeleteChat = async () => {
     if (!selectedChatRoom) return;
     
     Alert.alert(
-      '채팅방 삭제',
-      `"${getChatDisplayName(selectedChatRoom)}" 채팅방을 삭제하시겠습니까?\n삭제된 채팅방은 복구할 수 없습니다.`,
+      '채팅방 나가기',
+      `"${getChatDisplayName(selectedChatRoom)}" 채팅방을 나가시겠습니까?\n나간 후에는 이전 메시지를 볼 수 없습니다.`,
       [
         { text: '취소', style: 'cancel' },
         {
-          text: '삭제',
+          text: '나가기',
           style: 'destructive',
-          onPress: () => {
-            setChatRooms(prev => prev.filter(room => room.id !== selectedChatRoom.id));
-            console.log('채팅방 삭제:', selectedChatRoom.id);
-            // TODO: API 호출
+          onPress: async () => {
+            try {
+              await ChatService.leaveChatRoom(selectedChatRoom.id);
+              // 성공 시 로컬 상태에서 제거
+              setAllChatRooms(prev => prev.filter(room => room.id !== selectedChatRoom.id));
+              Alert.alert('성공', '채팅방을 나갔습니다.');
+            } catch (error: any) {
+              console.error('채팅방 나가기 실패:', error);
+              Alert.alert('오류', error.message || '채팅방 나가기에 실패했습니다.');
+            }
           }
         }
       ]
@@ -149,9 +145,9 @@ export default function ChatScreen() {
   const handleMarkAsRead = () => {
     if (!selectedChatRoom) return;
     
-    setChatRooms(prev => 
+        setAllChatRooms(prev => 
       prev.map(room => 
-        room.id === selectedChatRoom.id 
+        room.id === selectedChatRoom.id
           ? { ...room, unread_count: 0 }
           : room
       )
@@ -182,9 +178,14 @@ export default function ChatScreen() {
 
   // 채팅방 표시 이름 가져오기
   const getChatDisplayName = (chatRoom: ChatRoom) => {
-    return chatRoom.chat_type === 'direct' 
-      ? chatRoom.participants.find(p => p.id !== 8)?.nickname || '알 수 없음'
-      : chatRoom.name;
+    if (chatRoom.type === 'private') {
+      // 1:1 채팅의 경우 - 추후 참여자 정보를 별도 API로 조회해야 함
+      // 현재는 임시로 "1:1 채팅" 표시 또는 채팅방 이름 사용
+      return chatRoom.name || '1:1 채팅';
+    } else {
+      // 그룹 채팅의 경우
+      return chatRoom.name || '그룹 채팅';
+    }
   };
 
   // 편집 모드 토글
@@ -208,31 +209,43 @@ export default function ChatScreen() {
 
   // 전체 선택/해제
   const handleSelectAll = () => {
-    if (selectedChatIds.size === chatRooms.length) {
+    if (selectedChatIds.size === filteredChatRooms.length) {
       setSelectedChatIds(new Set());
     } else {
-      setSelectedChatIds(new Set(chatRooms.map(room => room.id)));
+      setSelectedChatIds(new Set(filteredChatRooms.map(room => room.id)));
     }
   };
 
-  // 선택된 채팅방 삭제
-  const handleBulkDelete = () => {
+  // 선택된 채팅방 삭제 (나가기)
+  const handleBulkDelete = async () => {
     if (selectedChatIds.size === 0) return;
 
     Alert.alert(
-      '채팅방 삭제',
-      `선택한 ${selectedChatIds.size}개의 채팅방을 삭제하시겠습니까?\n삭제된 채팅방은 복구할 수 없습니다.`,
+      '채팅방 나가기',
+      `선택한 ${selectedChatIds.size}개의 채팅방을 나가시겠습니까?\n나간 후에는 이전 메시지를 볼 수 없습니다.`,
       [
         { text: '취소', style: 'cancel' },
         {
-          text: '삭제',
+          text: '나가기',
           style: 'destructive',
-          onPress: () => {
-            setChatRooms(prev => prev.filter(room => !selectedChatIds.has(room.id)));
-            setSelectedChatIds(new Set());
-            setIsEditMode(false);
-            console.log('다중 채팅방 삭제:', Array.from(selectedChatIds));
-            // TODO: API 호출
+          onPress: async () => {
+            try {
+              const chatRoomIds = Array.from(selectedChatIds);
+              
+              // 병렬로 모든 채팅방 나가기 처리
+              const deletePromises = chatRoomIds.map(id => ChatService.leaveChatRoom(id));
+              await Promise.all(deletePromises);
+              
+              // 성공 시 로컬 상태에서 제거
+              setAllChatRooms(prev => prev.filter(room => !selectedChatIds.has(room.id)));
+              setSelectedChatIds(new Set());
+              setIsEditMode(false);
+              
+              Alert.alert('성공', `${chatRoomIds.length}개 채팅방을 나갔습니다.`);
+            } catch (error: any) {
+              console.error('다중 채팅방 나가기 실패:', error);
+              Alert.alert('오류', error.message || '일부 채팅방 나가기에 실패했습니다.');
+            }
           }
         }
       ]
@@ -254,13 +267,13 @@ export default function ChatScreen() {
 
   // 프로필 이미지 렌더링
   const renderProfileImage = (chatRoom: ChatRoom) => {
-    if (chatRoom.chat_type === 'direct') {
-      // 1:1 채팅의 경우 상대방 프로필 이미지
-      const otherUser = chatRoom.participants.find(p => p.id !== 8); // 현재 사용자 ID를 8로 가정
-      if (otherUser?.profile_img) {
+    if (chatRoom.type === 'private') {
+      // 1:1 채팅의 경우 - 추후 참여자 정보를 별도 API로 조회해야 함
+      // 현재는 아바타 URL이 있으면 사용, 없으면 플레이스홀더
+      if (chatRoom.avatar_url) {
         return (
           <Image 
-            source={{ uri: otherUser.profile_img }} 
+            source={{ uri: chatRoom.avatar_url }} 
             style={styles.profileImage}
           />
         );
@@ -268,16 +281,16 @@ export default function ChatScreen() {
       return (
         <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
           <Text style={styles.profileImageText}>
-            {otherUser?.nickname.charAt(0).toUpperCase() || '?'}
+            {'?'}
           </Text>
         </View>
       );
     } else {
       // 그룹 채팅의 경우 그룹 프로필 이미지
-      if (chatRoom.profile_img) {
+      if (chatRoom.avatar_url) {
         return (
           <Image 
-            source={{ uri: chatRoom.profile_img }} 
+            source={{ uri: chatRoom.avatar_url }} 
             style={styles.profileImage}
           />
         );
@@ -285,7 +298,7 @@ export default function ChatScreen() {
       return (
         <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
           <Text style={styles.profileImageText}>
-            {chatRoom.name.charAt(0)}
+            {chatRoom.name?.charAt(0).toUpperCase() || 'G'}
           </Text>
         </View>
       );
@@ -350,15 +363,15 @@ export default function ChatScreen() {
               {displayName}
             </Text>
             <Text style={styles.timeText}>
-              {item.last_message ? formatTime(item.last_message.created_at) : ''}
+              {item.lastMessage ? formatTime(item.lastMessage.created_at) : ''}
             </Text>
           </View>
           
           <View style={styles.chatFooter}>
             <Text style={styles.lastMessage} numberOfLines={1}>
-              {item.last_message ? item.last_message.content : '메시지가 없습니다.'}
+              {item.lastMessage ? item.lastMessage.content : '메시지가 없습니다.'}
             </Text>
-            {item.unread_count > 0 && !isEditMode && (
+            {item.unread_count && item.unread_count > 0 && !isEditMode && (
               <View style={styles.unreadBadge}>
                 <Text style={styles.unreadText}>
                   {item.unread_count > 99 ? '99+' : item.unread_count}
@@ -368,66 +381,6 @@ export default function ChatScreen() {
           </View>
         </View>
       </TouchableOpacity>
-    );
-  };
-
-  // 채팅 요청 아이템 렌더링
-  const renderChatRequestItem = ({ item }: { item: ChatRequest }) => {
-    if (item.status !== 'pending') return null;
-
-    return (
-      <View style={styles.chatRequestItem}>
-        {/* 프로필 이미지 */}
-        <View style={styles.profileContainer}>
-          {item.sender.profile_img ? (
-            <Image 
-              source={{ uri: item.sender.profile_img }} 
-              style={styles.profileImage}
-            />
-          ) : (
-            <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
-              <Text style={styles.profileImageText}>
-                {item.sender.nickname.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* 요청 정보 */}
-        <View style={styles.requestInfo}>
-          <View style={styles.requestHeader}>
-            <Text style={styles.senderName} numberOfLines={1}>
-              {item.sender.nickname}
-            </Text>
-            <Text style={styles.timeText}>
-              {formatTime(item.created_at)}
-            </Text>
-          </View>
-          
-          <Text style={styles.requestMessage} numberOfLines={2}>
-            {item.message}
-          </Text>
-          
-          {/* 액션 버튼들 */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.rejectButton]}
-              onPress={() => handleChatRequestAction(item, 'reject')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.rejectButtonText}>거절</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.acceptButton]}
-              onPress={() => handleChatRequestAction(item, 'accept')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.acceptButtonText}>수락</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
     );
   };
 
@@ -454,31 +407,32 @@ export default function ChatScreen() {
 
       {/* 탭 버튼 */}
       <View style={styles.tabContainer}>
-        {renderTabButton('direct', '채팅')}
+        {renderTabButton('private', '채팅')}
         {renderTabButton('group', '그룹채팅')}
-        {renderTabButton('request', '채팅요청')}
       </View>
 
-      {/* 편집 버튼 (채팅/그룹채팅 탭에서만) */}
-      {selectedTab !== 'request' && (
-        <View style={styles.editButtonContainer}>
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={handleEditModeToggle}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.editButtonText}>
-              {isEditMode ? '완료' : '편집'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* 편집 버튼 */}
+      <View style={styles.editButtonContainer}>
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={handleEditModeToggle}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.editButtonText}>
+            {isEditMode ? '완료' : '편집'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-      {/* 채팅방 목록 또는 채팅 요청 목록 */}
-      {selectedTab === 'request' ? (
+      {/* 채팅방 목록 */}
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>채팅방 목록을 불러오는 중...</Text>
+        </View>
+      ) : (
         <FlatList
-          data={chatRequests.filter(req => req.status === 'pending')}
-          renderItem={renderChatRequestItem}
+          data={filteredChatRooms}
+          renderItem={renderChatRoomItem}
           keyExtractor={(item) => item.id.toString()}
           style={styles.chatList}
           showsVerticalScrollIndicator={false}
@@ -486,19 +440,13 @@ export default function ChatScreen() {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>새로운 채팅 요청이 없습니다.</Text>
+              <Text style={styles.emptyText}>
+                {selectedTab === 'private' ? '1:1 채팅방이 없습니다.' : '그룹 채팅방이 없습니다.'}
+              </Text>
             </View>
           )}
-        />
-      ) : (
-        <FlatList
-          data={chatRooms}
-          renderItem={renderChatRoomItem}
-          keyExtractor={(item) => item.id.toString()}
-          style={styles.chatList}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.chatListContent}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          refreshing={isLoading}
+          onRefresh={loadChatRooms}
         />
       )}
 
@@ -536,7 +484,7 @@ export default function ChatScreen() {
       />
 
       {/* 편집 모드 하단 액션 바 */}
-      {isEditMode && selectedTab !== 'request' && (
+      {isEditMode && (
         <View style={styles.bottomActionBar}>
           <TouchableOpacity
             style={styles.selectAllButton}
@@ -544,7 +492,7 @@ export default function ChatScreen() {
             activeOpacity={0.7}
           >
             <Text style={styles.selectAllText}>
-              {selectedChatIds.size === chatRooms.length ? '전체 해제' : '전체 선택'}
+              {selectedChatIds.size === filteredChatRooms.length ? '전체 해제' : '전체 선택'}
             </Text>
           </TouchableOpacity>
           
@@ -569,7 +517,7 @@ export default function ChatScreen() {
                 styles.deleteButtonText,
                 selectedChatIds.size === 0 && styles.deleteButtonTextDisabled
               ]}>
-                삭제
+                나가기
               </Text>
             </TouchableOpacity>
           </View>
@@ -583,6 +531,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: BG_COLORS.PRIMARY,
+  },
+  
+  // 로딩
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SPACING.XL,
+  },
+  loadingText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: TEXT_COLORS.SECONDARY,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
   
   // 탭 관련
@@ -700,61 +661,7 @@ const styles = StyleSheet.create({
     color: COLORS.WHITE,
   },
 
-  // 채팅 요청 관련
-  chatRequestItem: {
-    flexDirection: 'row',
-    paddingVertical: SPACING.MD,
-    alignItems: 'flex-start',
-  },
-  requestInfo: {
-    flex: 1,
-  },
-  requestHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.XS,
-  },
-  senderName: {
-    flex: 1,
-    fontSize: TYPOGRAPHY.SIZE.LG,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
-    marginRight: SPACING.SM,
-  },
-  requestMessage: {
-    fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.SECONDARY,
-    lineHeight: 20,
-    marginBottom: SPACING.SM,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: SPACING.SM,
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: SPACING.SM,
-    paddingHorizontal: SPACING.MD,
-    borderRadius: BORDER_RADIUS.SM,
-    alignItems: 'center',
-  },
-  acceptButton: {
-    backgroundColor: COLORS.PRIMARY,
-  },
-  rejectButton: {
-    backgroundColor: COLORS.GRAY_300,
-  },
-  acceptButtonText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: COLORS.WHITE,
-  },
-  rejectButtonText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
-  },
+
 
   // 빈 상태
   emptyContainer: {
