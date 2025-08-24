@@ -108,15 +108,12 @@ export default function SelectChatUserScreen() {
       setIsLoading(true);
       const chatRoom = await ChatService.createPrivateChat(user.id);
       
-      Alert.alert('성공', '채팅방이 생성되었습니다!', [
-        { 
-          text: '확인', 
-          onPress: () => {
-            // 채팅방으로 이동 (추후 구현)
-            navigation.goBack();
-          }
-        }
-      ]);
+      // 채팅방 생성 성공 시 바로 채팅방으로 이동
+      navigation.navigate('ChatDetail', {
+        chatRoomId: chatRoom.id,
+        chatRoomName: user.nickname,
+        chatPartnerId: user.id,
+      });
     } catch (error: any) {
       console.error('채팅방 생성 실패:', error);
       Alert.alert('오류', '채팅방 생성에 실패했습니다.');

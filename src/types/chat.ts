@@ -10,42 +10,51 @@ export type MessageType = 'text' | 'image' | 'video'; // API 명세에 맞게 �
 export interface ChatUser {
   id: number;
   nickname: string;
-  profile_img: string | null;
+  avatar_url?: string | null; // profile_img에서 avatar_url로 통일
+  profile_img?: string | null; // 기존 호환성을 위해 유지
 }
 
-// 마지막 메시지 정보 (API 응답 형식)
+// 마지막 메시지 정보 (최신 API 응답 형식)
 export interface LastMessage {
   id: number;
   content: string;
   type: MessageType;
-  sender_id: number;
+  sender_id: number; // 단순 숫자 ID로 변경
   created_at: string;
 }
 
-// 채팅방 정보 (API 응답 형식에 맞게 수정)
+// 채팅방 정보 (최신 API 응답 형식)
 export interface ChatRoom {
   id: number;
-  name: string | null; // private 채팅은 null, group 채팅은 필수
-  type: ChatType; // chat_type에서 type으로 변경
-  avatar_url: string | null; // profile_img에서 avatar_url로 변경
+  name: string | null; // private 채팅은 항상 null, group 채팅은 필수
+  type: ChatType;
+  avatar_url: string | null;
   created_at: string;
-  memberCount: number; // 새로 추가
-  lastMessage: LastMessage | null; // last_message에서 lastMessage로 변경
+  memberCount: number;
+  lastMessage: LastMessage | null; // null일 수 있음
   
-  // 클라이언트에서 추가로 계산되는 필드들
-  participants?: ChatUser[]; // 필요시 별도 API로 조회
+  // 타입별 멤버 정보 (API에서 제공)
+  other_user?: ChatUser; // 1:1 채팅일 때만 존재
+  other_users?: ChatUser[]; // 그룹 채팅일 때만 존재 (나를 제외한 모든 멤버)
+  
+  // 클라이언트 계산 필드
   unread_count?: number; // 별도 API로 조회하거나 계산
 }
 
-// 기존 Message 인터페이스는 상세 채팅에서 사용
+// 메시지 인터페이스 (API 응답 형식)
 export interface Message {
-  id: number;
+  id: number | string; // 임시 메시지의 경우 string ID 사용
+  chat_room_id: number;
+  sender_id: number;
+  type: MessageType; // message_type에서 type으로 변경
   content: string;
-  message_type: MessageType;
   created_at: string;
-  updated_at: string;
   sender: ChatUser;
-  is_read: boolean;
+  mentions: any[]; // 멘션 배열 (향후 타입 정의 가능)
+  
+  // 임시 메시지 관련 필드
+  isTemporary?: boolean; // 임시 메시지 여부
+  status?: 'sending' | 'sent' | 'failed'; // 전송 상태
 }
 
 // API 응답 타입
@@ -61,11 +70,15 @@ export interface ChatRoomsResponse extends ApiResponse<ChatRoom[]> {}
 // 단일 채팅방 응답
 export interface SingleChatRoomResponse extends ApiResponse<ChatRoom> {}
 
-// 메시지 목록 조회 응답
+// 메시지 목록 조회 응답 (페이지네이션 포함)
 export interface MessagesResponse {
   code: number;
   message: string;
-  data: Message[];
+  data: {
+    messages: Message[];
+    hasNext: boolean;
+    nextCursor: number | null;
+  };
 }
 
 // 메시지 전송 요청

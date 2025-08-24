@@ -13,6 +13,7 @@ import PostDetailScreen from '../screens/PostDetailScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ChatScreen from '../screens/ChatScreen';
 import SelectChatUserScreen from '../screens/SelectChatUserScreen';
+import ChatDetailScreen from '../screens/ChatDetailScreen';
 
 // Tab Navigator
 import TabNavigator from './TabNavigator';
@@ -79,6 +80,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="SelectChatUser"
           component={SelectChatUserScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ChatDetail"
+          component={ChatDetailScreen}
           options={{ headerShown: false }}
         />
           </>

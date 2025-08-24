@@ -11,27 +11,8 @@ export interface ContentBlock {
   sequence: number;
 }
 
-// 게시물 타입
-export type PostType = 'normal' | 'item_showcase';
-
-// 아이템 옵션 (게임 아이템 스탯)
-export interface ItemOption {
-  [key: string]: string; // 예: { "str": "+150", "luk": "+150", "boss_damage": "+30%" }
-}
-
-// 아이템 정보
-export interface ItemInfo {
-  item_slot: string;
-  item_name: string;
-  item_icon_url: string;
-  option_json: ItemOption;
-}
-
-// 아이템 스냅샷 (프리셋)
-export interface ItemSnapshot {
-  preset_no: number;
-  items: ItemInfo[];
-}
+// 🚨 BREAKING CHANGE: post_type과 item_snapshots 필드가 API에서 제거됨
+// PostType, ItemOption, ItemInfo, ItemSnapshot 타입 제거됨
 
 // 카테고리 정보
 export interface Category {
@@ -49,10 +30,8 @@ export interface SubCategory {
 export interface CreatePostRequest {
   title: string;
   sub_category_id: number;
-  post_type: PostType;
   content_blocks: Omit<ContentBlock, 'id'>[]; // 서버에는 id 제외하고 전송
   tags?: string[];
-  item_snapshots?: ItemSnapshot[];
 }
 
 // 게시물 작성 응답 데이터
@@ -98,14 +77,12 @@ export interface PostTag {
 export interface PostDetail {
   id: number;
   title: string;
-  post_type: PostType;
   created_at: string;
   updated_at: string;
   user: PostDetailUser;
   sub_category: PostDetailSubCategory;
   content_blocks: PostDetailContentBlock[];
   tags: PostTag[];
-  item_snapshots?: ItemSnapshot[];
   like_count: number;
   bookmark_count: number;
   comment_count: number;
@@ -172,4 +149,65 @@ export interface CommentLikeResponse {
     is_liked: boolean;
     like_count: number;
   };
+}
+
+// ==============================================
+// 🆕 새로운 API 명세에 맞는 타입 정의들
+// ==============================================
+
+// 게시글 목록 조회용 타입
+export interface PostListItem {
+  id: number;
+  title: string;
+  created_at: string;
+  user: {
+    id: number;
+    nickname: string;
+    profile_img: string | null;
+  };
+  sub_category: {
+    id: number;
+    name: string;
+    category: {
+      id: number;
+      name: string;
+    };
+  };
+  like_count: number;
+  comment_count: number;
+  preview_image: string | null;
+}
+
+// 페이지네이션 정보
+export interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
+
+// 게시글 목록 조회 응답
+export interface PostListResponse {
+  posts: PostListItem[];
+  pagination: Pagination;
+}
+
+// 게시글 수정 요청
+export interface UpdatePostRequest {
+  title?: string;
+  sub_category_id?: number;
+  content_blocks?: Omit<ContentBlock, 'id'>[];
+  tags?: string[];
+}
+
+// 이미지 업로드 응답
+export interface ImageUploadResponse {
+  files: {
+    filename: string;
+    path: string;
+    url: string;
+    size: number;
+  }[];
 }

@@ -9,6 +9,11 @@ export type AuthStackParamList = {
   Settings: undefined;
   Chat: undefined;
   SelectChatUser: undefined;
+  ChatDetail: { 
+    chatRoomId: number;
+    chatRoomName: string;
+    chatPartnerId?: number;
+  };
 };
 
 export type TabParamList = {

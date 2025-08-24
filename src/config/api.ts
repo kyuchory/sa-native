@@ -6,14 +6,22 @@ export const API_CONFIG = {
     baseURL: 'http://10.0.2.2:3001', // Android 에뮬레이터
     // baseURL: 'http://localhost:3001', // iOS 시뮬레이터 
     // baseURL: 'http://211.217.175.23:3001', // 실제 기기용 (주인님 컴퓨터의 IP)
+    wsBaseURL: 'ws://10.0.2.2:3001', // Android 에뮬레이터
+    // wsBaseURL: 'ws://localhost:3001', // iOS 시뮬레이터 
+    // wsBaseURL: 'ws://211.217.175.23:3001', // 실제 기기용 (주인님 컴퓨터의 IP)
     timeout: 10000,
   },
   // 프로덕션 환경
   production: {
     baseURL: 'https://your-production-api.com', // 실제 프로덕션 URL로 변경
+    wsBaseURL: 'wss://your-production-api.com', // 프로덕션 WebSocket URL
     timeout: 15000,
   },
 };
+
+// 환경별 상수 직접 export
+export const API_BASE_URL = __DEV__ ? API_CONFIG.development.baseURL : API_CONFIG.production.baseURL;
+export const WS_BASE_URL = __DEV__ ? API_CONFIG.development.wsBaseURL : API_CONFIG.production.wsBaseURL;
 
 // 현재 환경에 따른 설정 반환
 export const getApiConfig = () => {

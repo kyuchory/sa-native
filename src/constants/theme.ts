@@ -126,3 +126,16 @@ export const BORDER_RADIUS = {
   XL: 16,
   ROUND: 999,
 } as const;
+
+// 입력 컴포넌트 크기
+export const INPUT_SIZES = {
+  // 채팅 입력창
+  CHAT_INPUT_MIN_HEIGHT: 28,
+  CHAT_INPUT_MAX_HEIGHT: 80,
+  CHAT_SEND_BUTTON_SIZE: 28,
+  CHAT_ATTACH_BUTTON_SIZE: 28,
+  
+  // 일반 입력창
+  DEFAULT_INPUT_HEIGHT: 44,
+  LARGE_INPUT_HEIGHT: 52,
+} as const;

@@ -31,12 +31,18 @@ import { CheckIcon, MuteIcon, DeleteIcon, CheckboxEmptyIcon, CheckboxFilledIcon 
 // Services
 import { ChatService } from '../services/chatService';
 
+// Stores
+import { useChatStore } from '../stores/chatStore';
+
 type ChatScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Chat'>;
 
 export default function ChatScreen() {
   const navigation = useNavigation<ChatScreenNavigationProp>();
   
-  // 상태 관리
+  // Chat store (실시간 메시지 수신용)
+  const { connectSocket, disconnectSocket, setChatRooms, chatRooms } = useChatStore();
+  
+  // 로컬 상태 관리
   const [selectedTab, setSelectedTab] = useState<ChatType>('private');
   const [allChatRooms, setAllChatRooms] = useState<ChatRoom[]>([]);
   const [filteredChatRooms, setFilteredChatRooms] = useState<ChatRoom[]>([]);
@@ -46,9 +52,23 @@ export default function ChatScreen() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedChatIds, setSelectedChatIds] = useState<Set<number>>(new Set());
 
-  // 컴포넌트 마운트 시 채팅방 데이터 로드
+  // 컴포넌트 마운트 시 WebSocket 연결 및 채팅방 데이터 로드
   useEffect(() => {
-    loadChatRooms();
+    const initializeChatScreen = async () => {
+      // 1. WebSocket 연결 (실시간 메시지 수신용)
+      await connectSocket();
+      
+      // 2. 채팅방 목록 로드
+      loadChatRooms();
+    };
+
+    initializeChatScreen();
+
+    // 클린업: 화면을 완전히 벗어날 때만 WebSocket 해제
+    return () => {
+      // ChatDetailScreen에서도 사용하므로 여기서는 연결 해제하지 않음
+      // disconnectSocket();
+    };
   }, []);
 
   // 탭 변경 시 필터링
@@ -56,12 +76,24 @@ export default function ChatScreen() {
     filterChatRooms();
   }, [selectedTab, allChatRooms]);
 
+  // ChatStore의 chatRooms 변경 감지 (실시간 업데이트)
+  useEffect(() => {
+    if (chatRooms.length > 0) {
+      setAllChatRooms(chatRooms);
+    }
+  }, [chatRooms]);
+
   // 채팅방 목록 로드 (API 호출)
   const loadChatRooms = async () => {
     try {
       setIsLoading(true);
-      const chatRooms = await ChatService.getChatRooms();
-      setAllChatRooms(chatRooms);
+      const loadedChatRooms = await ChatService.getChatRooms();
+      
+      // 로컬 상태와 ChatStore 모두 업데이트
+      setAllChatRooms(loadedChatRooms);
+      setChatRooms(loadedChatRooms);
+      
+      console.log('📋 채팅방 목록 로드 완료:', loadedChatRooms.length, '개');
     } catch (error: any) {
       console.error('채팅방 목록 로드 실패:', error);
       Alert.alert('오류', error.message || '채팅방 목록을 불러오는데 실패했습니다.');
@@ -91,20 +123,14 @@ export default function ChatScreen() {
 
   // 채팅방 선택 핸들러
   const handleChatRoomPress = (chatRoom: ChatRoom) => {
-    Alert.alert(
-      '채팅방 입장',
-      `"${chatRoom.name}" 채팅방에 입장하시겠습니까?`,
-      [
-        { text: '취소', style: 'cancel' },
-        { 
-          text: '입장', 
-          onPress: () => {
-            console.log('채팅방 입장:', chatRoom.id);
-            // TODO: 채팅방 상세 화면으로 이동
-          }
-        }
-      ]
-    );
+    const chatRoomName = getChatDisplayName(chatRoom);
+    const chatPartnerId = chatRoom.type === 'private' ? chatRoom.other_user?.id : undefined;
+    
+    navigation.navigate('ChatDetail', {
+      chatRoomId: chatRoom.id,
+      chatRoomName,
+      chatPartnerId,
+    });
   };
 
   // 채팅방 길게 누르기 핸들러
@@ -127,9 +153,11 @@ export default function ChatScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              console.log('선택된 채팅방 아이디:', selectedChatRoom.id);
               await ChatService.leaveChatRoom(selectedChatRoom.id);
               // 성공 시 로컬 상태에서 제거
               setAllChatRooms(prev => prev.filter(room => room.id !== selectedChatRoom.id));
+              console.log('선택된 채팅방 나가기 성공');
               Alert.alert('성공', '채팅방을 나갔습니다.');
             } catch (error: any) {
               console.error('채팅방 나가기 실패:', error);
@@ -179,9 +207,8 @@ export default function ChatScreen() {
   // 채팅방 표시 이름 가져오기
   const getChatDisplayName = (chatRoom: ChatRoom) => {
     if (chatRoom.type === 'private') {
-      // 1:1 채팅의 경우 - 추후 참여자 정보를 별도 API로 조회해야 함
-      // 현재는 임시로 "1:1 채팅" 표시 또는 채팅방 이름 사용
-      return chatRoom.name || '1:1 채팅';
+      // 1:1 채팅의 경우 - other_user 정보 활용
+      return chatRoom.other_user?.nickname || '1:1 채팅';
     } else {
       // 그룹 채팅의 경우
       return chatRoom.name || '그룹 채팅';
@@ -268,20 +295,22 @@ export default function ChatScreen() {
   // 프로필 이미지 렌더링
   const renderProfileImage = (chatRoom: ChatRoom) => {
     if (chatRoom.type === 'private') {
-      // 1:1 채팅의 경우 - 추후 참여자 정보를 별도 API로 조회해야 함
-      // 현재는 아바타 URL이 있으면 사용, 없으면 플레이스홀더
-      if (chatRoom.avatar_url) {
+      // 1:1 채팅의 경우 - other_user 정보 활용
+      if (chatRoom.other_user?.avatar_url) {
         return (
           <Image 
-            source={{ uri: chatRoom.avatar_url }} 
+            source={{ uri: chatRoom.other_user.avatar_url }} 
             style={styles.profileImage}
           />
         );
       }
+      
+      // other_user 닉네임의 첫 글자 사용
+      const firstChar = chatRoom.other_user?.nickname?.charAt(0).toUpperCase() || '?';
       return (
         <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
           <Text style={styles.profileImageText}>
-            {'?'}
+            {firstChar}
           </Text>
         </View>
       );
@@ -369,7 +398,18 @@ export default function ChatScreen() {
           
           <View style={styles.chatFooter}>
             <Text style={styles.lastMessage} numberOfLines={1}>
-              {item.lastMessage ? item.lastMessage.content : '메시지가 없습니다.'}
+              {item.lastMessage ? (
+                // 그룹 채팅의 경우 발신자 이름 포함 (sender_id로 other_users에서 찾기)
+                item.type === 'group' && item.other_users ? (
+                  (() => {
+                    const sender = item.other_users.find(user => user.id === item.lastMessage!.sender_id);
+                    return sender ? `${sender.nickname}: ${item.lastMessage.content}` : item.lastMessage.content;
+                  })()
+                ) : item.lastMessage.content
+              ) : (
+                // lastMessage가 null일 때
+                item.type === 'private' ? '채팅을 시작해 보세요!' : '메시지가 없습니다.'
+              )}
             </Text>
             {item.unread_count && item.unread_count > 0 && !isEditMode && (
               <View style={styles.unreadBadge}>

@@ -1,4 +1,5 @@
 import { apiClient } from './apiClient';
+import { API_BASE_URL } from '../config/api';
 import type { 
   CreatePostRequest, 
   CreatePostResponse, 
@@ -6,6 +7,10 @@ import type {
   Category,
   PostDetailResponse,
   PostDetail,
+  PostListResponse,
+  PostListItem,
+  UpdatePostRequest,
+  ImageUploadResponse,
   CommentsResponse,
   Comment
 } from '../types/post';
@@ -14,6 +19,32 @@ import { MOCK_POST_DETAIL, MOCK_ITEM_POST_DETAIL } from '../data/postDetailMockD
 import { MOCK_COMMENTS, MOCK_ITEM_COMMENTS } from '../data/commentMockData';
 
 export class PostService {
+  // ==============================================
+  // 🆕 새로운 API 명세에 맞는 메서드들
+  // ==============================================
+
+  // 게시글 목록 조회 (페이지네이션)
+  static async getPosts(
+    categoryId?: number, 
+    subCategoryId?: number, 
+    page: number = 1
+  ): Promise<PostListResponse> {
+    try {
+      const params = new URLSearchParams();
+      if (categoryId) params.append('categoryId', categoryId.toString());
+      if (subCategoryId) params.append('subCategoryId', subCategoryId.toString());
+      params.append('page', page.toString());
+
+      const response = await apiClient.get<ApiResponse<PostListResponse>>(
+        `/posts?${params.toString()}`
+      );
+      return response.data!;
+    } catch (error) {
+      console.error('게시글 목록 조회 실패:', error);
+      throw error;
+    }
+  }
+
   // 카테고리 목록 조회
   static async getCategories(): Promise<Category[]> {
     try {
@@ -32,6 +63,66 @@ export class PostService {
       return response.data!;
     } catch (error) {
       console.error('게시물 작성 실패:', error);
+      throw error;
+    }
+  }
+
+  // 게시물 수정
+  static async updatePost(postId: number, postData: UpdatePostRequest): Promise<void> {
+    try {
+      await apiClient.put<ApiResponse<null>>(`/posts/${postId}`, postData);
+    } catch (error) {
+      console.error('게시물 수정 실패:', error);
+      throw error;
+    }
+  }
+
+  // 게시물 삭제
+  static async deletePost(postId: number): Promise<void> {
+    try {
+      await apiClient.delete<ApiResponse<null>>(`/posts/${postId}`);
+    } catch (error) {
+      console.error('게시물 삭제 실패:', error);
+      throw error;
+    }
+  }
+
+  // 게시물 좋아요
+  static async likePost(postId: number): Promise<void> {
+    try {
+      await apiClient.post<ApiResponse<null>>(`/posts/${postId}/likes`, {});
+    } catch (error) {
+      console.error('게시물 좋아요 실패:', error);
+      throw error;
+    }
+  }
+
+  // 게시물 좋아요 취소
+  static async unlikePost(postId: number): Promise<void> {
+    try {
+      await apiClient.delete<ApiResponse<null>>(`/posts/${postId}/likes`);
+    } catch (error) {
+      console.error('게시물 좋아요 취소 실패:', error);
+      throw error;
+    }
+  }
+
+  // 게시물 북마크
+  static async bookmarkPost(postId: number): Promise<void> {
+    try {
+      await apiClient.post<ApiResponse<null>>(`/posts/${postId}/bookmarks`, {});
+    } catch (error) {
+      console.error('게시물 북마크 실패:', error);
+      throw error;
+    }
+  }
+
+  // 게시물 북마크 취소
+  static async unbookmarkPost(postId: number): Promise<void> {
+    try {
+      await apiClient.delete<ApiResponse<null>>(`/posts/${postId}/bookmarks`);
+    } catch (error) {
+      console.error('게시물 북마크 취소 실패:', error);
       throw error;
     }
   }
@@ -58,43 +149,54 @@ export class PostService {
     }
   }
 
-  // 이미지 업로드 (임시 - 추후 구현)
-  static async uploadImage(imageUri: string): Promise<string> {
+  // 이미지 업로드 (새 API 명세에 맞게 수정)
+  static async uploadImages(imageUris: string[]): Promise<ImageUploadResponse> {
     try {
-      // TODO: 실제 이미지 업로드 구현
-      // FormData를 사용하여 이미지 업로드
       const formData = new FormData();
-      formData.append('image', {
-        uri: imageUri,
-        type: 'image/jpeg',
-        name: 'image.jpg',
-      } as any);
+      
+      imageUris.forEach((uri, index) => {
+        formData.append('images', {
+          uri: uri,
+          type: 'image/jpeg',
+          name: `image_${index}.jpg`,
+        } as any);
+      });
 
-      const response = await apiClient.post<ApiResponse<{ imageUrl: string }>>('/upload/image', formData);
+      // FormData 업로드를 위한 직접 fetch 호출
+      const token = await import('@react-native-async-storage/async-storage').then(
+        AsyncStorage => AsyncStorage.default.getItem('accessToken')
+      );
 
-      return response.data?.imageUrl || '';
+      const response = await fetch(`${API_BASE_URL}/posts/upload/images`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-platform': 'mobile',
+          // FormData의 경우 Content-Type 자동 설정
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`이미지 업로드 실패: ${response.status}`);
+      }
+
+      const result = await response.json() as ApiResponse<ImageUploadResponse>;
+
+      return result.data!;
     } catch (error) {
       console.error('이미지 업로드 실패:', error);
       throw error;
     }
   }
 
-  // 비디오 업로드 (임시 - 추후 구현)
-  static async uploadVideo(videoUri: string): Promise<string> {
+  // 단일 이미지 업로드 (편의 메서드)
+  static async uploadImage(imageUri: string): Promise<string> {
     try {
-      // TODO: 실제 비디오 업로드 구현
-      const formData = new FormData();
-      formData.append('video', {
-        uri: videoUri,
-        type: 'video/mp4',
-        name: 'video.mp4',
-      } as any);
-
-      const response = await apiClient.post<ApiResponse<{ videoUrl: string }>>('/upload/video', formData);
-
-      return response.data?.videoUrl || '';
+      const result = await this.uploadImages([imageUri]);
+      return result.files[0]?.url || '';
     } catch (error) {
-      console.error('비디오 업로드 실패:', error);
+      console.error('단일 이미지 업로드 실패:', error);
       throw error;
     }
   }
@@ -162,12 +264,32 @@ export class PostService {
     }
   }
 
-  // 댓글 좋아요 토글
+  // 댓글 좋아요
+  static async likeComment(commentId: number): Promise<void> {
+    try {
+      await apiClient.post<ApiResponse<null>>(`/comments/${commentId}/likes`, {});
+    } catch (error) {
+      console.error('댓글 좋아요 실패:', error);
+      throw error;
+    }
+  }
+
+  // 댓글 좋아요 취소
+  static async unlikeComment(commentId: number): Promise<void> {
+    try {
+      await apiClient.delete<ApiResponse<null>>(`/comments/${commentId}/likes`);
+    } catch (error) {
+      console.error('댓글 좋아요 취소 실패:', error);
+      throw error;
+    }
+  }
+
+  // 댓글 좋아요 토글 (편의 메서드)
   static async toggleCommentLike(postId: number, commentId: number): Promise<{ isLiked: boolean; likeCount: number }> {
     try {
-      // TODO: 실제 API 연동 시 아래 주석 해제
+      // TODO: 실제 API 연동 시 아래 주석 해제하고 위의 likeComment/unlikeComment 사용
       // const response = await apiClient.post<ApiResponse<{ is_liked: boolean; like_count: number }>>(
-      //   `/posts/${postId}/comments/${commentId}/like`
+      //   `/comments/${commentId}/likes`
       // );
       // return {
       //   isLiked: response.data!.is_liked,
@@ -190,18 +312,18 @@ export class PostService {
   }
 
   // 댓글 수정
-  static async updateComment(postId: number, commentId: number, content: string): Promise<Comment> {
+  static async updateComment(commentId: number, content: string): Promise<Comment> {
     try {
       // TODO: 실제 API 연동 시 아래 주석 해제
       // const requestData = { content };
       // const response = await apiClient.put<ApiResponse<Comment>>(
-      //   `/posts/${postId}/comments/${commentId}`, 
+      //   `/comments/${commentId}`, 
       //   requestData
       // );
       // return response.data!;
 
       // 임시 Mock 데이터 반환
-      console.log(`댓글 수정 - postId: ${postId}, commentId: ${commentId}, content: ${content}`);
+      console.log(`댓글 수정 - commentId: ${commentId}, content: ${content}`);
       
       const updatedComment: Comment = {
         id: commentId,
@@ -229,13 +351,13 @@ export class PostService {
   }
 
   // 댓글 삭제
-  static async deleteComment(postId: number, commentId: number): Promise<void> {
+  static async deleteComment(commentId: number): Promise<void> {
     try {
       // TODO: 실제 API 연동 시 아래 주석 해제
-      // await apiClient.delete(`/posts/${postId}/comments/${commentId}`);
+      // await apiClient.delete(`/comments/${commentId}`);
 
       // 임시 Mock 응답
-      console.log(`댓글 삭제 - postId: ${postId}, commentId: ${commentId}`);
+      console.log(`댓글 삭제 - commentId: ${commentId}`);
       
     } catch (error) {
       console.error('댓글 삭제 실패:', error);

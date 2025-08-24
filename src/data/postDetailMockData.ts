@@ -4,7 +4,6 @@ import { PostDetail } from '../types/post';
 export const MOCK_POST_DETAIL: PostDetail = {
   id: 1,
   title: '겨울철 건조한 피부를 위한 스킨케어 루틴 💧',
-  post_type: 'normal',
   created_at: '2024-01-15T10:30:00.000Z',
   updated_at: '2024-01-15T10:30:00.000Z',
   user: {
@@ -63,7 +62,6 @@ export const MOCK_POST_DETAIL: PostDetail = {
 export const MOCK_ITEM_POST_DETAIL: PostDetail = {
   id: 2,
   title: '200레벨 아크메이지 템셋 공유 🔥',
-  post_type: 'item_showcase',
   created_at: '2024-01-16T14:20:00.000Z',
   updated_at: '2024-01-16T14:20:00.000Z',
   user: {
@@ -101,44 +99,6 @@ export const MOCK_ITEM_POST_DETAIL: PostDetail = {
     { id: 5, name: '아크메이지' },
     { id: 6, name: '템셋' },
     { id: 7, name: '200레벨' }
-  ],
-  item_snapshots: [
-    {
-      preset_no: 1,
-      items: [
-        {
-          item_slot: '무기',
-          item_name: '앱솔랩스 스태프',
-          item_icon_url: 'https://maplestory.io/api/item/1234567/icon',
-          option_json: {
-            '마력': '+287',
-            '모든능력치': '+45',
-            '보스몬스터공격시데미지': '+30%',
-            '몬스터방어력무시': '+15%'
-          }
-        },
-        {
-          item_slot: '보조무기',
-          item_name: '앱솔랩스 오브',
-          item_icon_url: 'https://maplestory.io/api/item/1234568/icon',
-          option_json: {
-            '마력': '+120',
-            '모든능력치': '+30',
-            '크리티컬확률': '+12%'
-          }
-        },
-        {
-          item_slot: '상의',
-          item_name: '아케인셰이드 로브',
-          item_icon_url: 'https://maplestory.io/api/item/1234569/icon',
-          option_json: {
-            '모든능력치': '+65',
-            '마력': '+45',
-            '최대HP': '+855'
-          }
-        }
-      ]
-    }
   ],
   like_count: 892,
   bookmark_count: 234,

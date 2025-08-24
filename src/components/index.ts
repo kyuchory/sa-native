@@ -20,6 +20,9 @@ export * from './CommonIcons';
 export { default as ChatHeader } from './ChatHeader';
 export { default as ChatActionSheet } from './ChatActionSheet';
 export * from './ChatActionIcons';
+export * from './ChatDetailIcons';
+export { default as ChatDetailSidebar } from './ChatDetailSidebar';
+export * from './SidebarIcons';
 
 // 컷 관련
 export * from './CutIcons';
