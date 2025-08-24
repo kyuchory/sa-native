@@ -13,7 +13,7 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { COLORS, TEXT_COLORS, BG_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
-import { PostDetail, PostDetailContentBlock, PostTag, ItemSnapshot } from '../types/post';
+import { PostDetail, PostDetailContentBlock, PostTag } from '../types/post';
 
 // Components
 import CommonHeader from '../components/CommonHeader';
@@ -201,37 +201,6 @@ export default function PostDetailScreen() {
     );
   };
 
-  // 아이템 스냅샷 렌더링
-  const renderItemSnapshots = (snapshots?: ItemSnapshot[]) => {
-    if (!snapshots || snapshots.length === 0) return null;
-
-    return (
-      <View style={styles.itemSnapshotsContainer}>
-        <Text style={styles.sectionTitle}>🎮 아이템 정보</Text>
-        {snapshots.map((snapshot) => (
-          <View key={snapshot.preset_no} style={styles.snapshotContainer}>
-            <Text style={styles.snapshotTitle}>프리셋 {snapshot.preset_no}</Text>
-            {snapshot.items.map((item, index) => (
-              <View key={index} style={styles.itemContainer}>
-                <View style={styles.itemHeader}>
-                  <Text style={styles.itemSlot}>{item.item_slot}</Text>
-                  <Text style={styles.itemName}>{item.item_name}</Text>
-                </View>
-                <View style={styles.itemOptions}>
-                  {Object.entries(item.option_json).map(([key, value]) => (
-                    <Text key={key} style={styles.itemOption}>
-                      {key}: {value}
-                    </Text>
-                  ))}
-                </View>
-              </View>
-            ))}
-          </View>
-        ))}
-      </View>
-    );
-  };
-
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -288,9 +257,6 @@ export default function PostDetailScreen() {
             .sort((a, b) => a.sequence - b.sequence)
             .map((block, index) => renderContentBlock(block, index))}
         </View>
-
-        {/* 아이템 스냅샷 (아이템 스타일 게시물인 경우) */}
-        {renderItemSnapshots(post.item_snapshots)}
 
         {/* 태그 */}
         {renderTags(post.tags)}
