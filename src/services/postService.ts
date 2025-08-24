@@ -7,11 +7,14 @@ import type {
   PostDetailResponse,
   PostDetail,
   CommentsResponse,
-  Comment
+  Comment,
+  ImageUploadResponse,
+  UploadedImage,
+  PostListResponse,
+  PostListItem
 } from '../types/post';
 import type { ApiResponse } from '../types/api';
 import { MOCK_POST_DETAIL, MOCK_ITEM_POST_DETAIL } from '../data/postDetailMockData';
-import { MOCK_COMMENTS, MOCK_ITEM_COMMENTS } from '../data/commentMockData';
 
 export class PostService {
   // 카테고리 목록 조회
@@ -21,6 +24,35 @@ export class PostService {
       return response.data || [];
     } catch (error) {
       console.error('카테고리 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 게시글 목록 조회
+  static async getPosts(params?: {
+    categoryId?: number;
+    subCategoryId?: number;
+    page?: number;
+  }): Promise<PostListResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params?.categoryId) {
+        queryParams.append('categoryId', params.categoryId.toString());
+      }
+      if (params?.subCategoryId) {
+        queryParams.append('subCategoryId', params.subCategoryId.toString());
+      }
+      if (params?.page) {
+        queryParams.append('page', params.page.toString());
+      }
+
+      const endpoint = `/posts${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const response = await apiClient.get<ApiResponse<PostListResponse>>(endpoint);
+      
+      return response.data!;
+    } catch (error) {
+      console.error('게시글 목록 조회 실패:', error);
       throw error;
     }
   }
@@ -39,44 +71,47 @@ export class PostService {
   // 게시물 상세 조회
   static async getPostDetail(postId: number): Promise<PostDetail> {
     try {
-      // TODO: 실제 API 연동 시 아래 주석 해제
-      // const response = await apiClient.get<ApiResponse<PostDetail>>(`/posts/${postId}`);
-      // return response.data!;
-
-      // 임시 Mock 데이터 반환
-      console.log(`게시물 상세 조회 - postId: ${postId}`);
-      
-      // postId에 따라 다른 mock 데이터 반환
-      if (postId === 2) {
-        return MOCK_ITEM_POST_DETAIL;
-      }
-      return MOCK_POST_DETAIL;
-      
+      const response = await apiClient.get<ApiResponse<PostDetail>>(`/posts/${postId}`);
+      return response.data!;
     } catch (error) {
       console.error('게시물 상세 조회 실패:', error);
       throw error;
     }
   }
 
-  // 이미지 업로드 (임시 - 추후 구현)
-  static async uploadImage(imageUri: string): Promise<string> {
+  // 이미지 업로드
+  static async uploadImages(imageUris: string[]): Promise<UploadedImage[]> {
     try {
-      // TODO: 실제 이미지 업로드 구현
-      // FormData를 사용하여 이미지 업로드
+      // FormData 생성
       const formData = new FormData();
-      formData.append('image', {
-        uri: imageUri,
-        type: 'image/jpeg',
-        name: 'image.jpg',
-      } as any);
+      
+      imageUris.forEach((imageUri, index) => {
+        const fileName = imageUri.split('/').pop() || `image_${index}.jpg`;
+        
+        formData.append('images', {
+          uri: imageUri,
+          type: 'image/jpeg', // 기본값, 실제로는 asset.type 사용 권장
+          name: fileName,
+        } as any);
+      });
 
-      const response = await apiClient.post<ApiResponse<{ imageUrl: string }>>('/upload/image', formData);
+      // API 호출
+      const response = await apiClient.postFormData<ApiResponse<ImageUploadResponse>>(
+        '/posts/upload/images', 
+        formData
+      );
 
-      return response.data?.imageUrl || '';
+      return response.data.files || [];
     } catch (error) {
       console.error('이미지 업로드 실패:', error);
       throw error;
     }
+  }
+
+  // 단일 이미지 업로드 (편의 함수)
+  static async uploadImage(imageUri: string): Promise<UploadedImage> {
+    const results = await this.uploadImages([imageUri]);
+    return results[0];
   }
 
   // 비디오 업로드 (임시 - 추후 구현)
@@ -104,19 +139,8 @@ export class PostService {
   // 댓글 목록 조회
   static async getComments(postId: number): Promise<Comment[]> {
     try {
-      // TODO: 실제 API 연동 시 아래 주석 해제
-      // const response = await apiClient.get<ApiResponse<Comment[]>>(`/posts/${postId}/comments`);
-      // return response.data || [];
-
-      // 임시 Mock 데이터 반환
-      console.log(`댓글 목록 조회 - postId: ${postId}`);
-      
-      // postId에 따라 다른 mock 데이터 반환
-      if (postId === 2) {
-        return MOCK_ITEM_COMMENTS;
-      }
-      return MOCK_COMMENTS;
-      
+      const response = await apiClient.get<ApiResponse<Comment[]>>(`/posts/${postId}/comments`);
+      return response.data || [];
     } catch (error) {
       console.error('댓글 목록 조회 실패:', error);
       throw error;

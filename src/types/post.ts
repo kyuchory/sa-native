@@ -178,7 +178,6 @@ export interface PostListItem {
   preview_image: string | null;
 }
 
-// 페이지네이션 정보
 export interface Pagination {
   page: number;
   limit: number;
@@ -188,7 +187,6 @@ export interface Pagination {
   has_prev: boolean;
 }
 
-// 게시글 목록 조회 응답
 export interface PostListResponse {
   posts: PostListItem[];
   pagination: Pagination;
@@ -202,12 +200,14 @@ export interface UpdatePostRequest {
   tags?: string[];
 }
 
-// 이미지 업로드 응답
+// 이미지 업로드 관련 타입
+export interface UploadedImage {
+  filename: string;
+  path: string;
+  url: string;
+  size: number;
+}
+
 export interface ImageUploadResponse {
-  files: {
-    filename: string;
-    path: string;
-    url: string;
-    size: number;
-  }[];
+  files: UploadedImage[];
 }

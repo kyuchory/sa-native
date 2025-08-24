@@ -26,8 +26,7 @@ import { PostService } from '../services/postService';
 import { LikeIcon, CommentIcon, BookmarkIcon } from '../components/PostIcons';
 // Comment component import
 import CommentList from '../components/CommentList';
-// Comment mock data import
-import { MOCK_COMMENTS, MOCK_ITEM_COMMENTS } from '../data/commentMockData';
+
 import { Comment } from '../types/post';
 
 type PostDetailRouteProp = RouteProp<AuthStackParamList, 'PostDetail'>;
@@ -62,9 +61,9 @@ export default function PostDetailScreen() {
       setIsBookmarked(postData.is_bookmarked || false);
       setLikeCount(postData.like_count);
       
-      // Mock 댓글 데이터 로드 (postId에 따라 다른 댓글)
-      const mockComments = postId === 2 ? MOCK_ITEM_COMMENTS : MOCK_COMMENTS;
-      setComments(mockComments);
+      // 댓글 데이터 로드
+      const commentsData = await PostService.getComments(postId);
+      setComments(commentsData);
     } catch (error) {
       Alert.alert('오류', '게시물을 불러오는데 실패했습니다.');
       console.error('게시물 상세 조회 실패:', error);
@@ -400,8 +399,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.WHITE,
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.MD,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_200,
   },
   title: {
     fontSize: TYPOGRAPHY.SIZE.XL,

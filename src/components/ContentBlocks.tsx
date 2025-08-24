@@ -97,6 +97,11 @@ export function ImageBlock({
 }: ContentBlockProps) {
   
   const handleImagePicker = () => {
+    // 이미지가 이미 선택된 경우에는 아무것도 하지 않음
+    if (block.value) {
+      return;
+    }
+    
     // TODO: 실제 이미지 피커 구현
     Alert.alert(
       '이미지 선택',
@@ -143,13 +148,16 @@ export function ImageBlock({
       </View>
 
       {block.value ? (
-        <TouchableOpacity onPress={handleImagePicker} activeOpacity={0.8}>
+        <View style={styles.imageContainer}>
           <Image 
             source={{ uri: block.value }} 
             style={styles.imagePreview}
             resizeMode="cover"
           />
-        </TouchableOpacity>
+          <View style={styles.imageInfo}>
+            <Text style={styles.imageInfoText}>이미지가 업로드되었습니다</Text>
+          </View>
+        </View>
       ) : (
         <TouchableOpacity 
           style={styles.imagePlaceholder}
@@ -349,6 +357,25 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.MD,
     marginVertical: SPACING.SM,
     borderRadius: BORDER_RADIUS.SM,
+  },
+  imageContainer: {
+    position: 'relative',
+  },
+  imageInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingVertical: SPACING.XS,
+    paddingHorizontal: SPACING.SM,
+    borderBottomLeftRadius: BORDER_RADIUS.SM,
+    borderBottomRightRadius: BORDER_RADIUS.SM,
+  },
+  imageInfoText: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    color: COLORS.WHITE,
+    textAlign: 'center',
   },
   imagePlaceholder: {
     marginHorizontal: SPACING.MD,

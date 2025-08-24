@@ -93,6 +93,23 @@ class ApiClient {
     return this.handleResponse<T>(response, includeAuth ? makeRequest : undefined);
   }
 
+  // FormData 전송용 POST 요청
+  async postFormData<T>(endpoint: string, formData: FormData, includeAuth: boolean = true): Promise<T> {
+    const makeRequest = async () => {
+      const headers = await this.getHeaders(includeAuth);
+      // FormData 전송 시에는 Content-Type을 제거해야 함 (브라우저가 자동으로 설정)
+      delete headers['Content-Type'];
+      return fetch(`${this.baseURL}${endpoint}`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+    };
+
+    const response = await makeRequest();
+    return this.handleResponse<T>(response, includeAuth ? makeRequest : undefined);
+  }
+
   // PUT 요청
   async put<T>(endpoint: string, data: any, includeAuth: boolean = true): Promise<T> {
     const makeRequest = async () => {

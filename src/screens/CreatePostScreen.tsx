@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import * as ImagePicker from 'expo-image-picker';
 import { COLORS, TEXT_COLORS, BG_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
 import type { ContentBlock, ContentBlockType, Category } from '../types/post';
@@ -77,7 +78,7 @@ export default function CreatePostScreen() {
       id: `${type}_${Date.now()}`,
       type,
       value: '',
-      sequence: contentBlocks.length,
+      sequence: contentBlocks.length, // 현재 블록 개수를 sequence로 사용
     };
     setContentBlocks(prev => [...prev, newBlock]);
   };
@@ -95,7 +96,7 @@ export default function CreatePostScreen() {
   const deleteBlock = (blockId: string) => {
     setContentBlocks(prev => {
       const filteredBlocks = prev.filter(block => block.id !== blockId);
-      // sequence 재정렬
+      // sequence 재정렬 (0부터 시작)
       return filteredBlocks.map((block, index) => ({
         ...block,
         sequence: index
@@ -113,7 +114,7 @@ export default function CreatePostScreen() {
       [newBlocks[blockIndex - 1], newBlocks[blockIndex]] = 
       [newBlocks[blockIndex], newBlocks[blockIndex - 1]];
       
-      // sequence 재정렬
+      // sequence 재정렬 (0부터 시작)
       return newBlocks.map((block, index) => ({
         ...block,
         sequence: index
@@ -131,12 +132,74 @@ export default function CreatePostScreen() {
       [newBlocks[blockIndex], newBlocks[blockIndex + 1]] = 
       [newBlocks[blockIndex + 1], newBlocks[blockIndex]];
       
-      // sequence 재정렬
+      // sequence 재정렬 (0부터 시작)
       return newBlocks.map((block, index) => ({
         ...block,
         sequence: index
       }));
     });
+  };
+
+  // 이미지 선택 및 업로드
+  const handleImageSelection = async () => {
+    try {
+      // 권한 요청
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
+        return;
+      }
+
+      // 이미지 선택
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: false,
+        quality: 1,
+        aspect: [4, 3],
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const selectedImage = result.assets[0];
+        
+        // 이미지 블록 추가
+        const newImageBlock: ContentBlock = {
+          id: `image_${Date.now()}`,
+          type: 'image',
+          value: selectedImage.uri, // 임시로 URI 저장
+          sequence: contentBlocks.length, // 현재 블록 개수를 sequence로 사용
+        };
+        
+        setContentBlocks(prev => [...prev, newImageBlock]);
+        
+        // 이미지 업로드
+        try {
+          setIsLoading(true);
+          const uploadedImage = await PostService.uploadImage(selectedImage.uri);
+          
+          // 업로드된 이미지 URL로 블록 업데이트
+          setContentBlocks(prev => 
+            prev.map(block => 
+              block.id === newImageBlock.id 
+                ? { ...block, value: uploadedImage.url }
+                : block
+            )
+          );
+          
+          Alert.alert('성공', '이미지가 업로드되었습니다.');
+        } catch (uploadError) {
+          console.error('이미지 업로드 실패:', uploadError);
+          Alert.alert('오류', '이미지 업로드에 실패했습니다.');
+          
+          // 업로드 실패 시 블록 제거
+          setContentBlocks(prev => prev.filter(block => block.id !== newImageBlock.id));
+        }
+      }
+    } catch (error) {
+      console.error('이미지 선택 실패:', error);
+      Alert.alert('오류', '이미지 선택에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // 카테고리 선택 처리
@@ -173,10 +236,9 @@ export default function CreatePostScreen() {
       const postData = {
         title: title.trim(),
         sub_category_id: selectedSubcategoryId,
-        post_type: 'normal' as const,
         content_blocks: contentBlocks
           .filter(block => block.value.trim()) // 빈 블록 제외
-          .map(({ id, ...block }) => block), // id 제거
+          .map(({ id, ...block }, index) => ({ ...block, sequence: index })), // id 제거하고 sequence 재정렬
         tags: [], // 추후 태그 기능 추가시 사용
       };
 
@@ -295,7 +357,7 @@ export default function CreatePostScreen() {
         
         <TouchableOpacity 
           style={styles.addButton}
-          onPress={() => addBlock('image')}
+          onPress={handleImageSelection}
           activeOpacity={0.7}
         >
           <AddImageIcon size={24} color={COLORS.GRAY_600} />

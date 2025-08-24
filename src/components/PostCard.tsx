@@ -1,24 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import type { PostListItem } from '../types/post';
+import { EmptyHeartIcon, FilledHeartIcon, CommentIcon } from './PostCardIcons';
 
-// 게시물 타입 정의
-export interface Post {
-  id: string;
-  title: string;
-  content: string;
-  author: {
-    id: string;
-    nickname: string;
-    profileImage?: string;
-  };
-  imageUrl?: string;
-  likeCount: number;
-  commentCount: number;
-  viewCount: number;
-  createdAt: string;
-  categoryId: string;
-  subcategoryId?: string;
+// 게시물 타입 정의 (API 응답에 맞게 수정)
+export interface Post extends PostListItem {
+  isLiked?: boolean; // 좋아요 상태 추가
 }
 
 interface PostCardProps {
@@ -34,6 +22,32 @@ export default function PostCard({
   onLikePress, 
   onCommentPress 
 }: PostCardProps) {
+  
+  // 로컬 좋아요 상태 관리
+  const [isLiked, setIsLiked] = useState(post.isLiked || false);
+  const [likeCount, setLikeCount] = useState(post.like_count);
+
+  // post prop이 변경될 때 상태 초기화
+  useEffect(() => {
+    setIsLiked(post.isLiked || false);
+    setLikeCount(post.like_count);
+  }, [post.isLiked, post.like_count]);
+
+  // 좋아요 토글 핸들러
+  const handleLikeToggle = () => {
+    const newLikeState = !isLiked;
+    setIsLiked(newLikeState);
+    
+    // 좋아요 수 업데이트
+    if (newLikeState) {
+      setLikeCount(prev => prev + 1);
+    } else {
+      setLikeCount(prev => Math.max(0, prev - 1));
+    }
+    
+    // 부모 컴포넌트에 알림
+    onLikePress?.();
+  };
   
   // 시간 포맷팅 함수
   const formatTime = (dateString: string) => {
@@ -72,22 +86,22 @@ export default function PostCard({
       <View style={styles.header}>
         <View style={styles.authorInfo}>
           <View style={styles.profileImageContainer}>
-            {post.author.profileImage ? (
+            {post.user.profile_img ? (
               <Image 
-                source={{ uri: post.author.profileImage }} 
+                source={{ uri: post.user.profile_img }} 
                 style={styles.profileImage}
               />
             ) : (
               <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
                 <Text style={styles.profileImageText}>
-                  {post.author.nickname.charAt(0).toUpperCase()}
+                  {post.user.nickname.charAt(0).toUpperCase()}
                 </Text>
               </View>
             )}
           </View>
           <View style={styles.authorDetails}>
-            <Text style={styles.authorName}>{post.author.nickname}</Text>
-            <Text style={styles.timeText}>{formatTime(post.createdAt)}</Text>
+            <Text style={styles.authorName}>{post.user.nickname}</Text>
+            <Text style={styles.timeText}>{formatTime(post.created_at)}</Text>
           </View>
         </View>
       </View>
@@ -98,17 +112,14 @@ export default function PostCard({
           <Text style={styles.title} numberOfLines={2}>
             {post.title}
           </Text>
-          <Text style={styles.contentText} numberOfLines={3}>
-            {post.content}
-          </Text>
         </View>
 
-        {/* 썸네일 이미지 */}
-        {post.imageUrl && (
+        {/* 이미지가 있는 경우 */}
+        {post.preview_image && (
           <View style={styles.imageContainer}>
             <Image 
-              source={{ uri: post.imageUrl }} 
-              style={styles.thumbnail}
+              source={{ uri: post.preview_image }} 
+              style={styles.postImage}
               resizeMode="cover"
             />
           </View>
@@ -117,27 +128,28 @@ export default function PostCard({
 
       {/* 하단: 상호작용 버튼들 */}
       <View style={styles.footer}>
-        <View style={styles.stats}>
+        <View style={styles.interactionButtons}>
           <TouchableOpacity 
-            style={styles.statButton}
-            onPress={onLikePress}
+            style={styles.interactionButton}
+            onPress={handleLikeToggle}
+            activeOpacity={0.7}
           >
-            <Text style={styles.statIcon}>❤️</Text>
-            <Text style={styles.statText}>{formatNumber(post.likeCount)}</Text>
+            {isLiked ? (
+              <FilledHeartIcon size={18} color={COLORS.ERROR} />
+            ) : (
+              <EmptyHeartIcon size={18} color={COLORS.GRAY_400} />
+            )}
+            <Text style={styles.interactionText}>{formatNumber(likeCount)}</Text>
           </TouchableOpacity>
-
+          
           <TouchableOpacity 
-            style={styles.statButton}
+            style={styles.interactionButton}
             onPress={onCommentPress}
+            activeOpacity={0.7}
           >
-            <Text style={styles.statIcon}>💬</Text>
-            <Text style={styles.statText}>{formatNumber(post.commentCount)}</Text>
+            <CommentIcon size={18} color={COLORS.GRAY_400} />
+            <Text style={styles.interactionText}>{formatNumber(post.comment_count)}</Text>
           </TouchableOpacity>
-
-          <View style={styles.statButton}>
-            <Text style={styles.statIcon}>👁️</Text>
-            <Text style={styles.statText}>{formatNumber(post.viewCount)}</Text>
-          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -201,7 +213,7 @@ const styles = StyleSheet.create({
   },
   textContent: {
     flex: 1,
-    marginRight: post => post.imageUrl ? SPACING.SM : 0,
+    marginRight: SPACING.SM,
   },
   title: {
     fontSize: TYPOGRAPHY.SIZE.MD,
@@ -222,6 +234,12 @@ const styles = StyleSheet.create({
     height: 80,
   },
   thumbnail: {
+    width: '100%',
+    height: '100%',
+    borderRadius: BORDER_RADIUS.MD,
+    backgroundColor: COLORS.GRAY_100,
+  },
+  postImage: {
     width: '100%',
     height: '100%',
     borderRadius: BORDER_RADIUS.MD,
@@ -252,5 +270,21 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.SM,
     color: TEXT_COLORS.DISABLED,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
+  interactionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  interactionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: SPACING.XS,
+    paddingVertical: SPACING.XS,
+  },
+  interactionText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: TEXT_COLORS.SECONDARY,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    marginLeft: SPACING.XS,
   },
 });

@@ -4,6 +4,8 @@ export { default as DuplicateCheckButton } from './DuplicateCheckButton';
 export { default as HomeHeader } from './HomeHeader';
 export { default as CategorySelector } from './CategorySelector';
 export { default as PostCard } from './PostCard';
+export { default as Pagination } from './Pagination';
+export * from './PostCardIcons';
 export { default as ProfileButton } from './ProfileButton';
 export { default as ProfileHeader } from './ProfileHeader';
 export { default as ProfileTabNavigation } from './ProfileTabNavigation';
