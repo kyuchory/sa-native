@@ -1,5 +1,4 @@
 import type { FeedItem, VideoItem, CharacterItem } from '../components/ProfileContentGrid';
-import type { Post } from '../components/PostCard';
 
 // 프로필 유저 목 데이터
 export const MOCK_PROFILE_USER = {
@@ -135,60 +134,7 @@ export const MOCK_FEED_DATA: FeedItem[] = [
   },
 ];
 
-// 프로필 게시물 목 데이터
-export const MOCK_PROFILE_POSTS: Post[] = [
-  {
-    id: 'profile_post1',
-    title: '오늘의 OOTD 💄',
-    content: '새로 산 립스틱이랑 아이섀도우로 메이크업해봤어요! 어떤가요?',
-    author: {
-      id: 'profile_user',
-      nickname: '스타일러버',
-      profileImage: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
-    },
-    imageUrl: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=400&h=300&fit=crop',
-    likeCount: 256,
-    commentCount: 43,
-    viewCount: 1520,
-    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-    categoryId: 'beauty',
-    subcategoryId: 'makeup',
-  },
-  {
-    id: 'profile_post2',
-    title: '겨울 코디 추천 ❄️',
-    content: '요즘 같은 날씨에 입기 좋은 따뜻하면서도 스타일리시한 코디 공유해요!',
-    author: {
-      id: 'profile_user',
-      nickname: '스타일러버',
-      profileImage: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
-    },
-    imageUrl: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400&h=300&fit=crop',
-    likeCount: 189,
-    commentCount: 32,
-    viewCount: 892,
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    categoryId: 'fashion',
-    subcategoryId: 'daily',
-  },
-  {
-    id: 'profile_post3',
-    title: '홈 카페 세팅 ☕',
-    content: '집에서 카페 분위기 내려고 소품들 새로 샀어요. 분위기 어때요?',
-    author: {
-      id: 'profile_user',
-      nickname: '스타일러버',
-      profileImage: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
-    },
-    imageUrl: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=300&fit=crop',
-    likeCount: 312,
-    commentCount: 67,
-    viewCount: 1456,
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    categoryId: 'lifestyle',
-    subcategoryId: 'home',
-  },
-];
+
 
 // 비디오 목 데이터
 export const MOCK_VIDEOS_DATA: VideoItem[] = [

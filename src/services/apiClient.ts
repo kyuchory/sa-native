@@ -125,6 +125,21 @@ class ApiClient {
     return this.handleResponse<T>(response, includeAuth ? makeRequest : undefined);
   }
 
+  // PATCH 요청
+  async patch<T>(endpoint: string, data: any, includeAuth: boolean = true): Promise<T> {
+    const makeRequest = async () => {
+      const headers = await this.getHeaders(includeAuth);
+      return fetch(`${this.baseURL}${endpoint}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(data),
+      });
+    };
+
+    const response = await makeRequest();
+    return this.handleResponse<T>(response, includeAuth ? makeRequest : undefined);
+  }
+
   // DELETE 요청
   async delete<T>(endpoint: string, includeAuth: boolean = true): Promise<T> {
     const makeRequest = async () => {
