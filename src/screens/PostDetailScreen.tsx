@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -26,8 +27,13 @@ import { PostService } from '../services/postService';
 import { LikeIcon, CommentIcon, BookmarkIcon } from '../components/PostIcons';
 // Comment component import
 import CommentList from '../components/CommentList';
+import { CommentInput } from '../components/CommentInput';
+import { ReplyInput } from '../components/ReplyInput';
+import { CommentEditInput } from '../components/CommentEditInput';
+import { CommentActions } from '../components/CommentActions';
 
 import { Comment } from '../types/post';
+import { useAuthStore } from '../stores/authStore';
 
 type PostDetailRouteProp = RouteProp<AuthStackParamList, 'PostDetail'>;
 type PostDetailNavigationProp = StackNavigationProp<AuthStackParamList, 'PostDetail'>;
@@ -44,7 +50,13 @@ export default function PostDetailScreen() {
   const [isLiked, setIsLiked] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [isCommentLoading, setIsCommentLoading] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
+  const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
+  const { user } = useAuthStore();
+  const currentUserId = user?.id;
 
   // 컴포넌트 마운트 시 게시물 데이터 로드
   useEffect(() => {
@@ -73,14 +85,39 @@ export default function PostDetailScreen() {
     }
   };
 
-  // 좋아요 토글
-  const handleLikeToggle = () => {
-    setIsLiked(prev => {
-      const newLiked = !prev;
-      setLikeCount(count => newLiked ? count + 1 : count - 1);
-      return newLiked;
-    });
-    // TODO: API 호출
+  // 좋아요 토글 (PostCard와 동일한 낙관적 UI 적용)
+  const handleLikeToggle = async () => {
+    if (isLikeLoading) return; // 이미 요청 중이면 무시
+    
+    // 낙관적 UI: 즉시 상태 업데이트
+    const originalIsLiked = isLiked;
+    const originalLikeCount = likeCount;
+    const newLikeState = !isLiked;
+    
+    setIsLiked(newLikeState);
+    setLikeCount(prev => newLikeState ? prev + 1 : Math.max(0, prev - 1));
+    setIsLikeLoading(true);
+    
+    try {
+      // API 호출
+      const response = await PostService.togglePostLike(postId);
+      
+      // 서버 응답으로 최종 상태 동기화
+      setIsLiked(response.is_liked);
+      setLikeCount(response.like_count);
+      
+    } catch (error) {
+      console.error('좋아요 토글 실패:', error);
+      
+      // 실패 시 원래 상태로 롤백
+      setIsLiked(originalIsLiked);
+      setLikeCount(originalLikeCount);
+      
+      Alert.alert('오류', '좋아요 처리에 실패했습니다.');
+      
+    } finally {
+      setIsLikeLoading(false);
+    }
   };
 
   // 북마크 토글
@@ -90,7 +127,10 @@ export default function PostDetailScreen() {
   };
 
   // 댓글 좋아요 토글
-  const handleCommentLike = (commentId: number) => {
+  const handleCommentLike = async (commentId: number) => {
+    // 낙관적 UI 업데이트
+    const originalComments = [...comments];
+    
     setComments(prev => {
       const updateComment = (comment: Comment): Comment => {
         if (comment.id === commentId) {
@@ -111,14 +151,157 @@ export default function PostDetailScreen() {
       
       return prev.map(updateComment);
     });
+
+    try {
+      // API 호출
+      const response = await PostService.toggleCommentLike(commentId);
+      
+      // 서버 응답으로 최종 동기화
+      setComments(prev => {
+        const updateComment = (comment: Comment): Comment => {
+          if (comment.id === commentId) {
+            return {
+              ...comment,
+              is_liked: response.is_liked,
+              like_count: response.like_count
+            };
+          }
+          if (comment.replies) {
+            return {
+              ...comment,
+              replies: comment.replies.map(updateComment)
+            };
+          }
+          return comment;
+        };
+        
+        return prev.map(updateComment);
+      });
+    } catch (error) {
+      // 실패 시 원래 상태로 롤백
+      setComments(originalComments);
+      Alert.alert('오류', '좋아요 처리에 실패했습니다.');
+      console.error('댓글 좋아요 토글 실패:', error);
+    }
   };
 
-  // 답글 작성 (임시)
+  // 댓글 작성
+  const handleSendComment = async (text: string) => {
+    if (!text.trim() || isCommentLoading) return;
+    
+    try {
+      setIsCommentLoading(true);
+      
+      // API 호출
+      await PostService.createComment(postId, text);
+      
+      // 댓글 목록 새로고침
+      const updatedComments = await PostService.getComments(postId);
+      setComments(updatedComments);
+      
+    } catch (error) {
+      Alert.alert('오류', '댓글 작성에 실패했습니다.');
+      console.error('댓글 작성 실패:', error);
+    } finally {
+      setIsCommentLoading(false);
+    }
+  };
+
+  // 답글 작성
   const handleReplyPress = (comment: Comment) => {
-    Alert.alert('답글', `${comment.user.nickname}님에게 답글을 작성합니다.`, [
-      { text: '취소', style: 'cancel' },
-      { text: '작성', onPress: () => console.log('답글 작성:', comment.id) }
-    ]);
+    setReplyingTo({
+      commentId: comment.id,
+      userName: comment.user.nickname
+    });
+  };
+
+  // 답글 전송
+  const handleSendReply = async (text: string) => {
+    if (!replyingTo || !text.trim() || isCommentLoading) return;
+    
+    try {
+      setIsCommentLoading(true);
+      
+      // 멘션된 사용자 ID 찾기 (실제로는 사용자 검색 API 필요)
+      const mentionUserId = comments
+        .flatMap(c => [c, ...(c.replies || [])])
+        .find(c => c.user.nickname === replyingTo.userName)?.user.id;
+      
+      // API 호출
+      await PostService.createComment(postId, text, replyingTo.commentId, mentionUserId);
+      
+      // 댓글 목록 새로고침
+      const updatedComments = await PostService.getComments(postId);
+      setComments(updatedComments);
+      
+      // 답글 입력 모드 종료
+      setReplyingTo(null);
+      
+    } catch (error) {
+      Alert.alert('오류', '답글 작성에 실패했습니다.');
+      console.error('답글 작성 실패:', error);
+    } finally {
+      setIsCommentLoading(false);
+    }
+  };
+
+  // 댓글 수정
+  const handleEditComment = (commentId: number) => {
+    const comment = comments
+      .flatMap(c => [c, ...(c.replies || [])])
+      .find(c => c.id === commentId);
+    
+    if (comment) {
+      setEditingComment({
+        commentId: comment.id,
+        content: comment.content
+      });
+    }
+  };
+
+  // 댓글 수정 저장
+  const handleSaveEdit = async (text: string) => {
+    if (!editingComment || !text.trim() || isCommentLoading) return;
+    
+    try {
+      setIsCommentLoading(true);
+      
+      // API 호출
+      await PostService.updateComment(editingComment.commentId, text);
+      
+      // 댓글 목록 새로고침
+      const updatedComments = await PostService.getComments(postId);
+      setComments(updatedComments);
+      
+      // 수정 모드 종료
+      setEditingComment(null);
+      
+    } catch (error) {
+      Alert.alert('오류', '댓글 수정에 실패했습니다.');
+      console.error('댓글 수정 실패:', error);
+    } finally {
+      setIsCommentLoading(false);
+    }
+  };
+
+  // 댓글 삭제
+  const handleDeleteComment = async (commentId: number) => {
+    try {
+      setIsCommentLoading(true);
+      
+      // API 호출
+      await PostService.deleteComment(commentId);
+      
+      // 댓글 목록 새로고침
+      const updatedComments = await PostService.getComments(postId);
+      setComments(updatedComments);
+      
+    } catch (error) {
+      Alert.alert('오류', '댓글 삭제에 실패했습니다.');
+      console.error('댓글 삭제 실패:', error);
+    } finally {
+      setIsCommentLoading(false);
+    }
   };
 
   // 시간 포맷팅
@@ -204,7 +387,7 @@ export default function PostDetailScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <CommonHeader title="게시물" />
-        <LoadingOverlay visible={true} />
+        <LoadingOverlay visible={true} message="게시물 로딩 중..."/>
       </SafeAreaView>
     );
   }
@@ -266,13 +449,18 @@ export default function PostDetailScreen() {
             style={styles.compactStatButton}
             onPress={handleLikeToggle}
             activeOpacity={0.7}
+            disabled={isLikeLoading}
           >
-            <LikeIcon 
-              size={16} 
-              filled={isLiked}
-              color={isLiked ? COLORS.ERROR : COLORS.GRAY_500}
-            />
-            <Text style={[styles.compactStatText, isLiked && styles.likedText]}>
+            {isLikeLoading ? (
+              <ActivityIndicator size="small" color={COLORS.ERROR} />
+            ) : (
+              <LikeIcon 
+                size={16} 
+                filled={isLiked}
+                color={isLiked ? COLORS.ERROR : COLORS.GRAY_500}
+              />
+            )}
+            <Text style={[styles.compactStatText, isLiked && styles.likedText, isLikeLoading && styles.loadingText]}>
               {likeCount}
             </Text>
           </TouchableOpacity>
@@ -313,11 +501,35 @@ export default function PostDetailScreen() {
           comments={comments}
           onCommentLike={handleCommentLike}
           onReplyPress={handleReplyPress}
+          onEditComment={handleEditComment}
+          onDeleteComment={handleDeleteComment}
         />
 
         {/* 하단 여백 */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* 댓글 입력창 */}
+      {replyingTo ? (
+        <ReplyInput
+          onSendReply={handleSendReply}
+          onCancel={() => setReplyingTo(null)}
+          replyToUser={replyingTo.userName}
+          isLoading={isCommentLoading}
+        />
+      ) : editingComment ? (
+        <CommentEditInput
+          initialText={editingComment.content}
+          onSave={handleSaveEdit}
+          onCancel={() => setEditingComment(null)}
+          isLoading={isCommentLoading}
+        />
+      ) : (
+        <CommentInput
+          onSendComment={handleSendComment}
+          isLoading={isCommentLoading}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -552,6 +764,9 @@ const styles = StyleSheet.create({
   },
   bookmarkedText: {
     color: COLORS.PRIMARY,
+  },
+  loadingText: {
+    opacity: 0.6,
   },
 
   // 하단 여백

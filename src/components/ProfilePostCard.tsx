@@ -1,27 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
-import type { PostListItem } from '../types/post';
 import { EmptyHeartIcon, FilledHeartIcon, CommentIcon } from './PostCardIcons';
-import { PostService } from '../services/postService';
+import type { ProfilePostItem } from '../types/profile';
 
-interface PostCardProps {
-  post: PostListItem;
+interface ProfilePostCardProps {
+  post: ProfilePostItem;
   onPress?: () => void;
   onLikePress?: () => void;
   onCommentPress?: () => void;
 }
 
-export default function PostCard({ 
+export default function ProfilePostCard({ 
   post, 
-  onPress,
+  onPress, 
+  onLikePress, 
   onCommentPress 
-}: PostCardProps) {
+}: ProfilePostCardProps) {
   
   // 로컬 좋아요 상태 관리
   const [isLiked, setIsLiked] = useState(post.is_liked || false);
   const [likeCount, setLikeCount] = useState(post.like_count);
-  const [isLikeLoading, setIsLikeLoading] = useState(false);
 
   // post prop이 변경될 때 상태 초기화
   useEffect(() => {
@@ -29,39 +28,20 @@ export default function PostCard({
     setLikeCount(post.like_count);
   }, [post.is_liked, post.like_count]);
 
-  // 좋아요 토글 핸들러 (낙관적 UI 적용)
-  const handleLikeToggle = async () => {
-    if (isLikeLoading) return; // 이미 요청 중이면 무시
-    
-    // 낙관적 UI: 즉시 상태 업데이트
-    const originalIsLiked = isLiked;
-    const originalLikeCount = likeCount;
+  // 좋아요 토글 핸들러
+  const handleLikeToggle = () => {
     const newLikeState = !isLiked;
-    
     setIsLiked(newLikeState);
-    setLikeCount(prev => newLikeState ? prev + 1 : Math.max(0, prev - 1));
-    setIsLikeLoading(true);
     
-    try {
-      // API 호출
-      const response = await PostService.togglePostLike(post.id);
-      
-      // 서버 응답으로 최종 상태 동기화
-      setIsLiked(response.is_liked);
-      setLikeCount(response.like_count);
-      
-    } catch (error) {
-      console.error('좋아요 토글 실패:', error);
-      
-      // 실패 시 원래 상태로 롤백
-      setIsLiked(originalIsLiked);
-      setLikeCount(originalLikeCount);
-      
-      // TODO: 에러 토스트 메시지 표시
-      
-    } finally {
-      setIsLikeLoading(false);
+    // 좋아요 수 업데이트
+    if (newLikeState) {
+      setLikeCount(prev => prev + 1);
+    } else {
+      setLikeCount(prev => Math.max(0, prev - 1));
     }
+    
+    // 부모 컴포넌트에 알림
+    onLikePress?.();
   };
   
   // 시간 포맷팅 함수
@@ -97,27 +77,13 @@ export default function PostCard({
       onPress={onPress}
       activeOpacity={0.95}
     >
-      {/* 상단: 작성자 정보 */}
+      {/* 상단: 카테고리 정보 및 시간 */}
       <View style={styles.header}>
-        <View style={styles.authorInfo}>
-          <View style={styles.profileImageContainer}>
-            {post.user.profile_img ? (
-              <Image 
-                source={{ uri: post.user.profile_img }} 
-                style={styles.profileImage}
-              />
-            ) : (
-              <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
-                <Text style={styles.profileImageText}>
-                  {post.user.nickname.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
-          </View>
-          <View style={styles.authorDetails}>
-            <Text style={styles.authorName}>{post.user.nickname}</Text>
-            <Text style={styles.timeText}>{formatTime(post.created_at)}</Text>
-          </View>
+        <View style={styles.categoryInfo}>
+          <Text style={styles.categoryText}>
+            {post.sub_category.category.name} • {post.sub_category.name}
+          </Text>
+          <Text style={styles.timeText}>{formatTime(post.created_at)}</Text>
         </View>
       </View>
 
@@ -148,18 +114,13 @@ export default function PostCard({
             style={styles.interactionButton}
             onPress={handleLikeToggle}
             activeOpacity={0.7}
-            disabled={isLikeLoading}
           >
-            {isLikeLoading ? (
-              <ActivityIndicator size="small" color={COLORS.ERROR} />
-            ) : isLiked ? (
+            {isLiked ? (
               <FilledHeartIcon size={18} color={COLORS.ERROR} />
             ) : (
               <EmptyHeartIcon size={18} color={COLORS.GRAY_400} />
             )}
-            <Text style={[styles.interactionText, isLikeLoading && styles.loadingText]}>
-              {formatNumber(likeCount)}
-            </Text>
+            <Text style={styles.interactionText}>{formatNumber(likeCount)}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -186,40 +147,19 @@ const styles = StyleSheet.create({
     ...SHADOWS.SMALL,
   },
   
-  // 헤더 (작성자 정보)
+  // 헤더 (카테고리 정보)
   header: {
     marginBottom: SPACING.SM,
   },
-  authorInfo: {
+  categoryInfo: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  profileImageContainer: {
-    marginRight: SPACING.SM,
-  },
-  profileImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  profileImagePlaceholder: {
-    backgroundColor: COLORS.GRAY_300,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileImageText: {
+  categoryText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: COLORS.WHITE,
-  },
-  authorDetails: {
-    flex: 1,
-  },
-  authorName: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
-    marginBottom: 1,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    color: TEXT_COLORS.SECONDARY,
   },
   timeText: {
     fontSize: TYPOGRAPHY.SIZE.XS,
@@ -242,22 +182,11 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.XS,
     lineHeight: 22,
   },
-  contentText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
-    lineHeight: 20,
-  },
   
   // 썸네일 이미지
   imageContainer: {
     width: 80,
     height: 80,
-  },
-  thumbnail: {
-    width: '100%',
-    height: '100%',
-    borderRadius: BORDER_RADIUS.MD,
-    backgroundColor: COLORS.GRAY_100,
   },
   postImage: {
     width: '100%',
@@ -271,25 +200,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.GRAY_200,
     paddingTop: SPACING.SM,
-  },
-  stats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: SPACING.MD,
-    paddingVertical: SPACING.XS,
-  },
-  statIcon: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    marginRight: SPACING.XS,
-  },
-  statText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.DISABLED,
-    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
   interactionButtons: {
     flexDirection: 'row',
@@ -306,8 +216,5 @@ const styles = StyleSheet.create({
     color: TEXT_COLORS.SECONDARY,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     marginLeft: SPACING.XS,
-  },
-  loadingText: {
-    opacity: 0.6,
   },
 });

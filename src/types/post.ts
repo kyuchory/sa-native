@@ -119,6 +119,7 @@ export interface Comment {
   mention_user: MentionUser | null;
   like_count: number;
   is_liked?: boolean;
+  is_author?: boolean;
   replies?: Comment[];
 }
 
@@ -176,6 +177,8 @@ export interface PostListItem {
   like_count: number;
   comment_count: number;
   preview_image: string | null;
+  is_liked: boolean;
+  is_bookmarked: boolean;
 }
 
 export interface Pagination {
@@ -210,4 +213,14 @@ export interface UploadedImage {
 
 export interface ImageUploadResponse {
   files: UploadedImage[];
+}
+
+// 게시글 좋아요 토글 응답
+export interface PostLikeResponse {
+  code: number;
+  message: string;
+  data: {
+    is_liked: boolean;
+    like_count: number;
+  };
 }

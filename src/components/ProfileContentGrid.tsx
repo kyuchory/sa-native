@@ -3,6 +3,8 @@ import { View, Image, TouchableOpacity, StyleSheet, Dimensions, FlatList, Text }
 import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import PostCard from './PostCard';
 import type { Post } from './PostCard';
+import ProfilePostCard from './ProfilePostCard';
+import type { ProfilePostItem } from '../types/profile';
 
 const { width: screenWidth } = Dimensions.get('window');
 const imageSize = (screenWidth - SPACING.MD * 2 - SPACING.XS * 2) / 3; // 3개씩, 양쪽 패딩과 간격 고려
@@ -35,7 +37,7 @@ export interface CharacterItem {
 interface ProfileContentGridProps {
   type: 'feed' | 'posts' | 'videos' | 'character';
   feedData?: FeedItem[];
-  postsData?: Post[];
+  postsData?: ProfilePostItem[];
   videosData?: VideoItem[];
   charactersData?: CharacterItem[];
   onItemPress?: (item: any) => void;
@@ -66,8 +68,8 @@ export default function ProfileContentGrid({
   );
 
   // 게시물 리스트 렌더링
-  const renderPostItem = ({ item }: { item: Post }) => (
-    <PostCard
+  const renderPostItem = ({ item }: { item: ProfilePostItem }) => (
+    <ProfilePostCard
       post={item}
       onPress={() => onItemPress?.(item)}
     />
@@ -183,8 +185,8 @@ export default function ProfileContentGrid({
 
   return (
     <FlatList
-      data={config.data}
-      renderItem={config.renderItem}
+      data={config.data as any}
+      renderItem={config.renderItem as any}
       numColumns={config.numColumns}
       key={config.key}
       contentContainerStyle={[

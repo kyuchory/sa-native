@@ -14,6 +14,8 @@ interface CommentListProps {
   comments: Comment[];
   onCommentLike?: (commentId: number) => void;
   onReplyPress?: (comment: Comment) => void;
+  onEditComment?: (commentId: number) => void;
+  onDeleteComment?: (commentId: number) => void;
 }
 
 interface CommentItemProps {
@@ -21,6 +23,8 @@ interface CommentItemProps {
   isReply?: boolean;
   onCommentLike?: (commentId: number) => void;
   onReplyPress?: (comment: Comment) => void;
+  onEditComment?: (commentId: number) => void;
+  onDeleteComment?: (commentId: number) => void;
 }
 
 // 시간 포맷팅 함수
@@ -42,7 +46,7 @@ const formatTime = (dateString: string) => {
 };
 
 // 개별 댓글 컴포넌트
-const CommentItem = ({ comment, isReply = false, onCommentLike, onReplyPress }: CommentItemProps) => {
+const CommentItem = ({ comment, isReply = false, onCommentLike, onReplyPress, onEditComment, onDeleteComment }: CommentItemProps) => {
   // 프로필 이미지 렌더링
   const renderProfileImage = () => {
     if (comment.user.profile_img) {
@@ -68,14 +72,13 @@ const CommentItem = ({ comment, isReply = false, onCommentLike, onReplyPress }: 
       const mentionText = `@${comment.mention_user.nickname}`;
       const content = comment.content;
       
-      if (content.startsWith(mentionText)) {
-        return (
-          <Text style={styles.commentText}>
-            <Text style={styles.mentionText}>{mentionText}</Text>
-            <Text> {content.substring(mentionText.length).trim()}</Text>
-          </Text>
-        );
-      }
+      // 멘션된 사용자가 있으면 항상 @닉네임을 앞에 표시
+      return (
+        <Text style={styles.commentText}>
+          <Text style={styles.mentionText}>{mentionText} </Text>
+          <Text>{content}</Text>
+        </Text>
+      );
     }
     
     return <Text style={styles.commentText}>{comment.content}</Text>;
@@ -114,14 +117,32 @@ const CommentItem = ({ comment, isReply = false, onCommentLike, onReplyPress }: 
               )}
             </TouchableOpacity>
             
-            {!isReply && (
-              <TouchableOpacity 
-                style={styles.replyButton}
-                onPress={() => onReplyPress?.(comment)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.replyText}>답글</Text>
-              </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.replyButton}
+              onPress={() => onReplyPress?.(comment)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.replyText}>답글</Text>
+            </TouchableOpacity>
+            
+            {comment.is_author && (
+              <>
+                <TouchableOpacity 
+                  style={styles.replyButton}
+                  onPress={() => onEditComment?.(comment.id)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.replyText}>수정</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.replyButton}
+                  onPress={() => onDeleteComment?.(comment.id)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.replyText}>삭제</Text>
+                </TouchableOpacity>
+              </>
             )}
           </View>
         </View>
@@ -131,7 +152,7 @@ const CommentItem = ({ comment, isReply = false, onCommentLike, onReplyPress }: 
 };
 
 // 댓글 리스트 메인 컴포넌트
-export default function CommentList({ comments, onCommentLike, onReplyPress }: CommentListProps) {
+export default function CommentList({ comments, onCommentLike, onReplyPress, onEditComment, onDeleteComment }: CommentListProps) {
   if (comments.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -153,6 +174,8 @@ export default function CommentList({ comments, onCommentLike, onReplyPress }: C
             comment={comment}
             onCommentLike={onCommentLike}
             onReplyPress={onReplyPress}
+            onEditComment={onEditComment}
+            onDeleteComment={onDeleteComment}
           />
           
           {/* 대댓글 렌더링 */}
@@ -202,10 +225,10 @@ const styles = StyleSheet.create({
   },
   replyContainer: {
     paddingLeft: SPACING.MD + 40 + SPACING.SM, // 프로필 이미지 크기 + 간격만큼 들여쓰기
-    backgroundColor: COLORS.GRAY_50,
+    backgroundColor: COLORS.WHITE,
   },
   repliesContainer: {
-    backgroundColor: COLORS.GRAY_50,
+    backgroundColor: COLORS.WHITE,
   },
   
   // 댓글 헤더

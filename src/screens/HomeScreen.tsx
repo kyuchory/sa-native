@@ -120,11 +120,6 @@ export default function HomeScreen() {
     navigation.navigate('PostDetail', { postId: post.id });
   };
 
-  const handleLikePress = (post: PostListItem) => {
-    console.log('Like pressed:', post.title);
-    // TODO: 좋아요 API 호출
-  };
-
   const handleCommentPress = (post: PostListItem) => {
     console.log('Comment pressed:', post.title);
     // TODO: 댓글 화면으로 이동
@@ -140,7 +135,6 @@ export default function HomeScreen() {
     <PostCard
       post={item}
       onPress={() => handlePostPress(item)}
-      onLikePress={() => handleLikePress(item)}
       onCommentPress={() => handleCommentPress(item)}
     />
   );
