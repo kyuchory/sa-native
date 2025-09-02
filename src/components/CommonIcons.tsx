@@ -9,7 +9,7 @@ interface IconProps {
 }
 
 // 뒤로가기 아이콘 - 재사용 가능한 < 모양
-export const BackIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
+const BackIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -24,7 +24,7 @@ export const BackIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
 );
 
 // 텍스트 추가 아이콘
-export const AddTextIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
+const AddTextIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -55,7 +55,7 @@ export const AddTextIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) =
 );
 
 // 이미지 추가 아이콘
-export const AddImageIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
+const AddImageIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -75,7 +75,7 @@ export const AddImageIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) 
 );
 
 // 비디오 추가 아이콘
-export const AddVideoIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
+const AddVideoIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -95,7 +95,7 @@ export const AddVideoIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) 
 );
 
 // 드래그 핸들 아이콘 (블록 순서 변경용)
-export const DragHandleIcon = ({ size = 24, color = COLORS.GRAY_400 }: IconProps) => (
+const DragHandleIcon = ({ size = 24, color = COLORS.GRAY_400 }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <G fill={color}>
@@ -110,4 +110,53 @@ export const DragHandleIcon = ({ size = 24, color = COLORS.GRAY_400 }: IconProps
   </View>
 );
 
-export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon };
+// 피드 작성 아이콘
+const CreateFeedIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V5C21 3.89543 20.1046 3 19 3Z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12 8V16"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M8 12H16"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </Svg>
+  </View>
+);
+
+// 삭제 아이콘
+const DeleteIcon = ({ size = 24, color = COLORS.ERROR }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M18 6L6 18"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M6 6L18 18"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </View>
+);
+
+export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, DeleteIcon };

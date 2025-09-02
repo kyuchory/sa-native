@@ -209,8 +209,11 @@ export default function PostDetailScreen() {
 
   // 답글 작성
   const handleReplyPress = (comment: Comment) => {
+    // 대댓글에 답글을 다는 경우 최상위 부모 댓글의 ID를 사용
+    const parentCommentId = comment.parent_comment_id || comment.id;
+    
     setReplyingTo({
-      commentId: comment.id,
+      commentId: parentCommentId,
       userName: comment.user.nickname
     });
   };

@@ -1,84 +1,184 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, FlatList, StyleSheet, SafeAreaView, RefreshControl, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { useAuthStore } from '../stores/authStore';
+import { BG_COLORS, COLORS } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
+
+// 컴포넌트 imports
+import FeedHeader from '../components/FeedHeader';
+import StorySection from '../components/StorySection';
+import FeedCard from '../components/FeedCard';
+
+// 데이터 imports
+import { FeedListItem } from '../types/feed';
+import { FeedService } from '../services/feedService';
+import { StoryUser } from '../data/storyMockData';
 
 type FeedScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'MainApp'>;
 
 export default function FeedScreen() {
   const navigation = useNavigation<FeedScreenNavigationProp>();
-  const { logout, user } = useAuthStore();
+  
+  // 상태 관리
+  const [feeds, setFeeds] = useState<FeedListItem[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [cursor, setCursor] = useState<number | undefined>(undefined);
+  const [hasNext, setHasNext] = useState(true);
+  const [notificationCount] = useState(5); // 예시 알림 개수
 
-  const handleLogout = async () => {
-    Alert.alert(
-      '로그아웃',
-      '정말 로그아웃 하시겠습니까?',
-      [
-        {
-          text: '취소',
-          style: 'cancel',
-        },
-        {
-          text: '로그아웃',
-          onPress: async () => {
-            try {
-              await logout();
-            } catch (error) {
-              console.error('로그아웃 실패:', error);
-              Alert.alert('오류', '로그아웃 중 오류가 발생했습니다.');
-            }
-          },
-        },
-      ]
-          );
+  // 컴포넌트 마운트 시 피드 로드
+  useEffect(() => {
+    loadInitialFeeds();
+  }, []);
+
+  // 초기 피드 로드
+  const loadInitialFeeds = async () => {
+    try {
+      setLoading(true);
+      const response = await FeedService.getFeeds(undefined, 20);
+      setFeeds(response.feeds);
+      setCursor(response.pagination.next_cursor || undefined);
+      setHasNext(response.pagination.has_next);
+    } catch (error) {
+      console.error('피드 로드 실패:', error);
+      Alert.alert('오류', '피드를 불러오는데 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 추가 피드 로드 (무한 스크롤)
+  const loadMoreFeeds = async () => {
+    if (loading || !hasNext) return;
+
+    try {
+      setLoading(true);
+      const response = await FeedService.getFeeds(cursor, 20);
+      setFeeds(prev => [...prev, ...response.feeds]);
+      setCursor(response.pagination.next_cursor || undefined);
+      setHasNext(response.pagination.has_next);
+    } catch (error) {
+      console.error('추가 피드 로드 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 새로고침 핸들러
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      setCursor(undefined);
+      setHasNext(true);
+      await loadInitialFeeds();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // 헤더 액션 핸들러들
+  const handleNotificationPress = () => {
+    console.log('알림 버튼 클릭');
+    // TODO: 알림 화면으로 이동
   };
 
   const handleChatPress = () => {
+    console.log('채팅 버튼 클릭');
     navigation.navigate('Chat');
   };
 
-  const feedItems = [
-    { id: 1, title: '첫 번째 피드', content: '이것은 첫 번째 피드 내용입니다.' },
-    { id: 2, title: '두 번째 피드', content: '이것은 두 번째 피드 내용입니다.' },
-    { id: 3, title: '세 번째 피드', content: '이것은 세 번째 피드 내용입니다.' },
-    { id: 4, title: '네 번째 피드', content: '이것은 네 번째 피드 내용입니다.' },
-    { id: 5, title: '다섯 번째 피드', content: '이것은 다섯 번째 피드 내용입니다.' },
-  ];
+  // 스토리 액션 핸들러들
+  const handleStoryPress = (user: StoryUser) => {
+    console.log('스토리 보기:', user.nickname);
+    // TODO: 스토리 상세 화면으로 이동
+  };
+
+  const handleAddStoryPress = () => {
+    console.log('스토리 추가');
+    // TODO: 스토리 추가 화면으로 이동
+  };
+
+  // 피드 액션 핸들러들
+  const handleLikePress = (feedId: number) => {
+    console.log('좋아요 클릭:', feedId);
+    // TODO: 좋아요 API 호출
+  };
+
+  const handleCommentPress = (feedId: number) => {
+    console.log('댓글 클릭:', feedId);
+    // TODO: 댓글 화면으로 이동
+  };
+
+  const handleBookmarkPress = (feedId: number) => {
+    console.log('북마크 클릭:', feedId);
+    // TODO: 북마크 API 호출
+  };
+
+  const handleUserPress = (userId: number) => {
+    console.log('사용자 프로필 클릭:', userId);
+    // TODO: 사용자 프로필 화면으로 이동
+  };
+
+  const handleImagePress = (feedId: number) => {
+    console.log('피드 이미지 클릭:', feedId);
+    navigation.navigate('FeedDetail', { feedId });
+  };
+
+  // 피드 렌더링
+  const renderFeed = ({ item }: { item: FeedListItem }) => (
+    <FeedCard
+      feed={item}
+      onLikePress={handleLikePress}
+      onCommentPress={handleCommentPress}
+      onBookmarkPress={handleBookmarkPress}
+      onUserPress={handleUserPress}
+      onImagePress={handleImagePress}
+    />
+  );
+
+  // 리스트 헤더 (스토리 섹션)
+  const renderListHeader = () => (
+    <StorySection
+      onStoryPress={handleStoryPress}
+      onAddStoryPress={handleAddStoryPress}
+    />
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 로그아웃 버튼 */}
-      <View style={styles.header}>
-        <View style={styles.userInfo}>
-          <Text style={styles.welcomeText}>
-            {user?.nickname ? `${user.nickname}님 안녕하세요!` : '피드 화면'}
-          </Text>
-        </View>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.chatButton} onPress={handleChatPress}>
-            <Text style={styles.chatButtonText}>💬 채팅</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonText}>로그아웃</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      {/* 헤더 */}
+      <FeedHeader
+        onNotificationPress={handleNotificationPress}
+        onChatPress={handleChatPress}
+        notificationCount={notificationCount}
+      />
 
-      <Text style={styles.title}>📰 피드 화면</Text>
-      <Text style={styles.description}>
-        사용자들의 피드를 보여주는 화면입니다.
-      </Text>
-      
-      <ScrollView style={styles.feedContainer} showsVerticalScrollIndicator={false}>
-        {feedItems.map((item) => (
-          <View key={item.id} style={styles.feedItem}>
-            <Text style={styles.feedTitle}>{item.title}</Text>
-            <Text style={styles.feedContent}>{item.content}</Text>
-          </View>
-        ))}
-      </ScrollView>
+      {/* 피드 목록 */}
+      <FlatList
+        data={feeds}
+        renderItem={renderFeed}
+        keyExtractor={(item) => item.id.toString()}
+        style={styles.feedList}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={COLORS.PRIMARY}
+            colors={[COLORS.PRIMARY]}
+          />
+        }
+        ListHeaderComponent={renderListHeader}
+        onEndReached={loadMoreFeeds}
+        onEndReachedThreshold={0.5}
+        // 성능 최적화
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={5}
+        windowSize={10}
+        initialNumToRender={3}
+      />
     </SafeAreaView>
   );
 }
@@ -86,106 +186,9 @@ export default function FeedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#e8f4fd',
-    padding: 20,
+    backgroundColor: BG_COLORS.SECONDARY,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingTop: 10,
-  },
-  userInfo: {
+  feedList: {
     flex: 1,
-  },
-  welcomeText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2c3e50',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  chatButton: {
-    backgroundColor: '#c03525',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-  },
-  chatButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  logoutButton: {
-    backgroundColor: '#e74c3c',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-  },
-  logoutButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#2980b9',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  description: {
-    fontSize: 16,
-    color: '#7f8c8d',
-    textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 24,
-  },
-  feedContainer: {
-    flex: 1,
-  },
-  feedItem: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 15,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  feedTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 10,
-  },
-  feedContent: {
-    fontSize: 14,
-    color: '#7f8c8d',
-    lineHeight: 20,
   },
 });

@@ -55,5 +55,3 @@ export const WriteIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => 
     </Svg>
   </View>
 );
-
-export { NotificationIcon, WriteIcon };

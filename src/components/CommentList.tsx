@@ -49,20 +49,21 @@ const formatTime = (dateString: string) => {
 const CommentItem = ({ comment, isReply = false, onCommentLike, onReplyPress, onEditComment, onDeleteComment }: CommentItemProps) => {
   // 프로필 이미지 렌더링
   const renderProfileImage = () => {
-    if (comment.user.profile_img) {
+    // 삭제된 댓글의 경우 기본 프로필 이미지 표시
+    if (comment.is_deleted || !comment.user.profile_img) {
       return (
-        <Image 
-          source={{ uri: comment.user.profile_img }} 
-          style={styles.profileImage}
-        />
+        <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
+          <Text style={styles.profileImageText}>
+            {comment.is_deleted ? '?' : comment.user.nickname.charAt(0).toUpperCase()}
+          </Text>
+        </View>
       );
     }
     return (
-      <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
-        <Text style={styles.profileImageText}>
-          {comment.user.nickname.charAt(0).toUpperCase()}
-        </Text>
-      </View>
+      <Image 
+        source={{ uri: comment.user.profile_img }} 
+        style={styles.profileImage}
+      />
     );
   };
 
@@ -188,6 +189,8 @@ export default function CommentList({ comments, onCommentLike, onReplyPress, onE
                   isReply={true}
                   onCommentLike={onCommentLike}
                   onReplyPress={onReplyPress}
+                  onEditComment={onEditComment}
+                  onDeleteComment={onDeleteComment}
                 />
               ))}
             </View>

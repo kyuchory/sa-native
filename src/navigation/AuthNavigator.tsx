@@ -8,7 +8,9 @@ import { AuthStackParamList } from '../types/navigation';
 import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import CreatePostScreen from '../screens/CreatePostScreen';
+import CreateFeedScreen from '../screens/CreateFeedScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
+import FeedDetailScreen from '../screens/FeedDetailScreen';
 // import ProfileScreen from '../screens/ProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ChatScreen from '../screens/ChatScreen';
@@ -44,14 +46,24 @@ export default function AuthNavigator() {
           options={{ headerShown: false }}
         />
         <Stack.Screen 
-          name="PostDetail" 
+          name="CreateFeed" 
+          component={CreateFeedScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="PostDetail"
           component={PostDetailScreen}
           options={{ headerShown: false }}
         />
-        {/* <Stack.Screen 
-          name="Profile" 
-          component={ProfileScreen} 
-          options={{ 
+        <Stack.Screen
+          name="FeedDetail"
+          component={FeedDetailScreen}
+          options={{ headerShown: false }}
+        />
+        {/* <Stack.Screen
+          name="Profile"
+          component={ProfileScreen}
+          options={{
             headerShown: true,
             title: '프로필',
             headerStyle: { backgroundColor: '#2c3e50' },

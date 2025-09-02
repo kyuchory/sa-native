@@ -4,12 +4,14 @@ export type AuthStackParamList = {
   SignUp: undefined;
   MainApp: undefined;
   CreatePost: undefined;
+  CreateFeed: undefined;
   PostDetail: { postId: number };
+  FeedDetail: { feedId: number };
   Profile: { userId: string };
   Settings: undefined;
   Chat: undefined;
   SelectChatUser: undefined;
-  ChatDetail: { 
+  ChatDetail: {
     chatRoomId: number;
     chatRoomName: string;
     chatPartnerId?: number;

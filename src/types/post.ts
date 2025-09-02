@@ -120,6 +120,7 @@ export interface Comment {
   like_count: number;
   is_liked?: boolean;
   is_author?: boolean;
+  is_deleted: boolean;
   replies?: Comment[];
 }
 
@@ -140,6 +141,11 @@ export interface CreateCommentRequest {
 // 댓글 수정 요청
 export interface UpdateCommentRequest {
   content: string;
+}
+
+// 댓글 삭제 요청 (소프트 삭제)
+export interface DeleteCommentRequest {
+  is_deleted: true;
 }
 
 // 댓글 좋아요 응답

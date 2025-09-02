@@ -12,7 +12,8 @@ import type {
   UploadedImage,
   PostListResponse,
   PostListItem,
-  PostLikeResponse
+  PostLikeResponse,
+  DeleteCommentRequest
 } from '../types/post';
 import type { ApiResponse } from '../types/api';
 import { MOCK_POST_DETAIL, MOCK_ITEM_POST_DETAIL } from '../data/postDetailMockData';
@@ -68,6 +69,7 @@ export class PostService {
       throw error;
     }
   }
+
 
   // 게시물 상세 조회
   static async getPostDetail(postId: number): Promise<PostDetail> {
@@ -203,10 +205,14 @@ export class PostService {
     }
   }
 
-  // 댓글 삭제
+  // 댓글 삭제 (소프트 삭제)
   static async deleteComment(commentId: number): Promise<void> {
     try {
-      await apiClient.delete(`/comments/${commentId}`);
+      const requestData: DeleteCommentRequest = { is_deleted: true };
+      await apiClient.patch<ApiResponse<null>>(
+        `/comments/${commentId}/status`, 
+        requestData
+      );
     } catch (error) {
       console.error('댓글 삭제 실패:', error);
       throw error;

@@ -1,30 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { useFocusEffect, useNavigation, NavigationProp } from '@react-navigation/native';
+import { AuthStackParamList } from '../types/navigation';
 import { BG_COLORS } from '../constants/theme';
 import { useAuthStore } from '../stores/authStore';
 
 // 컴포넌트 imports
 import ProfileHeader from '../components/ProfileHeader';
 import ProfileTabNavigation, { ProfileTabType } from '../components/ProfileTabNavigation';
-import ProfileContentGrid from '../components/ProfileContentGrid';
+import ProfileFeedGrid from '../components/ProfileFeedGrid';
+import ProfilePostsList from '../components/ProfilePostsList';
 
 // 서비스 imports
 import { ProfileService } from '../services/profileService';
 
-// 데이터 imports
-import {
-  MOCK_FEED_DATA,
-  MOCK_VIDEOS_DATA,
-  MOCK_CHARACTERS_DATA,
-} from '../data/profileMockData';
+// 타입 imports
+import type { ProfileFeedItem, ProfilePostItem, ProfilePagination } from '../types/profile';
 
 export default function NewProfileTabScreen() {
+  const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
+
+  //상태 관리
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<ProfileTabType>('feed');
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [postsData, setPostsData] = useState<any[]>([]);
+  const [postsData, setPostsData] = useState<ProfilePostItem[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
+  const [feedsData, setFeedsData] = useState<ProfileFeedItem[]>([]);
+  const [feedsLoading, setFeedsLoading] = useState(false);
+  const [feedsPagination, setFeedsPagination] = useState<ProfilePagination>({
+    offset: 0,
+    limit: 20,
+    total: 0,
+    has_next: false,
+  });
 
   // 프로필 데이터 조회
   const fetchProfile = async () => {
@@ -35,20 +45,53 @@ export default function NewProfileTabScreen() {
         setProfileData(response.data);
       } catch (error) {
         console.error('프로필 조회 실패:', error);
-                   // 에러 발생 시 기본값 사용
-         setProfileData({
-           nickname: user?.nickname || '사용자',
-           profile_img: user?.profile_img || null,
-           stats: {
-             post_count: 0,
-             feed_count: 0,
-             follower_count: 0,
-             following_count: 0,
-           },
-         });
+        // 에러 발생 시 기본값 사용
+        setProfileData({
+          nickname: user?.nickname || '사용자',
+          profile_img: user?.profile_img || null,
+          stats: {
+            post_count: 0,
+            feed_count: 0,
+            follower_count: 0,
+            following_count: 0,
+          },
+        });
       } finally {
         setLoading(false);
       }
+    }
+  };
+
+  // 피드 데이터 조회
+  const fetchFeeds = async (reset = false) => {
+    if (!user?.id) return;
+    
+    try {
+      setFeedsLoading(true);
+      const currentOffset = reset ? 0 : feedsPagination.offset;
+      const response = await ProfileService.getProfileFeeds(user.id, currentOffset, 20);
+      
+      if (reset) {
+        setFeedsData(response.data.feeds);
+      } else {
+        setFeedsData(prev => [...prev, ...response.data.feeds]);
+      }
+      
+      setFeedsPagination({
+        ...response.data.pagination,
+        offset: currentOffset + response.data.feeds.length,
+      });
+    } catch (error) {
+      console.error('피드 조회 실패:', error);
+    } finally {
+      setFeedsLoading(false);
+    }
+  };
+
+  // 피드 무한 스크롤 핸들러
+  const handleFeedsEndReached = () => {
+    if (!feedsLoading && feedsPagination.has_next) {
+      fetchFeeds(false);
     }
   };
 
@@ -70,7 +113,21 @@ export default function NewProfileTabScreen() {
 
   useEffect(() => {
     fetchProfile();
+    // 초기 로드 시 피드 데이터도 함께 조회
+    if (activeTab === 'feed') {
+      fetchFeeds(true);
+    }
   }, [user?.id]);
+
+  // 화면에 다시 포커스될 때 feed 탭이면 최신 데이터로 리프레시
+  useFocusEffect(
+    useCallback(() => {
+      if (activeTab === 'feed') {
+        fetchFeeds(true);
+      }
+      return () => {};
+    }, [activeTab, user?.id])
+  );
 
   // ProfileHeader에 전달할 데이터 변환
   const profileUser = profileData ? {
@@ -101,6 +158,10 @@ export default function NewProfileTabScreen() {
   const handleTabChange = (tab: ProfileTabType) => {
     setActiveTab(tab);
     
+    // 피드 탭으로 변경 시 데이터 로드
+    if (tab === 'feed' && feedsData.length === 0) {
+      fetchFeeds(true);
+    }
     // posts 탭 선택 시 데이터 로딩
     if (tab === 'posts') {
       fetchPosts();
@@ -110,7 +171,7 @@ export default function NewProfileTabScreen() {
   const handleItemPress = (item: any) => {
     console.log('Item pressed:', item);
     if (activeTab === 'feed') {
-      // TODO: 피드 상세 화면으로 이동
+      navigation.navigate('FeedDetail', { feedId: item.id });
     } else if (activeTab === 'posts') {
       // TODO: 게시물 상세 화면으로 이동
     } else if (activeTab === 'videos') {
@@ -147,16 +208,31 @@ export default function NewProfileTabScreen() {
         onTabChange={handleTabChange}
       />
 
-      {/* 콘텐츠 그리드 */}
+      {/* 콘텐츠 영역 */}
       <View style={styles.contentContainer}>
-        <ProfileContentGrid
-          type={activeTab}
-          feedData={MOCK_FEED_DATA}
-          postsData={postsData}
-          videosData={MOCK_VIDEOS_DATA}
-          charactersData={MOCK_CHARACTERS_DATA}
-          onItemPress={handleItemPress}
-        />
+        {activeTab === 'feed' && (
+          <ProfileFeedGrid
+            data={feedsData}
+            loading={feedsLoading}
+            onItemPress={handleItemPress}
+            onEndReached={handleFeedsEndReached}
+          />
+        )}
+        {activeTab === 'posts' && (
+          <ProfilePostsList
+            data={postsData}
+            loading={postsLoading}
+            onItemPress={handleItemPress}
+          />
+        )}
+        {(activeTab === 'videos' || activeTab === 'character') && (
+          <ProfileFeedGrid
+            data={feedsData}
+            loading={feedsLoading}
+            onItemPress={handleItemPress}
+            onEndReached={handleFeedsEndReached}
+          />
+        )}
       </View>
     </SafeAreaView>
   );

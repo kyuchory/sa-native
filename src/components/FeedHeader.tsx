@@ -1,37 +1,53 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
+import { NotificationIcon } from './HomeHeaderIcons';
+import { CreateFeedIcon } from './CommonIcons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
-import { NotificationIcon, WriteIcon } from './HomeHeaderIcons';
 import { AuthStackParamList } from '../types/navigation';
+import Svg, { Path } from 'react-native-svg';
 
-type HomeHeaderNavigationProp = StackNavigationProp<AuthStackParamList>;
+type FeedHeaderNavigationProp = StackNavigationProp<AuthStackParamList>;
 
-interface HomeHeaderProps {
+interface FeedHeaderProps {
   onNotificationPress?: () => void;
-  onWritePress?: () => void;
+  onChatPress?: () => void;
+  onFeedPress?: () => void;
   notificationCount?: number;
 }
 
-export default function HomeHeader({ 
-  onNotificationPress, 
-  onWritePress,
-  notificationCount = 0 
-}: HomeHeaderProps) {
-  const insets = useSafeAreaInsets();
-  const navigation = useNavigation<HomeHeaderNavigationProp>();
+// 채팅 아이콘 (비행기 모양)
+const ChatIcon = ({ size = 22, color = COLORS.GRAY_600 }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M2 21L23 12L2 3V10L17 12L2 14V21Z"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
 
-  const handleWritePress = () => {
-    if (onWritePress) {
-      onWritePress();
+export default function FeedHeader({ 
+  onNotificationPress, 
+  onChatPress,
+  onFeedPress,
+  notificationCount = 0 
+}: FeedHeaderProps) {
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation<FeedHeaderNavigationProp>();
+
+  const handleFeedPress = () => {
+    if (onFeedPress) {
+      onFeedPress();
     } else {
-      // 기본 동작: 게시물 작성 페이지로 이동
-      navigation.navigate('CreatePost');
+      // 기본 동작: 피드 작성 페이지로 이동
+      navigation.navigate('CreateFeed');
     }
   };
-
 
   return (
     <>
@@ -64,13 +80,22 @@ export default function HomeHeader({
               </View>
             </TouchableOpacity>
 
-            {/* 글쓰기 버튼 */}
+            {/* 피드 작성 버튼 */}
             <TouchableOpacity 
-              style={styles.writeButton}
-              onPress={handleWritePress}
+              style={styles.feedButton}
+              onPress={handleFeedPress}
               activeOpacity={0.7}
             >
-              <WriteIcon size={22} color={COLORS.GRAY_600} />
+              <CreateFeedIcon size={22} color={COLORS.PRIMARY} />
+            </TouchableOpacity>
+
+            {/* 채팅 버튼 */}
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={onChatPress}
+              activeOpacity={0.7}
+            >
+              <ChatIcon size={22} color={COLORS.GRAY_600} />
             </TouchableOpacity>
           </View>
         </View>
@@ -145,8 +170,8 @@ const styles = StyleSheet.create({
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
   },
   
-  // 글쓰기 버튼
-  writeButton: {
+  // 피드 작성 버튼
+  feedButton: {
     padding: SPACING.SM,
     borderRadius: 20,
   },

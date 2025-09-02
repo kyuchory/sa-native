@@ -1,0 +1,60 @@
+import { apiClient } from './apiClient';
+import {
+  FeedListApiResponse,
+  FeedListResponse,
+  CreateFeedRequest,
+  CreateFeedApiResponse,
+  ToggleLikeResponse,
+  ToggleLikeApiResponse,
+} from '../types/feed';
+import type { ApiResponse } from '../types/api';
+import type { UploadedImage, ImageUploadResponse } from '../types/post';
+
+// 피드 관련 API 서비스
+export class FeedService {
+  // 피드 목록 조회 (커서 기반 페이지네이션)
+  static async getFeeds(
+    cursor?: number,
+    limit: number = 20
+  ): Promise<FeedListResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (cursor !== undefined) {
+        queryParams.append('cursor', cursor.toString());
+      }
+      queryParams.append('limit', limit.toString());
+
+      const response = await apiClient.get<FeedListApiResponse>(
+        `/feeds?${queryParams.toString()}`
+      );
+      
+      return response.data!;
+    } catch (error) {
+      console.error('피드 목록 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 피드 작성
+  static async createFeed(feedData: CreateFeedRequest): Promise<{ feedId: number; created_at: string }> {
+    try {
+      const response = await apiClient.post<CreateFeedApiResponse>('/feeds', feedData);
+      return response.data!;
+    } catch (error) {
+      console.error('피드 작성 실패:', error);
+      throw error;
+    }
+  }
+
+  // 피드 좋아요 토글
+  static async toggleLike(feedId: number): Promise<ToggleLikeResponse> {
+    try {
+      const response = await apiClient.post<ToggleLikeApiResponse>(`/feeds/${feedId}/like`, {});
+      return response.data!;
+    } catch (error) {
+      console.error('좋아요 토글 실패:', error);
+      throw error;
+    }
+  }
+}
