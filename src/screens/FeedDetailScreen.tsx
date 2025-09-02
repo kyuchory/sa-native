@@ -62,17 +62,11 @@ export default function FeedDetailScreen() {
       try {
         setLoading(true);
         setError(null);
-
-        // 피드와 댓글을 동시에 조회
-        const [feedResponse, commentsResponse] = await Promise.all([
-          FeedService.getFeed(feedId),
-          FeedService.getComments(feedId)
-        ]);
-
-        console.log('피드 API Response:', feedResponse);
-        console.log('댓글 API Response:', commentsResponse);
-
+        const feedResponse = await FeedService.getFeed(feedId);
         setFeed(feedResponse);
+
+        
+        const commentsResponse = await FeedService.getComments(feedId);
         setComments(commentsResponse);
       } catch (err) {
         console.error('데이터 조회 실패:', err);
