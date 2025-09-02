@@ -9,9 +9,7 @@ import { CommentInput } from '../components/CommentInput';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { CommentItem, FeedListItem } from '../types/feed';
 
-// 데이터 imports
-import { mockFeedDetail } from '../data/feedDetailMockData';
-import { mockComments } from '../data/commentMockData';
+// 불필요한 mock import는 제거됨
 
 // 아이콘 imports
 import { HeartIcon, CommentIcon, BookmarkIcon } from '../components/FeedCardIcons';
@@ -49,7 +47,7 @@ export default function FeedDetailScreen() {
   const [error, setError] = useState<string | null>(null);
 
   // 댓글 관련 상태 관리
-  const [comments, setComments] = useState<CommentItem[]>(mockComments);
+  const [comments, setComments] = useState<CommentItem[]>([]);
   const [isCommentLoading, setIsCommentLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
@@ -60,22 +58,31 @@ export default function FeedDetailScreen() {
 
   // API 호출
   useEffect(() => {
-    const fetchFeedDetail = async () => {
+    const fetchFeedDetailAndComments = async () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await FeedService.getFeed(feedId);
-        console.log('API Response:', response);
-        setFeed(response);
+
+        // 피드와 댓글을 동시에 조회
+        const [feedResponse, commentsResponse] = await Promise.all([
+          FeedService.getFeed(feedId),
+          FeedService.getComments(feedId)
+        ]);
+
+        console.log('피드 API Response:', feedResponse);
+        console.log('댓글 API Response:', commentsResponse);
+
+        setFeed(feedResponse);
+        setComments(commentsResponse);
       } catch (err) {
-        console.error('피드 상세 조회 실패:', err);
-        setError('피드를 불러오는데 실패했습니다.');
+        console.error('데이터 조회 실패:', err);
+        setError('데이터를 불러오는데 실패했습니다.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchFeedDetail();
+    fetchFeedDetailAndComments();
   }, [feedId]);
 
   // 이벤트 핸들러들
@@ -99,7 +106,10 @@ export default function FeedDetailScreen() {
       // API 호출
       await FeedService.createComment(feedId, { content: text });
 
-      // 댓글 목록 새로고침 (임시로 mock 데이터 유지)
+      // 댓글 목록 새로고침
+      const updatedComments = await FeedService.getComments(feedId);
+      setComments(updatedComments);
+
       console.log('댓글 작성 성공:', text);
 
     } catch (error) {
@@ -117,14 +127,19 @@ export default function FeedDetailScreen() {
     try {
       setIsCommentLoading(true);
 
-      // API 호출 (추후 구현)
+      // API 호출
       await FeedService.createComment(feedId, {
         content: text,
         parent_comment_id: replyingTo.commentId
       });
 
+      // 댓글 목록 새로고침
+      const updatedComments = await FeedService.getComments(feedId);
+      setComments(updatedComments);
+
       // 답글 입력 모드 종료
       setReplyingTo(null);
+
       console.log('답글 작성 성공:', text);
 
     } catch (error) {

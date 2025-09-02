@@ -5,3 +5,6 @@
 - [x] Add comment creation API types to feed.ts
 - [x] Add comment creation method to FeedService
 - [x] Implement comment creation in FeedDetailScreen (following PostDetailScreen pattern)
+- [x] Add comment list API types to feed.ts (if needed)
+- [x] Add comment list method to FeedService
+- [x] Update FeedDetailScreen to use comment API instead of mock data

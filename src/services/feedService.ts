@@ -11,7 +11,9 @@ import {
   CreateFeedCommentRequest,
   CreateFeedCommentApiResponse,
   CreateFeedCommentResponse,
-  CreateFeedResponse
+  CreateFeedResponse,
+  CommentListApiResponse,
+  CommentItem
 } from '../types/feed';
 import type { ApiResponse } from '../types/api';
 import type { UploadedImage, ImageUploadResponse } from '../types/post';
@@ -60,6 +62,19 @@ export class FeedService {
       return response.data!;
     } catch (error) {
       console.error('피드 상세 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 댓글 목록 조회
+  static async getComments(feedId: number): Promise<CommentItem[]> {
+    try {
+      const response = await apiClient.get<CommentListApiResponse>(
+        `/feeds/${feedId}/comments`
+      );
+      return response.data!;
+    } catch (error) {
+      console.error('댓글 목록 조회 실패:', error);
       throw error;
     }
   }
