@@ -113,7 +113,6 @@ export type CommentListApiResponse = ApiResponse<CommentItem[]>;
 
 // 피드 단일 조회 응답 데이터 (상세 조회용, 모든 이미지 포함)
 export interface FeedDetailResponse {
-  feed: {
     id: number;
     created_at: string;
     user: FeedUser;
@@ -124,8 +123,8 @@ export interface FeedDetailResponse {
     comment_count: number;
     is_liked: boolean;
     is_bookmarked: boolean;
+    is_author: boolean;
     // 단일 조회 시 모든 콘텐츠 블록 포함
-  };
 }
 
 // 피드 단일 조회 API 응답

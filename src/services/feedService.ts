@@ -6,6 +6,8 @@ import {
   CreateFeedApiResponse,
   ToggleLikeResponse,
   ToggleLikeApiResponse,
+  FeedDetailApiResponse,
+  FeedDetailResponse,
 } from '../types/feed';
 import type { ApiResponse } from '../types/api';
 import type { UploadedImage, ImageUploadResponse } from '../types/post';
@@ -43,6 +45,17 @@ export class FeedService {
       return response.data!;
     } catch (error) {
       console.error('피드 작성 실패:', error);
+      throw error;
+    }
+  }
+
+  // 피드 상세 조회
+  static async getFeed(feedId: number): Promise<FeedDetailResponse> {
+    try {
+      const response = await apiClient.get<FeedDetailApiResponse>(`/feeds/${feedId}`);
+      return response.data!;
+    } catch (error) {
+      console.error('피드 상세 조회 실패:', error);
       throw error;
     }
   }

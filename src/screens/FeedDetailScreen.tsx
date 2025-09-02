@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, Dimensions, Image, Pressable, TouchableOpacity } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { COLORS, BG_COLORS, SPACING, TYPOGRAPHY, TEXT_COLORS } from '../constants/theme';
 
-// 컴포넌트 imports
 import CommonHeader from '../components/CommonHeader';
 import CommentList from '../components/CommentList';
 import { CommentInput } from '../components/CommentInput';
+import LoadingOverlay from '../components/LoadingOverlay';
 import { FeedDetailResponse, CommentItem } from '../types/feed';
 
 // 데이터 imports
@@ -15,6 +15,9 @@ import { mockComments } from '../data/commentMockData';
 
 // 아이콘 imports
 import { HeartIcon, CommentIcon, BookmarkIcon } from '../components/FeedCardIcons';
+
+// 서비스 imports
+import { FeedService } from '../services/feedService';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -40,11 +43,37 @@ export default function FeedDetailScreen() {
   // expand/collapse 상태 관리
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // 모의 데이터 사용 (실제로는 feedId로 API 호출)
-  const feed = mockFeedDetail.feed;
+  // 피드 데이터 및 상태 관리
+  const [feed, setFeed] = useState<FeedDetailResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // 댓글 데이터 (임시로 mock 사용, 추후 API로 교체)
   const comments = mockComments;
-  const imageBlocks = feed.content_blocks.filter(block => block.type === 'image');
-  const textBlock = feed.content_blocks.find(block => block.type === 'text');
+
+  // 데이터 필터링 (feed가 null일 수 있음)
+  const imageBlocks = feed ? feed.content_blocks.filter(block => block.type === 'image') : [];
+  const textBlock = feed ? feed.content_blocks.find(block => block.type === 'text') : null;
+
+  // API 호출
+  useEffect(() => {
+    const fetchFeedDetail = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await FeedService.getFeed(feedId);
+        console.log('API Response:', response);
+        setFeed(response);
+      } catch (err) {
+        console.error('피드 상세 조회 실패:', err);
+        setError('피드를 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeedDetail();
+  }, [feedId]);
 
   // 이벤트 핸들러들
   const onFeedLikePress = () => {
@@ -96,6 +125,40 @@ export default function FeedDetailScreen() {
     );
   };
 
+  // 로딩 상태 (PostDetailScreen과 같은 패턴으로 분리)
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <CommonHeader title="피드" showBackButton={true} />
+        <LoadingOverlay visible={loading} message="피드 로딩 중..." />
+      </SafeAreaView>
+    );
+  }
+
+  // 에러 상태
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <CommonHeader title="피드" showBackButton={true} />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // feed가 로드되지 않은 경우 (언리치에이블)
+  if (!feed) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <CommonHeader title="피드" showBackButton={true} />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>피드를 찾을 수 없습니다.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {/* 헤더 */}
@@ -107,9 +170,6 @@ export default function FeedDetailScreen() {
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.contentContainer}>
           {/* 프로필 정보 */}
-          {/* <View style={styles.header}>
-            <Text style={styles.nickname}>{feed.user.nickname}</Text>
-          </View> */}
           <TouchableOpacity style={styles.header} onPress={()=>{}} activeOpacity={0.7}>
             <Image source={{ uri: feed.user.profile_img }} style={styles.profileImage} />
             <View style={styles.userInfo}>
@@ -318,5 +378,19 @@ const styles = StyleSheet.create({
     color: TEXT_COLORS.SECONDARY,
     paddingHorizontal: SPACING.MD,
     paddingBottom: SPACING.MD,
+  },
+
+  // 에러 상태
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: SPACING.XL,
+    paddingHorizontal: SPACING.MD,
+  },
+  errorText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: COLORS.ERROR || '#FF5722',
+    textAlign: 'center',
   },
 });

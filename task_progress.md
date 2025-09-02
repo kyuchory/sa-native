@@ -1,0 +1,4 @@
+- [x] Add getFeed method to FeedService
+- [x] Update FeedDetailScreen to use API instead of mock data
+- [x] Add loading and error states to FeedDetailScreen
+- [x] Replace loading UI with LoadingOverlay component (structured like PostDetailScreen)
