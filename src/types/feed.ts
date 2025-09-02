@@ -130,20 +130,21 @@ export interface FeedDetailResponse {
 // 피드 단일 조회 API 응답
 export type FeedDetailApiResponse = ApiResponse<FeedDetailResponse>;
 
-// 댓글 작성 요청 데이터
-export interface CreateCommentRequest {
+// 댓글 작성 요청 데이터 (API 요청용)
+export interface CreateFeedCommentRequest {
   content: string;
   parent_comment_id?: number | null;
   mention_user_id?: number | null;
 }
 
 // 댓글 작성 응답 데이터
-export interface CreateCommentResponse {
-  comment: CommentItem;
+export interface CreateFeedCommentResponse {
+  commentId: number;
+  created_at: string;
 }
 
 // 댓글 작성 API 응답
-export type CreateCommentApiResponse = ApiResponse<CreateCommentResponse>;
+export type CreateFeedCommentApiResponse = ApiResponse<CreateFeedCommentResponse>;
 
 // 댓글 수정 요청 데이터
 export interface UpdateCommentRequest {

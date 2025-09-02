@@ -8,6 +8,10 @@ import {
   ToggleLikeApiResponse,
   FeedDetailApiResponse,
   FeedDetailResponse,
+  CreateFeedCommentRequest,
+  CreateFeedCommentApiResponse,
+  CreateFeedCommentResponse,
+  CreateFeedResponse
 } from '../types/feed';
 import type { ApiResponse } from '../types/api';
 import type { UploadedImage, ImageUploadResponse } from '../types/post';
@@ -39,7 +43,7 @@ export class FeedService {
   }
 
   // 피드 작성
-  static async createFeed(feedData: CreateFeedRequest): Promise<{ feedId: number; created_at: string }> {
+  static async createFeed(feedData: CreateFeedRequest): Promise<CreateFeedResponse> {
     try {
       const response = await apiClient.post<CreateFeedApiResponse>('/feeds', feedData);
       return response.data!;
@@ -56,6 +60,23 @@ export class FeedService {
       return response.data!;
     } catch (error) {
       console.error('피드 상세 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 댓글 작성
+  static async createComment(
+    feedId: number,
+    commentData: CreateFeedCommentRequest
+  ): Promise<CreateFeedCommentResponse> {
+    try {
+      const response = await apiClient.post<CreateFeedCommentApiResponse>(
+        `/feeds/${feedId}/comments`,
+        commentData
+      );
+      return response.data!;
+    } catch (error) {
+      console.error('댓글 작성 실패:', error);
       throw error;
     }
   }

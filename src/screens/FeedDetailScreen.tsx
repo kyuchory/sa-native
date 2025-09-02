@@ -7,7 +7,7 @@ import CommonHeader from '../components/CommonHeader';
 import CommentList from '../components/CommentList';
 import { CommentInput } from '../components/CommentInput';
 import LoadingOverlay from '../components/LoadingOverlay';
-import { FeedDetailResponse, CommentItem } from '../types/feed';
+import { CommentItem, FeedListItem } from '../types/feed';
 
 // 데이터 imports
 import { mockFeedDetail } from '../data/feedDetailMockData';
@@ -44,12 +44,15 @@ export default function FeedDetailScreen() {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // 피드 데이터 및 상태 관리
-  const [feed, setFeed] = useState<FeedDetailResponse | null>(null);
+  const [feed, setFeed] = useState<FeedListItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 댓글 데이터 (임시로 mock 사용, 추후 API로 교체)
-  const comments = mockComments;
+  // 댓글 관련 상태 관리
+  const [comments, setComments] = useState<CommentItem[]>(mockComments);
+  const [isCommentLoading, setIsCommentLoading] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
+  const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
 
   // 데이터 필터링 (feed가 null일 수 있음)
   const imageBlocks = feed ? feed.content_blocks.filter(block => block.type === 'image') : [];
@@ -86,9 +89,103 @@ export default function FeedDetailScreen() {
     // TODO: 댓글 좋아요 API 호출
   };
 
-  const onSendComment = (text: string) => {
-    console.log('댓글 전송:', text);
-    // TODO: 댓글 작성 API 호출
+  // 댓글 작성
+  const onSendComment = async (text: string) => {
+    if (!text.trim() || isCommentLoading) return;
+
+    try {
+      setIsCommentLoading(true);
+
+      // API 호출
+      await FeedService.createComment(feedId, { content: text });
+
+      // 댓글 목록 새로고침 (임시로 mock 데이터 유지)
+      console.log('댓글 작성 성공:', text);
+
+    } catch (error) {
+      console.error('댓글 작성 실패:', error);
+      // TODO: 에러 알림
+    } finally {
+      setIsCommentLoading(false);
+    }
+  };
+
+  // 답글 작성
+  const onSendReply = async (text: string) => {
+    if (!replyingTo || !text.trim() || isCommentLoading) return;
+
+    try {
+      setIsCommentLoading(true);
+
+      // API 호출 (추후 구현)
+      await FeedService.createComment(feedId, {
+        content: text,
+        parent_comment_id: replyingTo.commentId
+      });
+
+      // 답글 입력 모드 종료
+      setReplyingTo(null);
+      console.log('답글 작성 성공:', text);
+
+    } catch (error) {
+      console.error('답글 작성 실패:', error);
+    } finally {
+      setIsCommentLoading(false);
+    }
+  };
+
+  // 답글 입력 시작
+  const onReplyPress = (commentId: number, userName: string) => {
+    setReplyingTo({
+      commentId,
+      userName
+    });
+  };
+
+  // 댓글 수정
+  const onEditComment = (commentId: number) => {
+    const comment = comments
+      .flatMap(c => [c, ...(c.replies || [])])
+      .find(c => c.id === commentId);
+
+    if (comment) {
+      setEditingComment({
+        commentId: comment.id,
+        content: comment.content
+      });
+    }
+  };
+
+  // 댓글 수정 저장
+  const onSaveEdit = async (text: string) => {
+    if (!editingComment || !text.trim() || isCommentLoading) return;
+
+    try {
+      setIsCommentLoading(true);
+
+      // API 호출 (추후 구현)
+      console.log('댓글 수정 성공:', text);
+
+      // 수정 모드 종료
+      setEditingComment(null);
+
+    } catch (error) {
+      console.error('댓글 수정 실패:', error);
+    } finally {
+      setIsCommentLoading(false);
+    }
+  };
+
+  // 댓글 삭제
+  const onDeleteComment = async (commentId: number) => {
+    try {
+      setIsCommentLoading(true);
+      console.log('댓글 삭제 성공:', commentId);
+    } catch (error) {
+      console.error('댓글 삭제 실패:', error);
+    } finally {
+      setIsCommentLoading(false);
+    }
   };
 
   // 텍스트 더보기/접기 처리
@@ -186,7 +283,7 @@ export default function FeedDetailScreen() {
               pagingEnabled
               style={styles.imageScroll}
             >
-              {imageBlocks.map((block, index) => (
+              {imageBlocks.map((block: any, index: number) => (
                 <View key={block.sequence} style={styles.imageContainer}>
                   <Text style={styles.imageCounter}>
                     {index + 1} / {imageBlocks.length}
@@ -240,17 +337,9 @@ export default function FeedDetailScreen() {
         <CommentList
           comments={comments}
           onCommentLike={onCommentLikePress}
-          onReplyPress={() => {
-            // TODO: 답글 기능
-          }}
-          onEditComment={(commentId: number) => {
-            // TODO: 댓글 수정
-            console.log('댓글 수정:', commentId);
-          }}
-          onDeleteComment={(commentId: number) => {
-            // TODO: 댓글 삭제
-            console.log('댓글 삭제:', commentId);
-          }}
+          onReplyPress={(comment: any) => onReplyPress(comment.id, comment.user?.nickname || 'Unknown')}
+          onEditComment={onEditComment}
+          onDeleteComment={onDeleteComment}
         />
       </ScrollView>
 

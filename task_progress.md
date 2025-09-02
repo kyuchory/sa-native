@@ -2,3 +2,6 @@
 - [x] Update FeedDetailScreen to use API instead of mock data
 - [x] Add loading and error states to FeedDetailScreen
 - [x] Replace loading UI with LoadingOverlay component (structured like PostDetailScreen)
+- [x] Add comment creation API types to feed.ts
+- [x] Add comment creation method to FeedService
+- [x] Implement comment creation in FeedDetailScreen (following PostDetailScreen pattern)
