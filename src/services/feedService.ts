@@ -13,7 +13,9 @@ import {
   CreateFeedCommentResponse,
   CreateFeedResponse,
   CommentListApiResponse,
-  CommentItem
+  CommentItem,
+  ToggleCommentLikeResponse,
+  ToggleCommentLikeApiResponse
 } from '../types/feed';
 import type { ApiResponse } from '../types/api';
 import type { UploadedImage, ImageUploadResponse } from '../types/post';
@@ -103,6 +105,19 @@ export class FeedService {
       return response.data!;
     } catch (error) {
       console.error('좋아요 토글 실패:', error);
+      throw error;
+    }
+  }
+
+  // 피드 댓글 좋아요 토글
+  static async toggleCommentLike(feedId: number, commentId: number): Promise<ToggleCommentLikeResponse> {
+    try {
+      const response = await apiClient.post<ToggleCommentLikeApiResponse>(
+        `/feeds/${feedId}/comments/${commentId}/like`, {}
+      );
+      return response.data!;
+    } catch (error) {
+      console.error('댓글 좋아요 토글 실패:', error);
       throw error;
     }
   }

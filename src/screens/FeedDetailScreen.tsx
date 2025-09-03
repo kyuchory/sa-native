@@ -79,15 +79,95 @@ export default function FeedDetailScreen() {
     fetchFeedDetailAndComments();
   }, [feedId]);
 
-  // 이벤트 핸들러들
-  const onFeedLikePress = () => {
-    console.log('피드 좋아요 누름:', feedId);
-    // TODO: 좋아요 API 호출
+  // 피드 좋아요 토글
+  const onFeedLikePress = async () => {
+    if (feed) {
+      // 낙관적 UI 업데이트
+      const originalIsLiked = feed.is_liked;
+      const originalLikeCount = feed.like_count;
+
+      setFeed(prev => prev ? {
+        ...prev,
+        is_liked: !prev.is_liked,
+        like_count: prev.is_liked ? prev.like_count - 1 : prev.like_count + 1
+      } : null);
+
+      try {
+        const response = await FeedService.toggleLike(feedId);
+        // API 응답으로 최종 상태 동기화
+        setFeed(prev => prev ? {
+          ...prev,
+          is_liked: response.is_liked,
+          like_count: response.like_count
+        } : null);
+      } catch (error) {
+        console.error('피드 좋아요 토글 실패:', error);
+        // 실패 시 원래 상태로 롤백
+        setFeed(prev => prev ? {
+          ...prev,
+          is_liked: originalIsLiked,
+          like_count: originalLikeCount
+        } : null);
+      }
+    }
   };
 
-  const onCommentLikePress = (commentId: number) => {
-    console.log('댓글 좋아요 누름:', commentId);
-    // TODO: 댓글 좋아요 API 호출
+  // 댓글 좋아요 토글
+  const onCommentLikePress = async (commentId: number) => {
+    // 낙관적 UI 업데이트
+    const originalComments = [...comments];
+
+    setComments(prev => {
+      const updateComment = (comment: CommentItem): CommentItem => {
+        if (comment.id === commentId) {
+          return {
+            ...comment,
+            is_liked: !comment.is_liked,
+            like_count: comment.is_liked ? comment.like_count - 1 : comment.like_count + 1
+          };
+        }
+        if (comment.replies) {
+          return {
+            ...comment,
+            replies: comment.replies.map(updateComment)
+          };
+        }
+        return comment;
+      };
+
+      return prev.map(updateComment);
+    });
+
+    try {
+      // API 호출
+      const response = await FeedService.toggleCommentLike(feedId, commentId);
+
+      // 서버 응답으로 최종 동기화
+      setComments(prev => {
+        const updateComment = (comment: CommentItem): CommentItem => {
+          if (comment.id === commentId) {
+            return {
+              ...comment,
+              is_liked: response.is_liked,
+              like_count: response.like_count
+            };
+          }
+          if (comment.replies) {
+            return {
+              ...comment,
+              replies: comment.replies.map(updateComment)
+            };
+          }
+          return comment;
+        };
+
+        return prev.map(updateComment);
+      });
+    } catch (error) {
+      console.error('댓글 좋아요 토글 실패:', error);
+      // 실패 시 원래 상태로 롤백
+      setComments(originalComments);
+    }
   };
 
   // 댓글 작성

@@ -161,3 +161,12 @@ export interface DeleteCommentResponse {
 
 // 댓글 삭제 API 응답
 export type DeleteCommentApiResponse = ApiResponse<DeleteCommentResponse>;
+
+// 피드 댓글 좋아요 토글 응답 데이터
+export interface ToggleCommentLikeResponse {
+  is_liked: boolean;
+  like_count: number;
+}
+
+// 피드 댓글 좋아요 토글 API 응답
+export type ToggleCommentLikeApiResponse = ApiResponse<ToggleCommentLikeResponse>;
