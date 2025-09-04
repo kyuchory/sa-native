@@ -269,9 +269,19 @@ export default function FeedDetailScreen() {
   const onDeleteComment = async (commentId: number) => {
     try {
       setIsCommentLoading(true);
+
+      // API 호출
+      await FeedService.deleteComment(feedId, commentId);
+
+      // 댓글 목록 새로고침
+      const updatedComments = await FeedService.getComments(feedId);
+      setComments(updatedComments);
+
       console.log('댓글 삭제 성공:', commentId);
+
     } catch (error) {
       console.error('댓글 삭제 실패:', error);
+      // TODO: 사용자에게 에러 알림 표시
     } finally {
       setIsCommentLoading(false);
     }

@@ -7,22 +7,22 @@ import {
   StyleSheet,
 } from 'react-native';
 import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
-import { Comment } from '../types/post';
+import { CommentItem as FeedComment } from '../types/feed';
 import { LikeIcon } from './PostIcons';
 
 interface CommentListProps {
-  comments: Comment[];
+  comments: FeedComment[];
   onCommentLike?: (commentId: number) => void;
-  onReplyPress?: (comment: Comment) => void;
+  onReplyPress?: (comment: FeedComment) => void;
   onEditComment?: (commentId: number) => void;
   onDeleteComment?: (commentId: number) => void;
 }
 
 interface CommentItemProps {
-  comment: Comment;
+  comment: FeedComment;
   isReply?: boolean;
   onCommentLike?: (commentId: number) => void;
-  onReplyPress?: (comment: Comment) => void;
+  onReplyPress?: (comment: FeedComment) => void;
   onEditComment?: (commentId: number) => void;
   onDeleteComment?: (commentId: number) => void;
 }
@@ -98,45 +98,49 @@ const CommentItem = ({ comment, isReply = false, onCommentLike, onReplyPress, on
           {renderCommentContent()}
           
           <View style={styles.commentActions}>
-            <TouchableOpacity 
-              style={styles.likeButton}
-              onPress={() => onCommentLike?.(comment.id)}
-              activeOpacity={0.7}
-            >
-              <LikeIcon 
-                size={14} 
-                filled={comment.is_liked || false}
-                color={comment.is_liked ? COLORS.ERROR : COLORS.GRAY_500}
-              />
-              {comment.like_count > 0 && (
-                <Text style={[
-                  styles.likeCount, 
-                  comment.is_liked && styles.likedCount
-                ]}>
-                  {comment.like_count}
-                </Text>
-              )}
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.replyButton}
-              onPress={() => onReplyPress?.(comment)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.replyText}>답글</Text>
-            </TouchableOpacity>
-            
-            {comment.is_author && (
+            {!comment.is_deleted && (
+              <TouchableOpacity
+                style={styles.likeButton}
+                onPress={() => onCommentLike?.(comment.id)}
+                activeOpacity={0.7}
+              >
+                <LikeIcon
+                  size={14}
+                  filled={comment.is_liked || false}
+                  color={comment.is_liked ? COLORS.ERROR : COLORS.GRAY_500}
+                />
+                {comment.like_count > 0 && (
+                  <Text style={[
+                    styles.likeCount,
+                    comment.is_liked && styles.likedCount
+                  ]}>
+                    {comment.like_count}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+
+            {!comment.is_deleted && (
+              <TouchableOpacity
+                style={styles.replyButton}
+                onPress={() => onReplyPress?.(comment)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.replyText}>답글</Text>
+              </TouchableOpacity>
+            )}
+
+            {comment.is_author && !comment.is_deleted && (
               <>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.replyButton}
                   onPress={() => onEditComment?.(comment.id)}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.replyText}>수정</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   style={styles.replyButton}
                   onPress={() => onDeleteComment?.(comment.id)}
                   activeOpacity={0.7}

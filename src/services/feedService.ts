@@ -15,7 +15,9 @@ import {
   CommentListApiResponse,
   CommentItem,
   ToggleCommentLikeResponse,
-  ToggleCommentLikeApiResponse
+  ToggleCommentLikeApiResponse,
+  DeleteCommentResponse,
+  DeleteCommentApiResponse
 } from '../types/feed';
 import type { ApiResponse } from '../types/api';
 import type { UploadedImage, ImageUploadResponse } from '../types/post';
@@ -118,6 +120,19 @@ export class FeedService {
       return response.data!;
     } catch (error) {
       console.error('댓글 좋아요 토글 실패:', error);
+      throw error;
+    }
+  }
+
+  // 피드 댓글 삭제 (소프트 삭제)
+  static async deleteComment(feedId: number, commentId: number): Promise<DeleteCommentResponse> {
+    try {
+      const response = await apiClient.delete<DeleteCommentApiResponse>(
+        `/feeds/${feedId}/comments/${commentId}`
+      );
+      return response.data!;
+    } catch (error) {
+      console.error('댓글 삭제 실패:', error);
       throw error;
     }
   }
