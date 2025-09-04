@@ -16,6 +16,9 @@ import {
   CommentItem,
   ToggleCommentLikeResponse,
   ToggleCommentLikeApiResponse,
+  UpdateCommentRequest,
+  UpdateCommentResponse,
+  UpdateCommentApiResponse,
   DeleteCommentResponse,
   DeleteCommentApiResponse
 } from '../types/feed';
@@ -120,6 +123,20 @@ export class FeedService {
       return response.data!;
     } catch (error) {
       console.error('댓글 좋아요 토글 실패:', error);
+      throw error;
+    }
+  }
+
+  // 피드 댓글 수정
+  static async updateComment(feedId: number, commentId: number, commentData: UpdateCommentRequest): Promise<UpdateCommentResponse> {
+    try {
+      const response = await apiClient.patch<UpdateCommentApiResponse>(
+        `/feeds/${feedId}/comments/${commentId}`,
+        commentData
+      );
+      return response.data!;
+    } catch (error) {
+      console.error('댓글 수정 실패:', error);
       throw error;
     }
   }

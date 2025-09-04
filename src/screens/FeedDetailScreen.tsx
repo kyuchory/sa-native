@@ -6,6 +6,8 @@ import { COLORS, BG_COLORS, SPACING, TYPOGRAPHY, TEXT_COLORS } from '../constant
 import CommonHeader from '../components/CommonHeader';
 import CommentList from '../components/CommentList';
 import { CommentInput } from '../components/CommentInput';
+import { CommentEditInput } from '../components/CommentEditInput';
+import { ReplyInput } from '../components/ReplyInput';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { CommentItem, FeedListItem } from '../types/feed';
 
@@ -252,14 +254,21 @@ export default function FeedDetailScreen() {
     try {
       setIsCommentLoading(true);
 
-      // API 호출 (추후 구현)
-      console.log('댓글 수정 성공:', text);
+      // API 호출
+      const response = await FeedService.updateComment(feedId, editingComment.commentId, { content: text });
+
+      // 댓글 목록 새로고침
+      const updatedComments = await FeedService.getComments(feedId);
+      setComments(updatedComments);
 
       // 수정 모드 종료
       setEditingComment(null);
 
+      console.log('댓글 수정 성공:', response);
+
     } catch (error) {
       console.error('댓글 수정 실패:', error);
+      // TODO: 사용자에게 에러 알림 표시
     } finally {
       setIsCommentLoading(false);
     }
@@ -442,11 +451,27 @@ export default function FeedDetailScreen() {
         />
       </ScrollView>
 
-      {/* 댓글 입력 */}
-      <CommentInput
-        onSendComment={onSendComment}
-        placeholder="댓글을 작성해 보세요."
-      />
+      {/* 댓글 입력 또는 수정 입력 */}
+      {editingComment ? (
+        <CommentEditInput
+          initialText={editingComment.content}
+          onSave={onSaveEdit}
+          onCancel={() => setEditingComment(null)}
+          isLoading={isCommentLoading}
+        />
+      ) : replyingTo ? (
+        <ReplyInput
+          onSendReply={onSendReply}
+          onCancel={() => setReplyingTo(null)}
+          replyToUser={replyingTo.userName}
+          isLoading={isCommentLoading}
+        />
+      ) : (
+        <CommentInput
+          onSendComment={onSendComment}
+          placeholder="댓글을 작성해 보세요."
+        />
+      )}
     </SafeAreaView>
   );
 }

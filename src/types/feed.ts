@@ -151,8 +151,14 @@ export interface UpdateCommentRequest {
   content: string;
 }
 
+// 댓글 수정 응답 데이터
+export interface UpdateCommentResponse {
+  id: number;
+  updated_at: string;
+}
+
 // 댓글 수정 API 응답
-export type UpdateCommentApiResponse = ApiResponse<CommentItem>;
+export type UpdateCommentApiResponse = ApiResponse<UpdateCommentResponse>;
 
 // 댓글 삭제 응답 데이터
 export interface DeleteCommentResponse {
