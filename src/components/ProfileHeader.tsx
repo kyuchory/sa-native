@@ -13,6 +13,7 @@ interface ProfileHeaderProps {
     feedsCount: number;
     followersCount: number;
     followingCount: number;
+    bio?: string | null;
   };
   onSettingsPress: () => void;
   onCharacterLinkPress: () => void;
@@ -22,7 +23,6 @@ interface ProfileHeaderProps {
 export default function ProfileHeader({
   user,
   onSettingsPress,
-  onCharacterLinkPress,
   onEditProfilePress,
 }: ProfileHeaderProps) {
   const insets = useSafeAreaInsets();
@@ -85,19 +85,19 @@ export default function ProfileHeader({
           </View>
         </View>
 
+        {/* Bio 섹션 */}
+        {user.bio && (
+          <View style={styles.bioSection}>
+            <Text style={styles.bioText}>{user.bio}</Text>
+          </View>
+        )}
+
         {/* 버튼 섹션 */}
         <View style={styles.buttonSection}>
           <ProfileButton
-            title="캐릭터 연동"
-            onPress={onCharacterLinkPress}
-            variant="outline"
-            size="medium"
-            style={styles.button}
-          />
-          <ProfileButton
             title="프로필 편집"
             onPress={onEditProfilePress}
-            variant="secondary"
+            variant="outline"
             size="medium"
             style={styles.button}
           />
@@ -187,5 +187,17 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
+  },
+
+  // Bio 섹션
+  bioSection: {
+    marginVertical: SPACING.SM,
+    paddingHorizontal: SPACING.XS,
+  },
+  bioText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: TEXT_COLORS.PRIMARY,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    lineHeight: 20,
   },
 });

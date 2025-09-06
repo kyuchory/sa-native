@@ -137,17 +137,13 @@ export default function NewProfileTabScreen() {
     feedsCount: profileData.stats.feed_count,
     followersCount: profileData.stats.follower_count,
     followingCount: profileData.stats.following_count,
+    bio: profileData.bio,
   } : null;
 
   // 핸들러들
   const handleSettingsPress = () => {
     console.log('Settings pressed');
     // TODO: 설정 화면으로 이동
-  };
-
-  const handleCharacterLinkPress = () => {
-    console.log('Character link pressed');
-    // TODO: 캐릭터 연동 화면으로 이동
   };
 
   const handleEditProfilePress = () => {
@@ -198,7 +194,6 @@ export default function NewProfileTabScreen() {
       <ProfileHeader
         user={profileUser}
         onSettingsPress={handleSettingsPress}
-        onCharacterLinkPress={handleCharacterLinkPress}
         onEditProfilePress={handleEditProfilePress}
       />
 
