@@ -9,7 +9,7 @@ interface IconProps {
 }
 
 // 설정 아이콘 - 깔끔한 톱니바퀴 (가운데 구멍)
-export const SettingsIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
+const SettingsIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       {/* 톱니바퀴 메인 몸체 */}
@@ -24,7 +24,7 @@ export const SettingsIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) 
 );
 
 // 피드 그리드 아이콘
-export const GridIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
+const GridIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <G fill={color}>
@@ -43,7 +43,7 @@ export const GridIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
 );
 
 // 게시물 리스트 아이콘
-export const ListIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
+const ListIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <G fill={color}>
@@ -56,7 +56,7 @@ export const ListIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
 );
 
 // 비디오/릴스 아이콘
-export const VideoIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
+const VideoIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Rect x="2" y="3" width="20" height="18" rx="2" fill={color} />
@@ -66,7 +66,7 @@ export const VideoIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => 
 );
 
 // 캐릭터 아이콘
-export const CharacterIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
+const CharacterIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Circle cx="12" cy="7" r="4" fill={color} />
@@ -78,4 +78,26 @@ export const CharacterIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps)
   </View>
 );
 
-export { SettingsIcon, GridIcon, ListIcon, VideoIcon, CharacterIcon };
+// 프로필 수정 아이콘 (연필)
+const ProfileEditIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </View>
+);
+
+export { SettingsIcon, GridIcon, ListIcon, VideoIcon, CharacterIcon, ProfileEditIcon };

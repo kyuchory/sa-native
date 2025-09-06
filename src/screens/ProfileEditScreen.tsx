@@ -1,26 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../types/navigation';
 import { BG_COLORS, COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 
+// Services
+import { ProfileService } from '../services/profileService';
+import { useAuthStore } from '../stores/authStore';
+
 // Components
 import CommonHeader from '../components/CommonHeader';
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
+import { ProfileEditIcon } from '../components/ProfileIcons';
 
 type ProfileEditScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ProfileEdit'>;
 
 export default function ProfileEditScreen() {
   const navigation = useNavigation<ProfileEditScreenNavigationProp>();
+  const { user } = useAuthStore();
+  const [loading, setLoading] = useState(true);
 
-  // 프로필 데이터 상태 (임시 데이터 - 실제로는 props나 API에서 받을 것)
+  // 프로필 데이터 상태
   const [profileData, setProfileData] = useState({
     profileImage: null as string | null,
-    nickname: '김사용자',
-    bio: '안녕하세요! 반갑습니다 😀',
+    nickname: '',
+    bio: '',
   });
+
+  // 프로필 데이터 조회
+  const fetchProfile = async () => {
+    if (user?.id) {
+      try {
+        setLoading(true);
+        const response = await ProfileService.getProfile(user.id);
+        setProfileData({
+          profileImage: response.data.profile_img,
+          nickname: response.data.nickname,
+          bio: response.data.bio || '',
+        });
+      } catch (error) {
+        console.error('프로필 조회 실패:', error);
+        // 에러 발생 시 기본값 사용
+        setProfileData({
+          profileImage: user?.profile_img || null,
+          nickname: user?.nickname || '사용자',
+          bio: '',
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, [user?.id]);
 
   const handleSave = () => {
     // TODO: 저장 로직 구현
@@ -37,6 +73,18 @@ export default function ProfileEditScreen() {
     // TODO: 이미지 선택/촬영 로직 구현
     console.log('프로필 이미지 변경');
   };
+
+  // 로딩 중이거나 프로필 데이터가 없으면 로딩 표시
+  if (loading || !profileData.nickname) {
+    return (
+      <View style={styles.container}>
+        <CommonHeader title="프로필 편집" />
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>프로필 정보를 불러오는 중...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -56,7 +104,7 @@ export default function ProfileEditScreen() {
               </View>
             )}
             <View style={styles.editIconContainer}>
-              <Text style={styles.editIcon}>✏️</Text>
+              <ProfileEditIcon size={16} color={COLORS.WHITE} />
             </View>
           </TouchableOpacity>
         </View>
@@ -159,9 +207,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  // 입력 섹션
+// 입력 섹션
   inputSection: {
     marginBottom: SPACING.SM,
+  },
+
+  // 로딩 섹션
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: TYPOGRAPHY.SIZE.LG,
+    color: COLORS.GRAY_500,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
   bioInput: {
     minHeight: 80,
