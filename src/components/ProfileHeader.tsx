@@ -16,7 +16,6 @@ interface ProfileHeaderProps {
     bio?: string | null;
   };
   onSettingsPress: () => void;
-  onCharacterLinkPress: () => void;
   onEditProfilePress: () => void;
 }
 

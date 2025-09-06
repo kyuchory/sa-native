@@ -148,7 +148,7 @@ export default function NewProfileTabScreen() {
 
   const handleEditProfilePress = () => {
     console.log('Edit profile pressed');
-    // TODO: 프로필 편집 화면으로 이동
+    navigation.navigate('ProfileEdit');
   };
 
   const handleTabChange = (tab: ProfileTabType) => {
