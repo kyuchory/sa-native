@@ -20,6 +20,7 @@ export default function NicknameEditScreen() {
   const { user, setUser } = useAuthStore();
   const [nickname, setNickname] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [originalNickname, setOriginalNickname] = useState('');
 
   // 초기 데이터 로드
@@ -32,12 +33,12 @@ export default function NicknameEditScreen() {
 
   const handleSave = async () => {
     if (!nickname.trim()) {
-      Alert.alert('오류', '닉네임을 입력해주세요.');
+      setError('닉네임을 입력해주세요.');
       return;
     }
 
     if (nickname.length > 50) {
-      Alert.alert('오류', '닉네임은 50자 이하여야 합니다.');
+      setError('닉네임은 50자 이하여야 합니다.');
       return;
     }
 
@@ -48,14 +49,15 @@ export default function NicknameEditScreen() {
 
     try {
       setLoading(true);
+      setError(''); // 이전 에러 초기화
       await ProfileService.updateProfile({ nickname });
       if (user) {
         setUser({ ...user, nickname });
       }
       navigation.goBack();
-    } catch (error) {
+    } catch (error : any) {
       console.error('닉네임 업데이트 실패:', error);
-      Alert.alert('오류', '닉네임 업데이트에 실패했습니다.');
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -91,10 +93,14 @@ export default function NicknameEditScreen() {
           <CustomInput
             label="닉네임"
             value={nickname}
-            onChangeText={setNickname}
+            onChangeText={(text) => {
+              setNickname(text);
+              if (error) setError(''); // 입력할 때 에러 메시지 숨김
+            }}
             placeholder="닉네임을 입력하세요"
             maxLength={50}
             autoFocus
+            error={error}
           />
           <Text style={styles.hint}>
             {nickname.length}/50자

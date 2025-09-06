@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet, TextInputProps } from 'react-native';
+import { COLORS } from '../constants/theme';
 
 interface CustomInputProps extends TextInputProps {
   label: string;
@@ -58,13 +59,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#fafafa',
   },
   inputError: {
-    borderColor: '#f44336',
+    borderColor: COLORS.PRIMARY,
   },
   rightComponent: {
     marginLeft: 10,
   },
   errorText: {
-    color: '#f44336',
+    color: COLORS.PRIMARY,
     fontSize: 14,
     marginTop: 5,
     marginLeft: 5,

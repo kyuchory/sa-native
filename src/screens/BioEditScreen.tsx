@@ -20,6 +20,7 @@ export default function BioEditScreen() {
   const { user, setUser } = useAuthStore();
   const [bio, setBio] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [originalBio, setOriginalBio] = useState('');
 
   // 초기 데이터 로드
@@ -31,7 +32,7 @@ export default function BioEditScreen() {
 
   const handleSave = async () => {
     if (bio.length > 150) {
-      Alert.alert('오류', '소개는 150자 이하여야 합니다.');
+      setError('소개는 150자 이하여야 합니다.');
       return;
     }
 
@@ -42,15 +43,16 @@ export default function BioEditScreen() {
 
     try {
       setLoading(true);
+      setError(''); // 이전 에러 초기화
       await ProfileService.updateProfile({ bio });
       if (user) {
         setUser({ ...user, bio });
       }
       navigation.goBack();
-    } catch (error) {
-      console.error('Bio 업데이트 실패:', error);
-      Alert.alert('오류', '소개 업데이트에 실패했습니다.');
-    } finally {
+    } catch (error : any) {
+      console.error('소개 업데이트 실패:', error);
+      setError(error.message);
+    }  finally {
       setLoading(false);
     }
   };
@@ -85,13 +87,17 @@ export default function BioEditScreen() {
           <CustomInput
             label="소개"
             value={bio}
-            onChangeText={setBio}
+            onChangeText={(text) => {
+              setBio(text);
+              if (error) setError(''); // 입력할 때 에러 메시지 숨김
+            }}
             placeholder="자기소개를 입력하세요"
             multiline={true}
             numberOfLines={4}
             maxLength={150}
             autoFocus
             style={styles.bioInput}
+            error={error}
           />
           <Text style={styles.hint}>
             {bio.length}/150자
