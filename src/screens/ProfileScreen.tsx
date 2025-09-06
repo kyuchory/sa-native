@@ -37,10 +37,10 @@ export default function NewProfileTabScreen() {
   });
 
   // 프로필 데이터 조회
-  const fetchProfile = async () => {
+  const fetchProfile = async (showLoading = true) => {
     if (user?.id) {
       try {
-        setLoading(true);
+        if (showLoading) setLoading(true);
         const response = await ProfileService.getProfile(user.id);
         setProfileData(response.data);
       } catch (error) {
@@ -49,6 +49,7 @@ export default function NewProfileTabScreen() {
         setProfileData({
           nickname: user?.nickname || '사용자',
           profile_img: user?.profile_img || null,
+          bio: user?.bio || '',
           stats: {
             post_count: 0,
             feed_count: 0,
@@ -57,7 +58,7 @@ export default function NewProfileTabScreen() {
           },
         });
       } finally {
-        setLoading(false);
+        if (showLoading) setLoading(false);
       }
     }
   };
@@ -119,9 +120,12 @@ export default function NewProfileTabScreen() {
     }
   }, [user?.id]);
 
-  // 화면에 다시 포커스될 때 feed 탭이면 최신 데이터로 리프레시
+  // 화면에 다시 포커스될 때 프로필과 피드 데이터 리프레시
   useFocusEffect(
     useCallback(() => {
+      // 프로필 데이터를 로딩 없이 다시 가져와서 최신 상태로 유지
+      fetchProfile(false);
+
       if (activeTab === 'feed') {
         fetchFeeds(true);
       }
