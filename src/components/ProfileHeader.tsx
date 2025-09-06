@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, SHADOWS, BORDER_RADIUS } from '../constants/theme';
@@ -25,11 +25,46 @@ export default function ProfileHeader({
   onEditProfilePress,
 }: ProfileHeaderProps) {
   const insets = useSafeAreaInsets();
+  const [bioExpanded, setBioExpanded] = useState(false);
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${Math.floor(num / 100000) / 10}M`;
     if (num >= 1000) return `${Math.floor(num / 100) / 10}K`;
     return num.toString();
+  };
+
+  // Bio 텍스트 렌더링 (FeedDetailScreen 방식)
+  const renderBio = () => {
+    if (!user.bio) return null;
+
+    const bioText = user.bio;
+    const shouldTruncate = bioText.length > 80; // 프로필에서는 80자로 제한
+
+    if (!shouldTruncate) {
+      return <Text style={styles.bioText}>{bioText}</Text>;
+    }
+
+    if (bioExpanded) {
+      return (
+        <View>
+          <Text style={styles.bioText}>{bioText}</Text>
+          <TouchableOpacity onPress={() => setBioExpanded(false)}>
+            <Text style={styles.moreText}>접기</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <View>
+        <Text style={styles.bioText}>
+          {bioText.substring(0, 80)}...
+        </Text>
+        <TouchableOpacity onPress={() => setBioExpanded(true)}>
+          <Text style={styles.moreText}>더보기</Text>
+        </TouchableOpacity>
+      </View>
+    );
   };
 
   return (
@@ -87,7 +122,7 @@ export default function ProfileHeader({
         {/* Bio 섹션 */}
         {user.bio && (
           <View style={styles.bioSection}>
-            <Text style={styles.bioText}>{user.bio}</Text>
+            {renderBio()}
           </View>
         )}
 
@@ -198,5 +233,10 @@ const styles = StyleSheet.create({
     color: TEXT_COLORS.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     lineHeight: 20,
+  },
+  moreText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: TEXT_COLORS.SECONDARY,
+    marginTop: SPACING.XS,
   },
 });
