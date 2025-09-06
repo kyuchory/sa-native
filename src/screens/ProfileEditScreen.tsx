@@ -12,7 +12,6 @@ import { useAuthStore } from '../stores/authStore';
 // Components
 import CommonHeader from '../components/CommonHeader';
 import CustomInput from '../components/CustomInput';
-import CustomButton from '../components/CustomButton';
 import { ProfileEditIcon } from '../components/ProfileIcons';
 
 type ProfileEditScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ProfileEdit'>;
@@ -58,16 +57,7 @@ export default function ProfileEditScreen() {
     fetchProfile();
   }, [user?.id]);
 
-  const handleSave = () => {
-    // TODO: 저장 로직 구현
-    console.log('저장하기:', profileData);
-    navigation.goBack();
-  };
 
-  const handleCancel = () => {
-    // TODO: 변경사항 확인 로직 (변경사항이 있으면 팝업 표시)
-    navigation.goBack();
-  };
 
   const handleImagePress = () => {
     // TODO: 이미지 선택/촬영 로직 구현
@@ -110,47 +100,41 @@ export default function ProfileEditScreen() {
         </View>
 
         {/* 닉네임 입력 */}
-        <View style={styles.inputSection}>
+        <TouchableOpacity
+          style={styles.inputSection}
+          onPress={() => navigation.navigate('NicknameEdit')}
+          activeOpacity={0.7}
+        >
           <CustomInput
             label="닉네임"
             value={profileData.nickname}
-            onChangeText={(text) => setProfileData(prev => ({ ...prev, nickname: text }))}
+            onChangeText={() => {}} // 터치시 화면 이동이므로 입력 차단
             placeholder="닉네임을 입력하세요"
             maxLength={20}
+            editable={false}
+            pointerEvents="none"
           />
-        </View>
+        </TouchableOpacity>
 
         {/* 소개(Bio) 입력 */}
-        <View style={styles.inputSection}>
+        <TouchableOpacity
+          style={styles.inputSection}
+          onPress={() => navigation.navigate('BioEdit')}
+          activeOpacity={0.7}
+        >
           <CustomInput
             label="소개"
             value={profileData.bio}
-            onChangeText={(text) => setProfileData(prev => ({ ...prev, bio: text }))}
+            onChangeText={() => {}} // 터치시 화면 이동이므로 입력 차단
             placeholder="자기소개를 입력하세요"
             multiline={true}
             numberOfLines={4}
             maxLength={150}
             style={styles.bioInput}
+            editable={false}
+            pointerEvents="none"
           />
-        </View>
-
-        {/* 버튼 섹션 */}
-        <View style={styles.buttonSection}>
-          <CustomButton
-            title="저장하기"
-            onPress={handleSave}
-            variant="primary"
-            size="large"
-            style={styles.saveButton}
-          />
-          <CustomButton
-            title="취소"
-            onPress={handleCancel}
-            variant="outline"
-            size="large"
-            style={styles.cancelButton}
-          />
-        </View>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -226,17 +210,5 @@ const styles = StyleSheet.create({
   bioInput: {
     minHeight: 80,
     textAlignVertical: 'top',
-  },
-
-  // 버튼 섹션
-  buttonSection: {
-    gap: SPACING.SM,
-    marginBottom: SPACING.XL,
-  },
-  saveButton: {
-    // 추가 스타일
-  },
-  cancelButton: {
-    // 추가 스타일
   },
 });

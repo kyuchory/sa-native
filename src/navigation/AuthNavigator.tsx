@@ -13,6 +13,8 @@ import PostDetailScreen from '../screens/PostDetailScreen';
 import FeedDetailScreen from '../screens/FeedDetailScreen';
 // import ProfileScreen from '../screens/ProfileScreen';
 import ProfileEditScreen from '../screens/ProfileEditScreen';
+import NicknameEditScreen from '../screens/NicknameEditScreen';
+import BioEditScreen from '../screens/BioEditScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ChatScreen from '../screens/ChatScreen';
 import SelectChatUserScreen from '../screens/SelectChatUserScreen';
@@ -64,6 +66,16 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="ProfileEdit"
           component={ProfileEditScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="NicknameEdit"
+          component={NicknameEditScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="BioEdit"
+          component={BioEditScreen}
           options={{ headerShown: false }}
         />
         {/* <Stack.Screen

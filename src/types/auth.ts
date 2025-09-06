@@ -6,6 +6,7 @@ export interface User {
   email: string;
   nickname: string;
   profile_img: string | null;
+  bio: string | null;
 }
 
 // 토큰 타입
