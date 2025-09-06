@@ -45,7 +45,7 @@ export default function ProfileEditScreen() {
         setProfileData({
           profileImage: user?.profile_img || null,
           nickname: user?.nickname || '사용자',
-          bio: '',
+          bio: user?.bio || '',
         });
       } finally {
         setLoading(false);
@@ -56,6 +56,15 @@ export default function ProfileEditScreen() {
   useEffect(() => {
     fetchProfile();
   }, [user?.id]);
+
+  // user 가 변경될 때 profileData 업데이트
+  useEffect(() => {
+    setProfileData({
+      profileImage: user?.profile_img || null,
+      nickname: user?.nickname || '사용자',
+      bio: user?.bio || '',
+    });
+  }, [user?.nickname, user?.profile_img, user?.bio]);
 
 
 

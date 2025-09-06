@@ -36,8 +36,8 @@ export default function NicknameEditScreen() {
       return;
     }
 
-    if (nickname.length > 20) {
-      Alert.alert('오류', '닉네임은 20자 이하여야 합니다.');
+    if (nickname.length > 50) {
+      Alert.alert('오류', '닉네임은 50자 이하여야 합니다.');
       return;
     }
 
@@ -75,7 +75,7 @@ export default function NicknameEditScreen() {
         styles.saveButtonText,
         (!nickname.trim() || nickname === originalNickname) && styles.disabledButtonText
       ]}>
-        {loading ? '저장 중...' : '완료'}
+        {loading ? '저장 중' : '완료'}
       </Text>
     </TouchableOpacity>
   );
@@ -93,11 +93,11 @@ export default function NicknameEditScreen() {
             value={nickname}
             onChangeText={setNickname}
             placeholder="닉네임을 입력하세요"
-            maxLength={20}
+            maxLength={50}
             autoFocus
           />
           <Text style={styles.hint}>
-            {nickname.length}/20자
+            {nickname.length}/50자
           </Text>
         </View>
       </View>
