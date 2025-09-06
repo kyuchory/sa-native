@@ -5,6 +5,7 @@ export interface Profile {
   id: number;
   nickname: string;
   profile_img: string | null;
+  bio: string | null;
   created_at: string;
   stats: ProfileStats;
 }
@@ -21,6 +22,7 @@ export interface ProfileStats {
 export interface UpdateProfileRequest {
   nickname?: string;
   profile_img?: string;
+  bio?: string;
 }
 
 // 프로필 편집 응답 데이터
@@ -28,6 +30,7 @@ export interface UpdateProfileResponse {
   id: number;
   nickname: string;
   profile_img: string | null;
+  bio: string | null;
   updated_at: string;
 }
 
