@@ -92,7 +92,8 @@ export default function CreateFeedScreen() {
         
         if (item.type === 'image') {
           const uploadResult = await PostService.uploadImage(item.uri);
-          uploadedUrl = uploadResult.url;
+          uploadedUrl = uploadResult.path;
+          console.log(uploadedUrl)
         } else {
           // 영상 업로드는 추후 구현
           console.log('영상 업로드는 아직 구현되지 않았습니다.');
