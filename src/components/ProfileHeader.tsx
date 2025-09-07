@@ -5,16 +5,12 @@ import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, SHADOWS, BORDER_RADIUS } from
 import { SettingsIcon } from './ProfileIcons';
 import ProfileButton from './ProfileButton';
 
+// 타입 imports
+import type { Profile, ProfileStats } from '../types/profile';
+
+// 타입 imports 추가
 interface ProfileHeaderProps {
-  user: {
-    nickname: string;
-    profileImage?: string;
-    postsCount: number;
-    feedsCount: number;
-    followersCount: number;
-    followingCount: number;
-    bio?: string | null;
-  };
+  user: Pick<Profile, 'nickname' | 'profile_img' | 'bio' | 'stats'>;
   onSettingsPress: () => void;
   onEditProfilePress: () => void;
 }
@@ -87,8 +83,8 @@ export default function ProfileHeader({
         <View style={styles.profileSection}>
           {/* 프로필 이미지 */}
           <View style={styles.profileImageContainer}>
-            {user.profileImage ? (
-              <Image source={{ uri: user.profileImage }} style={styles.profileImage} />
+            {user.profile_img ? (
+              <Image source={{ uri: user.profile_img }} style={styles.profileImage} />
             ) : (
               <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
                 <Text style={styles.profileImageText}>
@@ -101,19 +97,19 @@ export default function ProfileHeader({
           {/* 통계 정보 */}
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{formatNumber(user.postsCount)}</Text>
+              <Text style={styles.statNumber}>{formatNumber(user.stats.post_count)}</Text>
               <Text style={styles.statLabel}>게시물</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{formatNumber(user.feedsCount)}</Text>
+              <Text style={styles.statNumber}>{formatNumber(user.stats.feed_count)}</Text>
               <Text style={styles.statLabel}>피드</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{formatNumber(user.followersCount)}</Text>
+              <Text style={styles.statNumber}>{formatNumber(user.stats.follower_count)}</Text>
               <Text style={styles.statLabel}>팔로워</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{formatNumber(user.followingCount)}</Text>
+              <Text style={styles.statNumber}>{formatNumber(user.stats.following_count)}</Text>
               <Text style={styles.statLabel}>팔로잉</Text>
             </View>
           </View>

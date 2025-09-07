@@ -15,7 +15,7 @@ import ProfilePostsList from '../components/ProfilePostsList';
 import { ProfileService } from '../services/profileService';
 
 // 타입 imports
-import type { ProfileFeedItem, ProfilePostItem, ProfilePagination } from '../types/profile';
+import type { Profile, ProfileFeedItem, ProfilePostItem, ProfilePagination } from '../types/profile';
 
 export default function NewProfileTabScreen() {
   const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
@@ -23,7 +23,7 @@ export default function NewProfileTabScreen() {
   //상태 관리
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<ProfileTabType>('feed');
-  const [profileData, setProfileData] = useState<any>(null);
+  const [profileData, setProfileData] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [postsData, setPostsData] = useState<ProfilePostItem[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
@@ -47,9 +47,11 @@ export default function NewProfileTabScreen() {
         console.error('프로필 조회 실패:', error);
         // 에러 발생 시 기본값 사용
         setProfileData({
+          id: user?.id || -1, // 에러 시에도 ID는 필요하므로 기본값 사용
           nickname: user?.nickname || '사용자',
           profile_img: user?.profile_img || null,
           bio: user?.bio || '',
+          created_at: new Date().toISOString(),
           stats: {
             post_count: 0,
             feed_count: 0,
@@ -133,14 +135,11 @@ export default function NewProfileTabScreen() {
     }, [activeTab, user?.id])
   );
 
-  // ProfileHeader에 전달할 데이터 변환
+  // ProfileHeader에 전달할 데이터 - API 응답 구조 그대로 사용
   const profileUser = profileData ? {
     nickname: profileData.nickname,
-    profileImage: profileData.profile_img,
-    postsCount: profileData.stats.post_count,
-    feedsCount: profileData.stats.feed_count,
-    followersCount: profileData.stats.follower_count,
-    followingCount: profileData.stats.following_count,
+    profile_img: profileData.profile_img,
+    stats: profileData.stats,
     bio: profileData.bio,
   } : null;
 
