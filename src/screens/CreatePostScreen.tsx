@@ -180,7 +180,7 @@ export default function CreatePostScreen() {
           setContentBlocks(prev => 
             prev.map(block => 
               block.id === newImageBlock.id 
-                ? { ...block, value: uploadedImage.url }
+                ? { ...block, value: uploadedImage.path }
                 : block
             )
           );
