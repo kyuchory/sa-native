@@ -69,8 +69,7 @@ export default function ProfileEditScreen() {
 
 
   const handleImagePress = () => {
-    // TODO: 이미지 선택/촬영 로직 구현
-    console.log('프로필 이미지 변경');
+    navigation.navigate('ProfileImageEdit');
   };
 
   // 로딩 중이거나 프로필 데이터가 없으면 로딩 표시

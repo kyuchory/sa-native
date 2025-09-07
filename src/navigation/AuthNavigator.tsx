@@ -15,6 +15,7 @@ import FeedDetailScreen from '../screens/FeedDetailScreen';
 import ProfileEditScreen from '../screens/ProfileEditScreen';
 import NicknameEditScreen from '../screens/NicknameEditScreen';
 import BioEditScreen from '../screens/BioEditScreen';
+import ProfileImageEditScreen from '../screens/ProfileImageEditScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ChatScreen from '../screens/ChatScreen';
 import SelectChatUserScreen from '../screens/SelectChatUserScreen';
@@ -76,6 +77,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="BioEdit"
           component={BioEditScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ProfileImageEdit"
+          component={ProfileImageEditScreen}
           options={{ headerShown: false }}
         />
         {/* <Stack.Screen
