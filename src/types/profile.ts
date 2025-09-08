@@ -103,3 +103,16 @@ export interface ProfileFeedsResponse {
     pagination: ProfilePagination;
   };
 }
+
+// 프로필 이미지 업로드 관련 타입
+export interface ProfileImageUploadResponse {
+  file: UploadedImage;
+}
+
+// 업로드된 이미지 정보 (post.ts의 UploadedImage와 동일)
+export interface UploadedImage {
+  filename: string;
+  path: string;
+  url: string;
+  size: number;
+}

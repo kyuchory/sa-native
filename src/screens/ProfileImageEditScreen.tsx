@@ -8,6 +8,7 @@ import { BG_COLORS, COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../consta
 
 // Services
 import { useAuthStore } from '../stores/authStore';
+import { ProfileService } from '../services/profileService';
 
 // Components
 import CommonHeader from '../components/CommonHeader';
@@ -23,6 +24,7 @@ export default function ProfileImageEditScreen() {
   // 이미지 상태
   const [currentImageUri, setCurrentImageUri] = useState<string | null>(user?.profile_img || null);
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // 미디어 라이브러리 권한 요청
   const requestMediaLibraryPermission = async () => {
@@ -57,7 +59,8 @@ export default function ProfileImageEditScreen() {
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setSelectedImageUri(result.assets[0].uri);
+      const selectedImage = result.assets[0];
+      await uploadProfileImage(selectedImage.uri);
     }
   };
 
@@ -73,7 +76,28 @@ export default function ProfileImageEditScreen() {
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setSelectedImageUri(result.assets[0].uri);
+      const selectedImage = result.assets[0];
+      await uploadProfileImage(selectedImage.uri);
+    }
+  };
+
+  // 프로필 이미지 업로드
+  const uploadProfileImage = async (imageUri: string) => {
+    try {
+      setIsUploading(true);
+      
+      // 프로필 이미지 업로드
+      const uploadedImage = await ProfileService.uploadProfileImage(imageUri);
+      console.log(uploadedImage.path)
+      // 업로드된 이미지 URL로 상태 업데이트
+      setSelectedImageUri(uploadedImage.path);
+      
+      Alert.alert('성공', '프로필 이미지가 업로드되었습니다.');
+    } catch (error) {
+      console.error('프로필 이미지 업로드 실패:', error);
+      Alert.alert('오류', '이미지 업로드에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -90,12 +114,25 @@ export default function ProfileImageEditScreen() {
     );
   };
 
-  // 저장 버튼 처리 (퍼블리싱용 - 실제 저장은 하지 않음)
-  const handleSave = () => {
+  // 저장 버튼 처리
+  const handleSave = async () => {
     if (selectedImageUri) {
-      // 실제 DB 저장 없이 로컬에서만 업데이트
-      Alert.alert('성공', '프로필 이미지가 선택되었습니다.');
-      navigation.goBack();
+      try {
+        setIsUploading(true);
+        
+        // 프로필 이미지 업데이트
+        await ProfileService.updateProfile({
+          profile_img: selectedImageUri
+        });
+        
+        Alert.alert('성공', '프로필 이미지가 저장되었습니다.');
+        navigation.goBack();
+      } catch (error) {
+        console.error('프로필 업데이트 실패:', error);
+        Alert.alert('오류', '프로필 저장에 실패했습니다. 다시 시도해주세요.');
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -143,11 +180,11 @@ export default function ProfileImageEditScreen() {
             style={styles.cancelButton}
           />
           <CustomButton
-            title="저장"
+            title={isUploading ? "저장 중..." : "저장"}
             onPress={handleSave}
             variant="primary"
             style={styles.saveButton}
-            disabled={!selectedImageUri}
+            disabled={!selectedImageUri || isUploading}
           />
         </View>
       </ScrollView>

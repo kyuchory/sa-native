@@ -5,7 +5,10 @@ import {
   UpdateProfileApiResponse,
   ProfilePostsResponse,
   ProfileFeedsResponse,
+  ProfileImageUploadResponse,
+  UploadedImage,
 } from '../types/profile';
+import { ApiResponse } from '../types/api';
 
 // 프로필 관련 API 서비스
 export class ProfileService {
@@ -45,5 +48,40 @@ export class ProfileService {
     });
     
     return apiClient.get<ProfileFeedsResponse>(`/profiles/${userId}/feeds?${queryParams}`);
+  }
+
+  // 프로필 이미지 업로드
+  static async uploadProfileImages(imageUris: string[]): Promise<UploadedImage[]> {
+    try {
+      // FormData 생성
+      const formData = new FormData();
+      
+      imageUris.forEach((imageUri, index) => {
+        const fileName = imageUri.split('/').pop() || `profile_image_${index}.jpg`;
+        
+        formData.append('profile_image', {
+          uri: imageUri,
+          type: 'image/jpeg', // 기본값, 실제로는 asset.type 사용 권장
+          name: fileName,
+        } as any);
+      });
+
+      // API 호출
+      const response = await apiClient.postFormData<ApiResponse<ProfileImageUploadResponse>>(
+        '/profiles/upload/image', 
+        formData
+      );
+
+      return response.data.file ? [response.data.file] : [];
+    } catch (error) {
+      console.error('프로필 이미지 업로드 실패:', error);
+      throw error;
+    }
+  }
+
+  // 단일 프로필 이미지 업로드 (편의 함수)
+  static async uploadProfileImage(imageUri: string): Promise<UploadedImage> {
+    const results = await this.uploadProfileImages([imageUri]);
+    return results[0];
   }
 }
