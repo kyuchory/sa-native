@@ -128,7 +128,7 @@ export default function PostTab({ data, onItemPress }: PostTabProps) {
 
 const styles = StyleSheet.create({
   listContent: {
-    padding: SPACING.SM,
+    paddingVertical: SPACING.SM,
   },
   postCard: {
     backgroundColor: COLORS.WHITE,
