@@ -88,7 +88,6 @@ export default function ProfileImageEditScreen() {
       
       // 프로필 이미지 업로드
       const uploadedImage = await ProfileService.uploadProfileImage(imageUri);
-      console.log(uploadedImage.path)
       // 업로드된 이미지 URL로 상태 업데이트
       setSelectedImageUri(uploadedImage.path);
       
