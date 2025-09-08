@@ -1,0 +1,244 @@
+import React from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, FlatList } from 'react-native';
+import { COLORS, TEXT_COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS } from '../constants/theme';
+import { EmptyHeartIcon } from './PostCardIcons';
+
+export type PostItem = {
+  id: number;
+  title: string;
+  preview_image?: string;
+  user: {
+    nickname: string;
+    profile_img?: string | null;
+  };
+  created_at: string;
+  like_count: number;
+  comment_count: number;
+  is_liked: boolean;
+};
+
+export type PostTabProps = {
+  data: PostItem[];
+  onItemPress?: (item: PostItem) => void;
+};
+
+// 시간 포맷팅 함수
+const formatTimeAgo = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  const diffInDays = Math.floor(diffInHours / 24);
+
+  if (diffInMinutes < 1) return '방금 전';
+  if (diffInMinutes < 60) return `${diffInMinutes}분 전`;
+  if (diffInHours < 24) return `${diffInHours}시간 전`;
+  if (diffInDays < 7) return `${diffInDays}일 전`;
+
+  return date.toLocaleDateString('ko-KR', {
+    month: 'short',
+    day: 'numeric'
+  });
+};
+
+// 숫자 포맷팅 함수
+const formatNumber = (num: number) => {
+  if (num >= 1000000) return `${Math.floor(num / 100000) / 10}M`;
+  if (num >= 1000) return `${Math.floor(num / 100) / 10}K`;
+  return num.toString();
+};
+
+export default function PostTab({ data, onItemPress }: PostTabProps) {
+  const renderItem = ({ item }: { item: PostItem }) => (
+    <TouchableOpacity
+      style={styles.postCard}
+      onPress={() => onItemPress?.(item)}
+      activeOpacity={0.95}
+    >
+      {/* 상단: 작성자 정보 */}
+      <View style={styles.header}>
+        <View style={styles.authorInfo}>
+          <View style={styles.profileImageContainer}>
+            {item.user.profile_img ? (
+              <Image source={{ uri: item.user.profile_img }} style={styles.profileImage} />
+            ) : (
+              <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
+                <Text style={styles.profileImageText}>
+                  {item.user.nickname.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.authorDetails}>
+            <Text style={styles.authorName}>{item.user.nickname}</Text>
+            <Text style={styles.timeText}>{formatTimeAgo(item.created_at)}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* 본문 영역 */}
+      <View style={styles.content}>
+        <Text style={styles.title} numberOfLines={2}>
+          {item.title}
+        </Text>
+
+        {/* 이미지가 있는 경우 */}
+        {item.preview_image && (
+          <View style={styles.imageContainer}>
+            <Image source={{ uri: item.preview_image }} style={styles.postImage} />
+          </View>
+        )}
+      </View>
+
+      {/* 하단: 상호작용 버튼들 */}
+      <View style={styles.footer}>
+        <View style={styles.interactionButtons}>
+          <View style={styles.interactionButton}>
+            <EmptyHeartIcon size={16} color={COLORS.GRAY_400} />
+            <Text style={styles.interactionText}>{formatNumber(item.like_count)}</Text>
+          </View>
+          <View style={styles.interactionButton}>
+            <Text style={[styles.interactionText, { fontSize: TYPOGRAPHY.SIZE.LG }]}>💬</Text>
+            <Text style={styles.interactionText}>{formatNumber(item.comment_count)}</Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  if (!data || data.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>게시글이 없습니다.</Text>
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      data={data}
+      renderItem={renderItem}
+      keyExtractor={(item) => item.id.toString()}
+      contentContainerStyle={styles.listContent}
+      showsVerticalScrollIndicator={false}
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  listContent: {
+    padding: SPACING.SM,
+  },
+  postCard: {
+    backgroundColor: COLORS.WHITE,
+    marginHorizontal: SPACING.MD,
+    marginVertical: SPACING.XS,
+    borderRadius: BORDER_RADIUS.LG,
+    padding: SPACING.MD,
+    ...SHADOWS.SMALL,
+  },
+
+  // 헤더 (작성자 정보)
+  header: {
+    marginBottom: SPACING.SM,
+  },
+  authorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  profileImageContainer: {
+    marginRight: SPACING.SM,
+  },
+  profileImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  profileImagePlaceholder: {
+    backgroundColor: COLORS.GRAY_300,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileImageText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: COLORS.WHITE,
+  },
+  authorDetails: {
+    flex: 1,
+  },
+  authorName: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: TEXT_COLORS.PRIMARY,
+    marginBottom: 1,
+  },
+  timeText: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    color: TEXT_COLORS.DISABLED,
+  },
+
+  // 본문 내용
+  content: {
+    flexDirection: 'row',
+    marginBottom: SPACING.SM,
+  },
+  title: {
+    flex: 1,
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: TEXT_COLORS.PRIMARY,
+    marginBottom: SPACING.XS,
+    lineHeight: 22,
+  },
+
+  // 썸네일 이미지
+  imageContainer: {
+    width: 80,
+    height: 80,
+    marginLeft: SPACING.SM,
+  },
+  postImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: BORDER_RADIUS.MD,
+    backgroundColor: COLORS.GRAY_100,
+  },
+
+  // 하단 통계
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.GRAY_200,
+    paddingTop: SPACING.SM,
+  },
+  interactionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  interactionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.XS,
+  },
+  interactionText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: TEXT_COLORS.SECONDARY,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    marginLeft: SPACING.XS,
+  },
+
+  // 빈 상태
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SPACING.XXL,
+    marginHorizontal: SPACING.MD,
+  },
+  emptyText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: TEXT_COLORS.SECONDARY,
+    textAlign: 'center',
+  },
+});
