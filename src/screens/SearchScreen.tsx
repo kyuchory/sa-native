@@ -2,30 +2,11 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView } from 'react-native';
 import { COLORS, BG_COLORS, TEXT_COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { SearchIcon } from '../components/SearchIcons';
-import PeopleTab, { PersonItem } from '../components/PeopleTab';
+import PeopleTab from '../components/PeopleTab';
 import FeedTab, { FeedItem } from '../components/FeedTab';
 import PostTab, { PostItem } from '../components/PostTab';
 import { SearchService } from '../services/searchService';
 import { UserSearchResult } from '../types/search';
-
-// 임시 Mock Data (API 적용 시 제거)
-const mockPeople: PersonItem[] = [
-  { id: 1, nickname: 'user1', profile_img: null },
-  { id: 2, nickname: 'user2', profile_img: null },
-  { id: 3, nickname: 'user3', profile_img: null },
-  { id: 4, nickname: 'user4', profile_img: null },
-  { id: 5, nickname: 'user5', profile_img: null },
-  { id: 6, nickname: 'user6', profile_img: null },
-  { id: 7, nickname: 'user7', profile_img: null },
-  { id: 8, nickname: 'user8', profile_img: null },
-  { id: 9, nickname: 'user9', profile_img: null },
-  { id: 10, nickname: 'user10', profile_img: null },
-  { id: 11, nickname: 'user11', profile_img: null },
-  { id: 12, nickname: 'user12', profile_img: null },
-  { id: 13, nickname: 'user13', profile_img: null },
-  { id: 14, nickname: 'user14', profile_img: null },
-  { id: 15, nickname: 'user15', profile_img: null },
-];
 
 const mockPosts: PostItem[] = [
   {
@@ -239,7 +220,8 @@ export default function SearchScreen() {
                   data={searchResults.map(user => ({
                     id: user.id,
                     nickname: user.nickname,
-                    profile_img: user.profile_img
+                    profile_img: user.profile_img,
+                    is_following: user.is_following
                   }))}
                   onItemPress={handleItemPress}
                 />

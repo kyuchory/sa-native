@@ -1,20 +1,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, FlatList } from 'react-native';
 import { COLORS, TEXT_COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants/theme';
-
-export type PersonItem = {
-  id: number;
-  nickname: string;
-  profile_img: string | null;
-};
+import type { UserSearchResult } from '../types/search';
 
 export type PeopleTabProps = {
-  data: PersonItem[];
-  onItemPress?: (item: PersonItem) => void;
+  data: UserSearchResult[];
+  onItemPress?: (item: UserSearchResult) => void;
 };
 
 export default function PeopleTab({ data, onItemPress }: PeopleTabProps) {
-  const renderItem = ({ item }: { item: PersonItem }) => (
+  const renderItem = ({ item }: { item: UserSearchResult }) => (
     <TouchableOpacity
       style={styles.personItem}
       onPress={() => onItemPress?.(item)}
@@ -29,7 +24,12 @@ export default function PeopleTab({ data, onItemPress }: PeopleTabProps) {
           </View>
         )}
       </View>
-      <Text style={styles.personNickname}>{item.nickname}</Text>
+      <View style={styles.personInfo}>
+        <Text style={styles.personNickname}>{item.nickname}</Text>
+        {item.is_following && (
+          <Text style={styles.followingText}>팔로잉</Text>
+        )}
+      </View>
     </TouchableOpacity>
   );
 
@@ -81,9 +81,18 @@ const styles = StyleSheet.create({
     color: COLORS.WHITE,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
+  personInfo: {
+    flex: 1,
+  },
   personNickname: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     color: TEXT_COLORS.PRIMARY,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    marginBottom: SPACING.XS,
+  },
+  followingText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: COLORS.PRIMARY, // 대표 색상 사용
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
   emptyContainer: {
