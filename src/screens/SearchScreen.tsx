@@ -1,10 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView } from 'react-native';
 import { COLORS, BG_COLORS, TEXT_COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { SearchIcon } from '../components/SearchIcons';
 import PeopleTab, { PersonItem } from '../components/PeopleTab';
 import FeedTab, { FeedItem } from '../components/FeedTab';
 import PostTab, { PostItem } from '../components/PostTab';
+import { SearchService } from '../services/searchService';
+import { UserSearchResult } from '../types/search';
 
 // 임시 Mock Data (API 적용 시 제거)
 const mockPeople: PersonItem[] = [
@@ -72,16 +74,68 @@ const mockFeeds: FeedItem[] = [
 
 type SearchTabType = 'people' | 'posts' | 'feeds';
 
+// Debounce hook 구현 (lodash 없이)
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export default function SearchScreen() {
   const [searchText, setSearchText] = useState('');
   const [activeTab, setActiveTab] = useState<SearchTabType>('people');
   const [isSearchActive, setIsSearchActive] = useState(false);
+  const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
+
+  // Debounce 적용 (300ms)
+  const debouncedSearchText = useDebounce(searchText, 300);
+
+  // 실시간 검색 API 호출
+  const performSearch = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      setIsSearching(true);
+      setSearchError(null);
+      const response = await SearchService.searchUsersFirstPage(query);
+      setSearchResults(response.users);
+    } catch (error) {
+      console.error('검색 실패:', error);
+      setSearchError('검색 중 오류가 발생했습니다.');
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  // Debounced 검색 실행
+  useEffect(() => {
+    if (debouncedSearchText) {
+      performSearch(debouncedSearchText);
+    } else {
+      setSearchResults([]);
+    }
+  }, [debouncedSearchText, performSearch]);
 
   const handleSearch = () => {
     if (searchText.trim()) {
       console.log('검색어:', searchText);
-      // TODO: 실제 검색 API 호출
     }
   };
 
@@ -172,7 +226,24 @@ export default function SearchScreen() {
           {/* 콘텐츠 영역 */}
           <View style={styles.contentContainer}>
             {activeTab === 'people' && (
-              <PeopleTab data={mockPeople} onItemPress={handleItemPress} />
+              isSearching ? (
+                <View style={styles.loadingContainer}>
+                  <Text style={styles.loadingText}>검색 중...</Text>
+                </View>
+              ) : searchError ? (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{searchError}</Text>
+                </View>
+              ) : (
+                <PeopleTab
+                  data={searchResults.map(user => ({
+                    id: user.id,
+                    nickname: user.nickname,
+                    profile_img: user.profile_img
+                  }))}
+                  onItemPress={handleItemPress}
+                />
+              )
             )}
 
             {activeTab === 'posts' && (
@@ -270,5 +341,30 @@ const styles = StyleSheet.create({
   // 콘텐츠 영역
   contentContainer: {
     flex: 1,
+  },
+
+  // 로딩 및 에러 상태
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SPACING.XXL,
+  },
+  loadingText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: TEXT_COLORS.SECONDARY,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SPACING.XXL,
+    marginHorizontal: SPACING.MD,
+  },
+  errorText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: COLORS.ERROR,
+    textAlign: 'center',
   },
 });
