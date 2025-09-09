@@ -79,3 +79,26 @@ export interface PostSearchParams {
   offset?: number; // 선택, 기본값 0
   limit?: number; // 선택, 1-50, 기본값 20
 }
+
+// 피드 검색 결과 아이템
+export interface FeedSearchResult {
+  id: number;
+  created_at: string;
+  preview_image: string | null;
+}
+
+// 피드 검색 응답
+export interface FeedSearchResponse {
+  feeds: FeedSearchResult[];
+  pagination: SearchPagination;
+}
+
+// 피드 검색 요청 파라미터
+export interface FeedSearchParams {
+  q: string; // 필수, 최소 2자
+  offset?: number; // 선택, 기본값 0
+  limit?: number; // 선택, 1-50, 기본값 20
+}
+
+// 피드 검색 API 응답
+export type FeedSearchApiResponse = ApiResponse<FeedSearchResponse>;

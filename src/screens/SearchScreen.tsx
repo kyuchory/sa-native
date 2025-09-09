@@ -6,21 +6,7 @@ import PeopleTab from '../components/PeopleTab';
 import FeedTab, { FeedItem } from '../components/FeedTab';
 import PostTab from '../components/PostTab';
 import { SearchService } from '../services/searchService';
-import { UserSearchResult, PostSearchResult } from '../types/search';
-
-
-
-const mockFeeds: FeedItem[] = [
-  { id: 1, preview_image: 'https://picsum.photos/300/300?random=1' },
-  { id: 2, preview_image: 'https://picsum.photos/300/300?random=2' },
-  { id: 3, preview_image: 'https://picsum.photos/300/300?random=3' },
-  { id: 4, preview_image: 'https://picsum.photos/300/300?random=4' },
-  { id: 5, preview_image: 'https://picsum.photos/300/300?random=5' },
-  { id: 6, preview_image: 'https://picsum.photos/300/300?random=6' },
-  { id: 7, preview_image: 'https://picsum.photos/300/300?random=7' },
-  { id: 8, preview_image: 'https://picsum.photos/300/300?random=8' },
-  { id: 9, preview_image: 'https://picsum.photos/300/300?random=9' },
-];
+import { UserSearchResult, PostSearchResult, FeedSearchResult } from '../types/search';
 
 type SearchTabType = 'people' | 'posts' | 'feeds';
 
@@ -47,6 +33,7 @@ export default function SearchScreen() {
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const [postSearchResults, setPostSearchResults] = useState<PostSearchResult[]>([]);
+  const [feedSearchResults, setFeedSearchResults] = useState<FeedSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
@@ -63,6 +50,8 @@ export default function SearchScreen() {
         setSearchResults([]);
       } else if (targetTab === 'posts') {
         setPostSearchResults([]);
+      } else if (targetTab === 'feeds') {
+        setFeedSearchResults([]);
       }
       return;
     }
@@ -77,6 +66,9 @@ export default function SearchScreen() {
       } else if (targetTab === 'posts') {
         const response = await SearchService.searchPostsFirstPage(query);
         setPostSearchResults(response.posts);
+      } else if (targetTab === 'feeds') {
+        const response = await SearchService.searchFeedsFirstPage(query);
+        setFeedSearchResults(response.feeds);
       }
     } catch (error) {
       console.error('검색 실패:', error);
@@ -85,6 +77,8 @@ export default function SearchScreen() {
         setSearchResults([]);
       } else if (targetTab === 'posts') {
         setPostSearchResults([]);
+      } else if (targetTab === 'feeds') {
+        setFeedSearchResults([]);
       }
     } finally {
       setIsSearching(false);
@@ -98,6 +92,7 @@ export default function SearchScreen() {
     } else {
       setSearchResults([]);
       setPostSearchResults([]);
+      setFeedSearchResults([]);
     }
   }, [debouncedSearchText, performSearch]);
 
@@ -117,9 +112,9 @@ export default function SearchScreen() {
     const prevTab = activeTab;
     setActiveTab(tab);
 
-    // 게시물 탭으로 전환할 때 검색어에 따른 검색 실행
-    if (tab === 'posts' && searchText.trim()) {
-      performSearch(searchText.trim(), 'posts');
+    // 게시물 또는 피드 탭으로 전환할 때 검색어에 따른 검색 실행
+    if ((tab === 'posts' || tab === 'feeds') && searchText.trim()) {
+      performSearch(searchText.trim(), tab);
     }
   };
 
@@ -235,7 +230,25 @@ export default function SearchScreen() {
             )}
 
             {activeTab === 'feeds' && (
-              <FeedTab data={mockFeeds} onItemPress={handleItemPress} />
+              isSearching ? (
+                <View style={styles.loadingContainer}>
+                  <Text style={styles.loadingText}>피드 검색 중...</Text>
+                </View>
+              ) : searchError ? (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{searchError}</Text>
+                </View>
+              ) : (
+                <FeedTab
+                  data={feedSearchResults
+                    .filter(feed => feed.preview_image !== null)
+                    .map(feed => ({
+                      id: feed.id,
+                      preview_image: feed.preview_image as string
+                    }))}
+                  onItemPress={handleItemPress}
+                />
+              )
             )}
           </View>
         </>

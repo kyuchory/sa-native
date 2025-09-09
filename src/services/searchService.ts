@@ -7,6 +7,9 @@ import {
   PostSearchParams,
   PostSearchResponse,
   PostSearchApiResponse,
+  FeedSearchParams,
+  FeedSearchResponse,
+  FeedSearchApiResponse,
   SearchPagination
 } from '../types/search';
 
@@ -106,6 +109,53 @@ export class SearchService {
   // 게시글 검색 - 첫 페이지 조회
   static async searchPostsFirstPage(query: string): Promise<PostSearchResponse> {
     return this.searchPosts({
+      q: query,
+      offset: 0,
+      limit: 20
+    });
+  }
+
+  // 피드 검색
+  static async searchFeeds(params: FeedSearchParams): Promise<FeedSearchResponse> {
+    try {
+      // 쿼리 파라미터 구성
+      const queryParams = new URLSearchParams();
+      queryParams.append('q', params.q);
+
+      if (params.offset !== undefined) {
+        queryParams.append('offset', params.offset.toString());
+      }
+      if (params.limit !== undefined) {
+        queryParams.append('limit', params.limit.toString());
+      }
+
+      const response = await apiClient.get<FeedSearchApiResponse>(
+        `/search/feeds?${queryParams.toString()}`
+      );
+
+      return response.data!;
+    } catch (error) {
+      console.error('피드 검색 실패:', error);
+      throw error;
+    }
+  }
+
+  // 피드 검색 - 편의 메소드 (기본 파라미터 사용)
+  static async searchFeedsByQuery(
+    query: string,
+    offset?: number,
+    limit?: number
+  ): Promise<FeedSearchResponse> {
+    return this.searchFeeds({
+      q: query,
+      offset,
+      limit
+    });
+  }
+
+  // 피드 검색 - 첫 페이지 조회
+  static async searchFeedsFirstPage(query: string): Promise<FeedSearchResponse> {
+    return this.searchFeeds({
       q: query,
       offset: 0,
       limit: 20
