@@ -4,42 +4,11 @@ import { COLORS, BG_COLORS, TEXT_COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY } fr
 import { SearchIcon } from '../components/SearchIcons';
 import PeopleTab from '../components/PeopleTab';
 import FeedTab, { FeedItem } from '../components/FeedTab';
-import PostTab, { PostItem } from '../components/PostTab';
+import PostTab from '../components/PostTab';
 import { SearchService } from '../services/searchService';
-import { UserSearchResult } from '../types/search';
+import { UserSearchResult, PostSearchResult } from '../types/search';
 
-const mockPosts: PostItem[] = [
-  {
-    id: 1,
-    title: 'Sample Post 1',
-    preview_image: 'https://picsum.photos/200/300?random=1',
-    user: { nickname: 'user1', profile_img: null },
-    created_at: new Date().toISOString(),
-    like_count: 10,
-    comment_count: 2,
-    is_liked: false
-  },
-  {
-    id: 2,
-    title: 'Sample Post 2',
-    preview_image: 'https://picsum.photos/200/300?random=2',
-    user: { nickname: 'user2', profile_img: null },
-    created_at: new Date().toISOString(),
-    like_count: 5,
-    comment_count: 1,
-    is_liked: true
-  },
-  {
-    id: 3,
-    title: 'Sample Post 3',
-    preview_image: 'https://picsum.photos/200/300?random=3',
-    user: { nickname: 'user3', profile_img: null },
-    created_at: new Date().toISOString(),
-    like_count: 20,
-    comment_count: 5,
-    is_liked: false
-  },
-];
+
 
 const mockFeeds: FeedItem[] = [
   { id: 1, preview_image: 'https://picsum.photos/300/300?random=1' },
@@ -77,6 +46,7 @@ export default function SearchScreen() {
   const [activeTab, setActiveTab] = useState<SearchTabType>('people');
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
+  const [postSearchResults, setPostSearchResults] = useState<PostSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
@@ -85,25 +55,41 @@ export default function SearchScreen() {
   const debouncedSearchText = useDebounce(searchText, 300);
 
   // 실시간 검색 API 호출
-  const performSearch = useCallback(async (query: string) => {
+  const performSearch = useCallback(async (query: string, tab?: SearchTabType) => {
+    const targetTab = tab || activeTab;
+
     if (query.length < 2) {
-      setSearchResults([]);
+      if (targetTab === 'people') {
+        setSearchResults([]);
+      } else if (targetTab === 'posts') {
+        setPostSearchResults([]);
+      }
       return;
     }
 
     try {
       setIsSearching(true);
       setSearchError(null);
-      const response = await SearchService.searchUsersFirstPage(query);
-      setSearchResults(response.users);
+
+      if (targetTab === 'people') {
+        const response = await SearchService.searchUsersFirstPage(query);
+        setSearchResults(response.users);
+      } else if (targetTab === 'posts') {
+        const response = await SearchService.searchPostsFirstPage(query);
+        setPostSearchResults(response.posts);
+      }
     } catch (error) {
       console.error('검색 실패:', error);
       setSearchError('검색 중 오류가 발생했습니다.');
-      setSearchResults([]);
+      if (targetTab === 'people') {
+        setSearchResults([]);
+      } else if (targetTab === 'posts') {
+        setPostSearchResults([]);
+      }
     } finally {
       setIsSearching(false);
     }
-  }, []);
+  }, [activeTab]);
 
   // Debounced 검색 실행
   useEffect(() => {
@@ -111,6 +97,7 @@ export default function SearchScreen() {
       performSearch(debouncedSearchText);
     } else {
       setSearchResults([]);
+      setPostSearchResults([]);
     }
   }, [debouncedSearchText, performSearch]);
 
@@ -127,8 +114,13 @@ export default function SearchScreen() {
   };
 
   const handleTabPress = (tab: SearchTabType) => {
+    const prevTab = activeTab;
     setActiveTab(tab);
-    // TODO: 선택된 탭에 대한 검색 API 호출
+
+    // 게시물 탭으로 전환할 때 검색어에 따른 검색 실행
+    if (tab === 'posts' && searchText.trim()) {
+      performSearch(searchText.trim(), 'posts');
+    }
   };
 
   const handleInputFocus = () => {
@@ -229,7 +221,17 @@ export default function SearchScreen() {
             )}
 
             {activeTab === 'posts' && (
-              <PostTab data={mockPosts} onItemPress={handleItemPress} />
+              isSearching ? (
+                <View style={styles.loadingContainer}>
+                  <Text style={styles.loadingText}>게시글 검색 중...</Text>
+                </View>
+              ) : searchError ? (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{searchError}</Text>
+                </View>
+              ) : (
+                <PostTab data={postSearchResults} onItemPress={handleItemPress} />
+              )
             )}
 
             {activeTab === 'feeds' && (

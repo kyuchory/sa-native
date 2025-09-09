@@ -127,6 +127,9 @@ export default function PostCard({
           <Text style={styles.title} numberOfLines={2}>
             {post.title}
           </Text>
+          <Text style={styles.contentText} numberOfLines={3}>
+            {post.content}
+          </Text>
         </View>
 
         {/* 이미지가 있는 경우 */}

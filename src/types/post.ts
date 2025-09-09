@@ -166,6 +166,7 @@ export interface CommentLikeResponse {
 export interface PostListItem {
   id: number;
   title: string;
+  content: string;
   created_at: string;
   user: {
     id: number;

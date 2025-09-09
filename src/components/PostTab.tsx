@@ -2,20 +2,9 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, FlatList } from 'react-native';
 import { COLORS, TEXT_COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS } from '../constants/theme';
 import { EmptyHeartIcon } from './PostCardIcons';
+import type { PostSearchResult } from '../types/search';
 
-export type PostItem = {
-  id: number;
-  title: string;
-  preview_image?: string;
-  user: {
-    nickname: string;
-    profile_img?: string | null;
-  };
-  created_at: string;
-  like_count: number;
-  comment_count: number;
-  is_liked: boolean;
-};
+export type PostItem = PostSearchResult;
 
 export type PostTabProps = {
   data: PostItem[];
@@ -79,9 +68,14 @@ export default function PostTab({ data, onItemPress }: PostTabProps) {
 
       {/* 본문 영역 */}
       <View style={styles.content}>
-        <Text style={styles.title} numberOfLines={2}>
-          {item.title}
-        </Text>
+        <View style={styles.textContent}>
+          <Text style={styles.title} numberOfLines={2}>
+            {item.title}
+          </Text>
+          <Text style={styles.contentText} numberOfLines={3}>
+            {item.content}
+          </Text>
+        </View>
 
         {/* 이미지가 있는 경우 */}
         {item.preview_image && (
@@ -184,13 +178,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: SPACING.SM,
   },
-  title: {
+  textContent: {
     flex: 1,
+  },
+  title: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
     color: TEXT_COLORS.PRIMARY,
     marginBottom: SPACING.XS,
     lineHeight: 22,
+  },
+  contentText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: TEXT_COLORS.SECONDARY,
+    lineHeight: 20,
   },
 
   // 썸네일 이미지
