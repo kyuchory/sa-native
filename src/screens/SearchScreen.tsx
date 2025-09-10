@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView } from 'react-native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { COLORS, BG_COLORS, TEXT_COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { SearchIcon } from '../components/SearchIcons';
 import PeopleTab from '../components/PeopleTab';
@@ -7,6 +8,7 @@ import FeedTab, { FeedItem } from '../components/FeedTab';
 import PostTab from '../components/PostTab';
 import { SearchService } from '../services/searchService';
 import { UserSearchResult, PostSearchResult, FeedSearchResult } from '../types/search';
+import { AuthStackParamList } from '../types/navigation';
 
 type SearchTabType = 'people' | 'posts' | 'feeds';
 
@@ -28,6 +30,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function SearchScreen() {
+  const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
   const [searchText, setSearchText] = useState('');
   const [activeTab, setActiveTab] = useState<SearchTabType>('people');
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -129,8 +132,18 @@ export default function SearchScreen() {
   };
 
   const handleItemPress = (item: any) => {
-    console.log('Item pressed:', item);
-    // TODO: 상세 화면으로 이동
+    if (activeTab === 'posts') {
+      // PostDetailScreen으로 이동
+      navigation.navigate('PostDetail', { postId: item.id });
+    } else if (activeTab === 'feeds') {
+      // FeedDetailScreen으로 이동
+      navigation.navigate('FeedDetail', { feedId: item.id });
+    } else if (activeTab === 'people') {
+      // Профиль 화면으로 이동 (optional)
+      console.log('People item pressed:', item);
+    } else {
+      console.log('Item pressed:', item);
+    }
   };
 
   const tabs = [
