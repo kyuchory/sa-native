@@ -27,7 +27,7 @@ export default function ProfileFeedGrid({ data = [], loading = false, onItemPres
     if (!loading) return null;
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={COLORS.PRIMARY} />
+        <ActivityIndicator size="small" color={colors.PRIMARY} />
         <Text style={styles.loadingText}>로딩 중...</Text>
       </View>
     );

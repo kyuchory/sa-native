@@ -1,14 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import CommonHeader from './CommonHeader';
 
-// + 모양 SVG 아이콘 컴포넌트
-const PlusIcon = ({ size = 24, color = COLORS.PRIMARY }: { size?: number; color?: string }) => {
+// + 모양 SVG 아이콘 컴포넌트 (styles 없이 스타일 직접 적용)
+const PlusIcon = ({ size = 24, color }: { size?: number; color?: string }) => {
   return (
-    <View style={[styles.iconContainer, { width: size, height: size }]}>
-      <View style={[styles.iconBar, styles.horizontalBar, { backgroundColor: color }]} />
-      <View style={[styles.iconBar, styles.verticalBar, { backgroundColor: color }]} />
+    <View style={[{ width: size, height: size, position: 'relative' }]}>
+      <View style={[{ position: 'absolute', width: 12, height: 2, backgroundColor: color, borderRadius: 1 }]} />
+      <View style={[{ position: 'absolute', width: 2, height: 12, backgroundColor: color, borderRadius: 1 }]} />
     </View>
   );
 };
@@ -18,6 +19,8 @@ interface ChatHeaderProps {
 }
 
 export default function ChatHeader({ onCreateChat }: ChatHeaderProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const handleCreateChatPress = () => {
     Alert.alert(
       '채팅방 생성',
@@ -45,7 +48,7 @@ export default function ChatHeader({ onCreateChat }: ChatHeaderProps) {
             onPress={handleCreateChatPress}
             activeOpacity={0.7}
           >
-            <PlusIcon size={20} color={COLORS.PRIMARY} />
+            <PlusIcon size={15} color={colors.PRIMARY} />
           </TouchableOpacity>
         }
       />
@@ -53,20 +56,21 @@ export default function ChatHeader({ onCreateChat }: ChatHeaderProps) {
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
   },
   createButton: {
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
     borderRadius: 20,
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     justifyContent: 'center',
     alignItems: 'center',
     ...SHADOWS.SMALL,
     borderWidth: 1,
-    borderColor: COLORS.GRAY_200,
+    borderColor: colors.GRAY_200,
   },
   iconContainer: {
     position: 'relative',
