@@ -232,7 +232,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
     if (activeTab === 'feed') {
       navigation.navigate('FeedDetail', { feedId: item.id });
     } else if (activeTab === 'posts') {
-      // TODO: 게시물 상세 화면으로 이동
+      navigation.navigate('PostDetail', { postId: item.id });
     } else if (activeTab === 'videos') {
       // TODO: 비디오 재생 화면으로 이동
     } else if (activeTab === 'character') {
