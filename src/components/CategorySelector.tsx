@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 
 // 카테고리 타입 정의 - types/post.ts와 통일
 import { Category, SubCategory } from '../types/post';
+import { useThemeStore } from '../stores/themeStore';
 
 export interface Subcategory {
   id: string;
@@ -26,6 +27,8 @@ export default function CategorySelector({
   onCategorySelect,
   onSubcategorySelect,
 }: CategorySelectorProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
 
   return (
@@ -117,13 +120,14 @@ export default function CategorySelector({
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_200,
+    borderBottomColor: colors.GRAY_200,
   },
-  
+
   // 대분류 스타일
   categoryRow: {
     paddingVertical: SPACING.SM,
@@ -136,23 +140,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
     borderRadius: BORDER_RADIUS.ROUND,
-    backgroundColor: COLORS.GRAY_100,
+    backgroundColor: colors.GRAY_100,
     minWidth: 60,
     alignItems: 'center',
   },
   categoryItemActive: {
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY,
   },
   categoryText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600,
   },
   categoryTextActive: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
-  
+
   // 소분류 스타일
   subcategoryRow: {
     paddingBottom: SPACING.SM,
@@ -166,20 +170,20 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.XS,
     borderRadius: BORDER_RADIUS.SM,
     borderWidth: 1,
-    borderColor: COLORS.GRAY_300,
-    backgroundColor: COLORS.WHITE,
+    borderColor: colors.GRAY_300,
+    backgroundColor: colors.WHITE,
   },
   subcategoryItemActive: {
-    borderColor: COLORS.PRIMARY,
-    backgroundColor: COLORS.PRIMARY + '10', // 10% 투명도
+    borderColor: colors.PRIMARY,
+    backgroundColor: colors.GRAY_50, // 투명도 대신 연한 회색 배경으로 변경
   },
   subcategoryText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.REGULAR,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600,
   },
   subcategoryTextActive: {
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 });

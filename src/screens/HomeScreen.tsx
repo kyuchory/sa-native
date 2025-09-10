@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, FlatList, StyleSheet, SafeAreaView, RefreshControl, Alert, ActivityIndicator, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { COLORS, BG_COLORS, SPACING, TEXT_COLORS } from '../constants/theme';
+import { SPACING } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
+import { useThemeStore } from '../stores/themeStore';
 
 // 컴포넌트 imports
 import HomeHeader from '../components/HomeHeader';
@@ -19,6 +20,8 @@ type HomeNavigationProp = StackNavigationProp<AuthStackParamList, 'MainApp'>;
 
 export default function HomeScreen() {
   const navigation = useNavigation<HomeNavigationProp>();
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   
   // 상태 관리
   const [categories, setCategories] = useState<Category[]>([]);
@@ -174,8 +177,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={COLORS.PRIMARY}
-            colors={[COLORS.PRIMARY]}
+            tintColor={colors.PRIMARY}
+            colors={[colors.PRIMARY]}
           />
         }
         // 성능 최적화
@@ -196,7 +199,7 @@ export default function HomeScreen() {
         }
         ListEmptyComponent={
           isLoading ? (
-            <ActivityIndicator size="large" color={COLORS.PRIMARY} style={styles.loadingIndicator} />
+            <ActivityIndicator size="large" color={colors.PRIMARY} style={styles.loadingIndicator} />
           ) : (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>게시글이 없습니다.</Text>
@@ -209,10 +212,11 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_50, // BG_COLORS.SECONDARY
   },
   postList: {
     flex: 1,
@@ -234,11 +238,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     marginBottom: SPACING.SM,
   },
   emptySubText: {
     fontSize: 14,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
   },
 });

@@ -3,9 +3,10 @@ import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
 import { NotificationIcon, WriteIcon } from './HomeHeaderIcons';
 import { AuthStackParamList } from '../types/navigation';
+import { useThemeStore } from '../stores/themeStore';
 
 type HomeHeaderNavigationProp = StackNavigationProp<AuthStackParamList>;
 
@@ -15,13 +16,15 @@ interface HomeHeaderProps {
   notificationCount?: number;
 }
 
-export default function HomeHeader({ 
-  onNotificationPress, 
+export default function HomeHeader({
+  onNotificationPress,
   onWritePress,
-  notificationCount = 0 
+  notificationCount = 0
 }: HomeHeaderProps) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<HomeHeaderNavigationProp>();
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
 
   const handleWritePress = () => {
     if (onWritePress) {
@@ -35,7 +38,7 @@ export default function HomeHeader({
 
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.WHITE} />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.WHITE} />
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.content}>
           {/* 로고 영역 */}
@@ -47,13 +50,13 @@ export default function HomeHeader({
           {/* 우측 버튼들 */}
           <View style={styles.rightActions}>
             {/* 알림 버튼 */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.iconButton}
               onPress={onNotificationPress}
               activeOpacity={0.7}
             >
               <View style={styles.notificationContainer}>
-                <NotificationIcon size={22} color={COLORS.GRAY_600} />
+                <NotificationIcon size={22} color={colors.GRAY_600} />
                 {notificationCount > 0 && (
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>
@@ -65,12 +68,12 @@ export default function HomeHeader({
             </TouchableOpacity>
 
             {/* 글쓰기 버튼 */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.writeButton}
               onPress={handleWritePress}
               activeOpacity={0.7}
             >
-              <WriteIcon size={22} color={COLORS.GRAY_600} />
+              <WriteIcon size={22} color={colors.GRAY_600} />
             </TouchableOpacity>
           </View>
         </View>
@@ -79,11 +82,12 @@ export default function HomeHeader({
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_200,
+    borderBottomColor: colors.GRAY_200,
     ...SHADOWS.SMALL,
   },
   content: {
@@ -94,7 +98,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.SM,
     minHeight: 56,
   },
-  
+
   // 로고 영역
   logoContainer: {
     flexDirection: 'row',
@@ -103,15 +107,15 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: TYPOGRAPHY.SIZE.XXL,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
     marginRight: 2,
   },
   logoSubText: {
     fontSize: TYPOGRAPHY.SIZE.LG,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600,
   },
-  
+
   // 우측 액션 버튼들
   rightActions: {
     flexDirection: 'row',
@@ -122,7 +126,7 @@ const styles = StyleSheet.create({
     padding: SPACING.SM,
     borderRadius: 20,
   },
-  
+
   // 알림 배지
   notificationContainer: {
     position: 'relative',
@@ -131,7 +135,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -6,
     right: -6,
-    backgroundColor: COLORS.ERROR,
+    backgroundColor: colors.ERROR,
     borderRadius: 8,
     minWidth: 16,
     height: 16,
@@ -140,11 +144,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   badgeText: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontSize: 10,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
   },
-  
+
   // 글쓰기 버튼
   writeButton: {
     padding: SPACING.SM,
