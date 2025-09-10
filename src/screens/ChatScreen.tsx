@@ -11,15 +11,13 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { 
-  COLORS, 
-  TEXT_COLORS, 
-  BG_COLORS, 
-  TYPOGRAPHY, 
-  SPACING, 
-  BORDER_RADIUS, 
-  SHADOWS 
+import {
+  TYPOGRAPHY,
+  SPACING,
+  BORDER_RADIUS,
+  SHADOWS
 } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import { AuthStackParamList } from '../types/navigation';
 import { ChatRoom, ChatType } from '../types/chat';
 
@@ -38,6 +36,8 @@ type ChatScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Chat'>;
 
 export default function ChatScreen() {
   const navigation = useNavigation<ChatScreenNavigationProp>();
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   
   // Chat store (실시간 메시지 수신용)
   const { connectSocket, disconnectSocket, setChatRooms, chatRooms } = useChatStore();
@@ -373,9 +373,9 @@ export default function ChatScreen() {
             activeOpacity={0.7}
           >
             {isSelected ? (
-              <CheckboxFilledIcon size={20} color={COLORS.PRIMARY} />
+              <CheckboxFilledIcon size={20} color={colors.PRIMARY} />
             ) : (
-              <CheckboxEmptyIcon size={20} color={COLORS.GRAY_400} />
+              <CheckboxEmptyIcon size={20} color={colors.GRAY_400} />
             )}
           </TouchableOpacity>
         )}
@@ -502,22 +502,22 @@ export default function ChatScreen() {
           {
             id: 'read',
             title: '읽음으로 표시',
-            icon: <CheckIcon size={20} color={COLORS.PRIMARY} />,
-            color: COLORS.PRIMARY,
+            icon: <CheckIcon size={20} color={colors.PRIMARY} />,
+            color: colors.PRIMARY,
             onPress: handleMarkAsRead,
           },
           {
             id: 'mute',
             title: '알림 끄기',
-            icon: <MuteIcon size={20} color={TEXT_COLORS.SECONDARY} />,
-            color: TEXT_COLORS.SECONDARY,
+            icon: <MuteIcon size={20} color={colors.GRAY_700} />,
+            color: colors.GRAY_700,
             onPress: handleMuteChat,
           },
           {
             id: 'delete',
             title: '채팅방 삭제',
-            icon: <DeleteIcon size={20} color={COLORS.ERROR} />,
-            color: COLORS.ERROR,
+            icon: <DeleteIcon size={20} color={colors.ERROR} />,
+            color: colors.ERROR,
             onPress: handleDeleteChat,
           },
         ]}
@@ -549,9 +549,9 @@ export default function ChatScreen() {
               disabled={selectedChatIds.size === 0}
               activeOpacity={0.7}
             >
-              <DeleteIcon 
-                size={16} 
-                color={selectedChatIds.size > 0 ? COLORS.WHITE : COLORS.GRAY_400} 
+              <DeleteIcon
+                size={16}
+                color={selectedChatIds.size > 0 ? colors.WHITE : colors.GRAY_400}
               />
               <Text style={[
                 styles.deleteButtonText,
@@ -567,12 +567,13 @@ export default function ChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.PRIMARY,
+    backgroundColor: colors.GRAY_50, // BG_COLORS.PRIMARY
   },
-  
+
   // 로딩
   loadingContainer: {
     flex: 1,
@@ -582,48 +583,48 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
-  
+
   // 탭 관련
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_200,
+    borderBottomColor: colors.GRAY_200,
   },
   tabButton: {
     flex: 1,
     paddingVertical: SPACING.MD,
     alignItems: 'center',
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
   },
   tabButtonActive: {
     borderBottomWidth: 2,
-    borderBottomColor: COLORS.PRIMARY,
+    borderBottomColor: colors.PRIMARY,
   },
   tabText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
   },
   tabTextActive: {
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
 
   // 채팅 목록 관련
   chatList: {
     flex: 1,
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
   },
   chatListContent: {
     padding: SPACING.MD,
   },
   separator: {
     height: 1,
-    backgroundColor: COLORS.GRAY_200,
+    backgroundColor: colors.GRAY_200,
     marginLeft: 72, // 프로필 이미지 + 여백 너비만큼
   },
 
@@ -642,14 +643,14 @@ const styles = StyleSheet.create({
     borderRadius: 28,
   },
   profileImagePlaceholder: {
-    backgroundColor: COLORS.GRAY_300,
+    backgroundColor: colors.GRAY_300,
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileImageText: {
     fontSize: TYPOGRAPHY.SIZE.LG,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: COLORS.WHITE,
+    color: colors.WHITE,
   },
 
   // 채팅 정보 관련
@@ -666,12 +667,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: TYPOGRAPHY.SIZE.LG,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     marginRight: SPACING.SM,
   },
   timeText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
   },
   chatFooter: {
     flexDirection: 'row',
@@ -681,13 +682,13 @@ const styles = StyleSheet.create({
   lastMessage: {
     flex: 1,
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     marginRight: SPACING.SM,
   },
 
   // 읽지 않은 메시지 배지
   unreadBadge: {
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY,
     borderRadius: BORDER_RADIUS.ROUND,
     minWidth: 20,
     height: 20,
@@ -698,10 +699,8 @@ const styles = StyleSheet.create({
   unreadText: {
     fontSize: TYPOGRAPHY.SIZE.XS,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: COLORS.WHITE,
+    color: colors.WHITE,
   },
-
-
 
   // 빈 상태
   emptyContainer: {
@@ -712,17 +711,17 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     textAlign: 'center',
   },
 
   // 편집 버튼
   editButtonContainer: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_200,
+    borderBottomColor: colors.GRAY_200,
     alignItems: 'flex-end',
   },
   editButton: {
@@ -732,7 +731,7 @@ const styles = StyleSheet.create({
   editButtonText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
   },
 
   // 편집 모드 채팅방 아이템
@@ -740,7 +739,7 @@ const styles = StyleSheet.create({
     paddingLeft: SPACING.SM, // 체크박스 공간 확보
   },
   chatRoomItemSelected: {
-    backgroundColor: COLORS.GRAY_50,
+    backgroundColor: colors.GRAY_50,
   },
   checkboxContainer: {
     marginRight: SPACING.SM,
@@ -753,11 +752,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.MD,
     borderTopWidth: 1,
-    borderTopColor: COLORS.GRAY_200,
+    borderTopColor: colors.GRAY_200,
     ...SHADOWS.SMALL,
   },
   selectAllButton: {
@@ -767,7 +766,7 @@ const styles = StyleSheet.create({
   selectAllText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
   },
   actionBarRight: {
     flexDirection: 'row',
@@ -776,26 +775,26 @@ const styles = StyleSheet.create({
   },
   selectedCountText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
   },
   deleteButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.ERROR,
+    backgroundColor: colors.ERROR,
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
     borderRadius: BORDER_RADIUS.SM,
     gap: SPACING.XS,
   },
   deleteButtonDisabled: {
-    backgroundColor: COLORS.GRAY_300,
+    backgroundColor: colors.GRAY_300,
   },
   deleteButtonText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: COLORS.WHITE,
+    color: colors.WHITE,
   },
   deleteButtonTextDisabled: {
-    color: COLORS.GRAY_400,
+    color: colors.GRAY_400,
   },
 });
