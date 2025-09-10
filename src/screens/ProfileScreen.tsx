@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, Image, Alert } from 'react-native';
 import { useFocusEffect, useNavigation, NavigationProp, RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../types/navigation';
-import { BG_COLORS, COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import { useAuthStore } from '../stores/authStore';
 
 // 컴포넌트 imports
@@ -21,6 +22,8 @@ import type { Profile, ProfileFeedItem, ProfilePostItem, ProfilePagination } fro
 
 export default function ProfileScreen({ route }: { route: RouteProp<AuthStackParamList, 'UserProfile'> }) {
   const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const userId = route.params?.userId;
   const { user: currentUser } = useAuthStore();
   const isOwnProfile = !userId || userId === String(currentUser?.id);
@@ -316,10 +319,11 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_50, // BG_COLORS.SECONDARY
   },
   contentContainer: {
     flex: 1,
@@ -331,7 +335,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#666',
+    color: colors.GRAY_600, // Dynamic text color
   },
   otherProfileHeader: {
     // 약간의 패딩으로 프로필 헤더를 감싸기

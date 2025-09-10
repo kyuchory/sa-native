@@ -2,7 +2,8 @@ import React from 'react';
 import { View, StyleSheet, FlatList, Text, ActivityIndicator } from 'react-native';
 import ProfilePostCard from './ProfilePostCard';
 import type { ProfilePostItem } from '../types/profile';
-import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING } from '../constants/theme';
+import { TYPOGRAPHY, SPACING } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../types/navigation';
@@ -15,6 +16,8 @@ export type ProfilePostsListProps = {
 
 export default function ProfilePostsList({ data = [], loading = false, onItemPress }: ProfilePostsListProps) {
   const navigation = useNavigation<StackNavigationProp<AuthStackParamList>>();
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
 
   const renderItem = ({ item }: { item: ProfilePostItem }) => (
     <ProfilePostCard
@@ -30,7 +33,7 @@ export default function ProfilePostsList({ data = [], loading = false, onItemPre
     if (!loading) return null;
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={COLORS.PRIMARY} />
+        <ActivityIndicator size="small" color={colors.PRIMARY} />
         <Text style={styles.loadingText}>로딩 중...</Text>
       </View>
     );
@@ -57,7 +60,8 @@ export default function ProfilePostsList({ data = [], loading = false, onItemPre
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   postsContainer: {
     paddingBottom: SPACING.MD,
   },
@@ -69,7 +73,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: SPACING.XS,
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
   },
   emptyContainer: {
     flex: 1,
@@ -79,7 +83,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.DISABLED,
+    color: colors.GRAY_500, // TEXT_COLORS.DISABLED
     textAlign: 'center',
   },
 });

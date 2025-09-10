@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Image, Alert as RNAlert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, SHADOWS, BORDER_RADIUS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, SHADOWS, BORDER_RADIUS } from '../constants/theme';
 import { SettingsIcon, MenuIcon, FollowIcon, ChatIcon } from './ProfileIcons';
+import { useThemeStore } from '../stores/themeStore';
 import ProfileButton from './ProfileButton';
 
 // 타입 imports
@@ -28,6 +29,8 @@ export default function ProfileHeader({
   onChatPress
 }: ProfileHeaderProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const [bioExpanded, setBioExpanded] = useState(false);
 
   const formatNumber = (num: number) => {
@@ -74,7 +77,7 @@ export default function ProfileHeader({
 
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.WHITE} />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.WHITE} />
       <View style={[styles.container, { paddingTop: insets.top }]}>
         {/* 상단 닉네임 + 설정 */}
         <View style={styles.topSection}>
@@ -85,7 +88,7 @@ export default function ProfileHeader({
               onPress={onSettingsPress}
               activeOpacity={0.7}
             >
-              <SettingsIcon size={24} color={COLORS.GRAY_600} />
+              <SettingsIcon size={24} color={colors.GRAY_600} />
             </TouchableOpacity>
           ) : !isOwnProfile && onMenuPress ? (
             <TouchableOpacity
@@ -114,7 +117,7 @@ export default function ProfileHeader({
               }}
               activeOpacity={0.7}
             >
-              <MenuIcon size={24} color={COLORS.GRAY_600} />
+            <MenuIcon size={24} color={colors.GRAY_600} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -179,15 +182,15 @@ export default function ProfileHeader({
                 onPress={onFollowPress}
                 variant={user.relation?.is_following ? "outline" : "primary"}
                 size="medium"
-                icon={<FollowIcon size={16} color={user.relation?.is_following ? COLORS.PRIMARY : COLORS.WHITE} />}
-                style={styles.button}
-              />
-              <ProfileButton
-                title="채팅"
-                onPress={onChatPress}
-                variant="outline"
-                size="medium"
-                icon={<ChatIcon size={16} color={COLORS.PRIMARY} />}
+              icon={<FollowIcon size={16} color={user.relation?.is_following ? colors.PRIMARY : colors.WHITE} />}
+              style={styles.button}
+            />
+            <ProfileButton
+              title="채팅"
+              onPress={onChatPress}
+              variant="outline"
+              size="medium"
+              icon={<ChatIcon size={16} color={colors.PRIMARY} />}
                 style={styles.button}
               />
             </>
@@ -198,13 +201,14 @@ export default function ProfileHeader({
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     paddingHorizontal: SPACING.MD,
     paddingBottom: SPACING.LG,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_200,
+    borderBottomColor: colors.GRAY_200,
     ...SHADOWS.SMALL,
   },
 
@@ -218,7 +222,7 @@ const styles = StyleSheet.create({
   nickname: {
     fontSize: TYPOGRAPHY.SIZE.XL,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
   },
   settingsButton: {
     padding: SPACING.XS,
@@ -240,14 +244,14 @@ const styles = StyleSheet.create({
     borderRadius: 40,
   },
   profileImagePlaceholder: {
-    backgroundColor: COLORS.GRAY_300,
+    backgroundColor: colors.GRAY_300,
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileImageText: {
     fontSize: TYPOGRAPHY.SIZE.XXL,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: COLORS.WHITE,
+    color: colors.WHITE,
   },
 
   // 통계 섹션
@@ -262,12 +266,12 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: TYPOGRAPHY.SIZE.LG,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     marginBottom: 2,
   },
   statLabel: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 
@@ -287,13 +291,13 @@ const styles = StyleSheet.create({
   },
   bioText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     lineHeight: 20,
   },
   moreText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
     marginTop: SPACING.XS,
   },
 });

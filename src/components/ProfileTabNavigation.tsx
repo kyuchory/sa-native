@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
-import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { SPACING, BORDER_RADIUS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import { GridIcon, ListIcon, VideoIcon, CharacterIcon } from './ProfileIcons';
 
 export type ProfileTabType = 'feed' | 'posts' | 'videos' | 'character';
@@ -14,6 +15,9 @@ export default function ProfileTabNavigation({
   activeTab,
   onTabChange,
 }: ProfileTabNavigationProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
+
   const tabs = [
     { id: 'feed' as ProfileTabType, icon: GridIcon, label: '피드' },
     { id: 'posts' as ProfileTabType, icon: ListIcon, label: '게시물' },
@@ -40,7 +44,7 @@ export default function ProfileTabNavigation({
             >
               <IconComponent
                 size={24}
-                color={isActive ? COLORS.PRIMARY : COLORS.GRAY_500}
+                color={isActive ? colors.PRIMARY : colors.GRAY_500}
               />
             </TouchableOpacity>
           );
@@ -50,11 +54,12 @@ export default function ProfileTabNavigation({
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_200,
+    borderBottomColor: colors.GRAY_200,
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -67,6 +72,6 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.MD,
   },
   activeTabItem: {
-    backgroundColor: COLORS.PRIMARY + '10', // 10% 투명도
+    backgroundColor: colors.PRIMARY + '10', // 10% 투명도
   },
 });

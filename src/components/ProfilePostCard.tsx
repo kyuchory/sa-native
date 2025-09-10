@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
-import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import { EmptyHeartIcon, FilledHeartIcon, CommentIcon } from './PostCardIcons';
 import type { ProfilePostItem } from '../types/profile';
 
@@ -11,12 +12,14 @@ interface ProfilePostCardProps {
   onCommentPress?: () => void;
 }
 
-export default function ProfilePostCard({ 
-  post, 
-  onPress, 
-  onLikePress, 
-  onCommentPress 
+export default function ProfilePostCard({
+  post,
+  onPress,
+  onLikePress,
+  onCommentPress
 }: ProfilePostCardProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   
   // 로컬 좋아요 상태 관리
   const [isLiked, setIsLiked] = useState(post.is_liked || false);
@@ -116,9 +119,9 @@ export default function ProfilePostCard({
             activeOpacity={0.7}
           >
             {isLiked ? (
-              <FilledHeartIcon size={18} color={COLORS.ERROR} />
+              <FilledHeartIcon size={18} color={colors.ERROR} />
             ) : (
-              <EmptyHeartIcon size={18} color={COLORS.GRAY_400} />
+              <EmptyHeartIcon size={18} color={colors.GRAY_400} />
             )}
             <Text style={styles.interactionText}>{formatNumber(likeCount)}</Text>
           </TouchableOpacity>
@@ -128,7 +131,7 @@ export default function ProfilePostCard({
             onPress={onCommentPress}
             activeOpacity={0.7}
           >
-            <CommentIcon size={18} color={COLORS.GRAY_400} />
+            <CommentIcon size={18} color={colors.GRAY_400} />
             <Text style={styles.interactionText}>{formatNumber(post.comment_count)}</Text>
           </TouchableOpacity>
         </View>
@@ -137,16 +140,17 @@ export default function ProfilePostCard({
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     marginHorizontal: SPACING.MD,
     marginVertical: SPACING.XS,
     borderRadius: BORDER_RADIUS.LG,
     padding: SPACING.MD,
     ...SHADOWS.SMALL,
   },
-  
+
   // 헤더 (카테고리 정보)
   header: {
     marginBottom: SPACING.SM,
@@ -159,13 +163,13 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
   },
   timeText: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: TEXT_COLORS.DISABLED,
+    color: colors.GRAY_500, // TEXT_COLORS.DISABLED
   },
-  
+
   // 본문 내용
   content: {
     flexDirection: 'row',
@@ -178,11 +182,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     marginBottom: SPACING.XS,
     lineHeight: 22,
   },
-  
+
   // 썸네일 이미지
   imageContainer: {
     width: 80,
@@ -192,13 +196,13 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: BORDER_RADIUS.MD,
-    backgroundColor: COLORS.GRAY_100,
+    backgroundColor: colors.GRAY_100,
   },
-  
+
   // 하단 통계
   footer: {
     borderTopWidth: 1,
-    borderTopColor: COLORS.GRAY_200,
+    borderTopColor: colors.GRAY_200,
     paddingTop: SPACING.SM,
   },
   interactionButtons: {
@@ -213,7 +217,7 @@ const styles = StyleSheet.create({
   },
   interactionText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     marginLeft: SPACING.XS,
   },

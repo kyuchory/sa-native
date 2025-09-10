@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Image, TouchableOpacity, StyleSheet, Dimensions, FlatList, Text, ActivityIndicator } from 'react-native';
 import { SPACING, BORDER_RADIUS, COLORS, TEXT_COLORS, TYPOGRAPHY } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import type { ProfileFeedItem } from '../types/profile';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -14,6 +15,8 @@ export type ProfileFeedGridProps = {
 };
 
 export default function ProfileFeedGrid({ data = [], loading = false, onItemPress, onEndReached }: ProfileFeedGridProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const renderItem = ({ item }: { item: ProfileFeedItem }) => (
     <TouchableOpacity style={styles.feedItem} onPress={() => onItemPress?.(item)} activeOpacity={0.8}>
       <Image source={{ uri: item.preview_image }} style={styles.feedImage} />
@@ -53,7 +56,7 @@ export default function ProfileFeedGrid({ data = [], loading = false, onItemPres
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   gridContainer: {
     paddingHorizontal: SPACING.MD,
     paddingBottom: SPACING.MD,
@@ -67,7 +70,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: BORDER_RADIUS.SM,
-    backgroundColor: COLORS.GRAY_100,
+    backgroundColor: colors.WHITE,
   },
   loadingContainer: {
     padding: SPACING.MD,
@@ -77,7 +80,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: SPACING.XS,
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
   },
   emptyContainer: {
     flex: 1,
@@ -87,7 +90,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.DISABLED,
+    color: colors.GRAY_500, // TEXT_COLORS.DISABLED
     textAlign: 'center',
   },
 });
