@@ -86,7 +86,7 @@ export default function FeedHeader({
               onPress={handleFeedPress}
               activeOpacity={0.7}
             >
-              <CreateFeedIcon size={22} color={COLORS.PRIMARY} />
+              <CreateFeedIcon size={22} color={COLORS.GRAY_600} />
             </TouchableOpacity>
 
             {/* 채팅 버튼 */}
