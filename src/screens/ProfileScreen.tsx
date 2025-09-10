@@ -63,6 +63,11 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
             follower_count: 0,
             following_count: 0,
           },
+          relation: {
+            is_me: userId === String(authUser?.id),
+            is_following: false,
+            is_followed_by: false,
+          },
         });
       } finally {
         if (showLoading) setLoading(false);
@@ -146,6 +151,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
     profile_img: profileData.profile_img,
     stats: profileData.stats,
     bio: profileData.bio,
+    relation: profileData.relation,
   } : null;
 
   // 핸들러들

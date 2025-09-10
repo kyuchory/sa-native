@@ -1,5 +1,12 @@
 // 프로필 관련 타입 정의
 
+// 프로필 관계 정보
+export interface ProfileRelation {
+  is_me: boolean;
+  is_following: boolean;
+  is_followed_by: boolean;
+}
+
 // 프로필 기본 정보
 export interface Profile {
   id: number;
@@ -8,6 +15,7 @@ export interface Profile {
   bio: string | null;
   created_at: string;
   stats: ProfileStats;
+  relation?: ProfileRelation;
 }
 
 // 프로필 통계 정보

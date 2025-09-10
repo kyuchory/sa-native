@@ -9,7 +9,7 @@ import ProfileButton from './ProfileButton';
 import type { Profile } from '../types/profile';
 
 interface ProfileHeaderProps {
-  user: Pick<Profile, 'nickname' | 'profile_img' | 'bio' | 'stats'>;
+  user: Pick<Profile, 'nickname' | 'profile_img' | 'bio' | 'stats' | 'relation'>;
   isOwnProfile: boolean;
   onSettingsPress?: () => void;
   onEditProfilePress?: () => void;
@@ -175,11 +175,11 @@ export default function ProfileHeader({
           ) : !isOwnProfile && onFollowPress && onChatPress ? (
             <>
               <ProfileButton
-                title="팔로우"
+                title={user.relation?.is_following ? "언팔로우" : "팔로우"}
                 onPress={onFollowPress}
-                variant="primary"
+                variant={user.relation?.is_following ? "outline" : "primary"}
                 size="medium"
-                icon={<FollowIcon size={16} color={COLORS.WHITE} />}
+                icon={<FollowIcon size={16} color={user.relation?.is_following ? COLORS.PRIMARY : COLORS.WHITE} />}
                 style={styles.button}
               />
               <ProfileButton
