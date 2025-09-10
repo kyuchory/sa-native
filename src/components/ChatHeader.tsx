@@ -3,16 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import CommonHeader from './CommonHeader';
+import { PlusCircleIcon } from './ChatDetailIcons';
 
-// + 모양 SVG 아이콘 컴포넌트 (styles 없이 스타일 직접 적용)
-const PlusIcon = ({ size = 24, color }: { size?: number; color?: string }) => {
-  return (
-    <View style={[{ width: size, height: size, position: 'relative' }]}>
-      <View style={[{ position: 'absolute', width: 12, height: 2, backgroundColor: color, borderRadius: 1 }]} />
-      <View style={[{ position: 'absolute', width: 2, height: 12, backgroundColor: color, borderRadius: 1 }]} />
-    </View>
-  );
-};
+
 
 interface ChatHeaderProps {
   onCreateChat: () => void;
@@ -48,7 +41,7 @@ export default function ChatHeader({ onCreateChat }: ChatHeaderProps) {
             onPress={handleCreateChatPress}
             activeOpacity={0.7}
           >
-            <PlusIcon size={15} color={colors.PRIMARY} />
+            <PlusCircleIcon size={18} color={colors.PRIMARY} />
           </TouchableOpacity>
         }
       />
