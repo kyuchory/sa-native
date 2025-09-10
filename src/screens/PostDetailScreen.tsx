@@ -417,13 +417,17 @@ export default function PostDetailScreen() {
       >
         {/* 작성자 정보 */}
         <View style={styles.authorSection}>
-          <View style={styles.authorInfo}>
+          <TouchableOpacity
+            style={styles.authorInfo}
+            onPress={() => navigation.navigate('UserProfile', { userId: String(post.user.id) })}
+            activeOpacity={0.7}
+          >
             {renderProfileImage()}
             <View style={styles.authorDetails}>
               <Text style={styles.authorName}>{post.user.nickname}</Text>
               <Text style={styles.postTime}>{formatTime(post.created_at)}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
           <View style={styles.categoryInfo}>
             <Text style={styles.categoryText}>
               {post.sub_category.category.name} {'>'} {post.sub_category.name}

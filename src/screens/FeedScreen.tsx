@@ -118,7 +118,7 @@ export default function FeedScreen() {
 
   const handleUserPress = (userId: number) => {
     console.log('사용자 프로필 클릭:', userId);
-    // TODO: 사용자 프로필 화면으로 이동
+    navigation.navigate('UserProfile', { userId: String(userId) });
   };
 
   const handleImagePress = (feedId: number) => {

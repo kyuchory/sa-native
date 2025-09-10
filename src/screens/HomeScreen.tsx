@@ -125,6 +125,11 @@ export default function HomeScreen() {
     // TODO: 댓글 화면으로 이동
   };
 
+  const handleAuthorPress = (post: PostListItem) => {
+    console.log('Author pressed:', post.user.nickname);
+    navigation.navigate('UserProfile', { userId: String(post.user.id) });
+  };
+
   const handleNotificationPress = () => {
     console.log('Notification pressed');
     // TODO: 알림 화면으로 이동
@@ -136,6 +141,7 @@ export default function HomeScreen() {
       post={item}
       onPress={() => handlePostPress(item)}
       onCommentPress={() => handleCommentPress(item)}
+      onAuthorPress={() => handleAuthorPress(item)}
     />
   );
 

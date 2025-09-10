@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, Dimensions, Image, Pressable, TouchableOpacity } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import { COLORS, BG_COLORS, SPACING, TYPOGRAPHY, TEXT_COLORS } from '../constants/theme';
 
 import CommonHeader from '../components/CommonHeader';
@@ -38,6 +38,7 @@ const formatTimeAgo = (dateString: string): string => {
 
 export default function FeedDetailScreen() {
   const route = useRoute() as { params: { feedId: number } };
+  const navigation = useNavigation() as { navigate: (screen: string, params?: any) => void };
   const feedId = route.params?.feedId || 15;
 
   // expand/collapse 상태 관리
@@ -375,7 +376,11 @@ export default function FeedDetailScreen() {
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.contentContainer}>
           {/* 프로필 정보 */}
-          <TouchableOpacity style={styles.header} onPress={()=>{}} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.header}
+            onPress={() => navigation.navigate('UserProfile', { userId: String(feed.user.id) })}
+            activeOpacity={0.7}
+          >
             <Image source={{ uri: feed.user.profile_img }} style={styles.profileImage} />
             <View style={styles.userInfo}>
               <Text style={styles.nickname}>{feed.user.nickname}</Text>

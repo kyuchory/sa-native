@@ -10,12 +10,14 @@ interface PostCardProps {
   onPress?: () => void;
   onLikePress?: () => void;
   onCommentPress?: () => void;
+  onAuthorPress?: () => void;
 }
 
-export default function PostCard({ 
-  post, 
+export default function PostCard({
+  post,
   onPress,
-  onCommentPress 
+  onCommentPress,
+  onAuthorPress
 }: PostCardProps) {
   
   // 로컬 좋아요 상태 관리
@@ -99,11 +101,16 @@ export default function PostCard({
     >
       {/* 상단: 작성자 정보 */}
       <View style={styles.header}>
-        <View style={styles.authorInfo}>
+        <TouchableOpacity
+          style={styles.authorInfo}
+          onPress={onAuthorPress}
+          activeOpacity={0.7}
+          disabled={!onAuthorPress}
+        >
           <View style={styles.profileImageContainer}>
             {post.user.profile_img ? (
-              <Image 
-                source={{ uri: post.user.profile_img }} 
+              <Image
+                source={{ uri: post.user.profile_img }}
                 style={styles.profileImage}
               />
             ) : (
@@ -118,7 +125,7 @@ export default function PostCard({
             <Text style={styles.authorName}>{post.user.nickname}</Text>
             <Text style={styles.timeText}>{formatTime(post.created_at)}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* 본문 영역 */}
