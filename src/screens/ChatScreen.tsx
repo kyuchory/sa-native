@@ -11,18 +11,18 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import {
-  TYPOGRAPHY,
-  SPACING,
-  BORDER_RADIUS,
-  SHADOWS
-} from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { AuthStackParamList } from '../types/navigation';
 import { ChatRoom, ChatType } from '../types/chat';
 
 // Components
 import ChatHeader from '../components/ChatHeader';
+import ChatRoomItem from '../components/ChatRoomItem';
+import ChatScreenTab from '../components/ChatScreenTab';
+import ChatScreenEmptyState from '../components/ChatScreenEmptyState';
+import ChatScreenLoading from '../components/ChatScreenLoading';
+import ChatEditActionBar from '../components/ChatEditActionBar';
 import ChatActionSheet from '../components/ChatActionSheet';
 import { CheckIcon, MuteIcon, DeleteIcon, CheckboxEmptyIcon, CheckboxFilledIcon } from '../components/ChatActionIcons';
 
@@ -446,10 +446,10 @@ export default function ChatScreen() {
       <ChatHeader onCreateChat={handleCreateChat} />
 
       {/* 탭 버튼 */}
-      <View style={styles.tabContainer}>
-        {renderTabButton('private', '채팅')}
-        {renderTabButton('group', '그룹채팅')}
-      </View>
+      <ChatScreenTab
+        selectedTab={selectedTab}
+        onTabChange={setSelectedTab}
+      />
 
       {/* 편집 버튼 */}
       <View style={styles.editButtonContainer}>
@@ -466,25 +466,36 @@ export default function ChatScreen() {
 
       {/* 채팅방 목록 */}
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>채팅방 목록을 불러오는 중...</Text>
-        </View>
+        <ChatScreenLoading />
       ) : (
         <FlatList
           data={filteredChatRooms}
-          renderItem={renderChatRoomItem}
+          renderItem={({ item }) => (
+            <ChatRoomItem
+              chatRoom={item}
+              isEditMode={isEditMode}
+              isSelected={selectedChatIds.has(item.id)}
+              onPress={() => {
+                if (isEditMode) {
+                  handleChatSelect(item.id);
+                } else {
+                  handleChatRoomPress(item);
+                }
+              }}
+              onLongPress={() => {
+                if (!isEditMode) {
+                  handleChatRoomLongPress(item);
+                }
+              }}
+              onSelect={handleChatSelect}
+            />
+          )}
           keyExtractor={(item) => item.id.toString()}
           style={styles.chatList}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.chatListContent}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListEmptyComponent={() => (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
-                {selectedTab === 'private' ? '1:1 채팅방이 없습니다.' : '그룹 채팅방이 없습니다.'}
-              </Text>
-            </View>
-          )}
+          ListEmptyComponent={<ChatScreenEmptyState selectedTab={selectedTab} />}
           refreshing={isLoading}
           onRefresh={loadChatRooms}
         />
@@ -525,43 +536,12 @@ export default function ChatScreen() {
 
       {/* 편집 모드 하단 액션 바 */}
       {isEditMode && (
-        <View style={styles.bottomActionBar}>
-          <TouchableOpacity
-            style={styles.selectAllButton}
-            onPress={handleSelectAll}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.selectAllText}>
-              {selectedChatIds.size === filteredChatRooms.length ? '전체 해제' : '전체 선택'}
-            </Text>
-          </TouchableOpacity>
-          
-          <View style={styles.actionBarRight}>
-            <Text style={styles.selectedCountText}>
-              {selectedChatIds.size}개 선택됨
-            </Text>
-            <TouchableOpacity
-              style={[
-                styles.deleteButton,
-                selectedChatIds.size === 0 && styles.deleteButtonDisabled
-              ]}
-              onPress={handleBulkDelete}
-              disabled={selectedChatIds.size === 0}
-              activeOpacity={0.7}
-            >
-              <DeleteIcon
-                size={16}
-                color={selectedChatIds.size > 0 ? colors.WHITE : colors.GRAY_400}
-              />
-              <Text style={[
-                styles.deleteButtonText,
-                selectedChatIds.size === 0 && styles.deleteButtonTextDisabled
-              ]}>
-                나가기
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <ChatEditActionBar
+          selectedCount={selectedChatIds.size}
+          totalCount={filteredChatRooms.length}
+          onSelectAll={handleSelectAll}
+          onDelete={handleBulkDelete}
+        />
       )}
     </SafeAreaView>
   );
