@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Image } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, Image, Alert } from 'react-native';
 import { useFocusEffect, useNavigation, NavigationProp, RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../types/navigation';
 import { BG_COLORS, COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
@@ -14,6 +14,7 @@ import ProfilePostsList from '../components/ProfilePostsList';
 
 // 서비스 imports
 import { ProfileService } from '../services/profileService';
+import { FollowService } from '../services/followService';
 
 // 타입 imports
 import type { Profile, ProfileFeedItem, ProfilePostItem, ProfilePagination } from '../types/profile';
@@ -169,8 +170,44 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
     console.log('Menu pressed');
   };
 
-  const handleFollowPress = () => {
-    console.log('Follow pressed');
+  const handleFollowPress = async () => {
+    if (!profileData?.id) return;
+
+    try {
+      const isCurrentlyFollowing = profileData.relation?.is_following;
+
+      // 낙관적 UI 업데이트
+      setProfileData(prev => prev ? {
+        ...prev,
+        relation: {
+          ...prev.relation!,
+          is_following: !isCurrentlyFollowing,
+        }
+      } : null);
+
+      if (isCurrentlyFollowing) {
+        // 언팔로우
+        await FollowService.unfollowUser(profileData.id);
+      } else {
+        // 팔로우
+        await FollowService.followUser(profileData.id);
+      }
+
+    } catch (error) {
+      console.error('팔로우/언팔로우 실패:', error);
+
+      // 실패 시 원래 상태로 롤백
+      setProfileData(prev => prev ? {
+        ...prev,
+        relation: {
+          ...(prev.relation || { is_me: false, is_following: false, is_followed_by: false }),
+          is_following: profileData?.relation?.is_following || false,
+        }
+      } : null);
+
+      // 사용자에게 에러 메시지 표시
+      Alert.alert('오류', '팔로우 처리에 실패했습니다.');
+    }
   };
 
   const handleChatPress = () => {

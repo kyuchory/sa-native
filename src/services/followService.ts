@@ -69,19 +69,19 @@ export class FollowService {
   }
 
   // 사용자 팔로우
-  static async followUser(userId: number): Promise<{ isFollowing: boolean; message: string }> {
+  static async followUser(userId: number): Promise<{ is_following: boolean; message: string }> {
     const response = await apiClient.post<FollowActionResponse>(`/users/${userId}/follow`, {});
     return response.data;
   }
 
   // 사용자 언팔로우
-  static async unfollowUser(userId: number): Promise<{ isFollowing: boolean; message: string }> {
+  static async unfollowUser(userId: number): Promise<{ is_following: boolean; message: string }> {
     const response = await apiClient.delete<FollowActionResponse>(`/users/${userId}/follow`);
     return response.data;
   }
 
   // 팔로우 상태 조회
-  static async getFollowStatus(userId: number): Promise<{ isFollowing: boolean; isFollowedBy: boolean }> {
+  static async getFollowStatus(userId: number): Promise<{ is_following: boolean; is_followed_by: boolean }> {
     const response = await apiClient.get<FollowStatusResponse>(`/users/${userId}/follow/status`);
     return response.data;
   }
