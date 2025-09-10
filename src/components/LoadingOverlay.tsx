@@ -1,16 +1,20 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, ActivityIndicator } from 'react-native';
-import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING } from '../constants/theme';
+import { TYPOGRAPHY, SPACING } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 
 interface LoadingOverlayProps {
   visible: boolean;
   message?: string;
 }
 
-export default function LoadingOverlay({ 
-  visible, 
-  message = '게시물을 작성중입니다...' 
+export default function LoadingOverlay({
+  visible,
+  message = '게시물을 작성중입니다...'
 }: LoadingOverlayProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
+
   return (
     <Modal
       transparent
@@ -19,9 +23,9 @@ export default function LoadingOverlay({
     >
       <View style={styles.overlay}>
         <View style={styles.container}>
-          <ActivityIndicator 
-            size="large" 
-            color={COLORS.PRIMARY} 
+          <ActivityIndicator
+            size="large"
+            color={colors.PRIMARY}
             style={styles.spinner}
           />
           <Text style={styles.message}>{message}</Text>
@@ -31,21 +35,21 @@ export default function LoadingOverlay({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   container: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     paddingHorizontal: SPACING.XL,
     paddingVertical: SPACING.LG,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: 'center' as const,
     minWidth: 200,
-    shadowColor: COLORS.BLACK,
+    shadowColor: colors.BLACK,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -59,8 +63,8 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.PRIMARY,
-    textAlign: 'center',
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
+    textAlign: 'center' as const,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 });

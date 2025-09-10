@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import type { Pagination as PaginationType } from '../types/post';
 
 interface PaginationProps {
@@ -9,6 +10,8 @@ interface PaginationProps {
 }
 
 export default function Pagination({ pagination, onPageChange }: PaginationProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const { page, total_pages, has_next, has_prev } = pagination;
 
   // 페이지 번호 배열 생성 (현재 페이지 주변 2개씩)
@@ -78,49 +81,49 @@ export default function Pagination({ pagination, onPageChange }: PaginationProps
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
     paddingVertical: SPACING.MD,
     paddingHorizontal: SPACING.MD,
-    // backgroundColor: COLORS.WHITE, // 배경색 제거
+    // backgroundColor: colors.WHITE, // 배경색 제거
     // borderTopWidth: 1,        // 구분선 제거
-    // borderTopColor: COLORS.GRAY_200,  // 구분선 색상 제거
+    // borderTopColor: colors.GRAY_200,  // 구분선 색상 제거
   },
   pageNumbers: {
-    flexDirection: 'row',
+    flexDirection: 'row' as const,
     marginHorizontal: SPACING.SM,
   },
   pageButton: {
     minWidth: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
     marginHorizontal: SPACING.XS,
     borderRadius: BORDER_RADIUS.MD,
-    backgroundColor: COLORS.GRAY_100, // GRAY_50에서 GRAY_100으로 변경하여 더 부드럽게
+    backgroundColor: colors.GRAY_100, // GRAY_50에서 GRAY_100으로 변경하여 더 부드럽게
     borderWidth: 1,
-    borderColor: COLORS.GRAY_200,
+    borderColor: colors.GRAY_200,
   },
   activePageButton: {
-    backgroundColor: COLORS.PRIMARY,
-    borderColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY,
+    borderColor: colors.PRIMARY,
   },
   disabledButton: {
-    backgroundColor: COLORS.GRAY_100,
-    borderColor: COLORS.GRAY_100,
+    backgroundColor: colors.GRAY_100,
+    borderColor: colors.GRAY_100,
   },
   pageButtonText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
   },
   activePageButtonText: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
   },
   disabledText: {
-    color: TEXT_COLORS.DISABLED,
+    color: colors.GRAY_500, // TEXT_COLORS.DISABLED
   },
 });
