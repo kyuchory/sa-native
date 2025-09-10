@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { COLORS, BG_COLORS, TEXT_COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../constants/theme';
+import { SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import { SearchIcon } from '../components/SearchIcons';
 import PeopleTab from '../components/PeopleTab';
 import FeedTab, { FeedItem } from '../components/FeedTab';
@@ -31,6 +32,8 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export default function SearchScreen() {
   const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const [searchText, setSearchText] = useState('');
   const [activeTab, setActiveTab] = useState<SearchTabType>('people');
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -158,13 +161,13 @@ export default function SearchScreen() {
       <View style={styles.searchContainer}>
         <View style={[styles.searchInputContainer, isSearchActive && styles.searchInputActive]}>
           <View style={styles.searchIcon}>
-            <SearchIcon size={20} color={TEXT_COLORS.DISABLED} />
+            <SearchIcon size={20} color={colors.GRAY_500} />
           </View>
           <TextInput
             ref={inputRef}
             style={styles.searchInput}
             placeholder="검색"
-            placeholderTextColor={TEXT_COLORS.DISABLED}
+            placeholderTextColor={colors.GRAY_500}
             value={searchText}
             onChangeText={setSearchText}
             onSubmitEditing={handleSearch}
@@ -270,10 +273,11 @@ export default function SearchScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.PRIMARY,
+    backgroundColor: colors.GRAY_50, // BG_COLORS.PRIMARY
   },
 
   // 검색 Input 스타일
@@ -284,13 +288,13 @@ const styles = StyleSheet.create({
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.GRAY_50,
+    backgroundColor: colors.GRAY_100, // COLORS.GRAY_50
     borderRadius: BORDER_RADIUS.ROUND,
     paddingHorizontal: SPACING.MD,
     height: 44,
   },
   searchInputActive: {
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.WHITE, // BG_COLORS.SECONDARY
   },
   searchIcon: {
     marginRight: SPACING.SM,
@@ -298,7 +302,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
   },
   clearButton: {
     marginLeft: SPACING.SM,
@@ -306,7 +310,7 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 
@@ -318,7 +322,7 @@ const styles = StyleSheet.create({
   },
   noSearchText: {
     fontSize: TYPOGRAPHY.SIZE.LG,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     fontWeight: TYPOGRAPHY.WEIGHT.REGULAR,
   },
 
@@ -336,15 +340,15 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabItemActive: {
-    borderBottomColor: COLORS.PRIMARY,
+    borderBottomColor: colors.PRIMARY,
   },
   tabText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
   tabTextActive: {
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
 
@@ -362,7 +366,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
   errorContainer: {
@@ -374,7 +378,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: COLORS.ERROR,
+    color: colors.ERROR,
     textAlign: 'center',
   },
 });

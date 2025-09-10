@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Image, TouchableOpacity, StyleSheet, Dimensions, FlatList, Text } from 'react-native';
-import { SPACING, BORDER_RADIUS, COLORS, TEXT_COLORS, TYPOGRAPHY } from '../constants/theme';
+import { SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 
 const { width: screenWidth } = Dimensions.get('window');
 const imageSize = (screenWidth - SPACING.MD * 2 - SPACING.XS * 2) / 3;
@@ -16,6 +17,8 @@ export type FeedTabProps = {
 };
 
 export default function FeedTab({ data, onItemPress }: FeedTabProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const renderItem = ({ item }: { item: FeedItem }) => (
     <TouchableOpacity
       style={styles.feedItem}
@@ -47,7 +50,8 @@ export default function FeedTab({ data, onItemPress }: FeedTabProps) {
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   gridContainer: {
     paddingHorizontal: SPACING.MD,
     paddingBottom: SPACING.MD,
@@ -61,7 +65,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: BORDER_RADIUS.SM,
-    backgroundColor: COLORS.GRAY_100,
+    backgroundColor: colors.GRAY_100, // COLORS.GRAY_100
   },
   emptyContainer: {
     flex: 1,
@@ -71,12 +75,12 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.DISABLED,
+    color: colors.GRAY_500, // TEXT_COLORS.DISABLED
     textAlign: 'center',
   },
   emptySubText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.DISABLED,
+    color: colors.GRAY_500, // TEXT_COLORS.DISABLED
     textAlign: 'center',
   },
 });

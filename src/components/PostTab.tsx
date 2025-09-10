@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, FlatList } from 'react-native';
-import { COLORS, TEXT_COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS } from '../constants/theme';
+import { SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS } from '../constants/theme';
 import { EmptyHeartIcon } from './PostCardIcons';
+import { useThemeStore } from '../stores/themeStore';
 import type { PostSearchResult } from '../types/search';
 
 export type PostItem = PostSearchResult;
@@ -39,6 +40,8 @@ const formatNumber = (num: number) => {
 };
 
 export default function PostTab({ data, onItemPress }: PostTabProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const renderItem = ({ item }: { item: PostItem }) => (
     <TouchableOpacity
       style={styles.postCard}
@@ -89,7 +92,7 @@ export default function PostTab({ data, onItemPress }: PostTabProps) {
       <View style={styles.footer}>
         <View style={styles.interactionButtons}>
           <View style={styles.interactionButton}>
-            <EmptyHeartIcon size={16} color={COLORS.GRAY_400} />
+            <EmptyHeartIcon size={16} color={colors.GRAY_400} />
             <Text style={styles.interactionText}>{formatNumber(item.like_count)}</Text>
           </View>
           <View style={styles.interactionButton}>
@@ -120,12 +123,13 @@ export default function PostTab({ data, onItemPress }: PostTabProps) {
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   listContent: {
     paddingVertical: SPACING.SM,
   },
   postCard: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     marginHorizontal: SPACING.MD,
     marginVertical: SPACING.XS,
     borderRadius: BORDER_RADIUS.LG,
@@ -150,14 +154,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   profileImagePlaceholder: {
-    backgroundColor: COLORS.GRAY_300,
+    backgroundColor: colors.GRAY_300,
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileImageText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: COLORS.WHITE,
+    color: colors.WHITE,
   },
   authorDetails: {
     flex: 1,
@@ -165,12 +169,12 @@ const styles = StyleSheet.create({
   authorName: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     marginBottom: 1,
   },
   timeText: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: TEXT_COLORS.DISABLED,
+    color: colors.GRAY_500, // TEXT_COLORS.DISABLED
   },
 
   // 본문 내용
@@ -184,13 +188,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     marginBottom: SPACING.XS,
     lineHeight: 22,
   },
   contentText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     lineHeight: 20,
   },
 
@@ -204,13 +208,13 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: BORDER_RADIUS.MD,
-    backgroundColor: COLORS.GRAY_100,
+    backgroundColor: colors.GRAY_100,
   },
 
   // 하단 통계
   footer: {
     borderTopWidth: 1,
-    borderTopColor: COLORS.GRAY_200,
+    borderTopColor: colors.GRAY_200,
     paddingTop: SPACING.SM,
   },
   interactionButtons: {
@@ -224,7 +228,7 @@ const styles = StyleSheet.create({
   },
   interactionText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     marginLeft: SPACING.XS,
   },
@@ -239,7 +243,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     textAlign: 'center',
   },
 });

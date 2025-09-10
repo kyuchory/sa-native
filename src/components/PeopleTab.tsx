@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, FlatList } from 'react-native';
-import { COLORS, TEXT_COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants/theme';
+import { SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import type { UserSearchResult } from '../types/search';
 
 export type PeopleTabProps = {
@@ -9,6 +10,8 @@ export type PeopleTabProps = {
 };
 
 export default function PeopleTab({ data, onItemPress }: PeopleTabProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const renderItem = ({ item }: { item: UserSearchResult }) => (
     <TouchableOpacity
       style={styles.personItem}
@@ -51,7 +54,8 @@ export default function PeopleTab({ data, onItemPress }: PeopleTabProps) {
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   personItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -72,13 +76,13 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 24,
-    backgroundColor: COLORS.GRAY_300,
+    backgroundColor: colors.GRAY_300,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: TYPOGRAPHY.SIZE.LG,
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
   personInfo: {
@@ -86,13 +90,13 @@ const styles = StyleSheet.create({
   },
   personNickname: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     marginBottom: SPACING.XS,
   },
   followingText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: COLORS.PRIMARY, // 대표 색상 사용
+    color: colors.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
   emptyContainer: {
@@ -103,6 +107,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
   },
 });
