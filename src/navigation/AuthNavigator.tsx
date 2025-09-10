@@ -93,14 +93,7 @@ export default function AuthNavigator() {
         <Stack.Screen 
           name="Settings" 
           component={SettingsScreen} 
-          options={{ 
-            headerShown: true,
-            title: '설정',
-            headerStyle: { backgroundColor: '#2c3e50' },
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: 'bold' },
-            headerTitleAlign: 'center',
-          }}
+          options={{ headerShown: false }}
         />
                 <Stack.Screen
           name="Chat"

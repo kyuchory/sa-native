@@ -157,7 +157,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
 
   // 핸들러들
   const handleSettingsPress = () => {
-    console.log('Settings pressed');
+    navigation.navigate('Settings');
     // TODO: 설정 화면으로 이동
   };
 
