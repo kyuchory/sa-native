@@ -4,7 +4,8 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
 import { AuthStackParamList } from '../types/navigation';
-import { BG_COLORS, COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 
 // Services
 import { useAuthStore } from '../stores/authStore';
@@ -18,6 +19,9 @@ import { ProfileEditIcon } from '../components/ProfileIcons';
 type ProfileImageEditScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ProfileImageEdit'>;
 
 export default function ProfileImageEditScreen() {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
+
   const navigation = useNavigation<ProfileImageEditScreenNavigationProp>();
   const { user } = useAuthStore();
 
@@ -162,7 +166,7 @@ export default function ProfileImageEditScreen() {
               </View>
             )}
             <View style={styles.editIconContainer}>
-              <ProfileEditIcon size={16} color={COLORS.WHITE} />
+              <ProfileEditIcon size={16} color={colors.WHITE} />
             </View>
           </TouchableOpacity>
           <Text style={styles.helperText}>
@@ -175,7 +179,7 @@ export default function ProfileImageEditScreen() {
           <CustomButton
             title="취소"
             onPress={handleCancel}
-            variant="secondary"
+            variant="tertiary"
             style={styles.cancelButton}
           />
           <CustomButton
@@ -191,10 +195,10 @@ export default function ProfileImageEditScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
   },
   content: {
     flex: 1,
@@ -204,7 +208,7 @@ const styles = StyleSheet.create({
 
   // 이미지 섹션
   imageSection: {
-    alignItems: 'center',
+    alignItems: 'center' as const,
     marginBottom: SPACING.XL,
   },
   imageContainer: {
@@ -217,38 +221,38 @@ const styles = StyleSheet.create({
     borderRadius: 60,
   },
   imagePlaceholder: {
-    backgroundColor: COLORS.GRAY_300,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: colors.GRAY_300, // COLORS.GRAY_300
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   placeholderText: {
     fontSize: TYPOGRAPHY.SIZE.XXXL,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: COLORS.WHITE,
+    color: colors.WHITE, // COLORS.WHITE
   },
   editIconContainer: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY, // COLORS.PRIMARY
     borderRadius: BORDER_RADIUS.ROUND,
     width: 32,
     height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
     borderWidth: 3,
-    borderColor: COLORS.WHITE,
+    borderColor: colors.WHITE, // COLORS.WHITE
   },
   helperText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: COLORS.GRAY_500,
-    textAlign: 'center',
+    color: colors.GRAY_500, // COLORS.GRAY_500
+    textAlign: 'center' as const,
   },
 
   // 액션 섹션
   actionSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
     gap: SPACING.SM,
   },
   cancelButton: {

@@ -3,7 +3,8 @@ import { View, StyleSheet, Text, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../types/navigation';
-import { BG_COLORS, COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 
 // Services
 import { ProfileService } from '../services/profileService';
@@ -16,6 +17,9 @@ import CustomInput from '../components/CustomInput';
 type BioEditScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'BioEdit'>;
 
 export default function BioEditScreen() {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
+
   const navigation = useNavigation<BioEditScreenNavigationProp>();
   const { user, setUser } = useAuthStore();
   const [bio, setBio] = useState('');
@@ -108,48 +112,48 @@ export default function BioEditScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
   },
   content: {
     flex: 1,
     padding: SPACING.MD,
   },
   inputContainer: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE, // COLORS.WHITE
     borderRadius: BORDER_RADIUS.LG,
     padding: SPACING.MD,
     ...SHADOWS.SMALL,
   },
   bioInput: {
     minHeight: 100,
-    textAlignVertical: 'top',
+    textAlignVertical: 'top' as const,
   },
   hint: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: COLORS.GRAY_500,
-    textAlign: 'right',
+    color: colors.GRAY_500, // COLORS.GRAY_500
+    textAlign: 'right' as const,
     marginTop: SPACING.XS,
   },
   saveButton: {
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
     borderRadius: BORDER_RADIUS.MD,
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY, // COLORS.PRIMARY
     minWidth: 60,
-    alignItems: 'center',
+    alignItems: 'center' as const,
   },
   disabledButton: {
-    backgroundColor: COLORS.GRAY_300,
+    backgroundColor: colors.GRAY_300, // COLORS.GRAY_300
   },
   saveButtonText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: COLORS.WHITE,
+    color: colors.WHITE, // COLORS.WHITE
   },
   disabledButtonText: {
-    color: COLORS.GRAY_500,
+    color: colors.GRAY_500, // COLORS.GRAY_500
   },
 });

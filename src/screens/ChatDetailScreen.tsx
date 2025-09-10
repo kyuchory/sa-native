@@ -27,14 +27,12 @@ import { AuthStackParamList } from '../types/navigation';
 
 // Constants
 import {
-  COLORS,
-  TEXT_COLORS,
-  BG_COLORS,
   TYPOGRAPHY,
   SPACING,
   BORDER_RADIUS,
   INPUT_SIZES,
 } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 
 // Stores
 import { useAuthStore } from '../stores/authStore';
@@ -51,6 +49,9 @@ type ChatDetailScreenRouteProp = RouteProp<AuthStackParamList, 'ChatDetail'>;
 type ChatDetailScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ChatDetail'>;
 
 export default function ChatDetailScreen() {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
+
   const navigation = useNavigation<ChatDetailScreenNavigationProp>();
   const route = useRoute<ChatDetailScreenRouteProp>();
   const flatListRef = useRef<FlatList<Message>>(null);
@@ -447,7 +448,7 @@ export default function ChatDetailScreen() {
                 )}
                 <View style={styles.messageTimeContainer}>
                   {item.status === 'sending' ? (
-                    <ActivityIndicator size="small" color={COLORS.PRIMARY} />
+                    <ActivityIndicator size="small" color={colors.PRIMARY} />
                   ) : (
                     <Text style={styles.messageTime}>
                       {formatMessageTime(item.created_at)}
@@ -520,14 +521,14 @@ export default function ChatDetailScreen() {
   const renderHeaderRight = () => (
     <View style={styles.headerRightContainer}>
       <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
-        <SearchIcon size={20} color={TEXT_COLORS.SECONDARY} />
+        <SearchIcon size={20} color={colors.GRAY_700} />
       </TouchableOpacity>
-      <TouchableOpacity 
-        style={styles.headerIconButton} 
+      <TouchableOpacity
+        style={styles.headerIconButton}
         activeOpacity={0.7}
         onPress={handleToggleSidebar}
       >
-        <MenuIcon size={20} color={TEXT_COLORS.SECONDARY} />
+        <MenuIcon size={20} color={colors.GRAY_700} />
       </TouchableOpacity>
     </View>
   );
@@ -616,14 +617,14 @@ export default function ChatDetailScreen() {
         {/* 메시지 입력 영역 */}
         <View style={styles.inputContainer}>
           <TouchableOpacity style={styles.attachButton} activeOpacity={0.7}>
-            <PlusCircleIcon size={24} color={TEXT_COLORS.SECONDARY} />
+            <PlusCircleIcon size={24} color={colors.GRAY_700} />
           </TouchableOpacity>
-          
+
           <View style={styles.textInputContainer}>
             <TextInput
               style={styles.textInput}
               placeholder={isConnected ? "메시지를 입력하세요..." : "연결 중..."}
-              placeholderTextColor={TEXT_COLORS.DISABLED}
+              placeholderTextColor={colors.GRAY_500}
               value={inputText}
               onChangeText={handleInputChange}
               multiline={true}
@@ -634,19 +635,19 @@ export default function ChatDetailScreen() {
               editable={isConnected}
             />
           </View>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={[
               styles.sendButton,
               (inputText.trim() && isConnected) ? styles.sendButtonActive : styles.sendButtonInactive
-            ]} 
+            ]}
             onPress={handleSendMessage}
             activeOpacity={0.7}
             disabled={!inputText.trim() || !isConnected}
           >
-            <SendIcon 
-              size={20} 
-              color={(inputText.trim() && isConnected) ? COLORS.WHITE : TEXT_COLORS.DISABLED} 
+            <SendIcon
+              size={20}
+              color={(inputText.trim() && isConnected) ? colors.WHITE : colors.GRAY_500}
             />
           </TouchableOpacity>
         </View>
@@ -668,16 +669,16 @@ export default function ChatDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.PRIMARY,
+    backgroundColor: colors.GRAY_50, // BG_COLORS.PRIMARY
   },
 
   // 헤더 관련
   headerRightContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     gap: SPACING.SM,
   },
   headerIconButton: {
@@ -687,7 +688,7 @@ const styles = StyleSheet.create({
   // 메시지 목록
   messagesList: {
     flex: 1,
-    backgroundColor: BG_COLORS.PRIMARY,
+    backgroundColor: colors.GRAY_50, // BG_COLORS.PRIMARY
   },
   messagesContent: {
     paddingVertical: SPACING.MD,
@@ -696,14 +697,14 @@ const styles = StyleSheet.create({
 
   // 메시지 컨테이너
   messageContainer: {
-    flexDirection: 'row',
+    flexDirection: 'row' as const,
     marginBottom: SPACING.SM,
   },
   myMessageContainer: {
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-end' as const,
   },
   otherMessageContainer: {
-    justifyContent: 'flex-start',
+    justifyContent: 'flex-start' as const,
   },
 
   // 프로필 섹션
@@ -715,7 +716,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
   },
   profileImagePlaceholder: {
     width: 32,
@@ -728,24 +729,24 @@ const styles = StyleSheet.create({
     maxWidth: '75%',
   },
   myMessageContentContainer: {
-    alignItems: 'flex-end',
+    alignItems: 'flex-end' as const,
   },
   otherMessageContentContainer: {
-    alignItems: 'flex-start',
+    alignItems: 'flex-start' as const,
   },
 
   // 발신자 이름
   senderName: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     marginBottom: SPACING.XS,
   },
 
   // 메시지 행
   messageRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: 'row' as const,
+    alignItems: 'flex-end' as const,
     gap: SPACING.XS,
   },
 
@@ -757,16 +758,16 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   myMessageBubble: {
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY,
   },
   otherMessageBubble: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     borderWidth: 1,
-    borderColor: COLORS.GRAY_200,
+    borderColor: colors.GRAY_200,
   },
   messageFailedBubble: {
     opacity: 0.7,
-    borderColor: COLORS.ERROR || '#FF6B6B',
+    borderColor: colors.ERROR || '#FF6B6B',
   },
 
   // 메시지 텍스트
@@ -775,68 +776,68 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   myMessageText: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
   },
   otherMessageText: {
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
   },
 
   // 메시지 시간
   messageTime: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: TEXT_COLORS.DISABLED,
+    color: colors.GRAY_500, // TEXT_COLORS.DISABLED
     alignSelf: 'flex-end',
     marginBottom: SPACING.XS,
   },
   messageTimeContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
     minHeight: 16, // 로딩 스피너와 텍스트 높이 일치
   },
-  
+
   // 내 메시지 시간 컨테이너
   myMessageTimeContainer: {
-    alignItems: 'flex-end',
-    justifyContent: 'flex-end',
+    alignItems: 'flex-end' as const,
+    justifyContent: 'flex-end' as const,
   },
-  
+
   // 메시지 전송 실패 상태
   messageStatusFailed: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: COLORS.ERROR || '#FF6B6B',
+    color: colors.ERROR || '#FF6B6B',
     marginBottom: 2,
   },
 
   // 입력 영역
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     borderTopWidth: 1,
-    borderTopColor: COLORS.GRAY_200,
+    borderTopColor: colors.GRAY_200,
     gap: SPACING.SM,
   },
   attachButton: {
     width: INPUT_SIZES.CHAT_ATTACH_BUTTON_SIZE,
     height: INPUT_SIZES.CHAT_ATTACH_BUTTON_SIZE,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   textInputContainer: {
     flex: 1,
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
     borderRadius: BORDER_RADIUS.LG,
     paddingHorizontal: SPACING.SM,
     paddingVertical: 0,
     minHeight: INPUT_SIZES.CHAT_INPUT_MIN_HEIGHT,
     maxHeight: INPUT_SIZES.CHAT_INPUT_MAX_HEIGHT,
-    justifyContent: 'center',
+    justifyContent: 'center' as const,
   },
   textInput: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     textAlignVertical: 'center',
     includeFontPadding: false,
     textAlign: 'left',
@@ -846,96 +847,96 @@ const styles = StyleSheet.create({
     width: INPUT_SIZES.CHAT_SEND_BUTTON_SIZE,
     height: INPUT_SIZES.CHAT_SEND_BUTTON_SIZE,
     borderRadius: INPUT_SIZES.CHAT_SEND_BUTTON_SIZE / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   sendButtonActive: {
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY,
   },
   sendButtonInactive: {
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
   },
 
   // 타이핑 인디케이터
   typingContainer: {
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.XS,
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
   },
   typingText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     fontStyle: 'italic',
   },
 
   // 실패한 메시지 알림
   failedMessagesContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
-    backgroundColor: '#FFF3E0', // 연한 주황색 배경
+    backgroundColor: '#FFF3E0', // 연한 주황색 배경 (흰색 텍스트와는 상관없지만 유지)
     borderTopWidth: 1,
     borderTopColor: '#FFE0B2',
   },
   failedMessagesText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: '#F57C00', // 주황색 텍스트
+    color: '#F57C00', // 주황색 텍스트 (그대로 유지)
     flex: 1,
   },
   retryAllButton: {
-    backgroundColor: '#FF9800', // 주황색 버튼
+    backgroundColor: '#FF9800', // 주황색 버튼 (그대로 유지)
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.XS,
     borderRadius: BORDER_RADIUS.SM,
   },
   retryAllButtonText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: COLORS.WHITE,
+    color: colors.WHITE, // 이 텍스트는 다시 완전하게 흰색으로 유지
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 
   // 빈 상태
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
     paddingVertical: SPACING.XXL,
   },
   emptyText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     textAlign: 'center',
   },
 
   // 더 많은 메시지 로딩 인디케이터
   loadingMoreContainer: {
     paddingVertical: SPACING.MD,
-    alignItems: 'center',
+    alignItems: 'center' as const,
   },
   loadingMoreText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     fontStyle: 'italic',
   },
 
   // 날짜 구분선
   dateSeparatorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     marginVertical: SPACING.LG,
     paddingHorizontal: SPACING.MD,
   },
   dateSeparatorLine: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.GRAY_300,
+    backgroundColor: colors.GRAY_300,
   },
   dateSeparatorText: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: TEXT_COLORS.SECONDARY,
-    backgroundColor: BG_COLORS.PRIMARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
+    backgroundColor: colors.GRAY_50, // BG_COLORS.PRIMARY
     paddingHorizontal: SPACING.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },

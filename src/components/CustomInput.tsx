@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet, TextInputProps } from 'react-native';
-import { COLORS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 
 interface CustomInputProps extends TextInputProps {
   label: string;
@@ -8,20 +8,23 @@ interface CustomInputProps extends TextInputProps {
   rightComponent?: React.ReactNode;
 }
 
-export default function CustomInput({ 
-  label, 
-  error, 
+export default function CustomInput({
+  label,
+  error,
   rightComponent,
   style,
-  ...props 
+  ...props
 }: CustomInputProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
+
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.inputContainer}>
         <TextInput
           style={[styles.input, error && styles.inputError, style]}
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.GRAY_500}
           {...props}
         />
         {rightComponent && (
@@ -35,37 +38,38 @@ export default function CustomInput({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     marginBottom: 20,
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.GRAY_900,
     marginBottom: 8,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.GRAY_300,
     borderRadius: 10,
     padding: 15,
     fontSize: 16,
-    backgroundColor: '#fafafa',
+    backgroundColor: colors.WHITE,
+    color: colors.GRAY_900, // 텍스트 색상 추가
   },
   inputError: {
-    borderColor: COLORS.PRIMARY,
+    borderColor: colors.PRIMARY,
   },
   rightComponent: {
     marginLeft: 10,
   },
   errorText: {
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
     fontSize: 14,
     marginTop: 5,
     marginLeft: 5,

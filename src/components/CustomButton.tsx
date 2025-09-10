@@ -1,21 +1,25 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps } from 'react-native';
-import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 
 interface CustomButtonProps extends TouchableOpacityProps {
   title: string;
-  variant?: 'primary' | 'secondary' | 'outline';
+  variant?: 'primary' | 'secondary' | 'tertiary' | 'outline';
   size?: 'small' | 'medium' | 'large';
 }
 
-export default function CustomButton({ 
-  title, 
-  variant = 'primary', 
+export default function CustomButton({
+  title,
+  variant = 'primary',
   size = 'medium',
   style,
   disabled,
-  ...props 
+  ...props
 }: CustomButtonProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
+
   const buttonStyle = [
     styles.button,
     styles[variant],
@@ -42,26 +46,29 @@ export default function CustomButton({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   button: {
     borderRadius: BORDER_RADIUS.MD,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
-  
+
   // Variants
   primary: {
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY,
   },
   secondary: {
-    backgroundColor: COLORS.GRAY_100,
+    backgroundColor: colors.GRAY_100,
+  },
+  tertiary: {
+    backgroundColor: colors.GRAY_50, // 더 수수한 배경색
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: COLORS.PRIMARY,
+    borderColor: colors.PRIMARY,
   },
-  
+
   // Sizes
   small: {
     paddingVertical: SPACING.SM,
@@ -75,29 +82,32 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.LG - SPACING.SM,
     paddingHorizontal: SPACING.LG,
   },
-  
+
   // Disabled state
   disabled: {
-    backgroundColor: COLORS.GRAY_300,
-    borderColor: COLORS.GRAY_300,
+    backgroundColor: colors.GRAY_300,
+    borderColor: colors.GRAY_300,
   },
-  
+
   // Text styles
   text: {
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
-  
+
   // Variant text colors
   primaryText: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
   },
   secondaryText: {
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
+  },
+  tertiaryText: {
+    color: colors.GRAY_700, // tertiary의 적절한 텍스트 색상
   },
   outlineText: {
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
   },
-  
+
   // Size text sizes
   smallText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
@@ -108,9 +118,9 @@ const styles = StyleSheet.create({
   largeText: {
     fontSize: TYPOGRAPHY.SIZE.LG,
   },
-  
+
   // Disabled text
   disabledText: {
-    color: TEXT_COLORS.DISABLED,
+    color: colors.GRAY_500, // TEXT_COLORS.DISABLED
   },
 });

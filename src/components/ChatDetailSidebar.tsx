@@ -11,14 +11,8 @@ import {
   Animated,
   Dimensions,
 } from 'react-native';
-import {
-  COLORS,
-  TEXT_COLORS,
-  BG_COLORS,
-  TYPOGRAPHY,
-  SPACING,
-  BORDER_RADIUS,
-} from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import { MediaIcon, NoticeIcon, MembersIcon, ChevronRightIcon } from './SidebarIcons';
 
 interface MediaItem {
@@ -69,6 +63,9 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
   onViewAllMedia,
   onViewNotice,
 }) => {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
+
   const slideAnim = useRef(new Animated.Value(screenWidth * 0.8)).current; // 시작: 사이드바 너비만큼 오른쪽 밖
   const opacityAnim = useRef(new Animated.Value(0)).current; // 시작: 투명
 
@@ -206,12 +203,12 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionTitleContainer}>
-                    <MediaIcon size={20} color={COLORS.PRIMARY} />
+                    <MediaIcon size={20} color={colors.PRIMARY} />
                     <Text style={styles.sectionTitle}>사진/동영상</Text>
                   </View>
                   <TouchableOpacity onPress={onViewAllMedia} style={styles.viewAllContainer}>
                     <Text style={styles.viewAllButton}>더보기</Text>
-                    <ChevronRightIcon size={14} color={COLORS.PRIMARY} />
+                    <ChevronRightIcon size={14} color={colors.PRIMARY} />
                   </TouchableOpacity>
                 </View>
                 <ScrollView 
@@ -228,7 +225,7 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionTitleContainer}>
-                    <NoticeIcon size={20} color={COLORS.PRIMARY} />
+                    <NoticeIcon size={20} color={colors.PRIMARY} />
                     <Text style={styles.sectionTitle}>공지사항</Text>
                   </View>
                 </View>
@@ -247,7 +244,7 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionTitleContainer}>
-                    <MembersIcon size={20} color={COLORS.PRIMARY} />
+                    <MembersIcon size={20} color={colors.PRIMARY} />
                     <Text style={styles.sectionTitle}>대화상대 ({members.length})</Text>
                   </View>
                   <TouchableOpacity style={styles.addButton} onPress={onAddMember}>
@@ -267,7 +264,7 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   overlay: {
     flex: 1,
     position: 'relative',
@@ -286,7 +283,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     width: '80%',
-    backgroundColor: BG_COLORS.PRIMARY,
+    backgroundColor: colors.GRAY_50, // BG_COLORS.PRIMARY
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: -2, height: 0 },
@@ -302,17 +299,17 @@ const styles = StyleSheet.create({
 
   // 헤더
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
     paddingHorizontal: SPACING.LG,
     paddingVertical: SPACING.MD,
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY,
   },
   chatRoomTitle: {
     fontSize: TYPOGRAPHY.SIZE.LG,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     flex: 1,
   },
   closeButton: {
@@ -320,11 +317,11 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   closeButtonText: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
   },
@@ -335,29 +332,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.LG,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
     marginBottom: SPACING.MD,
   },
   sectionTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     gap: SPACING.SM,
   },
   sectionTitle: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
   },
   viewAllContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     gap: 4,
   },
   viewAllButton: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 
@@ -377,7 +374,7 @@ const styles = StyleSheet.create({
     width: 75,
     height: 75,
     borderRadius: BORDER_RADIUS.SM,
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
   },
   videoOverlay: {
     position: 'absolute',
@@ -387,11 +384,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     borderRadius: BORDER_RADIUS.SM,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   videoIcon: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontSize: TYPOGRAPHY.SIZE.MD,
   },
 
@@ -400,7 +397,7 @@ const styles = StyleSheet.create({
     gap: SPACING.SM,
   },
   noticeItem: {
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
     borderRadius: BORDER_RADIUS.MD,
     padding: SPACING.MD,
   },
@@ -410,27 +407,27 @@ const styles = StyleSheet.create({
   noticeTitle: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
   },
   noticePreview: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     lineHeight: 18,
   },
   noticeFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
     marginTop: SPACING.XS,
   },
   noticeAuthor: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
   noticeDate: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: TEXT_COLORS.DISABLED,
+    color: colors.GRAY_500, // TEXT_COLORS.DISABLED
   },
 
   // 대화상대 섹션
@@ -438,22 +435,22 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: COLORS.PRIMARY,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: colors.PRIMARY,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   addButtonText: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
   },
   membersContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
     gap: SPACING.MD,
   },
   memberItem: {
-    alignItems: 'center',
+    alignItems: 'center' as const,
     width: 70,
   },
   memberAvatarContainer: {
@@ -464,18 +461,18 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
   },
   memberAvatarPlaceholder: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: COLORS.PRIMARY,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: colors.PRIMARY,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   memberAvatarText: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
   },
@@ -488,24 +485,24 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: '#4CAF50',
     borderWidth: 2,
-    borderColor: BG_COLORS.PRIMARY,
+    borderColor: colors.GRAY_50, // BG_COLORS.PRIMARY
   },
   memberName: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     textAlign: 'center',
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 
   // 빈 상태
   emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
     paddingVertical: SPACING.XL,
   },
   emptyStateText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.DISABLED,
+    color: colors.GRAY_500, // TEXT_COLORS.DISABLED
   },
 });
 

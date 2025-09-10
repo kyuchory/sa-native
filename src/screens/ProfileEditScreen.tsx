@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'rea
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../types/navigation';
-import { BG_COLORS, COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 
 // Services
 import { ProfileService } from '../services/profileService';
@@ -17,6 +18,9 @@ import { ProfileEditIcon } from '../components/ProfileIcons';
 type ProfileEditScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ProfileEdit'>;
 
 export default function ProfileEditScreen() {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
+
   const navigation = useNavigation<ProfileEditScreenNavigationProp>();
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
@@ -102,7 +106,7 @@ export default function ProfileEditScreen() {
               </View>
             )}
             <View style={styles.editIconContainer}>
-              <ProfileEditIcon size={16} color={COLORS.WHITE} />
+              <ProfileEditIcon size={16} color={colors.WHITE} />
             </View>
           </TouchableOpacity>
         </View>
@@ -148,10 +152,10 @@ export default function ProfileEditScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
   },
   content: {
     flex: 1,
@@ -161,7 +165,7 @@ const styles = StyleSheet.create({
 
   // 프로필 이미지 섹션
   imageSection: {
-    alignItems: 'center',
+    alignItems: 'center' as const,
     marginBottom: SPACING.XL,
   },
   imageContainer: {
@@ -173,27 +177,27 @@ const styles = StyleSheet.create({
     borderRadius: 50,
   },
   imagePlaceholder: {
-    backgroundColor: COLORS.GRAY_300,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: colors.GRAY_300, // COLORS.GRAY_300
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   placeholderText: {
     fontSize: TYPOGRAPHY.SIZE.XXXL,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: COLORS.WHITE,
+    color: colors.WHITE, // COLORS.WHITE
   },
   editIconContainer: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY, // COLORS.PRIMARY
     borderRadius: BORDER_RADIUS.ROUND,
     width: 32,
     height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
     borderWidth: 3,
-    borderColor: COLORS.WHITE,
+    borderColor: colors.WHITE, // COLORS.WHITE
   },
   editIcon: {
     fontSize: 16,
@@ -207,16 +211,16 @@ const styles = StyleSheet.create({
   // 로딩 섹션
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   loadingText: {
     fontSize: TYPOGRAPHY.SIZE.LG,
-    color: COLORS.GRAY_500,
+    color: colors.GRAY_500, // COLORS.GRAY_500
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
   bioInput: {
     minHeight: 80,
-    textAlignVertical: 'top',
+    textAlignVertical: 'top' as const,
   },
 });
