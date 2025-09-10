@@ -2,8 +2,9 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
 import { BackIcon } from './CommonIcons';
+import { useThemeStore } from '../stores/themeStore';
 
 interface CommonHeaderProps {
   title: string;
@@ -12,7 +13,7 @@ interface CommonHeaderProps {
   showBackButton?: boolean;
 }
 
-export default function CommonHeader({ 
+export default function CommonHeader({
   title,
   rightComponent,
   onBackPress,
@@ -20,6 +21,8 @@ export default function CommonHeader({
 }: CommonHeaderProps) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { isDark, colors } = useThemeStore();
+  const styles = createStyles(colors);
 
   const handleBackPress = () => {
     if (onBackPress) {
@@ -31,18 +34,18 @@ export default function CommonHeader({
 
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.WHITE} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.WHITE} />
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.content}>
           {/* 왼쪽 영역 - 뒤로가기 버튼 */}
           <View style={styles.leftSection}>
             {showBackButton && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.backButton}
                 onPress={handleBackPress}
                 activeOpacity={0.7}
               >
-                <BackIcon size={24} color={COLORS.GRAY_700} />
+                <BackIcon size={24} color={colors.GRAY_700} />
               </TouchableOpacity>
             )}
           </View>
@@ -62,11 +65,11 @@ export default function CommonHeader({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_200,
+    borderBottomColor: colors.GRAY_200,
     ...SHADOWS.SMALL,
   },
   content: {
@@ -77,7 +80,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.SM,
     minHeight: 56,
   },
-  
+
   // 왼쪽 섹션
   leftSection: {
     width: 48,
@@ -87,7 +90,7 @@ const styles = StyleSheet.create({
     padding: SPACING.XS,
     borderRadius: 20,
   },
-  
+
   // 중앙 섹션
   centerSection: {
     flex: 1,
@@ -97,10 +100,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: TYPOGRAPHY.SIZE.LG,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900,
     textAlign: 'center',
   },
-  
+
   // 우측 섹션
   rightSection: {
     width: 48,

@@ -7,9 +7,142 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { CommentItem as FeedComment } from '../types/feed';
 import { LikeIcon } from './PostIcons';
+import { useThemeStore } from '../stores/themeStore';
+
+// 스타일 생성 함수 (컴포넌트 외부에서 정의하여 재사용)
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
+  container: {
+    backgroundColor: colors.WHITE,
+  },
+
+  // 헤더
+  header: {
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.MD,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.GRAY_200,
+  },
+  title: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: colors.GRAY_900,
+  },
+
+  // 댓글 컨테이너
+  commentContainer: {
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.SM,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.GRAY_100,
+  },
+  replyContainer: {
+    paddingLeft: SPACING.MD + 40 + SPACING.SM, // 프로필 이미지 크기 + 간격만큼 들여쓰기
+    backgroundColor: colors.WHITE,
+  },
+  repliesContainer: {
+    backgroundColor: colors.WHITE,
+  },
+
+  // 댓글 헤더
+  commentHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  profileImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: SPACING.SM,
+  },
+  profileImagePlaceholder: {
+    backgroundColor: colors.GRAY_300,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileImageText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
+    color: colors.WHITE,
+  },
+
+  // 댓글 내용
+  commentContent: {
+    flex: 1,
+  },
+  commentMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.XS,
+    gap: SPACING.SM,
+  },
+  username: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: colors.GRAY_900,
+  },
+  timeText: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    color: colors.GRAY_600,
+  },
+  commentText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.GRAY_900,
+    lineHeight: 20,
+    marginBottom: SPACING.SM,
+  },
+  mentionText: {
+    color: colors.PRIMARY,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+  },
+
+  // 댓글 액션
+  commentActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.MD,
+  },
+  likeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.XS,
+    paddingVertical: SPACING.XS,
+  },
+  likeCount: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    color: colors.GRAY_600,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
+  likedCount: {
+    color: colors.ERROR,
+  },
+  replyButton: {
+    paddingVertical: SPACING.XS,
+  },
+  replyText: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    color: colors.GRAY_600,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
+
+  // 빈 상태
+  emptyContainer: {
+    backgroundColor: colors.WHITE,
+    paddingVertical: SPACING.XL,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: colors.GRAY_600,
+    marginBottom: SPACING.XS,
+  },
+  emptySubText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.GRAY_400,
+  },
+});
 
 interface CommentListProps {
   comments: FeedComment[];
@@ -56,6 +189,8 @@ const CommentItem = ({
   onDeleteComment
 }: CommentItemProps) => {
   const navigation = useNavigation();
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
 
   // 사용자 프로필로 이동하는 함수
   const handleProfilePress = () => {
@@ -153,7 +288,7 @@ const CommentItem = ({
                 <LikeIcon
                   size={14}
                   filled={comment.is_liked || false}
-                  color={comment.is_liked ? COLORS.ERROR : COLORS.GRAY_500}
+                  color={comment.is_liked ? colors.ERROR : colors.GRAY_500}
                 />
                 {comment.like_count > 0 && (
                   <Text style={[
@@ -210,6 +345,8 @@ export default function CommentList({
   onEditComment,
   onDeleteComment
 }: CommentListProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   if (comments.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -256,134 +393,3 @@ export default function CommentList({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: COLORS.WHITE,
-  },
-
-  // 헤더
-  header: {
-    paddingHorizontal: SPACING.MD,
-    paddingVertical: SPACING.MD,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_200,
-  },
-  title: {
-    fontSize: TYPOGRAPHY.SIZE.MD,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
-  },
-
-  // 댓글 컨테이너
-  commentContainer: {
-    paddingHorizontal: SPACING.MD,
-    paddingVertical: SPACING.SM,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_100,
-  },
-  replyContainer: {
-    paddingLeft: SPACING.MD + 40 + SPACING.SM, // 프로필 이미지 크기 + 간격만큼 들여쓰기
-    backgroundColor: COLORS.WHITE,
-  },
-  repliesContainer: {
-    backgroundColor: COLORS.WHITE,
-  },
-
-  // 댓글 헤더
-  commentHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  profileImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: SPACING.SM,
-  },
-  profileImagePlaceholder: {
-    backgroundColor: COLORS.GRAY_300,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileImageText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: COLORS.WHITE,
-  },
-
-  // 댓글 내용
-  commentContent: {
-    flex: 1,
-  },
-  commentMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.XS,
-    gap: SPACING.SM,
-  },
-  username: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
-  },
-  timeText: {
-    fontSize: TYPOGRAPHY.SIZE.XS,
-    color: TEXT_COLORS.SECONDARY,
-  },
-  commentText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.PRIMARY,
-    lineHeight: 20,
-    marginBottom: SPACING.SM,
-  },
-  mentionText: {
-    color: COLORS.PRIMARY,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-  },
-
-  // 댓글 액션
-  commentActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.MD,
-  },
-  likeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.XS,
-    paddingVertical: SPACING.XS,
-  },
-  likeCount: {
-    fontSize: TYPOGRAPHY.SIZE.XS,
-    color: TEXT_COLORS.SECONDARY,
-    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-  },
-  likedCount: {
-    color: COLORS.ERROR,
-  },
-  replyButton: {
-    paddingVertical: SPACING.XS,
-  },
-  replyText: {
-    fontSize: TYPOGRAPHY.SIZE.XS,
-    color: TEXT_COLORS.SECONDARY,
-    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-  },
-
-  // 빈 상태
-  emptyContainer: {
-    backgroundColor: COLORS.WHITE,
-    paddingVertical: SPACING.XL,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.SECONDARY,
-    marginBottom: SPACING.XS,
-  },
-  emptySubText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.DISABLED,
-  },
-});

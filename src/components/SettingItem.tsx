@@ -13,6 +13,8 @@ interface SettingItemProps {
   onPress?: () => void;
   onToggleChange?: (value: boolean) => void;
   isLast?: boolean;
+  // 다크모드 지원을 위한 옵스
+  colors?: Record<string, string>;
 }
 
 const SettingItem: React.FC<SettingItemProps> = ({
@@ -24,7 +26,8 @@ const SettingItem: React.FC<SettingItemProps> = ({
   toggleSize = 'medium',
   onPress,
   onToggleChange,
-  isLast = false
+  isLast = false,
+  colors = {}
 }) => {
   const handlePress = () => {
     if (!showToggle && onPress) {
@@ -36,21 +39,24 @@ const SettingItem: React.FC<SettingItemProps> = ({
     onToggleChange?.(value);
   };
 
+  // 스타일 생성
+  const itemStyles = createStyles(colors);
+
   return (
     <>
       <TouchableOpacity
-        style={[styles.container, isLast && styles.lastItem]}
+        style={[itemStyles.container, isLast && itemStyles.lastItem]}
         onPress={handlePress}
         activeOpacity={0.7}
       >
-        <View style={styles.textContainer}>
-          <Text style={styles.title}>{title}</Text>
+        <View style={itemStyles.textContainer}>
+          <Text style={itemStyles.title}>{title}</Text>
           {subtitle && (
-            <Text style={styles.subtitle}>{subtitle}</Text>
+            <Text style={itemStyles.subtitle}>{subtitle}</Text>
           )}
         </View>
 
-        <View style={styles.actionContainer}>
+        <View style={itemStyles.actionContainer}>
           {showToggle && onToggleChange && (
             <ToggleSwitch
               value={toggleValue}
@@ -59,26 +65,27 @@ const SettingItem: React.FC<SettingItemProps> = ({
             />
           )}
           {showArrow && !showToggle && (
-            <View style={styles.arrow}>
-              <Text style={styles.arrowText}>›</Text>
+            <View style={itemStyles.arrow}>
+              <Text style={itemStyles.arrowText}>›</Text>
             </View>
           )}
         </View>
       </TouchableOpacity>
 
-      {!isLast && <View style={styles.separator} />}
+      {!isLast && <View style={itemStyles.separator} />}
     </>
   );
 };
 
-const styles = StyleSheet.create({
+// createStyles 함수 생성
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: SPACING.MD,
     paddingHorizontal: SPACING.MD,
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE || COLORS.WHITE,
     minHeight: 50,
   },
 
@@ -90,13 +97,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900 || TEXT_COLORS.PRIMARY,
     lineHeight: 20,
   },
 
   subtitle: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700 || TEXT_COLORS.SECONDARY,
     marginTop: 2,
     lineHeight: 16,
   },
@@ -114,13 +121,13 @@ const styles = StyleSheet.create({
 
   arrowText: {
     fontSize: 20,
-    color: COLORS.GRAY_500,
+    color: colors.GRAY_500 || COLORS.GRAY_500,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
   },
 
   separator: {
     height: 1,
-    backgroundColor: COLORS.GRAY_200,
+    backgroundColor: colors.GRAY_200 || COLORS.GRAY_200,
     marginLeft: SPACING.MD,
   },
 

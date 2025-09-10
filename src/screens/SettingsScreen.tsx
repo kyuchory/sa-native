@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, StatusBar } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { TYPOGRAPHY, COLORS, SPACING, BG_COLORS, TEXT_COLORS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import CommonHeader from '../components/CommonHeader';
 import SettingItem from '../components/SettingItem';
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
 
-  // Toggle 상태 관리
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // Zustand store 사용
+  const { isDark, toggleTheme, colors } = useThemeStore();
+
+  // Toggle 상태 관리 (다크 모드를 제외한 나머지)
   const [isNotifications, setIsNotifications] = useState(true);
   const [isAutoPlay, setIsAutoPlay] = useState(false);
   const [isHDQuality, setIsHDQuality] = useState(true);
@@ -56,6 +59,9 @@ export default function SettingsScreen() {
     console.log('로그아웃');
   };
 
+  // 스타일 생성
+  const styles = createStyles(colors);
+
   return (
     <View style={styles.container}>
       <CommonHeader title="설정" />
@@ -67,16 +73,19 @@ export default function SettingsScreen() {
               title="내 정보 수정"
               showArrow={true}
               onPress={handleProfileEdit}
+              colors={colors}
             />
             <SettingItem
               title="비밀번호 변경"
               showArrow={true}
               onPress={handlePasswordChange}
+              colors={colors}
             />
             <SettingItem
               title="차단 목록"
               showArrow={true}
               onPress={handleBlockedUsers}
+              colors={colors}
               isLast={true}
             />
           </View>
@@ -90,6 +99,7 @@ export default function SettingsScreen() {
               subtitle="프로필 공개 범위 설정"
               showArrow={true}
               onPress={handlePrivacy}
+              colors={colors}
               isLast={true}
             />
           </View>
@@ -101,8 +111,9 @@ export default function SettingsScreen() {
             <SettingItem
               title="다크 모드"
               showToggle={true}
-              toggleValue={isDarkMode}
-              onToggleChange={setIsDarkMode}
+              toggleValue={isDark}
+              onToggleChange={toggleTheme}
+              colors={isDark ? {} : colors} // 다크모드에서는 기본 색상 사용
             />
             <SettingItem
               title="알림"
@@ -110,6 +121,7 @@ export default function SettingsScreen() {
               showToggle={true}
               toggleValue={isNotifications}
               onToggleChange={setIsNotifications}
+              colors={colors}
             />
             <SettingItem
               title="자동 재생"
@@ -117,6 +129,7 @@ export default function SettingsScreen() {
               showToggle={true}
               toggleValue={isAutoPlay}
               onToggleChange={setIsAutoPlay}
+              colors={colors}
             />
             <SettingItem
               title="HD 품질"
@@ -124,11 +137,13 @@ export default function SettingsScreen() {
               showToggle={true}
               toggleValue={isHDQuality}
               onToggleChange={setIsHDQuality}
+              colors={colors}
             />
             <SettingItem
               title="언어"
               showArrow={true}
               onPress={handleLanguage}
+              colors={colors}
               isLast={true}
             />
           </View>
@@ -142,12 +157,14 @@ export default function SettingsScreen() {
               subtitle="문의하기"
               showArrow={true}
               onPress={handleSupport}
+              colors={colors}
             />
             <SettingItem
               title="앱 정보"
               subtitle="버전 및 약관"
               showArrow={true}
               onPress={handleAppInfo}
+              colors={colors}
               isLast={true}
             />
           </View>
@@ -159,10 +176,12 @@ export default function SettingsScreen() {
             <SettingItem
               title="로그아웃"
               onPress={handleLogout}
+              colors={colors}
             />
             <SettingItem
               title="계정 삭제"
               onPress={handleAccountDelete}
+              colors={colors}
               isLast={true}
             />
           </View>
@@ -177,10 +196,10 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_50,
   },
 
   scrollView: {
@@ -192,7 +211,7 @@ const styles = StyleSheet.create({
   },
 
   sectionContainer: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     marginHorizontal: SPACING.MD,
     borderRadius: SPACING.SM,
     overflow: 'hidden',
@@ -210,7 +229,7 @@ const styles = StyleSheet.create({
 
   versionText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.DISABLED,
+    color: colors.GRAY_500,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 });

@@ -12,9 +12,10 @@ import {
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { COLORS, TEXT_COLORS, BG_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
 import { PostDetail, PostDetailContentBlock, PostTag } from '../types/post';
+import { useThemeStore } from '../stores/themeStore';
 
 // Components
 import CommonHeader from '../components/CommonHeader';
@@ -41,8 +42,9 @@ type PostDetailNavigationProp = StackNavigationProp<AuthStackParamList, 'PostDet
 export default function PostDetailScreen() {
   const route = useRoute<PostDetailRouteProp>();
   const navigation = useNavigation<PostDetailNavigationProp>();
-  
+
   const { postId } = route.params;
+  const { colors } = useThemeStore();
   
   // 상태 관리
   const [post, setPost] = useState<PostDetail | null>(null);
@@ -57,6 +59,7 @@ export default function PostDetailScreen() {
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
   const { user } = useAuthStore();
   const currentUserId = user?.id;
+  const styles = createStyles(colors);
 
   // 컴포넌트 마운트 시 게시물 데이터 로드
   useEffect(() => {
@@ -459,12 +462,12 @@ export default function PostDetailScreen() {
             disabled={isLikeLoading}
           >
             {isLikeLoading ? (
-              <ActivityIndicator size="small" color={COLORS.ERROR} />
+              <ActivityIndicator size="small" color={colors.ERROR} />
             ) : (
-              <LikeIcon 
-                size={16} 
+              <LikeIcon
+                size={16}
                 filled={isLiked}
-                color={isLiked ? COLORS.ERROR : COLORS.GRAY_500}
+                color={isLiked ? colors.ERROR : colors.GRAY_500}
               />
             )}
             <Text style={[styles.compactStatText, isLiked && styles.likedText, isLikeLoading && styles.loadingText]}>
@@ -480,22 +483,22 @@ export default function PostDetailScreen() {
             }}
             activeOpacity={0.7}
           >
-            <CommentIcon 
-              size={16} 
-              color={COLORS.GRAY_500}
+            <CommentIcon
+              size={16}
+              color={colors.GRAY_500}
             />
             <Text style={styles.compactStatText}>{comments.length}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.compactStatButton}
             onPress={handleBookmarkToggle}
             activeOpacity={0.7}
           >
-            <BookmarkIcon 
-              size={16} 
+            <BookmarkIcon
+              size={16}
               filled={isBookmarked}
-              color={isBookmarked ? COLORS.PRIMARY : COLORS.GRAY_500}
+              color={isBookmarked ? colors.PRIMARY : colors.GRAY_500}
             />
             <Text style={[styles.compactStatText, isBookmarked && styles.bookmarkedText]}>
               {post.bookmark_count}
@@ -541,15 +544,15 @@ export default function PostDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.PRIMARY,
+    backgroundColor: colors.GRAY_50, // BG_COLORS.PRIMARY 대신
   },
   content: {
     flex: 1,
   },
-  
+
   // 로딩 및 에러
   errorContainer: {
     flex: 1,
@@ -559,16 +562,16 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY 대신
     textAlign: 'center',
   },
 
   // 작성자 섹션
   authorSection: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     padding: SPACING.MD,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_200,
+    borderBottomColor: colors.GRAY_200,
   },
   authorInfo: {
     flexDirection: 'row',
@@ -582,14 +585,14 @@ const styles = StyleSheet.create({
     marginRight: SPACING.SM,
   },
   profileImagePlaceholder: {
-    backgroundColor: COLORS.GRAY_300,
+    backgroundColor: colors.GRAY_300,
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileImageText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: COLORS.WHITE,
+    color: colors.WHITE,
   },
   authorDetails: {
     flex: 1,
@@ -597,38 +600,38 @@ const styles = StyleSheet.create({
   authorName: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900,
     marginBottom: SPACING.XS,
   },
   postTime: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600,
   },
   categoryInfo: {
     alignSelf: 'flex-start',
   },
   categoryText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 
   // 제목 섹션
   titleSection: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.MD,
   },
   title: {
     fontSize: TYPOGRAPHY.SIZE.XL,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900,
     lineHeight: 28,
   },
 
   // 콘텐츠 섹션
   contentSection: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
   },
   
   // 콘텐츠 블록
@@ -638,7 +641,7 @@ const styles = StyleSheet.create({
   },
   contentText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900,
     lineHeight: 24,
   },
   imageBlock: {
@@ -655,12 +658,12 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.SM,
   },
   videoPlaceholder: {
-    backgroundColor: COLORS.GRAY_100,
+    backgroundColor: colors.GRAY_100,
     padding: SPACING.LG,
     borderRadius: BORDER_RADIUS.MD,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.GRAY_200,
+    borderColor: colors.GRAY_200,
   },
   videoPlaceholderText: {
     fontSize: TYPOGRAPHY.SIZE.LG,
@@ -668,12 +671,12 @@ const styles = StyleSheet.create({
   },
   videoUrl: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600,
   },
 
   // 아이템 스냅샷
   itemSnapshotsContainer: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     margin: SPACING.MD,
     borderRadius: BORDER_RADIUS.MD,
     padding: SPACING.MD,
@@ -682,7 +685,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: TYPOGRAPHY.SIZE.LG,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900,
     marginBottom: SPACING.MD,
   },
   snapshotContainer: {
@@ -691,11 +694,11 @@ const styles = StyleSheet.create({
   snapshotTitle: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
     marginBottom: SPACING.SM,
   },
   itemContainer: {
-    backgroundColor: COLORS.GRAY_50,
+    backgroundColor: colors.GRAY_50,
     padding: SPACING.SM,
     borderRadius: BORDER_RADIUS.SM,
     marginBottom: SPACING.SM,
@@ -708,19 +711,19 @@ const styles = StyleSheet.create({
   itemSlot: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
   },
   itemName: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900,
   },
   itemOptions: {
     gap: SPACING.XS,
   },
   itemOption: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600,
   },
 
   // 태그
@@ -728,20 +731,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     padding: SPACING.MD,
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_200,
+    borderBottomColor: colors.GRAY_200,
     gap: SPACING.SM,
   },
   tag: {
-    backgroundColor: COLORS.GRAY_100,
+    backgroundColor: colors.GRAY_100,
     paddingHorizontal: SPACING.SM,
     paddingVertical: SPACING.XS,
     borderRadius: BORDER_RADIUS.SM,
   },
   tagText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 
@@ -749,7 +752,7 @@ const styles = StyleSheet.create({
   compactStatsSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
     gap: SPACING.MD,
@@ -763,14 +766,14 @@ const styles = StyleSheet.create({
   },
   compactStatText: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
   likedText: {
-    color: COLORS.ERROR,
+    color: colors.ERROR,
   },
   bookmarkedText: {
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
   },
   loadingText: {
     opacity: 0.6,
@@ -779,6 +782,6 @@ const styles = StyleSheet.create({
   // 하단 여백
   bottomSpacing: {
     height: SPACING.XL,
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_50,
   },
 });
