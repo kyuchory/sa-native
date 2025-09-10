@@ -1,24 +1,31 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Image, Alert as RNAlert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, SHADOWS, BORDER_RADIUS } from '../constants/theme';
-import { SettingsIcon } from './ProfileIcons';
+import { SettingsIcon, MenuIcon, FollowIcon, ChatIcon } from './ProfileIcons';
 import ProfileButton from './ProfileButton';
 
 // 타입 imports
-import type { Profile, ProfileStats } from '../types/profile';
+import type { Profile } from '../types/profile';
 
-// 타입 imports 추가
 interface ProfileHeaderProps {
   user: Pick<Profile, 'nickname' | 'profile_img' | 'bio' | 'stats'>;
-  onSettingsPress: () => void;
-  onEditProfilePress: () => void;
-}
+  isOwnProfile: boolean;
+  onSettingsPress?: () => void;
+  onEditProfilePress?: () => void;
+  onMenuPress?: () => void;
+  onFollowPress?: () => void;
+  onChatPress?: () => void;
+};
 
 export default function ProfileHeader({
   user,
+  isOwnProfile,
   onSettingsPress,
   onEditProfilePress,
+  onMenuPress,
+  onFollowPress,
+  onChatPress
 }: ProfileHeaderProps) {
   const insets = useSafeAreaInsets();
   const [bioExpanded, setBioExpanded] = useState(false);
@@ -28,6 +35,8 @@ export default function ProfileHeader({
     if (num >= 1000) return `${Math.floor(num / 100) / 10}K`;
     return num.toString();
   };
+
+
 
   // Bio 텍스트 렌더링 (FeedDetailScreen 방식)
   const renderBio = () => {
@@ -70,13 +79,44 @@ export default function ProfileHeader({
         {/* 상단 닉네임 + 설정 */}
         <View style={styles.topSection}>
           <Text style={styles.nickname}>{user.nickname}</Text>
-          <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={onSettingsPress}
-            activeOpacity={0.7}
-          >
-            <SettingsIcon size={24} color={COLORS.GRAY_600} />
-          </TouchableOpacity>
+          {isOwnProfile && onSettingsPress ? (
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={onSettingsPress}
+              activeOpacity={0.7}
+            >
+              <SettingsIcon size={24} color={COLORS.GRAY_600} />
+            </TouchableOpacity>
+          ) : !isOwnProfile && onMenuPress ? (
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => {
+                RNAlert.alert(
+                  '옵션',
+                  '',
+                  [
+                    {
+                      text: '차단',
+                      onPress: () => console.log('차단'),
+                      style: 'destructive'
+                    },
+                    {
+                      text: '신고',
+                      onPress: () => console.log('신고'),
+                      style: 'destructive'
+                    },
+                    {
+                      text: '취소',
+                      style: 'cancel'
+                    }
+                  ]
+                );
+              }}
+              activeOpacity={0.7}
+            >
+              <MenuIcon size={24} color={COLORS.GRAY_600} />
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         {/* 프로필 정보 섹션 */}
@@ -124,13 +164,34 @@ export default function ProfileHeader({
 
         {/* 버튼 섹션 */}
         <View style={styles.buttonSection}>
-          <ProfileButton
-            title="프로필 편집"
-            onPress={onEditProfilePress}
-            variant="outline"
-            size="medium"
-            style={styles.button}
-          />
+          {isOwnProfile && onEditProfilePress ? (
+            <ProfileButton
+              title="프로필 편집"
+              onPress={onEditProfilePress}
+              variant="outline"
+              size="medium"
+              style={styles.button}
+            />
+          ) : !isOwnProfile && onFollowPress && onChatPress ? (
+            <>
+              <ProfileButton
+                title="팔로우"
+                onPress={onFollowPress}
+                variant="primary"
+                size="medium"
+                icon={<FollowIcon size={16} color={COLORS.WHITE} />}
+                style={styles.button}
+              />
+              <ProfileButton
+                title="채팅"
+                onPress={onChatPress}
+                variant="outline"
+                size="medium"
+                icon={<ChatIcon size={16} color={COLORS.PRIMARY} />}
+                style={styles.button}
+              />
+            </>
+          ) : null}
         </View>
       </View>
     </>

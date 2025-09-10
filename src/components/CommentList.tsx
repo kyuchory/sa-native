@@ -6,6 +6,7 @@ import {
   Image,
   StyleSheet,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { CommentItem as FeedComment } from '../types/feed';
 import { LikeIcon } from './PostIcons';
@@ -32,38 +33,83 @@ const formatTime = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
   const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-  
+
   if (diffInMinutes < 1) return '방금 전';
   if (diffInMinutes < 60) return `${diffInMinutes}분 전`;
-  
+
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) return `${diffInHours}시간 전`;
-  
+
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 7) return `${diffInDays}일 전`;
-  
+
   return date.toLocaleDateString('ko-KR');
 };
 
 // 개별 댓글 컴포넌트
-const CommentItem = ({ comment, isReply = false, onCommentLike, onReplyPress, onEditComment, onDeleteComment }: CommentItemProps) => {
+const CommentItem = ({
+  comment,
+  isReply = false,
+  onCommentLike,
+  onReplyPress,
+  onEditComment,
+  onDeleteComment
+}: CommentItemProps) => {
+  const navigation = useNavigation();
+
+  // 사용자 프로필로 이동하는 함수
+  const handleProfilePress = () => {
+    if (!comment.is_deleted) {
+      // @ts-ignore
+      navigation.navigate('UserProfile' as never, { userId: String(comment.user.id) });
+    }
+  };
+
   // 프로필 이미지 렌더링
   const renderProfileImage = () => {
     // 삭제된 댓글의 경우 기본 프로필 이미지 표시
     if (comment.is_deleted || !comment.user.profile_img) {
       return (
-        <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
-          <Text style={styles.profileImageText}>
-            {comment.is_deleted ? '?' : comment.user.nickname.charAt(0).toUpperCase()}
-          </Text>
-        </View>
+        <TouchableOpacity
+          onPress={handleProfilePress}
+          activeOpacity={0.7}
+          disabled={comment.is_deleted}
+        >
+          <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
+            <Text style={styles.profileImageText}>
+              {comment.is_deleted ? '?' : comment.user.nickname.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        </TouchableOpacity>
       );
     }
     return (
-      <Image 
-        source={{ uri: comment.user.profile_img }} 
-        style={styles.profileImage}
-      />
+      <TouchableOpacity
+        onPress={handleProfilePress}
+        activeOpacity={0.7}
+      >
+        <Image
+          source={{ uri: comment.user.profile_img }}
+          style={styles.profileImage}
+        />
+      </TouchableOpacity>
+    );
+  };
+
+  // 회원 이름 렌더링 (터치 가능)
+  const renderUsername = () => {
+    const username = comment.user.nickname;
+
+    return (
+      <TouchableOpacity
+        onPress={handleProfilePress}
+        activeOpacity={0.7}
+        disabled={comment.is_deleted}
+      >
+        <Text style={styles.username}>
+          {username}
+        </Text>
+      </TouchableOpacity>
     );
   };
 
@@ -72,7 +118,7 @@ const CommentItem = ({ comment, isReply = false, onCommentLike, onReplyPress, on
     if (comment.mention_user) {
       const mentionText = `@${comment.mention_user.nickname}`;
       const content = comment.content;
-      
+
       // 멘션된 사용자가 있으면 항상 @닉네임을 앞에 표시
       return (
         <Text style={styles.commentText}>
@@ -81,7 +127,7 @@ const CommentItem = ({ comment, isReply = false, onCommentLike, onReplyPress, on
         </Text>
       );
     }
-    
+
     return <Text style={styles.commentText}>{comment.content}</Text>;
   };
 
@@ -91,12 +137,12 @@ const CommentItem = ({ comment, isReply = false, onCommentLike, onReplyPress, on
         {renderProfileImage()}
         <View style={styles.commentContent}>
           <View style={styles.commentMeta}>
-            <Text style={styles.username}>{comment.user.nickname}</Text>
+            {renderUsername()}
             <Text style={styles.timeText}>{formatTime(comment.created_at)}</Text>
           </View>
-          
+
           {renderCommentContent()}
-          
+
           <View style={styles.commentActions}>
             {!comment.is_deleted && (
               <TouchableOpacity
@@ -157,7 +203,13 @@ const CommentItem = ({ comment, isReply = false, onCommentLike, onReplyPress, on
 };
 
 // 댓글 리스트 메인 컴포넌트
-export default function CommentList({ comments, onCommentLike, onReplyPress, onEditComment, onDeleteComment }: CommentListProps) {
+export default function CommentList({
+  comments,
+  onCommentLike,
+  onReplyPress,
+  onEditComment,
+  onDeleteComment
+}: CommentListProps) {
   if (comments.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -172,8 +224,8 @@ export default function CommentList({ comments, onCommentLike, onReplyPress, onE
       <View style={styles.header}>
         <Text style={styles.title}>댓글 {comments.length}개</Text>
       </View>
-      
-      {comments.map((comment) => (
+
+      {comments.map((comment: FeedComment) => (
         <View key={comment.id}>
           <CommentItem
             comment={comment}
@@ -182,11 +234,11 @@ export default function CommentList({ comments, onCommentLike, onReplyPress, onE
             onEditComment={onEditComment}
             onDeleteComment={onDeleteComment}
           />
-          
+
           {/* 대댓글 렌더링 */}
           {comment.replies && comment.replies.length > 0 && (
             <View style={styles.repliesContainer}>
-              {comment.replies.map((reply) => (
+              {comment.replies.map((reply: FeedComment) => (
                 <CommentItem
                   key={reply.id}
                   comment={reply}
@@ -209,7 +261,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: COLORS.WHITE,
   },
-  
+
   // 헤더
   header: {
     paddingHorizontal: SPACING.MD,
@@ -222,7 +274,7 @@ const styles = StyleSheet.create({
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
     color: TEXT_COLORS.PRIMARY,
   },
-  
+
   // 댓글 컨테이너
   commentContainer: {
     paddingHorizontal: SPACING.MD,
@@ -237,7 +289,7 @@ const styles = StyleSheet.create({
   repliesContainer: {
     backgroundColor: COLORS.WHITE,
   },
-  
+
   // 댓글 헤더
   commentHeader: {
     flexDirection: 'row',
@@ -259,7 +311,7 @@ const styles = StyleSheet.create({
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
     color: COLORS.WHITE,
   },
-  
+
   // 댓글 내용
   commentContent: {
     flex: 1,
@@ -289,7 +341,7 @@ const styles = StyleSheet.create({
     color: COLORS.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
-  
+
   // 댓글 액션
   commentActions: {
     flexDirection: 'row',
@@ -318,7 +370,7 @@ const styles = StyleSheet.create({
     color: TEXT_COLORS.SECONDARY,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
-  
+
   // 빈 상태
   emptyContainer: {
     backgroundColor: COLORS.WHITE,

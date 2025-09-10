@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
-import { useFocusEffect, useNavigation, NavigationProp } from '@react-navigation/native';
+import { View, Text, StyleSheet, SafeAreaView, Image } from 'react-native';
+import { useFocusEffect, useNavigation, NavigationProp, RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../types/navigation';
-import { BG_COLORS } from '../constants/theme';
+import { BG_COLORS, COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { useAuthStore } from '../stores/authStore';
 
 // 컴포넌트 imports
+import CommonHeader from '../components/CommonHeader';
 import ProfileHeader from '../components/ProfileHeader';
 import ProfileTabNavigation, { ProfileTabType } from '../components/ProfileTabNavigation';
 import ProfileFeedGrid from '../components/ProfileFeedGrid';
@@ -17,11 +18,15 @@ import { ProfileService } from '../services/profileService';
 // 타입 imports
 import type { Profile, ProfileFeedItem, ProfilePostItem, ProfilePagination } from '../types/profile';
 
-export default function NewProfileTabScreen() {
+export default function ProfileScreen({ route }: { route: RouteProp<AuthStackParamList, 'UserProfile'> }) {
   const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
+  const userId = route.params?.userId;
+  const { user: currentUser } = useAuthStore();
+  const isOwnProfile = !userId || userId === String(currentUser?.id);
+  const targetUserId = userId ? parseInt(userId) : currentUser?.id;
 
   //상태 관리
-  const { user } = useAuthStore();
+  const { user: authUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState<ProfileTabType>('feed');
   const [profileData, setProfileData] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,19 +43,19 @@ export default function NewProfileTabScreen() {
 
   // 프로필 데이터 조회
   const fetchProfile = async (showLoading = true) => {
-    if (user?.id) {
+    if (targetUserId) {
       try {
         if (showLoading) setLoading(true);
-        const response = await ProfileService.getProfile(user.id);
+        const response = await ProfileService.getProfile(targetUserId);
         setProfileData(response.data);
       } catch (error) {
         console.error('프로필 조회 실패:', error);
         // 에러 발생 시 기본값 사용
         setProfileData({
-          id: user?.id || -1, // 에러 시에도 ID는 필요하므로 기본값 사용
-          nickname: user?.nickname || '사용자',
-          profile_img: user?.profile_img || null,
-          bio: user?.bio || '',
+          id: targetUserId,
+          nickname: authUser?.nickname || '사용자',
+          profile_img: authUser?.profile_img || null,
+          bio: authUser?.bio || '',
           created_at: new Date().toISOString(),
           stats: {
             post_count: 0,
@@ -67,19 +72,19 @@ export default function NewProfileTabScreen() {
 
   // 피드 데이터 조회
   const fetchFeeds = async (reset = false) => {
-    if (!user?.id) return;
-    
+    if (!targetUserId) return;
+
     try {
       setFeedsLoading(true);
       const currentOffset = reset ? 0 : feedsPagination.offset;
-      const response = await ProfileService.getProfileFeeds(user.id, currentOffset, 20);
-      
+      const response = await ProfileService.getProfileFeeds(targetUserId, currentOffset, 20);
+
       if (reset) {
         setFeedsData(response.data.feeds);
       } else {
         setFeedsData(prev => [...prev, ...response.data.feeds]);
       }
-      
+
       setFeedsPagination({
         ...response.data.pagination,
         offset: currentOffset + response.data.feeds.length,
@@ -100,10 +105,10 @@ export default function NewProfileTabScreen() {
 
   // posts 데이터 조회
   const fetchPosts = async () => {
-    if (user?.id) {
+    if (targetUserId) {
       try {
         setPostsLoading(true);
-        const response = await ProfileService.getProfilePosts(user.id);
+        const response = await ProfileService.getProfilePosts(targetUserId);
         setPostsData(response.data.posts);
       } catch (error) {
         console.error('게시글 목록 조회 실패:', error);
@@ -120,7 +125,7 @@ export default function NewProfileTabScreen() {
     if (activeTab === 'feed') {
       fetchFeeds(true);
     }
-  }, [user?.id]);
+  }, [targetUserId]);
 
   // 화면에 다시 포커스될 때 프로필과 피드 데이터 리프레시
   useFocusEffect(
@@ -132,7 +137,7 @@ export default function NewProfileTabScreen() {
         fetchFeeds(true);
       }
       return () => {};
-    }, [activeTab, user?.id])
+    }, [activeTab, targetUserId])
   );
 
   // ProfileHeader에 전달할 데이터 - API 응답 구조 그대로 사용
@@ -152,6 +157,18 @@ export default function NewProfileTabScreen() {
   const handleEditProfilePress = () => {
     console.log('Edit profile pressed');
     navigation.navigate('ProfileEdit');
+  };
+
+  const handleMenuPress = () => {
+    console.log('Menu pressed');
+  };
+
+  const handleFollowPress = () => {
+    console.log('Follow pressed');
+  };
+
+  const handleChatPress = () => {
+    console.log('Chat pressed');
   };
 
   const handleTabChange = (tab: ProfileTabType) => {
@@ -193,12 +210,32 @@ export default function NewProfileTabScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 프로필 헤더 */}
-      <ProfileHeader
-        user={profileUser}
-        onSettingsPress={handleSettingsPress}
-        onEditProfilePress={handleEditProfilePress}
-      />
+      {/* 헤더 - 본인/타인에 따라 다르게 표시 */}
+      {!userId ? (
+        // 본인 프로필 (tabs에서 접근): 기존 ProfileHeader 사용
+        <ProfileHeader
+          user={profileUser}
+          isOwnProfile={isOwnProfile}
+          onSettingsPress={handleSettingsPress}
+          onEditProfilePress={handleEditProfilePress}
+        />
+      ) : (
+        // 타인 프로필 (다른 화면에서 userId로 접근): CommonHeader + 기존 ProfileHeader (메뉴 버튼과 팔로우/채팅 버튼 사용)
+        <>
+          {/* CommonHeader for back button */}
+          <CommonHeader title={profileUser.nickname} />
+          {/* 프로필 정보 (ProfileHeader 사용) */}
+          <View style={styles.otherProfileHeader}>
+            <ProfileHeader
+              user={profileUser}
+              isOwnProfile={isOwnProfile}
+              onMenuPress={handleMenuPress}
+              onFollowPress={handleFollowPress}
+              onChatPress={handleChatPress}
+            />
+          </View>
+        </>
+      )}
 
       {/* 탭 네비게이션 */}
       <ProfileTabNavigation
@@ -252,5 +289,9 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: '#666',
+  },
+  otherProfileHeader: {
+    // 약간의 패딩으로 프로필 헤더를 감싸기
+    paddingHorizontal: 0,
   },
 });

@@ -12,6 +12,7 @@ import CreateFeedScreen from '../screens/CreateFeedScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
 import FeedDetailScreen from '../screens/FeedDetailScreen';
 // import ProfileScreen from '../screens/ProfileScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 import ProfileEditScreen from '../screens/ProfileEditScreen';
 import NicknameEditScreen from '../screens/NicknameEditScreen';
 import BioEditScreen from '../screens/BioEditScreen';
@@ -84,18 +85,11 @@ export default function AuthNavigator() {
           component={ProfileImageEditScreen}
           options={{ headerShown: false }}
         />
-        {/* <Stack.Screen
-          name="Profile"
+        <Stack.Screen
+          name="UserProfile"
           component={ProfileScreen}
-          options={{
-            headerShown: true,
-            title: '프로필',
-            headerStyle: { backgroundColor: '#2c3e50' },
-            headerTintColor: '#fff',
-            headerTitleStyle: { fontWeight: 'bold' },
-            headerTitleAlign: 'center',
-          }}
-        /> */}
+          options={{ headerShown: false }}
+        />
         <Stack.Screen 
           name="Settings" 
           component={SettingsScreen} 

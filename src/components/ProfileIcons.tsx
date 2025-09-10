@@ -100,4 +100,37 @@ const ProfileEditIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
   </View>
 );
 
-export { SettingsIcon, GridIcon, ListIcon, VideoIcon, CharacterIcon, ProfileEditIcon };
+// 메뉴 아이콘 (점 세 개 - 가로로)
+const MenuIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="6" cy="12" r="2" fill={color} />
+      <Circle cx="12" cy="12" r="2" fill={color} />
+      <Circle cx="18" cy="12" r="2" fill={color} />
+    </Svg>
+  </View>
+);
+
+// 팔로우 아이콘 (사람 + 플러스)
+const FollowIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M16 7C16 9.21 14.21 11 12 11C9.79 11 8 9.21 8 7C8 4.79 9.79 3 12 3C14.21 3 16 4.79 16 7Z" fill={color} />
+      <Path d="M12 14C8.13 14 5 16.13 5 19C5 19.552 4.552 20 4 20S3 19.552 3 19C3 15.13 6.13 12 10 12H14C17.87 12 21 15.13 21 19C21 19.552 20.552 20 20 20S19 19.552 19 19C19 16.13 15.87 14 12 14Z" fill={color} />
+      <Path d="M20 5H22V3H20V1H18V3H16V5H18V7H20V5Z" fill={color} />
+    </Svg>
+  </View>
+);
+
+// 채팅 아이콘 (메시지 버블)
+const ChatIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M20 2H4C2.9 2 2 2.9 2 4V20C2 21.1 2.9 22 4 22H6V24H9L12 21H20C21.1 21 22 20.1 22 19V4C22 2.9 21.1 2 20 2Z" fill={color} />
+      <Path d="M7 9H17V11H7V9Z" fill="white" />
+      <Path d="M7 12H15V14H7V12Z" fill="white" />
+    </Svg>
+  </View>
+);
+
+export { SettingsIcon, GridIcon, ListIcon, VideoIcon, CharacterIcon, ProfileEditIcon, MenuIcon, FollowIcon, ChatIcon };
