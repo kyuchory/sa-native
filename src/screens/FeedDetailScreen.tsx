@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, Dimensions, Image, Pressable, TouchableOpacity } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { COLORS, BG_COLORS, SPACING, TYPOGRAPHY, TEXT_COLORS } from '../constants/theme';
+import { SPACING, TYPOGRAPHY } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 
 import CommonHeader from '../components/CommonHeader';
 import CommentList from '../components/CommentList';
@@ -39,6 +40,8 @@ const formatTimeAgo = (dateString: string): string => {
 export default function FeedDetailScreen() {
   const route = useRoute() as { params: { feedId: number } };
   const navigation = useNavigation() as { navigate: (screen: string, params?: any) => void };
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const feedId = route.params?.feedId || 15;
 
   // expand/collapse 상태 관리
@@ -414,9 +417,9 @@ export default function FeedDetailScreen() {
           <View style={styles.actionsContainer}>
             <View style={styles.leftActions}>
               <Pressable style={styles.actionButton} onPress={onFeedLikePress}>
-                <HeartIcon filled={feed.is_liked} size={20} color={feed.is_liked ? COLORS.ERROR : TEXT_COLORS.SECONDARY} />
+                <HeartIcon filled={feed.is_liked} size={20} color={feed.is_liked ? colors.ERROR : colors.GRAY_600} />
               </Pressable>
-              <Text style={[styles.actionCount, feed.is_liked && { color: COLORS.ERROR }]}>
+              <Text style={[styles.actionCount, feed.is_liked && { color: colors.ERROR }]}>
                 {feed.like_count}
               </Text>
 
@@ -481,16 +484,17 @@ export default function FeedDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_50, // BG_COLORS.SECONDARY
   },
   scrollContainer: {
     flex: 1,
   },
   contentContainer: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     marginBottom: SPACING.XS,
   },
 
@@ -513,11 +517,11 @@ const styles = StyleSheet.create({
   nickname: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
   },
   location: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
     marginTop: 2,
   },
 
@@ -535,7 +539,7 @@ const styles = StyleSheet.create({
     top: SPACING.SM,
     right: SPACING.SM,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     paddingHorizontal: SPACING.SM,
     paddingVertical: 4,
     borderRadius: 12,
@@ -545,7 +549,7 @@ const styles = StyleSheet.create({
   mainImage: {
     width: screenWidth,
     height: screenWidth,
-    backgroundColor: COLORS.GRAY_200, // 임시 색상
+    backgroundColor: colors.GRAY_200, // COLORS.GRAY_200
   },
 
   // 액션 버튼들
@@ -569,7 +573,7 @@ const styles = StyleSheet.create({
   },
   actionCount: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     marginRight: SPACING.MD,
   },
@@ -581,19 +585,19 @@ const styles = StyleSheet.create({
   },
   contentText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     lineHeight: 20,
   },
   moreText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
     marginTop: SPACING.XS,
   },
 
   // 시간
   timeText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
     paddingHorizontal: SPACING.MD,
     paddingBottom: SPACING.MD,
   },
@@ -608,7 +612,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: COLORS.ERROR || '#FF5722',
+    color: colors.ERROR,
     textAlign: 'center',
   },
 });
