@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions, ActivityIndicator } from 'react-native';
-import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING } from '../constants/theme';
+import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { FeedListItem, FeedContentBlock } from '../types/feed';
 import { FeedService } from '../services/feedService';
+import { useThemeStore } from '../stores/themeStore';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -41,6 +42,8 @@ export default function FeedCard({
   onUserPress,
   onImagePress
 }: FeedCardProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLiked, setIsLiked] = useState(feed.is_liked);
   const [likeCount, setLikeCount] = useState(feed.like_count);
@@ -178,12 +181,12 @@ export default function FeedCard({
         <View style={styles.leftActions}>
           <TouchableOpacity style={styles.actionButton} onPress={handleLikePress}>
             {isLikeLoading ? (
-              <ActivityIndicator size="small" color={COLORS.ERROR} />
+              <ActivityIndicator size="small" color={colors.ERROR} />
             ) : (
-              <HeartIcon filled={isLiked} size={20} color={isLiked ? COLORS.ERROR : TEXT_COLORS.SECONDARY} />
+              <HeartIcon filled={isLiked} size={20} color={isLiked ? colors.ERROR : colors.GRAY_600} />
             )}
           </TouchableOpacity>
-          <Text style={[styles.actionCount, isLiked && { color: COLORS.ERROR }]}>
+          <Text style={[styles.actionCount, isLiked && { color: colors.ERROR }]}>
             {likeCount}
           </Text>
 
@@ -214,12 +217,13 @@ export default function FeedCard({
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
-    backgroundColor: COLORS.WHITE,
-    marginBottom: SPACING.MD,
+    backgroundColor: colors.WHITE,
+    marginBottom: SPACING.XS,
   },
-  
+
   // 헤더
   header: {
     flexDirection: 'row',
@@ -239,14 +243,14 @@ const styles = StyleSheet.create({
   nickname: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
   },
   location: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
     marginTop: 2,
   },
-  
+
   // 이미지
   imageContainer: {
     position: 'relative',
@@ -265,11 +269,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   imageCountText: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
   },
-  
+
   // 액션 버튼들
   actionsContainer: {
     flexDirection: 'row',
@@ -291,11 +295,11 @@ const styles = StyleSheet.create({
   },
   actionCount: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     marginRight: SPACING.MD,
   },
-  
+
   // 콘텐츠
   contentContainer: {
     paddingHorizontal: SPACING.MD,
@@ -303,19 +307,19 @@ const styles = StyleSheet.create({
   },
   contentText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     lineHeight: 20,
   },
   moreText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
     marginTop: SPACING.XS,
   },
-  
+
   // 시간
   timeText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
     paddingHorizontal: SPACING.MD,
     paddingBottom: SPACING.MD,
   },

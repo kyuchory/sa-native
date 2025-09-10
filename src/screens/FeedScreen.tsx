@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, FlatList, StyleSheet, SafeAreaView, RefreshControl, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { BG_COLORS, COLORS } from '../constants/theme';
+import { SPACING } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
+import { useThemeStore } from '../stores/themeStore';
 
 // 컴포넌트 imports
 import FeedHeader from '../components/FeedHeader';
@@ -19,6 +20,8 @@ type FeedScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'MainApp
 
 export default function FeedScreen() {
   const navigation = useNavigation<FeedScreenNavigationProp>();
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   
   // 상태 관리
   const [feeds, setFeeds] = useState<FeedListItem[]>([]);
@@ -159,15 +162,15 @@ export default function FeedScreen() {
       <FlatList
         data={feeds}
         renderItem={renderFeed}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) => `${item.id}-${index}`}
         style={styles.feedList}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={COLORS.PRIMARY}
-            colors={[COLORS.PRIMARY]}
+            tintColor={colors.PRIMARY}
+            colors={[colors.PRIMARY]}
           />
         }
         ListHeaderComponent={renderListHeader}
@@ -183,10 +186,11 @@ export default function FeedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_50, // BG_COLORS.SECONDARY
   },
   feedList: {
     flex: 1,

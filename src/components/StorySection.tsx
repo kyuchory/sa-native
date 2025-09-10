@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
-import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING } from '../constants/theme';
+import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { StoryUser, getAllStoryUsers } from '../data/storyMockData';
+import { useThemeStore } from '../stores/themeStore';
 import Svg, { Circle } from 'react-native-svg';
 
 interface StorySectionProps {
@@ -10,23 +11,25 @@ interface StorySectionProps {
 }
 
 // 플러스 아이콘 컴포넌트
-const PlusIcon = ({ size = 20, color = COLORS.WHITE }) => (
+const PlusIcon = ({ size = 20, color = '#FFFFFF' }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Circle cx="12" cy="12" r="10" fill={color} />
-    <Circle cx="12" cy="12" r="10" stroke={COLORS.PRIMARY} strokeWidth="2" />
-    <Text style={{ fontSize: 16, color: COLORS.PRIMARY, textAlign: 'center', lineHeight: 20 }}>+</Text>
+    <Circle cx="12" cy="12" r="10" stroke="#FF6B35" strokeWidth="2" />
+    <Text style={{ fontSize: 16, color: '#FF6B35', textAlign: 'center', lineHeight: 20 }}>+</Text>
   </Svg>
 );
 
 // 개별 스토리 아이템 컴포넌트
-const StoryItem = ({ user, isMyProfile = false, onPress }: { 
-  user: StoryUser; 
-  isMyProfile?: boolean; 
+const StoryItem = ({ user, isMyProfile = false, onPress, colors, styles }: {
+  user: StoryUser;
+  isMyProfile?: boolean;
   onPress: () => void;
+  colors: Record<string, string>;
+  styles: any;
 }) => {
-  const borderColor = user.has_story 
-    ? (user.is_viewed ? COLORS.GRAY_300 : COLORS.PRIMARY)
-    : COLORS.GRAY_300;
+  const borderColor = user.has_story
+    ? (user.is_viewed ? colors.GRAY_300 : colors.PRIMARY)
+    : colors.GRAY_300;
 
   return (
     <TouchableOpacity style={styles.storyItem} onPress={onPress} activeOpacity={0.7}>
@@ -50,6 +53,8 @@ const StoryItem = ({ user, isMyProfile = false, onPress }: {
 };
 
 export default function StorySection({ onStoryPress, onAddStoryPress }: StorySectionProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const storyUsers = getAllStoryUsers();
 
   const handleStoryPress = (user: StoryUser) => {
@@ -75,6 +80,8 @@ export default function StorySection({ onStoryPress, onAddStoryPress }: StorySec
             user={user}
             isMyProfile={user.id === 0}
             onPress={() => handleStoryPress(user)}
+            colors={colors}
+            styles={styles}
           />
         ))}
       </ScrollView>
@@ -82,12 +89,13 @@ export default function StorySection({ onStoryPress, onAddStoryPress }: StorySec
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     paddingVertical: SPACING.MD,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_100,
+    borderBottomColor: colors.GRAY_100,
   },
   scrollContent: {
     paddingHorizontal: SPACING.MD,
@@ -122,22 +130,22 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.GRAY_200,
+    borderColor: colors.GRAY_200,
   },
   plusIconContainer: {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY,
     justifyContent: 'center',
     alignItems: 'center',
   },
   plusIcon: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontSize: 12,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
     lineHeight: 12,
@@ -145,7 +153,7 @@ const styles = StyleSheet.create({
   },
   storyNickname: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     textAlign: 'center',
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
