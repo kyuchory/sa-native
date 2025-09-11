@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../constants/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '../stores/themeStore';
 import { SearchIcon } from '../components/SearchIcons';
 import PeopleTab from '../components/PeopleTab';
@@ -31,6 +32,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function SearchScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
@@ -156,7 +158,7 @@ export default function SearchScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
       {/* 검색 Input */}
       <View style={styles.searchContainer}>
         <View style={[styles.searchInputContainer, isSearchActive && styles.searchInputActive]}>
