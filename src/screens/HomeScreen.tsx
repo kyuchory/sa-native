@@ -135,7 +135,7 @@ export default function HomeScreen() {
 
   const handleNotificationPress = () => {
     console.log('Notification pressed');
-    // TODO: 알림 화면으로 이동
+    navigation.navigate('Notifications');
   };
 
   // 게시물 렌더링

@@ -21,6 +21,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 import ChatScreen from '../screens/ChatScreen';
 import SelectChatUserScreen from '../screens/SelectChatUserScreen';
 import ChatDetailScreen from '../screens/ChatDetailScreen';
+import NotificationScreen from '../screens/NotificationScreen';
 
 // Tab Navigator
 import TabNavigator from './TabNavigator';
@@ -108,6 +109,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="ChatDetail"
           component={ChatDetailScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Notifications"
+          component={NotificationScreen}
           options={{ headerShown: false }}
         />
           </>
