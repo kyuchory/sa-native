@@ -14,12 +14,13 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
-import { COLORS, TEXT_COLORS, BG_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import { AuthStackParamList } from '../types/navigation';
 
 // Components
 import CommonHeader from '../components/CommonHeader';
-import { CreateFeedIcon, DeleteIcon, DragHandleIcon } from '../components/CommonIcons';
+import { CreateFeedIcon, DeleteIcon, AddImageIcon, AddVideoIcon } from '../components/CommonIcons';
 import LoadingOverlay from '../components/LoadingOverlay';
 
 // Services
@@ -41,13 +42,89 @@ interface MediaItem {
 
 export default function CreateFeedScreen() {
   const navigation = useNavigation<CreateFeedNavigationProp>();
-  
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
+
   // 상태 관리
   const [content, setContent] = useState('');
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 미디어 선택
+  // 이미지 선택
+  const selectImages = async () => {
+    try {
+      // 권한 요청
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
+        return;
+      }
+
+      // 이미지 선택 (다중 선택 가능)
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 1,
+        selectionLimit: 9 - mediaItems.length, // 최대 9개까지
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const newItems: MediaItem[] = result.assets.map((asset, index) => ({
+          id: `media_${Date.now()}_${index}`,
+          uri: asset.uri,
+          type: 'image' as 'image',
+          sequence: mediaItems.length + index,
+        }));
+
+        setMediaItems(prev => [...prev, ...newItems]);
+
+        // 백그라운드에서 업로드 시작
+        uploadMediaItems(newItems);
+      }
+    } catch (error) {
+      console.error('이미지 선택 실패:', error);
+      Alert.alert('오류', '이미지 선택에 실패했습니다.');
+    }
+  };
+
+  // 비디오 선택
+  const selectVideos = async () => {
+    try {
+      // 권한 요청
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
+        return;
+      }
+
+      // 비디오 선택
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsMultipleSelection: true,
+        quality: 1,
+        selectionLimit: 9 - mediaItems.length, // 최대 9개까지
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const newItems: MediaItem[] = result.assets.map((asset, index) => ({
+          id: `media_${Date.now()}_${index}`,
+          uri: asset.uri,
+          type: 'video' as 'video',
+          sequence: mediaItems.length + index,
+        }));
+
+        setMediaItems(prev => [...prev, ...newItems]);
+
+        // 백그라운드에서 업로드 시작 (비디오 업로드는 아직 구현되지 않음)
+        uploadMediaItems(newItems);
+      }
+    } catch (error) {
+      console.error('비디오 선택 실패:', error);
+      Alert.alert('오류', '비디오 선택에 실패했습니다.');
+    }
+  };
+
+  // 기존 미디어 선택 함수 (하위 호환성 유지)
   const selectMedia = async () => {
     try {
       // 권한 요청
@@ -241,7 +318,7 @@ export default function CreateFeedScreen() {
           onPress={() => removeMedia(item.id)}
           activeOpacity={0.7}
         >
-          <DeleteIcon size={16} color={COLORS.WHITE} />
+          <DeleteIcon size={16} color={colors.WHITE} />
         </TouchableOpacity>
 
         {/* 순서 표시 */}
@@ -288,7 +365,7 @@ export default function CreateFeedScreen() {
             onPress={handleCreateFeed}
             activeOpacity={0.7}
           >
-            <CreateFeedIcon size={20} color={COLORS.PRIMARY} />
+            <CreateFeedIcon size={20} color={colors.PRIMARY} />
           </TouchableOpacity>
         }
       />
@@ -303,7 +380,7 @@ export default function CreateFeedScreen() {
           <TextInput
             style={styles.textInput}
             placeholder="무슨 일이 일어나고 있나요?"
-            placeholderTextColor={COLORS.GRAY_400}
+            placeholderTextColor={colors.GRAY_400}
             value={content}
             onChangeText={setContent}
             multiline
@@ -323,29 +400,38 @@ export default function CreateFeedScreen() {
           </View>
         )}
 
-        {/* 미디어 추가 버튼 */}
-        <View style={styles.addMediaSection}>
-          <TouchableOpacity
-            style={[
-              styles.addMediaButton,
-              mediaItems.length >= 9 && styles.addMediaButtonDisabled
-            ]}
-            onPress={selectMedia}
-            disabled={mediaItems.length >= 9}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.addMediaText}>
-              {mediaItems.length === 0 
-                ? '📷 사진/영상 추가하기' 
-                : `📷 사진/영상 추가 (${mediaItems.length}/9)`
-              }
-            </Text>
-          </TouchableOpacity>
-        </View>
-
         {/* 하단 여백 */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* 하단 액션 버튼들 - CreatePostScreen 디자인과 완벽하게 동일 */}
+      <View style={styles.bottomActions}>
+        <TouchableOpacity
+          style={[
+            styles.addButton,
+            mediaItems.length >= 9 && styles.addButtonDisabled
+          ]}
+          onPress={selectImages}
+          disabled={mediaItems.length >= 9}
+          activeOpacity={0.7}
+        >
+          <AddImageIcon size={24} color={colors.GRAY_600} />
+          <Text style={styles.addButtonText}>이미지</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.addButton,
+            mediaItems.length >= 9 && styles.addButtonDisabled
+          ]}
+          onPress={selectVideos}
+          disabled={mediaItems.length >= 9}
+          activeOpacity={0.7}
+        >
+          <AddVideoIcon size={24} color={colors.GRAY_600} />
+          <Text style={styles.addButtonText}>비디오</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* 로딩 오버레이 */}
       <LoadingOverlay visible={isLoading} />
@@ -353,10 +439,10 @@ export default function CreateFeedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
   },
 
   // 헤더 관련
@@ -371,148 +457,154 @@ const styles = StyleSheet.create({
 
   // 텍스트 입력 섹션
   textSection: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     margin: SPACING.MD,
     borderRadius: BORDER_RADIUS.LG,
     padding: SPACING.MD,
-    ...SHADOWS.SMALL,
   },
   textInput: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     minHeight: 120,
     textAlignVertical: 'top',
   },
   characterCount: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
-    textAlign: 'right',
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
+    textAlign: 'right' as const,
     marginTop: SPACING.SM,
   },
 
   // 미디어 섹션
   mediaSection: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     margin: SPACING.MD,
     marginTop: 0,
     borderRadius: BORDER_RADIUS.LG,
     padding: SPACING.MD,
-    ...SHADOWS.SMALL,
   },
   sectionTitle: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     marginBottom: SPACING.MD,
   },
   mediaGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
     gap: SPACING.SM,
   },
   mediaItem: {
-    position: 'relative',
+    position: 'relative' as const,
     width: imageSize,
     height: imageSize,
     borderRadius: BORDER_RADIUS.MD,
-    overflow: 'hidden',
+    overflow: 'hidden' as const,
   },
   mediaImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
+    resizeMode: 'cover' as const,
   },
   uploadingOverlay: {
-    position: 'absolute',
+    position: 'absolute' as const,
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: COLORS.BLACK_50,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   uploadingText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
   deleteButton: {
-    position: 'absolute',
+    position: 'absolute' as const,
     top: SPACING.XS,
     right: SPACING.XS,
-    backgroundColor: COLORS.ERROR,
+    backgroundColor: colors.ERROR,
     borderRadius: BORDER_RADIUS.ROUND,
     padding: SPACING.XS,
   },
   sequenceIndicator: {
-    position: 'absolute',
+    position: 'absolute' as const,
     top: SPACING.XS,
     left: SPACING.XS,
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY,
     borderRadius: BORDER_RADIUS.ROUND,
     width: 24,
     height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   sequenceText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
   },
-  dragHandle: {
-    position: 'absolute',
-    bottom: SPACING.XS,
-    right: SPACING.XS,
-    backgroundColor: COLORS.BLACK_50,
-    borderRadius: BORDER_RADIUS.SM,
-    padding: SPACING.XS,
-  },
   reorderButtons: {
-    position: 'absolute',
+    position: 'absolute' as const,
     bottom: SPACING.XS,
     left: SPACING.XS,
-    flexDirection: 'row',
+    flexDirection: 'row' as const,
     gap: SPACING.XS,
   },
   reorderButton: {
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY,
     borderRadius: BORDER_RADIUS.SM,
     width: 24,
     height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   reorderButtonText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
   },
 
-  // 미디어 추가 버튼
-  addMediaSection: {
-    margin: SPACING.MD,
-    marginTop: 0,
+  // 하단 액션 버튼들
+  bottomActions: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-around' as const,
+    alignItems: 'center' as const,
+    backgroundColor: colors.WHITE,
+    paddingVertical: SPACING.LG,
+    paddingHorizontal: SPACING.MD,
+    borderTopWidth: 1,
+    borderTopColor: colors.GRAY_200,
+    elevation: 8,
+    shadowColor: colors.BLACK,
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  addMediaButton: {
-    backgroundColor: COLORS.WHITE,
+  addButton: {
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingVertical: SPACING.MD,
+    paddingHorizontal: SPACING.LG,
     borderRadius: BORDER_RADIUS.LG,
-    padding: SPACING.LG,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.PRIMARY,
-    borderStyle: 'dashed',
-    ...SHADOWS.SMALL,
+    backgroundColor: colors.GRAY_50,
+    minWidth: 90,
+    borderWidth: 1,
+    borderColor: colors.GRAY_200,
   },
-  addMediaButtonDisabled: {
-    backgroundColor: COLORS.GRAY_100,
-    borderColor: COLORS.GRAY_300,
+  addButtonDisabled: {
+    backgroundColor: colors.GRAY_100,
+    borderColor: colors.GRAY_300,
   },
-  addMediaText: {
-    fontSize: TYPOGRAPHY.SIZE.MD,
+  addButtonText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
+    marginTop: SPACING.XS,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: COLORS.PRIMARY,
   },
 
   // 하단 여백
