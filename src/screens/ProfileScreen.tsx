@@ -20,7 +20,7 @@ import { FollowService } from '../services/followService';
 // 타입 imports
 import type { Profile, ProfileFeedItem, ProfilePostItem, ProfilePagination } from '../types/profile';
 
-export default function ProfileScreen({ route }: { route: RouteProp<AuthStackParamList, 'UserProfile'> }) {
+export default function ProfileScreen({ route }: { route: RouteProp<AuthStackParamList, 'UserProfile'> | RouteProp<any, 'ProfileTab'> }) {
   const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);

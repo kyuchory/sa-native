@@ -27,5 +27,5 @@ export type TabParamList = {
   FeedTab: undefined;
   SearchTab: undefined;
   CutTab: undefined;
-  ProfileTab: undefined;
+  ProfileTab: { userId?: string };
 };
