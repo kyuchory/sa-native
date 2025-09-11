@@ -142,8 +142,8 @@ export default function SearchScreen() {
       // FeedDetailScreen으로 이동
       navigation.navigate('FeedDetail', { feedId: item.id });
     } else if (activeTab === 'people') {
-      // Профиль 화면으로 이동 (optional)
-      console.log('People item pressed:', item);
+      // UserProfile로 이동
+      navigation.navigate('UserProfile', { userId: item.id.toString() });
     } else {
       console.log('Item pressed:', item);
     }

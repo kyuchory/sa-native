@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, FlatList } from 'react-native';
 import { SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS } from '../constants/theme';
-import { EmptyHeartIcon } from './PostCardIcons';
+import { EmptyHeartIcon, CommentIcon } from './PostCardIcons';
 import { useThemeStore } from '../stores/themeStore';
 import type { PostSearchResult } from '../types/search';
 
@@ -92,11 +92,11 @@ export default function PostTab({ data, onItemPress }: PostTabProps) {
       <View style={styles.footer}>
         <View style={styles.interactionButtons}>
           <View style={styles.interactionButton}>
-            <EmptyHeartIcon size={16} color={colors.GRAY_400} />
+            <EmptyHeartIcon size={18} color={colors.GRAY_400} />
             <Text style={styles.interactionText}>{formatNumber(item.like_count)}</Text>
           </View>
           <View style={styles.interactionButton}>
-            <Text style={[styles.interactionText, { fontSize: TYPOGRAPHY.SIZE.LG }]}>💬</Text>
+            <CommentIcon size={18} color={colors.GRAY_400} />
             <Text style={styles.interactionText}>{formatNumber(item.comment_count)}</Text>
           </View>
         </View>
