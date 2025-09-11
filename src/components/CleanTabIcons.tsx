@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import Svg, { Path, Circle, Rect, Polygon, Defs, G } from 'react-native-svg';
-import { COLORS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 
 interface IconProps {
   size?: number;
@@ -10,7 +10,8 @@ interface IconProps {
 
 // 홈 아이콘 - 깔끔한 단색
 export const HomeIcon = ({ size = 24, focused = false }: IconProps) => {
-  const color = focused ? COLORS.PRIMARY : COLORS.GRAY_500;
+  const { colors } = useThemeStore();
+  const color = focused ? colors.PRIMARY : colors.GRAY_500;
   
   return (
     <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
@@ -26,7 +27,8 @@ export const HomeIcon = ({ size = 24, focused = false }: IconProps) => {
 
 // 피드 아이콘 - 격자 단색
 export const FeedIcon = ({ size = 24, focused = false }: IconProps) => {
-  const color = focused ? COLORS.PRIMARY : COLORS.GRAY_500;
+  const { colors } = useThemeStore();
+  const color = focused ? colors.PRIMARY : colors.GRAY_500;
   
   return (
     <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
@@ -44,8 +46,9 @@ export const FeedIcon = ({ size = 24, focused = false }: IconProps) => {
 
 // 검색 아이콘 - 돋보기 단색
 export const SearchIcon = ({ size = 24, focused = false }: IconProps) => {
-  const color = focused ? COLORS.PRIMARY : COLORS.GRAY_500;
-  
+  const { colors } = useThemeStore();
+  const color = focused ? colors.PRIMARY : colors.GRAY_500;
+
   return (
     <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
       <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -66,8 +69,9 @@ export const SearchIcon = ({ size = 24, focused = false }: IconProps) => {
 
 // 컷 아이콘 - 비디오 플레이 단색 (인스타 릴스 스타일)
 export const CutIcon = ({ size = 24, focused = false }: IconProps) => {
-  const color = focused ? COLORS.PRIMARY : COLORS.GRAY_500;
-  
+  const { colors } = useThemeStore();
+  const color = focused ? colors.PRIMARY : colors.GRAY_500;
+
   return (
     <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
       <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -90,8 +94,9 @@ export const CutIcon = ({ size = 24, focused = false }: IconProps) => {
 
 // 프로필 아이콘 - 사람 단색
 export const ProfileIcon = ({ size = 24, focused = false }: IconProps) => {
-  const color = focused ? COLORS.PRIMARY : COLORS.GRAY_500;
-  
+  const { colors } = useThemeStore();
+  const color = focused ? colors.PRIMARY : colors.GRAY_500;
+
   return (
     <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
       <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
