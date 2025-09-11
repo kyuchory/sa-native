@@ -1,6 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Platform, View } from 'react-native';
+import { Platform, View, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabParamList } from '../types/navigation';
 import { CleanTabIconComponents } from '../components/CleanTabIcons';
@@ -22,11 +22,24 @@ export default function TabNavigator() {
   return (
     <View style={{ flex: 1 }}>
       <Tab.Navigator
-      screenOptions={{
+      screenOptions={({
         headerShown: false,
         tabBarActiveTintColor: colors.PRIMARY,
         tabBarInactiveTintColor: colors.GRAY_500,
         tabBarShowLabel: false, // 텍스트 완전 제거
+        tabBarPressColor: Platform.OS === 'android' ? 'transparent' : undefined,
+        tabBarButton: (props: any) => (
+          <TouchableOpacity
+            {...props}
+            activeOpacity={1}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          />
+        ),
+        tabBarItemStyle: {
+          paddingVertical: 4, // 아이템 내부 여백도 축소 (8 → 4)
+          backgroundColor: 'transparent',
+          borderRadius: 0,
+        },
         tabBarStyle: {
           backgroundColor: colors.WHITE, // BG_COLORS.PRIMARY → 다크모드 지원 white
           borderTopWidth: 0, // 상단 테두리 제거
@@ -41,11 +54,9 @@ export default function TabNavigator() {
           shadowOpacity: 0.1,
           shadowRadius: 4,
           elevation: 8,
+          overflow: 'hidden', // 리플 효과 가리기
         },
-        tabBarItemStyle: {
-          paddingVertical: 4, // 아이템 내부 여백도 축소 (8 → 4)
-        },
-      }}
+      }) as any}
     >
       <Tab.Screen
         name="HomeTab"
