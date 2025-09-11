@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  StyleSheet, 
-  SafeAreaView, 
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  SafeAreaView,
   TouchableOpacity,
   TextInput,
-  Alert 
+  Alert
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
-import { COLORS, TEXT_COLORS, BG_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import { AuthStackParamList } from '../types/navigation';
 import type { ContentBlock, ContentBlockType, Category } from '../types/post';
 
@@ -31,7 +32,9 @@ type CreatePostNavigationProp = StackNavigationProp<AuthStackParamList, 'CreateP
 
 export default function CreatePostScreen() {
   const navigation = useNavigation<CreatePostNavigationProp>();
-  
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
+
   // 상태 관리
   const [title, setTitle] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
@@ -276,12 +279,12 @@ export default function CreatePostScreen() {
             onPress={handleCreatePost}
             activeOpacity={0.7}
           >
-            <WriteIcon size={20} color={COLORS.PRIMARY} />
+            <WriteIcon size={20} color={colors.PRIMARY} />
           </TouchableOpacity>
         }
       />
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -293,7 +296,7 @@ export default function CreatePostScreen() {
             <TextInput
               style={styles.titleInput}
               placeholder="제목을 입력해주세요"
-              placeholderTextColor={COLORS.GRAY_400}
+              placeholderTextColor={colors.GRAY_400}
               value={title}
               onChangeText={setTitle}
               maxLength={150}
@@ -346,30 +349,30 @@ export default function CreatePostScreen() {
 
       {/* 하단 추가 버튼들 */}
       <View style={styles.bottomActions}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.addButton}
           onPress={() => addBlock('text')}
           activeOpacity={0.7}
         >
-          <AddTextIcon size={24} color={COLORS.GRAY_600} />
+          <AddTextIcon size={24} color={colors.GRAY_600} />
           <Text style={styles.addButtonText}>텍스트</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.addButton}
           onPress={handleImageSelection}
           activeOpacity={0.7}
         >
-          <AddImageIcon size={24} color={COLORS.GRAY_600} />
+          <AddImageIcon size={24} color={colors.GRAY_600} />
           <Text style={styles.addButtonText}>이미지</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.addButton}
           onPress={() => addBlock('video')}
           activeOpacity={0.7}
         >
-          <AddVideoIcon size={24} color={COLORS.GRAY_600} />
+          <AddVideoIcon size={24} color={colors.GRAY_600} />
           <Text style={styles.addButtonText}>비디오</Text>
         </TouchableOpacity>
       </View>
@@ -380,98 +383,98 @@ export default function CreatePostScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
   },
-  
+
   // 헤더 관련
   publishButton: {
     padding: SPACING.SM,
   },
-  
+
   // 콘텐츠
   content: {
     flex: 1,
   },
-  
+
   // 공통 섹션 스타일
   section: {
     marginHorizontal: SPACING.MD,
     marginTop: SPACING.MD,
   },
-  
+
   // 섹션 라벨
   sectionLabel: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     marginBottom: SPACING.SM,
   },
-  
+
   // 입력 컨테이너
   inputContainer: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     borderRadius: BORDER_RADIUS.MD,
     padding: SPACING.MD,
     borderWidth: 1,
-    borderColor: COLORS.GRAY_200,
+    borderColor: colors.GRAY_200,
   },
-  
+
   titleInput: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     paddingVertical: SPACING.XS,
-    textAlignVertical: 'center',
+    textAlignVertical: 'center' as const,
   },
-  
+
   // 카테고리 컨테이너
   categoryContainer: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     borderRadius: BORDER_RADIUS.MD,
     borderWidth: 1,
-    borderColor: COLORS.GRAY_200,
-    overflow: 'hidden',
+    borderColor: colors.GRAY_200,
+    overflow: 'hidden' as const,
   },
-  
+
   // 콘텐츠 컨테이너
   contentContainer: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     borderRadius: BORDER_RADIUS.MD,
     borderWidth: 1,
-    borderColor: COLORS.GRAY_200,
+    borderColor: colors.GRAY_200,
     padding: SPACING.SM,
   },
-  
+
   // 로딩
   loadingContainer: {
     padding: SPACING.LG,
-    alignItems: 'center',
+    alignItems: 'center' as const,
   },
   loadingText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
   },
-  
+
   // 하단 여백
   bottomSpacing: {
     height: 100, // 하단 버튼들을 위한 여백
   },
-  
+
   // 하단 액션 버튼들
   bottomActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: COLORS.WHITE,
+    flexDirection: 'row' as const,
+    justifyContent: 'space-around' as const,
+    alignItems: 'center' as const,
+    backgroundColor: colors.WHITE,
     paddingVertical: SPACING.LG,
     paddingHorizontal: SPACING.MD,
     borderTopWidth: 1,
-    borderTopColor: COLORS.GRAY_200,
+    borderTopColor: colors.GRAY_200,
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: colors.BLACK,
     shadowOffset: {
       width: 0,
       height: -2,
@@ -480,19 +483,19 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   addButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
     paddingVertical: SPACING.MD,
     paddingHorizontal: SPACING.LG,
     borderRadius: BORDER_RADIUS.LG,
-    backgroundColor: COLORS.GRAY_50,
+    backgroundColor: colors.GRAY_50,
     minWidth: 90,
     borderWidth: 1,
-    borderColor: COLORS.GRAY_200,
+    borderColor: colors.GRAY_200,
   },
   addButtonText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     marginTop: SPACING.XS,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },

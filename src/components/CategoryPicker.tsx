@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import type { Category, SubCategory } from '../types/post';
 
 interface CategoryPickerProps {
@@ -18,6 +19,8 @@ export default function CategoryPicker({
   onCategorySelect,
   onSubcategorySelect,
 }: CategoryPickerProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
 
   return (
@@ -109,12 +112,12 @@ export default function CategoryPicker({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     borderRadius: BORDER_RADIUS.MD,
   },
-  
+
   // 대분류 스타일
   categoryRow: {
     paddingVertical: SPACING.SM,
@@ -127,23 +130,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
     borderRadius: BORDER_RADIUS.ROUND,
-    backgroundColor: COLORS.GRAY_100,
+    backgroundColor: colors.GRAY_100,
     minWidth: 60,
-    alignItems: 'center',
+    alignItems: 'center' as const,
   },
   categoryItemActive: {
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY,
   },
   categoryText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
   },
   categoryTextActive: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
-  
+
   // 소분류 스타일
   subcategoryRow: {
     paddingBottom: SPACING.SM,
@@ -157,20 +160,20 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.XS,
     borderRadius: BORDER_RADIUS.SM,
     borderWidth: 1,
-    borderColor: COLORS.GRAY_300,
-    backgroundColor: COLORS.WHITE,
+    borderColor: colors.GRAY_300,
+    backgroundColor: colors.WHITE,
   },
   subcategoryItemActive: {
-    borderColor: COLORS.PRIMARY,
-    backgroundColor: COLORS.PRIMARY + '10', // 10% 투명도
+    borderColor: colors.PRIMARY,
+    backgroundColor: colors.PRIMARY + '10', // 10% 투명도
   },
   subcategoryText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.REGULAR,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
   },
   subcategoryTextActive: {
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 });

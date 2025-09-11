@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  Image, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
   Alert,
-  Dimensions 
+  Dimensions
 } from 'react-native';
-import { COLORS, TEXT_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import { DragHandleIcon } from './CommonIcons';
 import type { ContentBlock, ContentBlockType } from '../types/post';
 
@@ -26,15 +27,17 @@ interface ContentBlockProps {
 }
 
 // 텍스트 블록 컴포넌트
-export function TextBlock({ 
-  block, 
-  onContentChange, 
-  onDeleteBlock, 
-  onMoveUp, 
+export function TextBlock({
+  block,
+  onContentChange,
+  onDeleteBlock,
+  onMoveUp,
   onMoveDown,
   canMoveUp,
-  canMoveDown 
+  canMoveDown
 }: ContentBlockProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const [isFocused, setIsFocused] = useState(false);
 
   return (
@@ -73,7 +76,7 @@ export function TextBlock({
       <TextInput
         style={styles.textInput}
         placeholder="내용을 입력해주세요..."
-        placeholderTextColor={COLORS.GRAY_400}
+        placeholderTextColor={colors.GRAY_400}
         value={block.value}
         onChangeText={(text) => onContentChange(block.id, text)}
         multiline
@@ -86,15 +89,17 @@ export function TextBlock({
 }
 
 // 이미지 블록 컴포넌트
-export function ImageBlock({ 
-  block, 
-  onContentChange, 
-  onDeleteBlock, 
-  onMoveUp, 
+export function ImageBlock({
+  block,
+  onContentChange,
+  onDeleteBlock,
+  onMoveUp,
   onMoveDown,
   canMoveUp,
-  canMoveDown 
+  canMoveDown
 }: ContentBlockProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   
   const handleImagePicker = () => {
     // 이미지가 이미 선택된 경우에는 아무것도 하지 않음
@@ -173,15 +178,17 @@ export function ImageBlock({
 }
 
 // 비디오 블록 컴포넌트
-export function VideoBlock({ 
-  block, 
-  onContentChange, 
-  onDeleteBlock, 
-  onMoveUp, 
+export function VideoBlock({
+  block,
+  onContentChange,
+  onDeleteBlock,
+  onMoveUp,
   onMoveDown,
   canMoveUp,
-  canMoveDown 
+  canMoveDown
 }: ContentBlockProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   
   const handleVideoPicker = () => {
     // TODO: 실제 비디오 피커 구현
@@ -264,93 +271,93 @@ export function ContentBlockComponent(props: ContentBlockProps) {
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   blockContainer: {
-    backgroundColor: COLORS.GRAY_50,
+    backgroundColor: colors.GRAY_50,
     marginVertical: SPACING.XS,
     borderRadius: BORDER_RADIUS.SM,
     borderWidth: 1,
-    borderColor: COLORS.GRAY_200,
-    overflow: 'hidden',
+    borderColor: colors.GRAY_200,
+    overflow: 'hidden' as const,
   },
   focusedBlock: {
-    borderColor: COLORS.PRIMARY,
+    borderColor: colors.PRIMARY,
     borderWidth: 2,
   },
-  
+
   // 블록 헤더
   blockHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
-    backgroundColor: COLORS.GRAY_100,
+    backgroundColor: colors.GRAY_100,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_200,
+    borderBottomColor: colors.GRAY_200,
   },
   blockInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
   },
   blockType: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     marginRight: SPACING.SM,
   },
   dragHandle: {
     opacity: 0.6,
   },
   blockActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
   },
   actionButton: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: COLORS.GRAY_200,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: colors.GRAY_200,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
     marginLeft: SPACING.XS,
   },
   disabledButton: {
-    backgroundColor: COLORS.GRAY_100,
+    backgroundColor: colors.GRAY_100,
   },
   actionText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: COLORS.GRAY_600,
+    color: colors.GRAY_600,
   },
   disabledText: {
-    color: COLORS.GRAY_300,
+    color: colors.GRAY_300,
   },
   deleteButton: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: COLORS.ERROR + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: colors.ERROR + '20',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
     marginLeft: SPACING.XS,
   },
   deleteText: {
     fontSize: 18,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: COLORS.ERROR,
+    color: colors.ERROR,
   },
-  
+
   // 텍스트 입력
   textInput: {
     padding: SPACING.MD,
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     minHeight: 100,
-    textAlignVertical: 'top',
-    backgroundColor: COLORS.WHITE,
+    textAlignVertical: 'top' as const,
+    backgroundColor: colors.WHITE,
   },
-  
+
   // 이미지 관련
   imagePreview: {
     height: 200,
@@ -359,10 +366,10 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.SM,
   },
   imageContainer: {
-    position: 'relative',
+    position: 'relative' as const,
   },
   imageInfo: {
-    position: 'absolute',
+    position: 'absolute' as const,
     bottom: 0,
     left: 0,
     right: 0,
@@ -374,43 +381,43 @@ const styles = StyleSheet.create({
   },
   imageInfoText: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: COLORS.WHITE,
-    textAlign: 'center',
+    color: colors.WHITE,
+    textAlign: 'center' as const,
   },
   imagePlaceholder: {
     marginHorizontal: SPACING.MD,
     marginVertical: SPACING.SM,
     height: 120,
-    backgroundColor: COLORS.GRAY_50,
+    backgroundColor: colors.GRAY_50,
     borderRadius: BORDER_RADIUS.SM,
     borderWidth: 2,
-    borderColor: COLORS.GRAY_200,
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: colors.GRAY_200,
+    borderStyle: 'dashed' as const,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
-  
+
   // 비디오 관련
   videoPreview: {
     marginHorizontal: SPACING.MD,
     marginVertical: SPACING.SM,
     height: 120,
-    backgroundColor: COLORS.GRAY_100,
+    backgroundColor: colors.GRAY_100,
     borderRadius: BORDER_RADIUS.SM,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   videoPlaceholder: {
     marginHorizontal: SPACING.MD,
     marginVertical: SPACING.SM,
     height: 120,
-    backgroundColor: COLORS.GRAY_50,
+    backgroundColor: colors.GRAY_50,
     borderRadius: BORDER_RADIUS.SM,
     borderWidth: 2,
-    borderColor: COLORS.GRAY_200,
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: colors.GRAY_200,
+    borderStyle: 'dashed' as const,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   videoIcon: {
     fontSize: 24,
@@ -418,14 +425,14 @@ const styles = StyleSheet.create({
   },
   videoText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
   },
-  
+
   // 공통 플레이스홀더
   placeholderText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: COLORS.GRAY_400,
-    textAlign: 'center',
+    color: colors.GRAY_400,
+    textAlign: 'center' as const,
     marginVertical: 2,
   },
 });
