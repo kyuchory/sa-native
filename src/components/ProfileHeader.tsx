@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Image, Alert as RN
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TYPOGRAPHY, SPACING, SHADOWS, BORDER_RADIUS } from '../constants/theme';
 import { SettingsIcon, MenuIcon, FollowIcon, ChatIcon } from './ProfileIcons';
+import { BackIcon } from './CommonIcons';
 import { useThemeStore } from '../stores/themeStore';
 import ProfileButton from './ProfileButton';
 
@@ -12,6 +13,8 @@ import type { Profile } from '../types/profile';
 interface ProfileHeaderProps {
   user: Pick<Profile, 'nickname' | 'profile_img' | 'bio' | 'stats' | 'relation'>;
   isOwnProfile: boolean;
+  showBackButton?: boolean;
+  onBackPress?: () => void;
   onSettingsPress?: () => void;
   onEditProfilePress?: () => void;
   onMenuPress?: () => void;
@@ -22,6 +25,8 @@ interface ProfileHeaderProps {
 export default function ProfileHeader({
   user,
   isOwnProfile,
+  showBackButton = false,
+  onBackPress,
   onSettingsPress,
   onEditProfilePress,
   onMenuPress,
@@ -81,45 +86,60 @@ export default function ProfileHeader({
       <View style={[styles.container, { paddingTop: insets.top }]}>
         {/* 상단 닉네임 + 설정 */}
         <View style={styles.topSection}>
-          <Text style={styles.nickname}>{user.nickname}</Text>
-          {isOwnProfile && onSettingsPress ? (
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={onSettingsPress}
-              activeOpacity={0.7}
-            >
-              <SettingsIcon size={24} color={colors.GRAY_600} />
-            </TouchableOpacity>
-          ) : !isOwnProfile && onMenuPress ? (
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={() => {
-                RNAlert.alert(
-                  '옵션',
-                  '',
-                  [
-                    {
-                      text: '차단',
-                      onPress: () => console.log('차단'),
-                      style: 'destructive'
-                    },
-                    {
-                      text: '신고',
-                      onPress: () => console.log('신고'),
-                      style: 'destructive'
-                    },
-                    {
-                      text: '취소',
-                      style: 'cancel'
-                    }
-                  ]
-                );
-              }}
-              activeOpacity={0.7}
-            >
-            <MenuIcon size={24} color={colors.GRAY_600} />
-            </TouchableOpacity>
-          ) : null}
+          <View style={styles.leftSection}>
+            {showBackButton && (
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={onBackPress || (() => {
+                  console.log('Back button pressed but no handler provided');
+                })}
+                activeOpacity={0.7}
+              >
+                <BackIcon size={24} color={colors.GRAY_700} />
+              </TouchableOpacity>
+            )}
+            <Text style={styles.nickname}>{user.nickname}</Text>
+          </View>
+          <View style={styles.rightSection}>
+            {isOwnProfile && onSettingsPress ? (
+              <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={onSettingsPress}
+                activeOpacity={0.7}
+              >
+                <SettingsIcon size={24} color={colors.GRAY_600} />
+              </TouchableOpacity>
+            ) : !isOwnProfile && onMenuPress ? (
+              <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={() => {
+                  RNAlert.alert(
+                    '옵션',
+                    '',
+                    [
+                      {
+                        text: '차단',
+                        onPress: () => console.log('차단'),
+                        style: 'destructive'
+                      },
+                      {
+                        text: '신고',
+                        onPress: () => console.log('신고'),
+                        style: 'destructive'
+                      },
+                      {
+                        text: '취소',
+                        style: 'cancel'
+                      }
+                    ]
+                  );
+                }}
+                activeOpacity={0.7}
+              >
+              <MenuIcon size={24} color={colors.GRAY_600} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
         </View>
 
         {/* 프로필 정보 섹션 */}
@@ -219,10 +239,26 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     alignItems: 'center',
     paddingVertical: SPACING.SM,
   },
+  leftSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  backButton: {
+    padding: SPACING.XS,
+    marginRight: SPACING.SM,
+  },
+  backButtonIcon: {
+    width: 24,
+    height: 24,
+  },
   nickname: {
     fontSize: TYPOGRAPHY.SIZE.XL,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
     color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
+  },
+  rightSection: {
+    alignItems: 'flex-end',
   },
   settingsButton: {
     padding: SPACING.XS,

@@ -266,21 +266,17 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
           onEditProfilePress={handleEditProfilePress}
         />
       ) : (
-        // 타인 프로필 (다른 화면에서 userId로 접근): CommonHeader + 기존 ProfileHeader (메뉴 버튼과 팔로우/채팅 버튼 사용)
-        <>
-          {/* CommonHeader for back button */}
-          <CommonHeader title={profileUser.nickname} />
-          {/* 프로필 정보 (ProfileHeader 사용) */}
-          <View style={styles.otherProfileHeader}>
-            <ProfileHeader
-              user={profileUser}
-              isOwnProfile={isOwnProfile}
-              onMenuPress={handleMenuPress}
-              onFollowPress={handleFollowPress}
-              onChatPress={handleChatPress}
-            />
-          </View>
-        </>
+        // 타인 프로필 (다른 화면에서 userId로 접근):기존 ProfileHeader (메뉴 버튼과 팔로우/채팅 버튼 사용)
+        //프로필 정보 (ProfileHeader 닉네임 좌측에 뒤로가기 버튼 사용)
+          <ProfileHeader
+            user={profileUser}
+            isOwnProfile={isOwnProfile}
+            onBackPress={() => navigation.goBack()}
+            onMenuPress={handleMenuPress}
+            onFollowPress={handleFollowPress}
+            onChatPress={handleChatPress}
+            showBackButton={true}
+          />
       )}
 
       {/* 탭 네비게이션 */}
