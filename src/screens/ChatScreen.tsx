@@ -31,6 +31,7 @@ import { ChatService } from '../services/chatService';
 
 // Stores
 import { useChatStore } from '../stores/chatStore';
+import { useSocketStore } from '../stores/socketStore';
 
 type ChatScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Chat'>;
 
@@ -39,8 +40,11 @@ export default function ChatScreen() {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
   
-  // Chat store (실시간 메시지 수신용)
-  const { connectSocket, disconnectSocket, setChatRooms, chatRooms } = useChatStore();
+  // Socket store (WebSocket 연결 관리)
+  const { connect: connectSocket } = useSocketStore();
+
+  // Chat store (채팅 관련 상태 관리)
+  const { initializeChatEvents, setChatRooms, chatRooms } = useChatStore();
   
   // 로컬 상태 관리
   const [selectedTab, setSelectedTab] = useState<ChatType>('private');
@@ -52,12 +56,12 @@ export default function ChatScreen() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedChatIds, setSelectedChatIds] = useState<Set<number>>(new Set());
 
-  // 컴포넌트 마운트 시 WebSocket 연결 및 채팅방 데이터 로드
+  // 컴포넌트 마운트 시 채팅 이벤트 초기화 및 채팅방 데이터 로드
   useEffect(() => {
     const initializeChatScreen = async () => {
-      // 1. WebSocket 연결 (실시간 메시지 수신용)
-      await connectSocket();
-      
+      // 1. 채팅 이벤트 초기화 (WebSocket 연결 자동 포함)
+      await initializeChatEvents();
+
       // 2. 채팅방 목록 로드
       loadChatRooms();
     };
@@ -67,7 +71,7 @@ export default function ChatScreen() {
     // 클린업: 화면을 완전히 벗어날 때만 WebSocket 해제
     return () => {
       // ChatDetailScreen에서도 사용하므로 여기서는 연결 해제하지 않음
-      // disconnectSocket();
+      // useSocketStore.getState().disconnect('/chat');
     };
   }, []);
 

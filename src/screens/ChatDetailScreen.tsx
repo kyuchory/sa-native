@@ -34,9 +34,9 @@ import {
 } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 
-// Stores
 import { useAuthStore } from '../stores/authStore';
 import { useChatStore } from '../stores/chatStore';
+import { useSocketStore } from '../stores/socketStore';
 
 // Services
 import { ChatService } from '../services/chatService';
@@ -63,26 +63,26 @@ export default function ChatDetailScreen() {
   // Auth store
   const { user } = useAuthStore();
 
+  // Socket store (WebSocket 연결 상태 확인)
+  const socketStore = useSocketStore();
+
   // Chat store (Zustand)
   const {
-    // WebSocket 상태
-    isConnected,
     currentChatRoomId,
-    
+
     // 메시지 상태
     messages,
     typingUsers,
     isTyping,
-    
+
     // 페이지네이션 상태
     hasNext,
     nextCursor,
     isLoadingMore,
     isInitialLoading,
-    
+
     // Actions
-    connectSocket,
-    disconnectSocket,
+    initializeChatEvents,
     joinChatRoom,
     leaveChatRoom,
     sendMessage,
@@ -100,6 +100,9 @@ export default function ChatDetailScreen() {
   // 로컬 상태
   const [inputText, setInputText] = useState('');
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+
+  // WebSocket 연결 상태 (JSX에서 사용하기 위한 별도 변수)
+  const isChatConnected = socketStore.isConnected('/chat');
 
   // Mock 데이터 (추후 API로 대체)
   const mockMembers = [
@@ -182,7 +185,7 @@ export default function ChatDetailScreen() {
     },
   ];
 
-  // WebSocket 연결 및 채팅방 참가 (ChatStore 사용)
+  // WebSocket 연결 및 채팅방 참가 (ChatDetail에서 직접 진입 시)
   useEffect(() => {
     const initChatRoom = async () => {
       try {
@@ -192,15 +195,19 @@ export default function ChatDetailScreen() {
           return;
         }
 
-        // 1단계: WebSocket 연결 (전역 관리)
-        await connectSocket();
-        
+        // ChatScreen에서 이미 /chat 네임스페이스가 연결되어 있다면 재사용
+        // 그렇지 않다면 다시 연결
+        if (!socketStore.isConnected('/chat')) {
+          await socketStore.connect('/chat');
+          await initializeChatEvents();
+        }
+
         // 2단계: 채팅방 참가
         joinChatRoom(chatRoomId);
-        
+
         // 3단계: 채팅 히스토리 로드
         loadChatHistory();
-        
+
       } catch (error) {
         console.error('채팅방 초기화 실패:', error);
         Alert.alert('오류', '채팅방에 접속할 수 없습니다.');
@@ -212,7 +219,7 @@ export default function ChatDetailScreen() {
     // 클린업: 채팅방 나가기 (WebSocket은 유지)
     return () => {
       leaveChatRoom();
-      
+
       // 타이핑 타이머 클린업
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
@@ -300,7 +307,7 @@ export default function ChatDetailScreen() {
 
   // 메시지 전송 핸들러 (ChatStore 사용)
   const handleSendMessage = async () => {
-    if (!inputText.trim() || !isConnected || !user) return;
+    if (!inputText.trim() || !socketStore.isConnected('/chat') || !user) return;
 
     const messageContent = inputText.trim();
     
@@ -327,15 +334,15 @@ export default function ChatDetailScreen() {
 
   // 타이핑 시작 핸들러 (ChatStore 사용)
   const handleTypingStart = () => {
-    if (!isConnected || isTyping) return;
-    
+    if (!socketStore.isConnected('/chat') || isTyping) return;
+
     startTyping();
-    
+
     // 3초 후 자동으로 타이핑 중단
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-    
+
     typingTimeoutRef.current = setTimeout(() => {
       handleTypingStop();
     }, 3000);
@@ -343,10 +350,10 @@ export default function ChatDetailScreen() {
 
   // 타이핑 중단 핸들러 (ChatStore 사용)
   const handleTypingStop = () => {
-    if (!isConnected || !isTyping) return;
-    
+    if (!socketStore.isConnected('/chat') || !isTyping) return;
+
     stopTyping();
-    
+
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
@@ -577,7 +584,7 @@ export default function ChatDetailScreen() {
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
                 {isInitialLoading ? '메시지를 불러오는 중...' :
-                 isConnected ? '메시지를 입력해 대화를 시작해보세요.' : 
+                 isChatConnected ? '메시지를 입력해 대화를 시작해보세요.' :
                  '서버에 연결 중...'}
               </Text>
             </View>
@@ -623,7 +630,7 @@ export default function ChatDetailScreen() {
           <View style={styles.textInputContainer}>
             <TextInput
               style={styles.textInput}
-              placeholder={isConnected ? "메시지를 입력하세요..." : "연결 중..."}
+              placeholder={isChatConnected ? "메시지를 입력하세요..." : "연결 중..."}
               placeholderTextColor={colors.GRAY_500}
               value={inputText}
               onChangeText={handleInputChange}
@@ -632,22 +639,22 @@ export default function ChatDetailScreen() {
               returnKeyType="send"
               onSubmitEditing={handleSendMessage}
               blurOnSubmit={false}
-              editable={isConnected}
+              editable={isChatConnected}
             />
           </View>
 
           <TouchableOpacity
             style={[
               styles.sendButton,
-              (inputText.trim() && isConnected) ? styles.sendButtonActive : styles.sendButtonInactive
+              (inputText.trim() && isChatConnected) ? styles.sendButtonActive : styles.sendButtonInactive
             ]}
             onPress={handleSendMessage}
             activeOpacity={0.7}
-            disabled={!inputText.trim() || !isConnected}
+            disabled={!inputText.trim() || !isChatConnected}
           >
             <SendIcon
               size={20}
-              color={(inputText.trim() && isConnected) ? colors.WHITE : colors.GRAY_500}
+              color={(inputText.trim() && isChatConnected) ? colors.WHITE : colors.GRAY_500}
             />
           </TouchableOpacity>
         </View>
