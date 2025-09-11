@@ -132,8 +132,9 @@ export default function NotificationScreen() {
   // 빈 상태 렌더링
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>새로운 알림이 없습니다</Text>
-      <Text style={styles.emptySubText}>알림이 도착하면 여기에서 확인할 수 있어요</Text>
+      <Text style={styles.emptyIcon}>🔔</Text>
+      <Text style={styles.emptyText}>알림이 없어요</Text>
+      <Text style={styles.emptySubText}>새 소식을 기다려보세요!</Text>
     </View>
   );
 
@@ -168,28 +169,32 @@ export default function NotificationScreen() {
 const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.GRAY_50, // BG_COLORS.SECONDARY
+    backgroundColor: colors.WHITE,
   },
   notificationList: {
     flex: 1,
   },
   notificationListContent: {
-    paddingVertical: SPACING.SM,
+    paddingTop: SPACING.SM,
+    paddingBottom: SPACING.LG,
     flexGrow: 1,
   },
   markAllButton: {
     paddingVertical: SPACING.XS,
     paddingHorizontal: SPACING.SM,
-    borderRadius: 12,
-    backgroundColor: colors.GRAY_100,
+    borderRadius: 16,
+    backgroundColor: colors.GRAY_50,
+    borderWidth: 1,
+    borderColor: colors.GRAY_200,
   },
   disabledButton: {
-    opacity: 0.5,
+    opacity: 0.4,
+    borderColor: colors.GRAY_100,
   },
   markAllText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: colors.GRAY_700,
+    color: colors.GRAY_600,
   },
   disabledText: {
     color: colors.GRAY_400,
@@ -198,18 +203,23 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: SPACING.LG,
+    paddingHorizontal: SPACING.LG,
+    paddingTop: SPACING.XXL,
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: SPACING.MD,
   },
   emptyText: {
-    fontSize: TYPOGRAPHY.SIZE.LG,
-    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: colors.GRAY_700,
+    fontSize: TYPOGRAPHY.SIZE.XL,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: colors.GRAY_500,
     marginBottom: SPACING.SM,
   },
   emptySubText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_500,
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: colors.GRAY_400,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
   },
 });

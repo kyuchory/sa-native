@@ -42,7 +42,7 @@ const NotificationListItem = ({ notification, onPress }: NotificationListItemPro
         !notification.isRead && styles.unreadContainer,
       ]}
       onPress={handlePress}
-      activeOpacity={0.7}
+      activeOpacity={0.6}
     >
       <View style={styles.content}>
         {/* 프로필 이미지 */}
@@ -68,7 +68,7 @@ const NotificationListItem = ({ notification, onPress }: NotificationListItemPro
               styles.messageText,
               !notification.isRead && styles.unreadText,
             ]}
-            numberOfLines={1}
+            numberOfLines={2}
           >
             <Text style={styles.senderName}>{notification.sender.nickname}</Text>
             {notification.message}
@@ -93,27 +93,34 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     marginVertical: 1,
   },
   unreadContainer: {
-    backgroundColor: colors.PRIMARY_LIGHT + '08',
+    // 배경색 완전 제거 - 점 아이콘만으로 읽음 상태 표시
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: SPACING.MD,
+    padding: SPACING.LG,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: colors.GRAY_100,
+    marginHorizontal: SPACING.LG,
   },
 
   // 프로필 이미지
   profileContainer: {
-    marginRight: SPACING.SM,
+    marginRight: SPACING.MD,
   },
   profileImage: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: BORDER_RADIUS.ROUND,
   },
   placeholderImage: {
-    backgroundColor: colors.GRAY_200,
+    backgroundColor: colors.GRAY_100,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.GRAY_200,
   },
   placeholderText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
@@ -124,33 +131,35 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   // 텍스트 컨테이너
   textContainer: {
     flex: 1,
-    gap: 4,
+    gap: 3,
   },
   senderName: {
-    fontSize: TYPOGRAPHY.SIZE.MD,
-    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
     color: colors.GRAY_900,
   },
   messageText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     color: colors.GRAY_700,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   unreadText: {
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: colors.GRAY_900,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
   timeText: {
     fontSize: TYPOGRAPHY.SIZE.XS,
     color: colors.GRAY_500,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 
   // 읽음 표시 점
   unreadDot: {
-    width: 6,
-    height: 6,
+    width: 8,
+    height: 8,
     borderRadius: BORDER_RADIUS.ROUND,
     backgroundColor: colors.PRIMARY,
-    marginLeft: SPACING.XS,
+    marginLeft: SPACING.SM,
   },
 });
 
