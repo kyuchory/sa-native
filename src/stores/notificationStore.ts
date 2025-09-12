@@ -7,10 +7,10 @@ interface Notification {
   type: 'friend_request' | 'message_mention' | 'post_like' | 'feed_comment' | 'system';
   title: string;
   message: string;
-  senderId?: number;
-  senderNickname?: string;
-  isRead: boolean;
-  createdAt: string;
+  sender_id?: number;
+  sender_nickname?: string;
+  is_read: boolean;
+  created_at: string;
   data?: any;
 }
 
@@ -55,12 +55,12 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
           id: Date.now(),
           type: 'friend_request',
           title: '새로운 친구 요청',
-          message: `${data.senderNickname}님이 친구 요청을 보냈습니다.`,
-          senderId: data.senderId,
-          senderNickname: data.senderNickname,
-          isRead: false,
-          createdAt: new Date().toISOString(),
-          data: { friendRequestId: data.friendRequestId }
+          message: `${data.sender_nickname}님이 친구 요청을 보냈습니다.`,
+          sender_id: data.sender_id,
+          sender_nickname: data.sender_nickname,
+          is_read: false,
+          created_at: new Date().toISOString(),
+          data: { friend_request_id: data.friend_request_id }
         };
         get().addNotification(notification);
       });
@@ -71,15 +71,15 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
           id: Date.now(),
           type: 'message_mention',
           title: '멘션 알림',
-          message: `${data.senderNickname}님이 채팅에서 회원님을 멘션했습니다.`,
-          senderId: data.senderId,
-          senderNickname: data.senderNickname,
-          isRead: false,
-          createdAt: new Date().toISOString(),
-          data: { chatRoomId: data.chatRoomId, messageId: data.messageId }
+          message: `${data.sender_nickname}님이 채팅에서 회원님을 멘션했습니다.`,
+          sender_id: data.sender_id,
+          sender_nickname: data.sender_nickname,
+          is_read: false,
+          created_at: new Date().toISOString(),
+          data: { chat_room_id: data.chat_room_id, message_id: data.message_id }
         };
         get().addNotification(notification);
-        Alert.alert('멘션 알림', `${data.senderNickname}님이 회원님을 멘션했습니다.`);
+        Alert.alert('멘션 알림', `${data.sender_nickname}님이 회원님을 멘션했습니다.`);
       });
 
       // 포스트 좋아요 알림 이벤트
@@ -88,12 +88,12 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
           id: Date.now(),
           type: 'post_like',
           title: '좋아요 알림',
-          message: `${data.senderNickname}님이 회원님의 ${data.postType}을 좋아합니다.`,
-          senderId: data.senderId,
-          senderNickname: data.senderNickname,
-          isRead: false,
-          createdAt: new Date().toISOString(),
-          data: { postId: data.postId, postType: data.postType }
+          message: `${data.sender_nickname}님이 회원님의 ${data.post_type}을 좋아합니다.`,
+          sender_id: data.sender_id,
+          sender_nickname: data.sender_nickname,
+          is_read: false,
+          created_at: new Date().toISOString(),
+          data: { post_id: data.post_id, post_type: data.post_type }
         };
         get().addNotification(notification);
       });
@@ -104,12 +104,12 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
           id: Date.now(),
           type: 'feed_comment',
           title: '댓글 알림',
-          message: `${data.senderNickname}님이 회원님의 ${data.feedType}에 댓글을 달았습니다.`,
-          senderId: data.senderId,
-          senderNickname: data.senderNickname,
-          isRead: false,
-          createdAt: new Date().toISOString(),
-          data: { feedId: data.feedId, feedType: data.feedType, commentId: data.commentId }
+          message: `${data.sender_nickname}님이 회원님의 ${data.feed_type}에 댓글을 달았습니다.`,
+          sender_id: data.sender_id,
+          sender_nickname: data.sender_nickname,
+          is_read: false,
+          created_at: new Date().toISOString(),
+          data: { feed_id: data.feed_id, feed_type: data.feed_type, comment_id: data.comment_id }
         };
         get().addNotification(notification);
       });
@@ -121,9 +121,9 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
           type: 'system',
           title: data.title || '시스템 알림',
           message: data.message,
-          isRead: false,
-          createdAt: new Date().toISOString(),
-          data: data.additionalData
+          is_read: false,
+          created_at: new Date().toISOString(),
+          data: data.additional_data
         };
         get().addNotification(notification);
         Alert.alert('시스템 알림', data.message);
@@ -144,21 +144,21 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   // 알림 읽음 처리
   markAsRead: (notificationId) => set((state) => ({
     notifications: state.notifications.map(notif =>
-      notif.id === notificationId ? { ...notif, isRead: true } : notif
+      notif.id === notificationId ? { ...notif, is_read: true } : notif
     ),
     unreadCount: Math.max(0, state.unreadCount - 1)
   })),
 
   // 모든 알림 읽음 처리
   markAllAsRead: () => set((state) => ({
-    notifications: state.notifications.map(notif => ({ ...notif, isRead: true })),
+    notifications: state.notifications.map(notif => ({ ...notif, is_read: true })),
     unreadCount: 0
   })),
 
   // 알림 제거
   removeNotification: (notificationId) => set((state) => {
     const notificationToRemove = state.notifications.find(notif => notif.id === notificationId);
-    const newUnreadCount = notificationToRemove && !notificationToRemove.isRead
+    const newUnreadCount = notificationToRemove && !notificationToRemove.is_read
       ? Math.max(0, state.unreadCount - 1)
       : state.unreadCount;
 

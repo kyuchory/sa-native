@@ -39,7 +39,7 @@ const NotificationListItem = ({ notification, onPress }: NotificationListItemPro
     <TouchableOpacity
       style={[
         styles.container,
-        !notification.isRead && styles.unreadContainer,
+        !notification.is_read && styles.unreadContainer,
       ]}
       onPress={handlePress}
       activeOpacity={0.6}
@@ -47,9 +47,9 @@ const NotificationListItem = ({ notification, onPress }: NotificationListItemPro
       <View style={styles.content}>
         {/* 프로필 이미지 */}
         <View style={styles.profileContainer}>
-          {notification.sender.profileImg ? (
+          {notification.sender.profile_img ? (
             <Image
-              source={{ uri: notification.sender.profileImg }}
+              source={{ uri: notification.sender.profile_img }}
               style={styles.profileImage}
             />
           ) : (
@@ -66,7 +66,7 @@ const NotificationListItem = ({ notification, onPress }: NotificationListItemPro
           <Text
             style={[
               styles.messageText,
-              !notification.isRead && styles.unreadText,
+              !notification.is_read && styles.unreadText,
             ]}
             numberOfLines={2}
           >
@@ -74,12 +74,12 @@ const NotificationListItem = ({ notification, onPress }: NotificationListItemPro
             {notification.message}
           </Text>
           <Text style={styles.timeText}>
-            {formatTime(notification.createdAt)}
+            {formatTime(notification.created_at)}
           </Text>
         </View>
 
         {/* 읽음 표시 점 (안읽은 경우) */}
-        {!notification.isRead && (
+        {!notification.is_read && (
           <View style={styles.unreadDot} />
         )}
       </View>

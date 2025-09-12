@@ -10,7 +10,7 @@ import {
 export class NotificationService {
   // 알림 목록 조회
   static async getNotifications(params: GetNotificationsParams = {}): Promise<GetNotificationsApiResponse> {
-    const { offset = 0, limit = 20, type, isRead } = params;
+    const { offset = 0, limit = 20, type, is_read } = params;
 
     // 쿼리 파라미터 구성
     const queryParams = new URLSearchParams({
@@ -22,8 +22,8 @@ export class NotificationService {
       queryParams.append('type', type);
     }
 
-    if (isRead !== undefined) {
-      queryParams.append('isRead', isRead.toString());
+    if (is_read !== undefined) {
+      queryParams.append('is_read', is_read.toString());
     }
 
     const endpoint = `/notifications?${queryParams.toString()}`;
