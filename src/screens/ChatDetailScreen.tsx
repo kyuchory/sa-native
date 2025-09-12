@@ -185,7 +185,7 @@ export default function ChatDetailScreen() {
     },
   ];
 
-  // WebSocket 연결 및 채팅방 참가 (ChatDetail에서 직접 진입 시)
+  // 채팅방 참가 및 초기화
   useEffect(() => {
     const initChatRoom = async () => {
       try {
@@ -195,17 +195,10 @@ export default function ChatDetailScreen() {
           return;
         }
 
-        // ChatScreen에서 이미 /chat 네임스페이스가 연결되어 있다면 재사용
-        // 그렇지 않다면 다시 연결
-        if (!socketStore.isConnected('/chat')) {
-          await socketStore.connect('/chat');
-          await initializeChatEvents();
-        }
-
-        // 2단계: 채팅방 참가
+        // WebSocket 연결은 글로벌로 관리되므로, 채팅방 참가만 수행
         joinChatRoom(chatRoomId);
 
-        // 3단계: 채팅 히스토리 로드
+        // 채팅 히스토리 로드
         loadChatHistory();
 
       } catch (error) {

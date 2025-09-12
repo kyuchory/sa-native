@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, SafeAreaView, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, FlatList, StyleSheet, SafeAreaView, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
 import { useThemeStore } from '../stores/themeStore';
+import { useNotificationStore } from '../stores/notificationStore';
 
 // 컴포넌트 imports
 import CommonHeader from '../components/CommonHeader';
 import NotificationListItem from '../components/NotificationListItem';
 import { CheckIcon } from '../components/CommonIcons';
 
-// 데이터 imports
-import { NOTIFICATION_MOCK_DATA } from '../data/notificationMockData';
+// 서비스 imports
+import { NotificationService } from '../services/notificationService';
 import { Notification } from '../types/notification';
 
 type NotificationNavigationProp = StackNavigationProp<AuthStackParamList, 'Notifications'>;
@@ -22,32 +23,71 @@ export default function NotificationScreen() {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
-  // 상태 관리
-  const [notifications, setNotifications] = useState<Notification[]>(NOTIFICATION_MOCK_DATA);
+  // Notification store
+  const {
+    subscribeToNotifications,
+    unsubscribeFromNotifications,
+    notifications,
+    loadNotifications,
+    markAllAsRead,
+    markAsRead,
+    unreadCount
+  } = useNotificationStore();
 
-  // 컴포넌트 마운트 시 알림 로드
+  // 로딩 상태
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 컴포넌트 마운트 시 알림 구독 및 데이터 로드
   useEffect(() => {
-    loadNotifications();
-  }, []);
+    const initializeNotifications = async () => {
+      try {
+        setIsLoading(true);
 
-  // 알림 로드 (mock data를 사용)
-  const loadNotifications = () => {
+        // 알림 구독 시작
+        subscribeToNotifications();
+
+        // 알림 데이터 로드 (API 호출)
+        await loadFromAPI();
+
+      } catch (error) {
+        console.error('알림 초기화 실패:', error);
+        Alert.alert('오류', '알림을 불러오는데 실패했습니다.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeNotifications();
+
+    // 클린업: 컴포넌트 언마운트 시 구독 해제
+    return () => {
+      unsubscribeFromNotifications();
+    };
+  }, [subscribeToNotifications, unsubscribeFromNotifications]);
+
+  // API에서 알림 데이터 로드
+  const loadFromAPI = async () => {
     try {
-      setNotifications(NOTIFICATION_MOCK_DATA);
-    } catch (error) {
-      console.error('알림 로드 실패:', error);
-      Alert.alert('오류', '알림을 불러오는데 실패했습니다.');
+      const response = await NotificationService.getNotifications({
+        limit: 50,
+        offset: 0
+      });
+
+      if (response.data) {
+        // Store에 알림 데이터 로드
+        loadNotifications(response.data.notifications);
+        console.log(`📋 알림 목록 로드 완료: ${response.data.notifications.length}개`);
+      }
+    } catch (error: any) {
+      console.error('알림 API 로드 실패:', error);
+      throw error;
     }
   };
 
   // 모두 읽음 처리
   const handleMarkAllAsRead = () => {
     try {
-      const updatedNotifications = notifications.map(notification => ({
-        ...notification,
-        isRead: true,
-      }));
-      setNotifications(updatedNotifications);
+      markAllAsRead();
     } catch (error) {
       console.error('읽음 처리 실패:', error);
       Alert.alert('오류', '읽음 처리에 실패했습니다.');
@@ -57,38 +97,34 @@ export default function NotificationScreen() {
   // 알림 항목 클릭 핸들러
   const handleNotificationPress = (notification: Notification) => {
     try {
-      // 알림을 읽음으로 표시
-      const updatedNotifications = notifications.map(n =>
-        n.id === notification.id ? { ...n, isRead: true } : n
-      );
-      setNotifications(updatedNotifications);
+      // 알림을 읽음으로 표시 (store 사용)
+      markAsRead(notification.id);
 
       // 알림 타입에 따라 적절한 스크린으로 이동
       switch (notification.type) {
-        case 'follow':
+        case 'followed':
           // 사용자 프로필로 이동
           if (notification.sender.id) {
             navigation.navigate('UserProfile', { userId: String(notification.sender.id) });
           }
           break;
-        case 'like':
-        case 'comment':
+        case 'post_commented':
           // 게시물 상세로 이동
-          if (notification.referenceId) {
-            navigation.navigate('PostDetail', { postId: notification.referenceId });
+          if (notification.reference_id) {
+            navigation.navigate('PostDetail', { postId: notification.reference_id });
           }
           break;
-        case 'post':
+        case 'feed_commented':
           // 피드 상세로 이동
-          if (notification.referenceId) {
-            navigation.navigate('FeedDetail', { feedId: notification.referenceId });
+          if (notification.reference_id) {
+            navigation.navigate('FeedDetail', { feedId: notification.reference_id });
           }
           break;
         case 'message':
           // 채팅 상세로 이동
           if (notification.sender.id) {
             navigation.navigate('ChatDetail', {
-              chatRoomId: 0, // mock data에서는 임시 ID 사용
+              chatRoomId: 0, // API 데이터에서는 임시 ID 사용
               chatRoomName: notification.sender.nickname,
               chatPartnerId: notification.sender.id,
             });
@@ -111,9 +147,6 @@ export default function NotificationScreen() {
     />
   );
 
-  // 읽지 않은 알림 개수 확인
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-
   // 헤더 우측 버튼 (모두 읽음 - 체크 아이콘)
   const renderHeaderRight = () => (
     <TouchableOpacity
@@ -127,6 +160,14 @@ export default function NotificationScreen() {
         color={unreadCount === 0 ? colors.GRAY_400 : colors.GRAY_700}
       />
     </TouchableOpacity>
+  );
+
+  // 로딩 상태 렌더링
+  const renderLoadingState = () => (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color={colors.PRIMARY} />
+      <Text style={styles.loadingText}>알림을 불러오는 중...</Text>
+    </View>
   );
 
   // 빈 상태 렌더링
@@ -154,7 +195,7 @@ export default function NotificationScreen() {
         style={styles.notificationList}
         contentContainerStyle={styles.notificationListContent}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={renderEmptyState}
+        ListEmptyComponent={isLoading ? renderLoadingState : renderEmptyState}
         // 성능 최적화
         removeClippedSubviews={true}
         maxToRenderPerBatch={10}
@@ -191,14 +232,19 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     opacity: 0.4,
     borderColor: colors.GRAY_100,
   },
-  markAllText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: colors.GRAY_600,
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: SPACING.XXL,
   },
-  disabledText: {
-    color: colors.GRAY_400,
+  loadingText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: colors.GRAY_700,
+    marginTop: SPACING.MD,
   },
+
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',

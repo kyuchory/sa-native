@@ -56,23 +56,16 @@ export default function ChatScreen() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedChatIds, setSelectedChatIds] = useState<Set<number>>(new Set());
 
-  // 컴포넌트 마운트 시 채팅 이벤트 초기화 및 채팅방 데이터 로드
+  // 컴포넌트 마운트 시 채팅방 데이터 로드
   useEffect(() => {
     const initializeChatScreen = async () => {
-      // 1. 채팅 이벤트 초기화 (WebSocket 연결 자동 포함)
-      await initializeChatEvents();
+      // WebSocket 연결은 글로벌로 관리됨, 채팅 이벤트 리스너 등록은 AuthNavigator에서 처리
 
-      // 2. 채팅방 목록 로드
+      // 채팅방 목록 로드
       loadChatRooms();
     };
 
     initializeChatScreen();
-
-    // 클린업: 화면을 완전히 벗어날 때만 WebSocket 해제
-    return () => {
-      // ChatDetailScreen에서도 사용하므로 여기서는 연결 해제하지 않음
-      // useSocketStore.getState().disconnect('/chat');
-    };
   }, []);
 
   // 탭 변경 시 필터링

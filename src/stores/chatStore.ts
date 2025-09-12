@@ -23,6 +23,9 @@ interface ChatStore {
   isLoadingMore: boolean;
   isInitialLoading: boolean;
 
+  // 이벤트 리스너 등록 상태 (메모리 누수 방지)
+  chatEventListenersRegistered: boolean;
+
   // Actions
   initializeChatEvents: () => Promise<void>;
   joinChatRoom: (chatRoomId: number) => void;
@@ -46,6 +49,7 @@ interface ChatStore {
   setNextCursor: (cursor: number | null) => void;
   setIsLoadingMore: (loading: boolean) => void;
   setIsInitialLoading: (loading: boolean) => void;
+  setChatEventListenersRegistered: (registered: boolean) => void;
 }
 
 export const useChatStore = create<ChatStore>((set, get) => ({
@@ -59,12 +63,23 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   nextCursor: null,
   isLoadingMore: false,
   isInitialLoading: true,
+  chatEventListenersRegistered: false,
 
   // 채팅 이벤트 핸들러 초기화 - /chat 네임스페이스 구독
   initializeChatEvents: async () => {
+    // 이미 등록된 리스너가 있으면 재등록하지 않음
+    if (get().chatEventListenersRegistered) {
+      console.log('📢 ChatStore 이벤트 리스너가 이미 등록됨');
+      return;
+    }
+
     try {
-      // /chat 네임스페이스 연결
-      const socket = await useSocketStore.getState().connect('/chat');
+      // /chat 네임스페이스 연결 (이미 연결되어 있어야 함)
+      const socket = useSocketStore.getState().getSocket('/chat');
+      if (!socket) {
+        throw new Error('Chat socket not connected');
+      }
+
       useSocketStore.getState().subscribe('/chat', 'chatStore');
 
       console.log('📢 ChatStore가 /chat 네임스페이스 이벤트 구독 시작');
@@ -176,6 +191,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
             Alert.alert('오류', error.message || '알 수 없는 오류가 발생했습니다.');
         }
       });
+
+      // 이벤트 리스너 등록 완료 표시
+      get().setChatEventListenersRegistered(true);
 
       console.log('✅ ChatStore 이벤트 핸들러 초기화 완료');
     } catch (error) {
@@ -374,5 +392,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   setHasNext: (hasNext) => set({ hasNext }),
   setNextCursor: (cursor) => set({ nextCursor: cursor }),
   setIsLoadingMore: (loading) => set({ isLoadingMore: loading }),
-  setIsInitialLoading: (loading) => set({ isInitialLoading: loading })
+  setIsInitialLoading: (loading) => set({ isInitialLoading: loading }),
+  setChatEventListenersRegistered: (registered) => set({ chatEventListenersRegistered: registered })
 }));

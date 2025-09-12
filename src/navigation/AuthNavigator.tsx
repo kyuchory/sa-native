@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAuthStore } from '../stores/authStore';
+import { useSocketStore } from '../stores/socketStore';
+import { useChatStore } from '../stores/chatStore';
+import { useNotificationStore } from '../stores/notificationStore';
 import { AuthStackParamList } from '../types/navigation';
 
 // Screens
@@ -30,6 +33,40 @@ const Stack = createStackNavigator<AuthStackParamList>();
 
 export default function AuthNavigator() {
   const { isAuthenticated } = useAuthStore();
+  const socketStore = useSocketStore();
+  const chatStore = useChatStore();
+  const notificationStore = useNotificationStore();
+
+  // 글로벌 소켓 초기화 (인증된 상태에서만)
+  useEffect(() => {
+    if (isAuthenticated) {
+      const initializeGlobalSockets = async () => {
+        try {
+          // /chat 네임스페이스 글로벌 연결 및 초기화
+          await socketStore.connect('/chat');
+          console.log('📡 Global chat socket connected');
+
+          await chatStore.initializeChatEvents();
+          console.log('📡 Global chat event listeners registered');
+
+          // /notification 네임스페이스 글로벌 연결 및 초기화
+          await socketStore.connect('/notification');
+          console.log('🔔 Global notification socket connected');
+
+          await notificationStore.initializeNotificationEvents();
+          console.log('🔔 Global notification event listeners registered');
+        } catch (error) {
+          console.error('❌ Failed to initialize global sockets:', error);
+        }
+      };
+
+      initializeGlobalSockets();
+    } else {
+      // 인증 해제 시 모든 연결 해제
+      socketStore.disconnectAll();
+      console.log('🎯 All socket connections disconnected due to logout');
+    }
+  }, [isAuthenticated, socketStore, chatStore, notificationStore]);
 
   return (
     <NavigationContainer>

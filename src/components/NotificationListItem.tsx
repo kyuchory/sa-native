@@ -70,7 +70,6 @@ const NotificationListItem = ({ notification, onPress }: NotificationListItemPro
             ]}
             numberOfLines={2}
           >
-            <Text style={styles.senderName}>{notification.sender.nickname}</Text>
             {notification.message}
           </Text>
           <Text style={styles.timeText}>
