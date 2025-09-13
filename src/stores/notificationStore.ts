@@ -187,6 +187,29 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
         get().addNotification(notification);
       });
 
+      // 게시물 생성 알림 이벤트 핸들러 추가
+      socket.on('notification:post_created', (data: any) => {
+        console.log('🔔 게시물 생성 알림:', data);
+
+        // Socket 데이터에서 Notification 타입으로 변환
+        const notification: Notification = {
+          id: data.id,
+          type: data.type,
+          sender: {
+            id: data.sender.id,
+            nickname: data.sender.nickname,
+            profile_img: data.sender.profile_img || null,
+          },
+          message: data.message,
+          reference_id: data.reference_id,
+          is_read: data.is_read,
+          created_at: data.created_at,
+        };
+
+        // UI에 즉시 반영
+        get().addNotification(notification);
+      });
+
       socket.on('notification:unsubscribed', (data: any) => {
         console.log('🔔 알림 구독 해제:', data);
       });

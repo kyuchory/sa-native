@@ -120,6 +120,24 @@ export default function NotificationScreen() {
             navigation.navigate('FeedDetail', { feedId: notification.reference_id });
           }
           break;
+        case 'post_created':
+          // 새로 작성된 게시물 상세로 이동
+          if (notification.reference_id) {
+            navigation.navigate('PostDetail', { postId: notification.reference_id });
+          }
+          break;
+        case 'post_liked':
+          // 게시물 상세로 이동 (좋아요 관련)
+          if (notification.reference_id) {
+            navigation.navigate('PostDetail', { postId: notification.reference_id });
+          }
+          break;
+        case 'feed_liked':
+          // 피드 상세로 이동 (좋아요 관련)
+          if (notification.reference_id) {
+            navigation.navigate('FeedDetail', { feedId: notification.reference_id });
+          }
+          break;
         case 'message':
           // 채팅 상세로 이동
           if (notification.sender.id) {
