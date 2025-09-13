@@ -138,6 +138,12 @@ export default function NotificationScreen() {
             navigation.navigate('FeedDetail', { feedId: notification.reference_id });
           }
           break;
+        case 'feed_created':
+          // 새로 작성된 피드 상세로 이동
+          if (notification.reference_id) {
+            navigation.navigate('FeedDetail', { feedId: notification.reference_id });
+          }
+          break;
         case 'message':
           // 채팅 상세로 이동
           if (notification.sender.id) {
