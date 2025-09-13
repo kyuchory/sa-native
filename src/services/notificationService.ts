@@ -4,6 +4,9 @@ import {
   GetNotificationsParams,
   GetNotificationsApiResponse,
   NotificationsResponse,
+  ReadNotificationsRequest,
+  ReadNotificationsApiResponse,
+  ReadAllNotificationsApiResponse,
 } from '../types/notification';
 
 // 알림 관련 API 서비스
@@ -29,5 +32,17 @@ export class NotificationService {
     const endpoint = `/notifications?${queryParams.toString()}`;
 
     return apiClient.get<GetNotificationsApiResponse>(endpoint);
+  }
+
+  // 특정 알림들 읽음 처리
+  static async read(notificationIds: number[]): Promise<ReadNotificationsApiResponse> {
+    const request: ReadNotificationsRequest = { notificationIds };
+
+    return apiClient.patch<ReadNotificationsApiResponse>('/notifications/read', request);
+  }
+
+  // 모든 알림 읽음 처리
+  static async readAll(): Promise<ReadAllNotificationsApiResponse> {
+    return apiClient.patch<ReadAllNotificationsApiResponse>('/notifications/read-all', {});
   }
 }

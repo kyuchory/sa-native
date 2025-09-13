@@ -37,5 +37,22 @@ export interface NotificationsResponse {
   has_more: boolean;
 }
 
+// 특정 알림들 읽음 처리 요청 데이터 인터페이스
+export interface ReadNotificationsRequest {
+  notificationIds: number[];
+}
+
+// 특정 알림들 읽음 처리 응답 데이터 인터페이스
+export interface ReadNotificationsResponse {
+  affectedRows: number;
+}
+
+// 모든 알림 읽음 처리 응답 데이터 인터페이스
+export interface ReadAllNotificationsResponse {
+  affectedRows: number;
+}
+
 // API 응답 타입
 export type GetNotificationsApiResponse = ApiResponse<NotificationsResponse>;
+export type ReadNotificationsApiResponse = ApiResponse<ReadNotificationsResponse>;
+export type ReadAllNotificationsApiResponse = ApiResponse<ReadAllNotificationsResponse>;

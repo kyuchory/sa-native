@@ -85,22 +85,29 @@ export default function NotificationScreen() {
   };
 
   // 모두 읽음 처리
-  const handleMarkAllAsRead = () => {
+  const handleMarkAllAsRead = async () => {
     try {
-      markAllAsRead();
-    } catch (error) {
-      console.error('읽음 처리 실패:', error);
-      Alert.alert('오류', '읽음 처리에 실패했습니다.');
+      // API 호출로 모든 알림 읽음 처리
+      const response = await NotificationService.readAll();
+
+      if (response.code === 200 && response.data) {
+        console.log(`✅ 모든 알림 읽음 처리 완료: ${response.data.affectedRows}개`);
+
+        // 스토어 업데이트로 UI 갱신
+        markAllAsRead();
+      } else {
+        throw new Error(response.message || '알림 읽음 처리에 실패했습니다.');
+      }
+    } catch (error: any) {
+      console.error('모두 읽음 처리 실패:', error);
+      Alert.alert('오류', '모두 읽음 처리에 실패했습니다.');
     }
   };
 
   // 알림 항목 클릭 핸들러
-  const handleNotificationPress = (notification: Notification) => {
+  const handleNotificationPress = async (notification: Notification) => {
     try {
-      // 알림을 읽음으로 표시 (store 사용)
-      markAsRead(notification.id);
-
-      // 알림 타입에 따라 적절한 스크린으로 이동
+      // 먼저 스크린 이동을 실행 (사용자 경험 우선)
       switch (notification.type) {
         case 'followed':
           // 사용자 프로필로 이동
@@ -156,6 +163,25 @@ export default function NotificationScreen() {
           break;
         default:
           break;
+      }
+
+      // 이미 읽었던 알림이면 API 호출 생략
+      if (notification.is_read) {
+        return;
+      }
+
+      // 백그라운드에서 알림 읽음 처리 API 호출
+      try {
+        const response = await NotificationService.read([notification.id]);
+
+        if (response.code === 200 && response.data) {
+          // 스토어 업데이트로 UI 갱신
+          markAsRead(notification.id);
+        }
+      } catch (readError) {
+        console.error('알림 읽음 처리 API 실패:', readError);
+        // API 실패 시에도 사용자 경험을 위해 로컬 상태만 업데이트
+        markAsRead(notification.id);
       }
     } catch (error) {
       console.error('알림 클릭 처리 실패:', error);
