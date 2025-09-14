@@ -73,7 +73,10 @@ export default function ProfileEditScreen() {
 
 
   const handleImagePress = () => {
-    navigation.navigate('ProfileImageEdit');
+    navigation.navigate('ProfileImageEdit', {
+      currentImageUrl: profileData.profileImage,
+      nickname: profileData.nickname
+    });
   };
 
   // 로딩 중이거나 프로필 데이터가 없으면 로딩 표시

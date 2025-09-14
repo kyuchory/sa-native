@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
 import { AuthStackParamList } from '../types/navigation';
@@ -17,16 +17,21 @@ import CustomButton from '../components/CustomButton';
 import { ProfileEditIcon } from '../components/ProfileIcons';
 
 type ProfileImageEditScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ProfileImageEdit'>;
+type ProfileImageEditScreenRouteProp = RouteProp<AuthStackParamList, 'ProfileImageEdit'>;
 
 export default function ProfileImageEditScreen() {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
   const navigation = useNavigation<ProfileImageEditScreenNavigationProp>();
+  const route = useRoute<ProfileImageEditScreenRouteProp>();
   const { user } = useAuthStore();
 
-  // 이미지 상태
-  const [currentImageUri, setCurrentImageUri] = useState<string | null>(user?.profile_img || null);
+  // props에서 현재 이미지 URL과 닉네임 가져오기
+  const { currentImageUrl, nickname } = route.params || { currentImageUrl: null, nickname: '' };
+
+  // 이미지 상태 - props로 받은 currentImageUrl 사용
+  const [currentImageUri, setCurrentImageUri] = useState<string | null>(currentImageUrl);
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -92,7 +97,7 @@ export default function ProfileImageEditScreen() {
       
       // 프로필 이미지 업로드
       const uploadedImage = await ProfileService.uploadProfileImage(imageUri);
-      // 업로드된 이미지 URL로 상태 업데이트
+      // 업로드된 이미지 완전한 URL로 상태 업데이트
       setSelectedImageUri(uploadedImage.path);
       
       Alert.alert('성공', '프로필 이미지가 업로드되었습니다.');
@@ -123,9 +128,12 @@ export default function ProfileImageEditScreen() {
       try {
         setIsUploading(true);
         
+        // selectedImageUri가 완전한 URL이라면 path 부분만 추출하여 서버에 전송
+        const imagePath = selectedImageUri;
+
         // 프로필 이미지 업데이트
         await ProfileService.updateProfile({
-          profile_img: selectedImageUri
+          profile_img: imagePath
         });
         
         Alert.alert('성공', '프로필 이미지가 저장되었습니다.');
@@ -161,7 +169,7 @@ export default function ProfileImageEditScreen() {
             ) : (
               <View style={[styles.profileImage, styles.imagePlaceholder]}>
                 <Text style={styles.placeholderText}>
-                  {user?.nickname?.charAt(0).toUpperCase() || 'U'}
+                  {(nickname || 'U').charAt(0).toUpperCase()}
                 </Text>
               </View>
             )}

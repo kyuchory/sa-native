@@ -11,7 +11,10 @@ export type AuthStackParamList = {
   ProfileEdit: undefined;
   NicknameEdit: undefined;
   BioEdit: undefined;
-  ProfileImageEdit: undefined;
+  ProfileImageEdit: {
+    currentImageUrl: string | null;
+    nickname: string;
+  };
   Settings: undefined;
   Notifications: undefined;
   Chat: undefined;
