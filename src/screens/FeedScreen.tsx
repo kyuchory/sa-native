@@ -6,10 +6,11 @@ import { SPACING } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
 import { useThemeStore } from '../stores/themeStore';
 
-// 컴포넌트 imports
-import FeedHeader from '../components/FeedHeader';
+  // 컴포넌트 imports
+import MainHeader, { ChatIcon } from '../components/MainHeader';
 import StorySection from '../components/StorySection';
 import FeedCard from '../components/FeedCard';
+import { CreateFeedIcon } from '../components/CommonIcons';
 
 // 데이터 imports
 import { FeedListItem } from '../types/feed';
@@ -29,7 +30,7 @@ export default function FeedScreen() {
   const [loading, setLoading] = useState(false);
   const [cursor, setCursor] = useState<number | undefined>(undefined);
   const [hasNext, setHasNext] = useState(true);
-  const [notificationCount] = useState(5); // 예시 알림 개수
+  // 알림 카운트 쓰지 않음
 
   // 컴포넌트 마운트 시 피드 로드
   useEffect(() => {
@@ -82,15 +83,29 @@ export default function FeedScreen() {
   };
 
   // 헤더 액션 핸들러들
-  const handleNotificationPress = () => {
-    console.log('알림 버튼 클릭');
-    // TODO: 알림 화면으로 이동
-  };
-
   const handleChatPress = () => {
     console.log('채팅 버튼 클릭');
     navigation.navigate('Chat');
   };
+
+  const handleFeedPress = () => {
+    console.log('피드 작성 버튼 클릭');
+    navigation.navigate('CreateFeed');
+  };
+
+  // 헤더 버튼들 설정 (알림 버튼은 MainHeader가 자동으로 제공하므로 제외)
+  const headerRightButtons = [
+    {
+      key: 'feed',
+      onPress: handleFeedPress,
+      IconComponent: CreateFeedIcon,
+    },
+    {
+      key: 'chat',
+      onPress: handleChatPress,
+      IconComponent: ChatIcon,
+    },
+  ];
 
   // 스토리 액션 핸들러들
   const handleStoryPress = (user: StoryUser) => {
@@ -152,11 +167,7 @@ export default function FeedScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* 헤더 */}
-      <FeedHeader
-        onNotificationPress={handleNotificationPress}
-        onChatPress={handleChatPress}
-        notificationCount={notificationCount}
-      />
+      <MainHeader rightButtons={headerRightButtons} />
 
       {/* 피드 목록 */}
       <FlatList

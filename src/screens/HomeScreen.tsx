@@ -7,10 +7,11 @@ import { AuthStackParamList } from '../types/navigation';
 import { useThemeStore } from '../stores/themeStore';
 
 // 컴포넌트 imports
-import HomeHeader from '../components/HomeHeader';
 import CategorySelector from '../components/CategorySelector';
 import PostCard from '../components/PostCard';
 import Pagination from '../components/Pagination';
+import MainHeader from '../components/MainHeader';
+import { WriteIcon } from '../components/HomeHeaderIcons';
 
 // 서비스 imports
 import { PostService } from '../services/postService';
@@ -133,10 +134,18 @@ export default function HomeScreen() {
     navigation.navigate('UserProfile', { userId: String(post.user.id) });
   };
 
-  const handleNotificationPress = () => {
-    console.log('Notification pressed');
-    navigation.navigate('Notifications');
+  const handleWritePress = () => {
+    navigation.navigate('CreatePost');
   };
+
+  // 헤더 버튼들 설정
+  const headerRightButtons = [
+    {
+      key: 'write',
+      onPress: handleWritePress,
+      IconComponent: WriteIcon,
+    },
+  ];
 
   // 게시물 렌더링
   const renderPost = ({ item }: { item: PostListItem }) => (
@@ -151,10 +160,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* 헤더 */}
-      <HomeHeader
-        onNotificationPress={handleNotificationPress}
-        notificationCount={notificationCount}
-      />
+      <MainHeader rightButtons={headerRightButtons} />
 
       {/* 카테고리 선택 */}
       <CategorySelector

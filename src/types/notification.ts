@@ -56,3 +56,21 @@ export interface ReadAllNotificationsResponse {
 export type GetNotificationsApiResponse = ApiResponse<NotificationsResponse>;
 export type ReadNotificationsApiResponse = ApiResponse<ReadNotificationsResponse>;
 export type ReadAllNotificationsApiResponse = ApiResponse<ReadAllNotificationsResponse>;
+
+// 헤더 알림 구독 관련 타입
+export interface HeaderSubscribeRequest {
+  userId: number;
+}
+
+export interface HeaderSubscribeResponse {
+  success: boolean;
+  userId: number;
+}
+
+export interface UnreadCountData {
+  unread_count: number;
+  updated_at: string;
+}
+
+// 헤더 구독 이벤트 응답 타입
+export type HeaderSubscribeApiResponse = ApiResponse<HeaderSubscribeResponse>;

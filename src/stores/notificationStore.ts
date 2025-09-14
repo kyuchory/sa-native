@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Alert } from 'react-native';
-import { Notification } from '../types/notification';
+import { Notification, UnreadCountData } from '../types/notification';
 import { useSocketStore } from './socketStore';
 import { useAuthStore } from './authStore';
 
@@ -17,6 +17,7 @@ interface NotificationStore {
 
   // 구독 관리
   subscribeToNotifications: () => void;
+  subscribeToHeaderNotifications: () => void;
   unsubscribeFromNotifications: () => void;
 
   // 알림 관리
@@ -59,7 +60,9 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
       // 기존 이벤트 핸들러 제거
       socket.off('notification:new');
       socket.off('notification:subscribed');
+      socket.off('notification:header_subscribed');
       socket.off('notification:unsubscribed');
+      socket.off('unread_count');
       socket.off('error');
 
       // 알림 이벤트 핸들러 설정
@@ -70,6 +73,16 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
       socket.on('notification:subscribed', (data: any) => {
         console.log('✅ 알림 구독 성공:', data);
+      });
+
+      socket.on('notification:header_subscribed', (data: any) => {
+        console.log('✅ 헤더 알림 구독 성공:', data);
+      });
+
+      // 헤더용 읽지 않은 알림 개수 수신 이벤트 핸들러
+      socket.on('unread_count', (data: UnreadCountData) => {
+        console.log('📨 헤더 읽지 않은 알림 개수 수신:', data.unread_count);
+        get().setUnreadCount(data.unread_count);
       });
 
       // 팔로우 알림 이벤트 핸들러 추가
@@ -266,6 +279,20 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
     console.log('📨 알림 구독 요청');
     socket.emit('notification:subscribe');
+  },
+
+  // 헤더 알림 구독
+  subscribeToHeaderNotifications: () => {
+    const socket = useSocketStore.getState().getSocket('/notification');
+    const isConnected = useSocketStore.getState().isConnected('/notification');
+
+    if (!socket || !isConnected) {
+      console.warn('🔔 알림 서버에 연결되지 않아 헤더 구독을 건너뜁니다.');
+      return;
+    }
+
+    console.log('📨 헤더 알림 구독 요청');
+    socket.emit('notification:subscribe_header');
   },
 
   // 알림 구독 해제
