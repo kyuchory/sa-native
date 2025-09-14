@@ -137,19 +137,51 @@ const CreateFeedIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
   </View>
 );
 
-// 삭제 아이콘
-const DeleteIcon = ({ size = 24, color = COLORS.ERROR }: IconProps) => (
+// 수정 아이콘 (연필모양 - 단순하고 깔끔한 선으로)
+const EditIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M18 6L6 18"
+        d="M11 4H4a2 2 0 00-2 2v14a4 4 0 004 4h14a4 4 0 004-4v-7"
         stroke={color}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
-        d="M6 6L18 18"
+        d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </View>
+);
+
+// 삭제 아이콘 (쓰레기통 캔 모양 - 단순하고 깔끔한 선으로)
+const DeleteIcon = ({ size = 24, color = COLORS.ERROR }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* 쓰레기통 바닥 */}
+      <Path
+        d="M3 6h18"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* 쓰레기통 본체 */}
+      <Path
+        d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* 윗부분 손잡이형 */}
+      <Path
+        d="M10 11v6M14 11v6"
         stroke={color}
         strokeWidth="2"
         strokeLinecap="round"
@@ -216,4 +248,4 @@ const ReportIcon = ({ size = 24, color = COLORS.ERROR }: IconProps) => (
   </View>
 );
 
-export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon };
+export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, EditIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon };

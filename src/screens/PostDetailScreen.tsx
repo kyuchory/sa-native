@@ -33,7 +33,7 @@ import { ReplyInput } from '../components/ReplyInput';
 import { CommentEditInput } from '../components/CommentEditInput';
 import { CommentActions } from '../components/CommentActions';
 import MenuActionSheet from '../components/MenuActionSheet';
-import { MenuIcon, ReportIcon } from '../components/CommonIcons';
+import { MenuIcon, ReportIcon, EditIcon, DeleteIcon } from '../components/CommonIcons';
 
 import { Comment } from '../types/post';
 import { useAuthStore } from '../stores/authStore';
@@ -561,6 +561,28 @@ export default function PostDetailScreen() {
         onClose={() => setMenuActionSheetVisible(false)}
         title="게시물"
         actions={[
+          // 작성자의 게시물인 경우 수정/삭제 메뉴 추가
+          ...(post?.is_author ? [
+            {
+              id: 'edit',
+              title: '게시물 수정',
+              icon: <EditIcon size={20} color={colors.GRAY_700} />,
+              color: colors.GRAY_700,
+              onPress: () => {
+                Alert.alert('수정', '게시물 수정 기능이 구현 예정입니다.');
+              },
+            },
+            {
+              id: 'delete',
+              title: '게시물 삭제',
+              icon: <DeleteIcon size={20} color={colors.GRAY_700} />,
+              color: colors.GRAY_700,
+              onPress: () => {
+                Alert.alert('삭제', '게시물 삭제 기능이 구현 예정입니다.');
+              },
+            },
+          ] : []),
+          // 신고는 모든 사용자에게 표시
           {
             id: 'report',
             title: '게시물 신고',

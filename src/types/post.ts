@@ -89,6 +89,7 @@ export interface PostDetail {
   comment_count: number;
   is_liked?: boolean;
   is_bookmarked?: boolean;
+  is_author?: boolean; // 게시글 작성자 여부 (로그인 시에만 제공)
 }
 
 // 게시물 상세 조회 응답
