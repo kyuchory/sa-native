@@ -129,6 +129,11 @@ export default function PostCard({
             <Text style={styles.timeText}>{formatTime(post.created_at)}</Text>
           </View>
         </TouchableOpacity>
+        <View style={styles.categoryInfo}>
+          <Text style={styles.categoryText}>
+            {post.sub_category.category.name} {'>'} {post.sub_category.name}
+          </Text>
+        </View>
       </View>
 
       {/* 본문 영역 */}
@@ -202,11 +207,15 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
 
   // 헤더 (작성자 정보)
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: SPACING.SM,
   },
   authorInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   profileImageContainer: {
     marginRight: SPACING.SM,
@@ -238,6 +247,15 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   timeText: {
     fontSize: TYPOGRAPHY.SIZE.XS,
     color: colors.GRAY_600,
+  },
+  categoryInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  categoryText: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    color: colors.PRIMARY,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 
   // 본문 내용
