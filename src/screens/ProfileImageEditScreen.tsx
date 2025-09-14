@@ -33,6 +33,7 @@ export default function ProfileImageEditScreen() {
   // 이미지 상태 - props로 받은 currentImageUrl 사용
   const [currentImageUri, setCurrentImageUri] = useState<string | null>(currentImageUrl);
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [uploadedImagePath, setUploadedImagePath] = useState<string | null>(null); // 서버 저장용
   const [isUploading, setIsUploading] = useState(false);
 
   // 미디어 라이브러리 권한 요청
@@ -97,8 +98,9 @@ export default function ProfileImageEditScreen() {
       
       // 프로필 이미지 업로드
       const uploadedImage = await ProfileService.uploadProfileImage(imageUri);
-      // 업로드된 이미지 완전한 URL로 상태 업데이트
-      setSelectedImageUri(uploadedImage.path);
+      // 업로드된 이미지 - 화면 표시용은 URL, 저장용은 path를 따로 저장
+      setSelectedImageUri(uploadedImage.url); // 표시용: 완전한 URL
+      setUploadedImagePath(uploadedImage.path); // 저장용: 경로만
       
       Alert.alert('성공', '프로필 이미지가 업로드되었습니다.');
     } catch (error) {
@@ -128,8 +130,8 @@ export default function ProfileImageEditScreen() {
       try {
         setIsUploading(true);
         
-        // selectedImageUri가 완전한 URL이라면 path 부분만 추출하여 서버에 전송
-        const imagePath = selectedImageUri;
+        // 저장용 경로 사용 (서버에 보낼 때는 path만)
+        const imagePath = uploadedImagePath || '';
 
         // 프로필 이미지 업데이트
         await ProfileService.updateProfile({
