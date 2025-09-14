@@ -9,6 +9,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { CommentItem as FeedComment } from '../types/feed';
+import { Comment } from '../types/post';
 import { LikeIcon } from './PostIcons';
 import { useThemeStore } from '../stores/themeStore';
 
@@ -145,9 +146,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
 });
 
 interface CommentListProps {
-  comments: FeedComment[];
+  comments: (FeedComment | Comment)[];
   onCommentLike?: (commentId: number) => void;
-  onReplyPress?: (comment: FeedComment) => void;
+  onReplyPress?: (comment: FeedComment | Comment) => void;
   onEditComment?: (commentId: number) => void;
   onDeleteComment?: (commentId: number) => void;
 }
@@ -362,12 +363,12 @@ export default function CommentList({
         <Text style={styles.title}>댓글 {comments.length}개</Text>
       </View>
 
-      {comments.map((comment: FeedComment) => (
+      {comments.map((comment) => (
         <View key={comment.id}>
           <CommentItem
-            comment={comment}
+            comment={comment as FeedComment}
             onCommentLike={onCommentLike}
-            onReplyPress={onReplyPress}
+            onReplyPress={(replyComment) => onReplyPress?.(replyComment as any)}
             onEditComment={onEditComment}
             onDeleteComment={onDeleteComment}
           />
@@ -375,13 +376,13 @@ export default function CommentList({
           {/* 대댓글 렌더링 */}
           {comment.replies && comment.replies.length > 0 && (
             <View style={styles.repliesContainer}>
-              {comment.replies.map((reply: FeedComment) => (
+              {comment.replies.map((reply) => (
                 <CommentItem
                   key={reply.id}
-                  comment={reply}
+                  comment={reply as FeedComment}
                   isReply={true}
                   onCommentLike={onCommentLike}
-                  onReplyPress={onReplyPress}
+                  onReplyPress={(replyComment) => onReplyPress?.(replyComment as any)}
                   onEditComment={onEditComment}
                   onDeleteComment={onDeleteComment}
                 />
