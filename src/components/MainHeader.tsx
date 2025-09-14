@@ -39,21 +39,27 @@ export default function MainHeader({ leftButtons = [], rightButtons = [] }: Main
   const insets = useSafeAreaInsets();
   const { colors } = useThemeStore();
   const navigation = useNavigation();
-  const { unreadCount, initializeNotificationEvents, subscribeToHeaderNotifications } = useNotificationStore();
+  const { unreadCount, initializeNotificationEvents, subscribeToHeaderNotifications, fetchUnreadCount } = useNotificationStore();
   const { isAuthenticated, user } = useAuthStore();
   const styles = createStyles(colors);
 
-  // MainHeader가 마운트될 때 헤더 알림 구독
+  // MainHeader가 마운트될 때 초기 데이터 로드 및 헤더 알림 구독
   useEffect(() => {
     if (!isAuthenticated || !user) {
-      console.log('🔒 인증되지 않은 사용자 - 헤더 알림 구독 건너뜀');
+      console.log('🔒 인증되지 않은 사용자 - 헤더 알림 초기화 건너뜀');
       return;
     }
 
-    console.log('🔔 MainHeader 마운트 - 헤더 알림 구독 요청');
-    // notificationStore에서 이벤트 초기화 후 헤더 구독
+    console.log('🔔 MainHeader 마운트 - 헤더 알림 초기화 시작');
+
+    // 1. 소켓 이벤트 핸들러 초기화
     initializeNotificationEvents().then(() => {
+      // 2. API로 초기 알림 개수 가져오기
+      fetchUnreadCount();
+      // 3. 헤더 알림 구독
       subscribeToHeaderNotifications();
+    }).catch((error) => {
+      console.error('❌ 헤더 알림 초기화 실패:', error);
     });
   }, [isAuthenticated, user]);
 

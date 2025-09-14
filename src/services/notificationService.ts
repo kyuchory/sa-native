@@ -7,6 +7,7 @@ import {
   ReadNotificationsRequest,
   ReadNotificationsApiResponse,
   ReadAllNotificationsApiResponse,
+  GetUnreadCountApiResponse,
 } from '../types/notification';
 
 // 알림 관련 API 서비스
@@ -44,5 +45,10 @@ export class NotificationService {
   // 모든 알림 읽음 처리
   static async readAll(): Promise<ReadAllNotificationsApiResponse> {
     return apiClient.patch<ReadAllNotificationsApiResponse>('/notifications/read-all', {});
+  }
+
+  // 읽지 않은 알림 개수 조회
+  static async getUnreadCount(): Promise<GetUnreadCountApiResponse> {
+    return apiClient.get<GetUnreadCountApiResponse>('/notifications/unread-count');
   }
 }

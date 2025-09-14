@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { Alert } from 'react-native';
-import { Notification, UnreadCountData } from '../types/notification';
+import { Notification, UnreadCountData, GetUnreadCountApiResponse } from '../types/notification';
 import { useSocketStore } from './socketStore';
 import { useAuthStore } from './authStore';
+import { NotificationService } from '../services/notificationService';
 
 interface NotificationStore {
   // 알림 상태
@@ -14,6 +15,7 @@ interface NotificationStore {
 
   // Actions
   initializeNotificationEvents: () => Promise<void>;
+  fetchUnreadCount: () => Promise<void>;
 
   // 구독 관리
   subscribeToNotifications: () => void;
@@ -261,9 +263,24 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
       // 이벤트 리스너 등록 완료 표시
       get().setNotificationEventListenersRegistered(true);
 
-      console.log('✅ NotificationStore 이벤트 핸들러 초기화 완료');
+    console.log('✅ NotificationStore 이벤트 핸들러 초기화 완료');
     } catch (error) {
       console.error('❌ NotificationStore 이벤트 초기화 실패:', error);
+    }
+  },
+
+  // 읽지 않은 알림 개수 조회
+  fetchUnreadCount: async () => {
+    try {
+      console.log('📨 API에서 읽지 않은 알림 개수 조회');
+      const response: GetUnreadCountApiResponse = await NotificationService.getUnreadCount();
+
+      if (response.data) {
+        get().setUnreadCount(response.data.unreadCount);
+        console.log('✅ 읽지 않은 알림 개수 설정:', response.data.unreadCount);
+      }
+    } catch (error) {
+      console.error('❌ 읽지 않은 알림 개수 조회 실패:', error);
     }
   },
 

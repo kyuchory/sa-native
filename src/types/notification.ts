@@ -74,3 +74,11 @@ export interface UnreadCountData {
 
 // 헤더 구독 이벤트 응답 타입
 export type HeaderSubscribeApiResponse = ApiResponse<HeaderSubscribeResponse>;
+
+// 읽지 않은 알림 개수 조회 응답 타입
+export interface UnreadCountResponse {
+  unreadCount: number;
+}
+
+// 읽지 않은 알림 개수 조회 API 응답 타입
+export type GetUnreadCountApiResponse = ApiResponse<UnreadCountResponse>;
