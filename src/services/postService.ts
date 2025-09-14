@@ -1,8 +1,8 @@
 import { apiClient } from './apiClient';
-import type { 
-  CreatePostRequest, 
-  CreatePostResponse, 
-  CategoriesResponse, 
+import type {
+  CreatePostRequest,
+  CreatePostResponse,
+  CategoriesResponse,
   Category,
   PostDetailResponse,
   PostDetail,
@@ -13,7 +13,8 @@ import type {
   PostListResponse,
   PostListItem,
   PostLikeResponse,
-  DeleteCommentRequest
+  DeleteCommentRequest,
+  DeletePostResponse
 } from '../types/post';
 import type { ApiResponse } from '../types/api';
 import { MOCK_POST_DETAIL, MOCK_ITEM_POST_DETAIL } from '../data/postDetailMockData';
@@ -228,6 +229,16 @@ export class PostService {
       return response.data;
     } catch (error) {
       console.error('게시글 좋아요 토글 실패:', error);
+      throw error;
+    }
+  }
+
+  // 게시글 삭제
+  static async deletePost(postId: number): Promise<void> {
+    try {
+      await apiClient.delete<ApiResponse<DeletePostResponse>>(`/posts/${postId}`);
+    } catch (error) {
+      console.error('게시글 삭제 실패:', error);
       throw error;
     }
   }

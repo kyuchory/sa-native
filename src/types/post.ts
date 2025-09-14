@@ -233,3 +233,6 @@ export interface PostLikeResponse {
     like_count: number;
   };
 }
+
+// 게시글 삭제 응답 (data는 null)
+export type DeletePostResponse = null;

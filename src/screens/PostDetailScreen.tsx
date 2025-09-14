@@ -297,20 +297,59 @@ export default function PostDetailScreen() {
   const handleDeleteComment = async (commentId: number) => {
     try {
       setIsCommentLoading(true);
-      
+
       // API 호출
       await PostService.deleteComment(commentId);
-      
+
       // 댓글 목록 새로고침
       const updatedComments = await PostService.getComments(postId);
       setComments(updatedComments);
-      
+
     } catch (error) {
       Alert.alert('오류', '댓글 삭제에 실패했습니다.');
       console.error('댓글 삭제 실패:', error);
     } finally {
       setIsCommentLoading(false);
     }
+  };
+
+  // 게시물 삭제
+  const handleDeletePost = async () => {
+    Alert.alert(
+      '게시물 삭제',
+      '게시물을 삭제하시겠습니까? 삭제된 게시물은 복구할 수 없습니다.',
+      [
+        {
+          text: '취소',
+          style: 'cancel',
+        },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+
+              // API 호출
+              await PostService.deletePost(postId);
+
+              // 삭제 성공 시 이전 화면으로 돌아가기
+              Alert.alert('삭제 완료', '게시물이 삭제되었습니다.', [
+                {
+                  text: '확인',
+                  onPress: () => navigation.goBack(),
+                },
+              ]);
+            } catch (error) {
+              Alert.alert('오류', '게시물 삭제에 실패했습니다.');
+              console.error('게시물 삭제 실패:', error);
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   // 시간 포맷팅
@@ -577,9 +616,7 @@ export default function PostDetailScreen() {
               title: '게시물 삭제',
               icon: <DeleteIcon size={20} color={colors.GRAY_700} />,
               color: colors.GRAY_700,
-              onPress: () => {
-                Alert.alert('삭제', '게시물 삭제 기능이 구현 예정입니다.');
-              },
+              onPress: handleDeletePost,
             },
           ] : []),
           // 신고는 모든 사용자에게 표시
