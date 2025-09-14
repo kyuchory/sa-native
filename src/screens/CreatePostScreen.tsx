@@ -179,11 +179,11 @@ export default function CreatePostScreen() {
           setIsLoading(true);
           const uploadedImage = await PostService.uploadImage(selectedImage.uri);
           
-          // 업로드된 이미지 URL로 블록 업데이트
-          setContentBlocks(prev => 
-            prev.map(block => 
-              block.id === newImageBlock.id 
-                ? { ...block, value: uploadedImage.path }
+          // 업로드된 이미지로 블록 업데이트 (표시용 url, 제출용 path 저장)
+          setContentBlocks(prev =>
+            prev.map(block =>
+              block.id === newImageBlock.id
+                ? { ...block, value: uploadedImage.url, originalValue: uploadedImage.path }
                 : block
             )
           );
@@ -241,7 +241,7 @@ export default function CreatePostScreen() {
         sub_category_id: selectedSubcategoryId,
         content_blocks: contentBlocks
           .filter(block => block.value.trim()) // 빈 블록 제외
-          .map(({ id, ...block }, index) => ({ ...block, sequence: index })), // id 제거하고 sequence 재정렬
+          .map(({ id, originalValue, ...block }, index) => ({ ...block, value: originalValue || block.value, sequence: index })), // id, originalValue 제거, 원래 value 사용
         tags: [], // 추후 태그 기능 추가시 사용
       };
 

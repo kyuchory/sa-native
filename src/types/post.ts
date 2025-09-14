@@ -9,6 +9,7 @@ export interface ContentBlock {
   type: ContentBlockType;
   value: string;
   sequence: number;
+  originalValue?: string; // 서버 제출용 원래 value
 }
 
 // 🚨 BREAKING CHANGE: post_type과 item_snapshots 필드가 API에서 제거됨
