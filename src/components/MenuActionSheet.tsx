@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   View,
@@ -9,14 +10,8 @@ import {
   Dimensions,
   TouchableWithoutFeedback,
 } from 'react-native';
-import { 
-  COLORS, 
-  TEXT_COLORS, 
-  TYPOGRAPHY, 
-  SPACING, 
-  BORDER_RADIUS, 
-  SHADOWS 
-} from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -27,20 +22,21 @@ interface ActionItem {
   color: string;
   onPress: () => void;
 }
-
-interface ChatActionSheetProps {
+interface MenuActionSheetProps {
   visible: boolean;
   onClose: () => void;
   actions: ActionItem[];
-  chatName?: string;
+  title?: string;
 }
 
-export default function ChatActionSheet({
+export default function MenuActionSheet({
   visible,
   onClose,
   actions,
-  chatName,
-}: ChatActionSheetProps) {
+  title,
+}: MenuActionSheetProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const slideAnim = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const overlayOpacity = React.useRef(new Animated.Value(0)).current;
 
@@ -113,10 +109,10 @@ export default function ChatActionSheet({
         <View style={styles.handle} />
 
         {/* 제목 */}
-        {chatName && (
+        {title && (
           <View style={styles.titleContainer}>
             <Text style={styles.titleText} numberOfLines={1}>
-              {chatName}
+              {title}
             </Text>
           </View>
         )}
@@ -156,7 +152,8 @@ export default function ChatActionSheet({
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -166,7 +163,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     borderTopLeftRadius: BORDER_RADIUS.LG,
     borderTopRightRadius: BORDER_RADIUS.LG,
     paddingBottom: SPACING.LG + 20, // Safe area padding
@@ -175,7 +172,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: COLORS.GRAY_300,
+    backgroundColor: colors.GRAY_300,
     borderRadius: 2,
     alignSelf: 'center',
     marginTop: SPACING.SM,
@@ -185,12 +182,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.LG,
     paddingVertical: SPACING.SM,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_200,
+    borderBottomColor: colors.GRAY_200,
   },
   titleText: {
     fontSize: TYPOGRAPHY.SIZE.LG,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.PRIMARY,
     textAlign: 'center',
   },
   actionsContainer: {
@@ -202,7 +199,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: SPACING.MD,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_200,
+    borderBottomColor: colors.GRAY_200,
   },
   lastActionButton: {
     borderBottomWidth: 0,
@@ -223,13 +220,13 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.LG,
     marginTop: SPACING.MD,
     paddingVertical: SPACING.MD,
-    backgroundColor: COLORS.GRAY_100,
+    backgroundColor: colors.GRAY_100,
     borderRadius: BORDER_RADIUS.MD,
     alignItems: 'center',
   },
   cancelText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.PRIMARY,
   },
 });

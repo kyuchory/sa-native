@@ -23,7 +23,7 @@ import ChatScreenTab from '../components/ChatScreenTab';
 import ChatScreenEmptyState from '../components/ChatScreenEmptyState';
 import ChatScreenLoading from '../components/ChatScreenLoading';
 import ChatEditActionBar from '../components/ChatEditActionBar';
-import ChatActionSheet from '../components/ChatActionSheet';
+import MenuActionSheet from '../components/MenuActionSheet';
 import { CheckIcon, MuteIcon, DeleteIcon, CheckboxEmptyIcon, CheckboxFilledIcon } from '../components/ChatActionIcons';
 
 // Services
@@ -498,14 +498,14 @@ export default function ChatScreen() {
         />
       )}
 
-      {/* 채팅 액션 시트 */}
-      <ChatActionSheet
+      {/* 메뉴 액션 시트 */}
+      <MenuActionSheet
         visible={actionSheetVisible}
         onClose={() => {
           setActionSheetVisible(false);
           setSelectedChatRoom(null);
         }}
-        chatName={selectedChatRoom ? getChatDisplayName(selectedChatRoom) : undefined}
+        title={selectedChatRoom ? getChatDisplayName(selectedChatRoom) : undefined}
         actions={[
           {
             id: 'read',
