@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import Svg, { Path, G } from 'react-native-svg';
+import Svg, { Path, Rect, Circle, G } from 'react-native-svg';
 import { COLORS } from '../constants/theme';
 
 interface IconProps {
@@ -174,4 +174,46 @@ const CheckIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
   </View>
 );
 
-export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, DeleteIcon, CheckIcon };
+// 메뉴 아이콘 (점 세 개 - 더 넓은 간격으로 배치된 더보기 메뉴)
+const MenuIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 26 24" fill="none">
+      {/* 세로 중앙에 맞춘 원형 점들 */}
+      <Path
+        d="M3 12C3 13.3807 4.11929 14.5 5.5 14.5C6.88071 14.5 8 13.3807 8 12C8 10.6193 6.88071 9.5 5.5 9.5C4.11929 9.5 3 10.6193 3 12Z"
+        fill={color}
+      />
+      <Path
+        d="M10 12C10 13.3807 11.1193 14.5 12.5 14.5C13.8807 14.5 15 13.3807 15 12C15 10.6193 13.8807 9.5 12.5 9.5C11.1193 9.5 10 10.6193 10 12Z"
+        fill={color}
+      />
+      <Path
+        d="M17 12C17 13.3807 18.1193 14.5 19.5 14.5C20.8807 14.5 22 13.3807 22 12C22 10.6193 20.8807 9.5 19.5 9.5C18.1193 9.5 17 10.6193 17 12Z"
+        fill={color}
+      />
+    </Svg>
+  </View>
+);
+
+// 신고 아이콘 (! 느낌표 모양)
+const ReportIcon = ({ size = 24, color = COLORS.ERROR }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* 느낌표 세로줄 */}
+      <Path
+        d="M12 4V17"
+        stroke={color}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* 느낌표 점 */}
+      <Path
+        d="M12 20.5C12.2761 20.5 12.5 20.2761 12.5 20C12.5 19.7239 12.2761 19.5 12 19.5C11.7239 19.5 11.5 19.7239 11.5 20C11.5 20.2761 11.7239 20.5 12 20.5Z"
+        fill={color}
+      />
+    </Svg>
+  </View>
+);
+
+export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon };

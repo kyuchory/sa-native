@@ -32,6 +32,8 @@ import { CommentInput } from '../components/CommentInput';
 import { ReplyInput } from '../components/ReplyInput';
 import { CommentEditInput } from '../components/CommentEditInput';
 import { CommentActions } from '../components/CommentActions';
+import MenuActionSheet from '../components/MenuActionSheet';
+import { MenuIcon, ReportIcon } from '../components/CommonIcons';
 
 import { Comment } from '../types/post';
 import { useAuthStore } from '../stores/authStore';
@@ -57,6 +59,7 @@ export default function PostDetailScreen() {
   const [isCommentLoading, setIsCommentLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
+  const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
   const { user } = useAuthStore();
   const currentUserId = user?.id;
   const styles = createStyles(colors);
@@ -412,7 +415,18 @@ export default function PostDetailScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* 헤더 */}
-      <CommonHeader title="게시물" />
+      <CommonHeader
+        title="게시물"
+        rightComponent={
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => setMenuActionSheetVisible(true)}
+            activeOpacity={0.7}
+          >
+            <MenuIcon size={20} color={colors.GRAY_700} />
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView 
         style={styles.content}
@@ -540,6 +554,24 @@ export default function PostDetailScreen() {
           isLoading={isCommentLoading}
         />
       )}
+
+      {/* 메뉴 액션 시트 */}
+      <MenuActionSheet
+        visible={menuActionSheetVisible}
+        onClose={() => setMenuActionSheetVisible(false)}
+        title="게시물"
+        actions={[
+          {
+            id: 'report',
+            title: '게시물 신고',
+            icon: <ReportIcon size={20} color={colors.ERROR} />,
+            color: colors.ERROR,
+            onPress: () => {
+              Alert.alert('신고', '게시물 신고 기능이 구현 예정입니다.');
+            },
+          },
+        ]}
+      />
     </SafeAreaView>
   );
 }
@@ -783,5 +815,10 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   bottomSpacing: {
     height: SPACING.XL,
     backgroundColor: colors.GRAY_50,
+  },
+
+  // 메뉴 버튼
+  menuButton: {
+    padding: SPACING.SM,
   },
 });
