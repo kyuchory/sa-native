@@ -15,6 +15,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
+import usePostStore from '../stores/postStore';
 import { AuthStackParamList } from '../types/navigation';
 import type { ContentBlock, ContentBlockType, Category, PostDetail } from '../types/post';
 
@@ -41,6 +42,7 @@ export default function EditPostScreen() {
   const route = useRoute<EditPostRouteProp>();
   const navigation = useNavigation<EditPostNavigationProp>();
   const { colors } = useThemeStore();
+  const { setShouldRefreshPosts } = usePostStore(); // Zustand 스토어에서 액션 가져오기
   const styles = createStyles(colors);
 
   const { postId } = route.params;
@@ -300,6 +302,9 @@ export default function EditPostScreen() {
       };
 
       await PostService.updatePost(postId, updateData);
+
+      // 목록 새로고침 플래그 설정
+      setShouldRefreshPosts(true);
 
       Alert.alert(
         '성공',

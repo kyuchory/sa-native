@@ -37,6 +37,7 @@ import { MenuIcon, ReportIcon, EditIcon, DeleteIcon } from '../components/Common
 
 import { Comment } from '../types/post';
 import { useAuthStore } from '../stores/authStore';
+import usePostStore from '../stores/postStore';
 
 type PostDetailRouteProp = RouteProp<AuthStackParamList, 'PostDetail'>;
 type PostDetailNavigationProp = StackNavigationProp<AuthStackParamList, 'PostDetail'>;
@@ -62,6 +63,7 @@ export default function PostDetailScreen() {
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
   const { user } = useAuthStore();
   const currentUserId = user?.id;
+  const { setShouldRefreshPosts } = usePostStore(); // 게시물 목록 새로고침 플래그 설정용
   const styles = createStyles(colors);
 
   // 게시물 focus 시 데이터 로드 (수정 후 최신 데이터 보장)
@@ -334,6 +336,9 @@ export default function PostDetailScreen() {
 
               // API 호출
               await PostService.deletePost(postId);
+
+              // 목록 새로고침 플래그 설정 (다음 홈 화면 방문 시 자동 새로고침)
+              setShouldRefreshPosts(true);
 
               // 삭제 성공 시 이전 화면으로 돌아가기
               Alert.alert('삭제 완료', '게시물이 삭제되었습니다.', [

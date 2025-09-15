@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, FlatList, StyleSheet, SafeAreaView, RefreshControl, Alert, ActivityIndicator, Text } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SPACING } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
 import { useThemeStore } from '../stores/themeStore';
+import usePostStore from '../stores/postStore';
 
 // 컴포넌트 imports
 import CategorySelector from '../components/CategorySelector';
@@ -40,6 +41,20 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [notificationCount] = useState(3); // 예시 알림 개수
+
+  // Zustand 스토어 상태 및 액션들
+  const { shouldRefreshPosts, setShouldRefreshPosts } = usePostStore();
+
+  // 스마트한 포커스 기반 새로고침
+  useFocusEffect(
+    useCallback(() => {
+      if (shouldRefreshPosts) {
+        console.log('게시물 목록 새로고침 필요 - 포커스 시 로드');
+        loadPosts();
+        setShouldRefreshPosts(false); // 플래그 초기화
+      }
+    }, [shouldRefreshPosts, setShouldRefreshPosts])
+  );
 
   // 컴포넌트 마운트 시 카테고리와 게시글 로드
   useEffect(() => {
