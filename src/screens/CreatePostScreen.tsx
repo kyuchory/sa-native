@@ -28,6 +28,9 @@ import LoadingOverlay from '../components/LoadingOverlay';
 // Services
 import { PostService } from '../services/postService';
 
+// Stores
+import usePostStore from '../stores/postStore';
+
 type CreatePostNavigationProp = StackNavigationProp<AuthStackParamList, 'CreatePost'>;
 
 export default function CreatePostScreen() {
@@ -43,6 +46,9 @@ export default function CreatePostScreen() {
   const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+
+  // Zustand 스토어
+  const { setShouldRefreshPosts } = usePostStore();
 
   // 컴포넌트 마운트 시 카테고리 로드 및 기본 텍스트 블록 추가
   useEffect(() => {
@@ -246,7 +252,10 @@ export default function CreatePostScreen() {
       };
 
       const result = await PostService.createPost(postData);
-      
+
+      // 목록 새로고침 플래그 설정
+      setShouldRefreshPosts(true);
+
       Alert.alert(
         '성공',
         '게시물이 성공적으로 작성되었습니다!',

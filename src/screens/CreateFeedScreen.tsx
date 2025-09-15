@@ -27,6 +27,9 @@ import LoadingOverlay from '../components/LoadingOverlay';
 import { PostService } from '../services/postService';
 import { FeedService } from '../services/feedService';
 
+// Stores
+import useFeedStore from '../stores/feedStore';
+
 const { width: screenWidth } = Dimensions.get('window');
 const imageSize = (screenWidth - SPACING.MD * 3) / 3; // 3개씩 배치
 
@@ -49,6 +52,9 @@ export default function CreateFeedScreen() {
   const [content, setContent] = useState('');
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Zustand 스토어
+  const { setShouldRefreshFeeds } = useFeedStore();
 
   // 이미지 선택
   const selectImages = async () => {
@@ -278,6 +284,9 @@ export default function CreateFeedScreen() {
       };
 
       const result = await FeedService.createFeed(feedData);
+
+      // 목록 새로고침 플래그 설정
+      setShouldRefreshFeeds(true);
 
       Alert.alert(
         '성공',
