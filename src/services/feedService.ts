@@ -24,6 +24,8 @@ import {
   UpdateCommentApiResponse,
   DeleteCommentResponse,
   DeleteCommentApiResponse,
+  ToggleBookmarkResponse,
+  ToggleBookmarkApiResponse,
   DeleteFeedResponse
 } from '../types/feed';
 import type { ApiResponse } from '../types/api';
@@ -125,6 +127,17 @@ export class FeedService {
       return response.data!;
     } catch (error) {
       console.error('좋아요 토글 실패:', error);
+      throw error;
+    }
+  }
+
+  // 피드 북마크 토글
+  static async toggleBookmark(feedId: number): Promise<ToggleBookmarkResponse> {
+    try {
+      const response = await apiClient.post<ToggleBookmarkApiResponse>(`/feeds/${feedId}/bookmark`, {});
+      return response.data!;
+    } catch (error) {
+      console.error('북마크 토글 실패:', error);
       throw error;
     }
   }

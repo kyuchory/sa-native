@@ -35,7 +35,7 @@ export const CommentIcon = ({ size = 24, color = COLORS.GRAY_600 }) => (
 );
 
 // 북마크 아이콘
-export const BookmarkIcon = ({ filled = false, size = 24, color = COLORS.GRAY_600 }) => (
+export const BookmarkIcon = ({ filled = false, size = 24, color = COLORS.GRAY_600 }: {filled?: boolean, size?: number, color?: string}) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : "none"}>
     <Path
       d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"

@@ -49,12 +49,20 @@ export default function FeedCard({
   const [likeCount, setLikeCount] = useState(feed.like_count);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(feed.is_bookmarked);
+  const [bookmarkCount, setBookmarkCount] = useState(feed.bookmark_count);
+  const [isBookmarkLoading, setIsBookmarkLoading] = useState(false);
 
   // feed prop이 변경될 때 상태 초기화
   useEffect(() => {
     setIsLiked(feed.is_liked || false);
     setLikeCount(feed.like_count);
   }, [feed.is_liked, feed.like_count]);
+
+  // 북마크 상태 초기화 및 업데이트
+  useEffect(() => {
+    setIsBookmarked(feed.is_bookmarked || false);
+    setBookmarkCount(feed.bookmark_count);
+  }, [feed.is_bookmarked, feed.bookmark_count]);
 
   // 이미지 블록만 필터링
   const imageBlocks = feed.content_blocks.filter(block => block.type === 'image');
@@ -99,9 +107,44 @@ export default function FeedCard({
     }
   };
 
-  const handleBookmarkPress = () => {
-    setIsBookmarked(!isBookmarked);
-    onBookmarkPress?.(feed.id);
+  // 북마크 토글 핸들러 (낙관적 UI 적용, FeedDetailScreen과 동일 패턴)
+  const handleBookmarkPress = async () => {
+    if (isBookmarkLoading) return; // 이미 요청 중이면 무시
+
+    // 낙관적 UI: 즉시 상태 업데이트
+    const originalIsBookmarked = isBookmarked;
+    const originalBookmarkCount = bookmarkCount;
+    const newBookmarkState = !isBookmarked;
+
+    setIsBookmarked(newBookmarkState);
+    setBookmarkCount(prev => newBookmarkState ? prev + 1 : Math.max(0, prev - 1));
+    setIsBookmarkLoading(true);
+
+    try {
+      // API 호출 - 북마크 토글
+      const response = await FeedService.toggleBookmark(feed.id);
+
+      // 서버 응답으로 최종 상태 동기화
+      setIsBookmarked(response.is_bookmarked);
+      setBookmarkCount(response.bookmark_count);
+
+      // 부모 컴포넌트에 알림
+      onBookmarkPress?.(feed.id);
+
+      console.log('북마크 토글 성공:', { feedId: feed.id, is_bookmarked: response.is_bookmarked });
+
+    } catch (error) {
+      console.error('북마크 토글 실패:', error);
+
+      // 실패 시 원래 상태로 롤백
+      setIsBookmarked(originalIsBookmarked);
+      setBookmarkCount(originalBookmarkCount);
+
+      // TODO: 에러 토스트 메시지 표시
+
+    } finally {
+      setIsBookmarkLoading(false);
+    }
   };
 
   const handleUserPress = () => {
@@ -154,7 +197,7 @@ export default function FeedCard({
     <View style={styles.container}>
       {/* 헤더 - 프로필 정보 */}
       <TouchableOpacity style={styles.header} onPress={handleUserPress} activeOpacity={0.7}>
-        <Image source={{ uri: feed.user.profile_img }} style={styles.profileImage} />
+        <Image source={{ uri: feed.user.profile_img! }} style={styles.profileImage} />
         <View style={styles.userInfo}>
           <Text style={styles.nickname}>{feed.user.nickname}</Text>
         </View>
@@ -198,9 +241,19 @@ export default function FeedCard({
 
         <View style={styles.rightActions}>
           <TouchableOpacity style={styles.actionButton} onPress={handleBookmarkPress}>
-            <BookmarkIcon filled={isBookmarked} size={20} />
+            {isBookmarkLoading ? (
+              <ActivityIndicator size="small" color={colors.PRIMARY} />
+            ) : (
+              <BookmarkIcon
+                filled={isBookmarked}
+                size={20}
+                color={isBookmarked ? colors.PRIMARY : colors.GRAY_600}
+              />
+            )}
           </TouchableOpacity>
-          <Text style={styles.actionCount}>{feed.bookmark_count}</Text>
+          <Text style={[styles.actionCount, isBookmarked && { color: colors.PRIMARY }]}>
+            {bookmarkCount}
+          </Text>
         </View>
       </View>
 

@@ -94,6 +94,15 @@ export interface ToggleLikeResponse {
 // 피드 좋아요 토글 API 응답
 export type ToggleLikeApiResponse = ApiResponse<ToggleLikeResponse>;
 
+// 피드 북마크 토글 응답 데이터
+export interface ToggleBookmarkResponse {
+  is_bookmarked: boolean;
+  bookmark_count: number;
+}
+
+// 피드 북마크 토글 API 응답
+export type ToggleBookmarkApiResponse = ApiResponse<ToggleBookmarkResponse>;
+
 // 댓글 사용자 정보
 export interface CommentUser {
   id: number;

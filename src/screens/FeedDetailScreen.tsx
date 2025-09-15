@@ -125,6 +125,10 @@ export default function FeedDetailScreen() {
           is_liked: response.is_liked,
           like_count: response.like_count
         } : null);
+
+        // 피드 목록 새로고침 플래그 설정 (좋아요 변경 반영)
+        setShouldRefreshFeeds(true);
+
       } catch (error) {
         console.error('피드 좋아요 토글 실패:', error);
         // 실패 시 원래 상태로 롤백
@@ -132,6 +136,43 @@ export default function FeedDetailScreen() {
           ...prev,
           is_liked: originalIsLiked,
           like_count: originalLikeCount
+        } : null);
+      }
+    }
+  };
+
+  // 피드 북마크 토글 (좋아요 토글과 동일한 패턴)
+  const onFeedBookmarkToggle = async () => {
+    if (feed) {
+      // 낙관적 UI 업데이트
+      const originalIsBookmarked = feed.is_bookmarked;
+      const originalBookmarkCount = feed.bookmark_count;
+
+      setFeed(prev => prev ? {
+        ...prev,
+        is_bookmarked: !prev.is_bookmarked,
+        bookmark_count: prev.is_bookmarked ? prev.bookmark_count - 1 : prev.bookmark_count + 1
+      } : null);
+
+      try {
+        const response = await FeedService.toggleBookmark(feedId);
+        // API 응답으로 최종 상태 동기화
+        setFeed(prev => prev ? {
+          ...prev,
+          is_bookmarked: response.is_bookmarked,
+          bookmark_count: response.bookmark_count
+        } : null);
+
+        // 피드 목록 새로고침 플래그 설정 (북마크 변경 반영)
+        setShouldRefreshFeeds(true);
+
+      } catch (error) {
+        console.error('피드 북마크 토글 실패:', error);
+        // 실패 시 원래 상태로 롤백
+        setFeed(prev => prev ? {
+          ...prev,
+          is_bookmarked: originalIsBookmarked,
+          bookmark_count: originalBookmarkCount
         } : null);
       }
     }
@@ -209,6 +250,9 @@ export default function FeedDetailScreen() {
       const updatedComments = await FeedService.getComments(feedId);
       setComments(updatedComments);
 
+      // 피드 목록 새로고침 플래그 설정 (댓글 작성 반영)
+      setShouldRefreshFeeds(true);
+
       console.log('댓글 작성 성공:', text);
 
     } catch (error) {
@@ -235,6 +279,9 @@ export default function FeedDetailScreen() {
       // 댓글 목록 새로고침
       const updatedComments = await FeedService.getComments(feedId);
       setComments(updatedComments);
+
+      // 피드 목록 새로고침 플래그 설정 (답글 작성 반영)
+      setShouldRefreshFeeds(true);
 
       // 답글 입력 모드 종료
       setReplyingTo(null);
@@ -507,10 +554,16 @@ export default function FeedDetailScreen() {
             </View>
 
             <View style={styles.rightActions}>
-              <Pressable style={styles.actionButton}>
-                <BookmarkIcon size={20} />
-              </Pressable>
-              <Text style={styles.actionCount}>{feed.bookmark_count}</Text>
+              <TouchableOpacity style={styles.actionButton} onPress={onFeedBookmarkToggle}>
+                <BookmarkIcon
+                  filled={feed.is_bookmarked}
+                  size={20}
+                  color={feed.is_bookmarked ? colors.PRIMARY : colors.GRAY_600}
+                />
+              </TouchableOpacity>
+              <Text style={[styles.actionCount, feed.is_bookmarked && { color: colors.PRIMARY }]}>
+                {feed.bookmark_count}
+              </Text>
             </View>
           </View>
 
