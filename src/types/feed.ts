@@ -10,6 +10,7 @@ export interface FeedContentBlock {
   type: FeedContentBlockType;
   value: string;
   sequence: number;
+  path?: string;
 }
 
 // 피드 작성자 정보
