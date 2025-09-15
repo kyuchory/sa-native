@@ -236,3 +236,6 @@ export interface PostLikeResponse {
 
 // 게시글 삭제 응답 (data는 null)
 export type DeletePostResponse = null;
+
+// 게시글 수정 응답 (data는 null)
+export type UpdatePostResponse = null;

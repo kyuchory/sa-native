@@ -14,7 +14,9 @@ import type {
   PostListItem,
   PostLikeResponse,
   DeleteCommentRequest,
-  DeletePostResponse
+  DeletePostResponse,
+  UpdatePostRequest,
+  UpdatePostResponse
 } from '../types/post';
 import type { ApiResponse } from '../types/api';
 import { MOCK_POST_DETAIL, MOCK_ITEM_POST_DETAIL } from '../data/postDetailMockData';
@@ -239,6 +241,16 @@ export class PostService {
       await apiClient.delete<ApiResponse<DeletePostResponse>>(`/posts/${postId}`);
     } catch (error) {
       console.error('게시글 삭제 실패:', error);
+      throw error;
+    }
+  }
+
+  // 게시글 수정
+  static async updatePost(postId: number, updateData: UpdatePostRequest): Promise<void> {
+    try {
+      await apiClient.put<ApiResponse<UpdatePostResponse>>(`/posts/${postId}`, updateData);
+    } catch (error) {
+      console.error('게시글 수정 실패:', error);
       throw error;
     }
   }
