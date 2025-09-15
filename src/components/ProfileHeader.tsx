@@ -51,7 +51,7 @@ export default function ProfileHeader({
     if (!user.bio) return null;
 
     const bioText = user.bio;
-    const shouldTruncate = bioText.length > 80; // 프로필에서는 80자로 제한
+    const shouldTruncate = bioText.length > 55; // 프로필에서는 80자로 제한
 
     if (!shouldTruncate) {
       return <Text style={styles.bioText}>{bioText}</Text>;
@@ -71,7 +71,7 @@ export default function ProfileHeader({
     return (
       <View>
         <Text style={styles.bioText}>
-          {bioText.substring(0, 80)}...
+          {bioText.substring(0, 55)}...
         </Text>
         <TouchableOpacity onPress={() => setBioExpanded(true)}>
           <Text style={styles.moreText}>더보기</Text>
