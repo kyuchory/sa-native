@@ -65,6 +65,7 @@ export interface PostDetailContentBlock {
   type: ContentBlockType;
   value: string;
   sequence: number;
+  path?: string; // image 타입일 때만 제공 (full URL 대신 경로만)
 }
 
 export interface PostTag {
