@@ -67,9 +67,9 @@ export interface CreateFeedResponse {
 // 피드 작성 API 응답
 export type CreateFeedApiResponse = ApiResponse<CreateFeedResponse>;
 
-// 피드 수정 요청 데이터 (모든 필드 선택사항)
+// 피드 수정 요청 데이터 (필요한 필드만 포함)
 export interface UpdateFeedRequest {
-  content_blocks?: Array<{
+  content_blocks: Array<{
     type: string;
     value: string;
     sequence: number;

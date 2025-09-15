@@ -552,7 +552,7 @@ export default function FeedDetailScreen() {
               icon: <EditIcon size={20} color={colors.GRAY_700} />,
               color: colors.GRAY_700,
               onPress: () => {
-                Alert.alert('수정', '피드 수정 기능이 구현 예정입니다.');
+                navigation.navigate('EditFeed', { feedId: feedId });
               },
             },
             {

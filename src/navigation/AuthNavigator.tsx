@@ -15,6 +15,7 @@ import CreateFeedScreen from '../screens/CreateFeedScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
 import EditPostScreen from '../screens/EditPostScreen';
 import FeedDetailScreen from '../screens/FeedDetailScreen';
+import EditFeedScreen from '../screens/EditFeedScreen';
 // import ProfileScreen from '../screens/ProfileScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ProfileEditScreen from '../screens/ProfileEditScreen';
@@ -107,6 +108,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="FeedDetail"
           component={FeedDetailScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="EditFeed"
+          component={EditFeedScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen
