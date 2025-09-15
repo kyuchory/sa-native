@@ -4,6 +4,9 @@ import {
   FeedListResponse,
   CreateFeedRequest,
   CreateFeedApiResponse,
+  UpdateFeedRequest,
+  UpdateFeedApiResponse,
+  UpdateFeedResponse,
   ToggleLikeResponse,
   ToggleLikeApiResponse,
   FeedDetailApiResponse,
@@ -59,6 +62,17 @@ export class FeedService {
       return response.data!;
     } catch (error) {
       console.error('피드 작성 실패:', error);
+      throw error;
+    }
+  }
+
+  // 피드 수정
+  static async updateFeed(feedId: number, feedData: UpdateFeedRequest): Promise<UpdateFeedResponse> {
+    try {
+      const response = await apiClient.put<UpdateFeedApiResponse>(`/feeds/${feedId}`, feedData);
+      return response.data!;
+    } catch (error) {
+      console.error('피드 수정 실패:', error);
       throw error;
     }
   }

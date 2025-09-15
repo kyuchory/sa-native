@@ -67,6 +67,24 @@ export interface CreateFeedResponse {
 // 피드 작성 API 응답
 export type CreateFeedApiResponse = ApiResponse<CreateFeedResponse>;
 
+// 피드 수정 요청 데이터 (모든 필드 선택사항)
+export interface UpdateFeedRequest {
+  content_blocks?: Array<{
+    type: string;
+    value: string;
+    sequence: number;
+  }>;
+}
+
+// 피드 수정 응답 데이터
+export interface UpdateFeedResponse {
+  feedId: number;
+  updated_at: string;
+}
+
+// 피드 수정 API 응답
+export type UpdateFeedApiResponse = ApiResponse<UpdateFeedResponse>;
+
 // 피드 좋아요 토글 응답 데이터
 export interface ToggleLikeResponse {
   is_liked: boolean;
