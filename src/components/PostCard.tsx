@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import type { PostListItem } from '../types/post';
-import { EmptyHeartIcon, FilledHeartIcon, CommentIcon } from './PostCardIcons';
+import { EmptyHeartIcon, FilledHeartIcon } from './PostCardIcons';
+import { CommentIcon, BookmarkIcon } from './PostIcons';
 import { PostService } from '../services/postService';
 import { useThemeStore } from '../stores/themeStore';
 
@@ -23,16 +24,23 @@ export default function PostCard({
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
   
-  // 로컬 좋아요 상태 관리
+  // 로컬 상태 관리
   const [isLiked, setIsLiked] = useState(post.is_liked || false);
   const [likeCount, setLikeCount] = useState(post.like_count);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
+
+  // 로컬 북마크 상태 관리
+  const [isBookmarked, setIsBookmarked] = useState(post.is_bookmarked || false);
+  const [bookmarkCount, setBookmarkCount] = useState(post.bookmark_count);
+  const [isBookmarkLoading, setIsBookmarkLoading] = useState(false);
 
   // post prop이 변경될 때 상태 초기화
   useEffect(() => {
     setIsLiked(post.is_liked || false);
     setLikeCount(post.like_count);
-  }, [post.is_liked, post.like_count]);
+    setIsBookmarked(post.is_bookmarked || false);
+    setBookmarkCount(post.bookmark_count);
+  }, [post.is_liked, post.like_count, post.is_bookmarked, post.bookmark_count]);
 
   // 좋아요 토글 핸들러 (낙관적 UI 적용)
   const handleLikeToggle = async () => {
@@ -64,8 +72,43 @@ export default function PostCard({
       
       // TODO: 에러 토스트 메시지 표시
       
+  } finally {
+    setIsLikeLoading(false);
+  }
+  };
+
+  // 북마크 토글 핸들러 (낙관적 UI 적용)
+  const handleBookmarkToggle = async () => {
+    if (isBookmarkLoading) return; // 이미 요청 중이면 무시
+
+    // 낙관적 UI: 즉시 상태 업데이트
+    const originalIsBookmarked = isBookmarked;
+    const originalBookmarkCount = bookmarkCount;
+    const newBookmarkState = !isBookmarked;
+
+    setIsBookmarked(newBookmarkState);
+    setBookmarkCount(prev => newBookmarkState ? prev + 1 : Math.max(0, prev - 1));
+    setIsBookmarkLoading(true);
+
+    try {
+      // API 호출
+      const response = await PostService.togglePostBookmark(post.id);
+
+      // 서버 응답으로 최종 상태 동기화
+      setIsBookmarked(response.is_bookmarked);
+      setBookmarkCount(response.bookmark_count);
+
+    } catch (error) {
+      console.error('북마크 토글 실패:', error);
+
+      // 실패 시 원래 상태로 롤백
+      setIsBookmarked(originalIsBookmarked);
+      setBookmarkCount(originalBookmarkCount);
+
+      // TODO: 에러 토스트 메시지 표시
+
     } finally {
-      setIsLikeLoading(false);
+      setIsBookmarkLoading(false);
     }
   };
   
@@ -187,6 +230,26 @@ export default function PostCard({
           >
             <CommentIcon size={18} color={colors.GRAY_400} />
             <Text style={styles.interactionText}>{formatNumber(post.comment_count)}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.interactionButton}
+            onPress={handleBookmarkToggle}
+            activeOpacity={0.7}
+            disabled={isBookmarkLoading}
+          >
+            {isBookmarkLoading ? (
+              <ActivityIndicator size="small" color={colors.PRIMARY} />
+            ) : (
+              <BookmarkIcon
+                size={18}
+                filled={isBookmarked}
+                color={isBookmarked ? colors.PRIMARY : colors.GRAY_400}
+              />
+            )}
+            <Text style={[styles.interactionText, isBookmarkLoading && styles.loadingText]}>
+              {formatNumber(bookmarkCount)}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

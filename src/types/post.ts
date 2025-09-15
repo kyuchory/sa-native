@@ -186,6 +186,7 @@ export interface PostListItem {
   };
   like_count: number;
   comment_count: number;
+  bookmark_count: number;
   preview_image: string | null;
   is_liked: boolean;
   is_bookmarked: boolean;

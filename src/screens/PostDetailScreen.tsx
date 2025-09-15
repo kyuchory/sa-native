@@ -120,7 +120,10 @@ export default function PostDetailScreen() {
       // 서버 응답으로 최종 상태 동기화
       setIsLiked(response.is_liked);
       setLikeCount(response.like_count);
-      
+
+      // 게시물 목록 새로고침 플래그 설정
+      setShouldRefreshPosts(true);
+
     } catch (error) {
       console.error('좋아요 토글 실패:', error);
       
@@ -155,6 +158,9 @@ export default function PostDetailScreen() {
       // 서버 응답으로 최종 상태 동기화
       setIsBookmarked(response.is_bookmarked);
       setBookmarkCount(response.bookmark_count);
+
+      // 게시물 목록 새로고침 플래그 설정
+      setShouldRefreshPosts(true);
 
     } catch (error) {
       console.error('북마크 토글 실패:', error);
@@ -242,7 +248,10 @@ export default function PostDetailScreen() {
       // 댓글 목록 새로고침
       const updatedComments = await PostService.getComments(postId);
       setComments(updatedComments);
-      
+
+      // 게시물 목록 새로고침 플래그 설정
+      setShouldRefreshPosts(true);
+
     } catch (error) {
       Alert.alert('오류', '댓글 작성에 실패했습니다.');
       console.error('댓글 작성 실패:', error);
@@ -564,7 +573,7 @@ export default function PostDetailScreen() {
               <ActivityIndicator size="small" color={colors.ERROR} />
             ) : (
               <LikeIcon
-                size={16}
+                size={18}
                 filled={isLiked}
                 color={isLiked ? colors.ERROR : colors.GRAY_500}
               />
@@ -583,7 +592,7 @@ export default function PostDetailScreen() {
             activeOpacity={0.7}
           >
             <CommentIcon
-              size={16}
+              size={18}
               color={colors.GRAY_500}
             />
             <Text style={styles.compactStatText}>{comments.length}</Text>
@@ -599,7 +608,7 @@ export default function PostDetailScreen() {
               <ActivityIndicator size="small" color={colors.PRIMARY} />
             ) : (
               <BookmarkIcon
-                size={16}
+                size={18}
                 filled={isBookmarked}
                 color={isBookmarked ? colors.PRIMARY : colors.GRAY_500}
               />
