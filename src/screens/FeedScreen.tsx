@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, FlatList, StyleSheet, SafeAreaView, RefreshControl, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SPACING } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
 import { useThemeStore } from '../stores/themeStore';
+import useFeedStore from '../stores/feedStore';
 
   // 컴포넌트 imports
 import MainHeader, { ChatIcon } from '../components/MainHeader';
@@ -32,10 +33,23 @@ export default function FeedScreen() {
   const [hasNext, setHasNext] = useState(true);
   // 알림 카운트 쓰지 않음
 
+  // Zustand 스토어 상태 및 액션들
+  const { shouldRefreshFeeds, setShouldRefreshFeeds } = useFeedStore();
+
   // 컴포넌트 마운트 시 피드 로드
   useEffect(() => {
     loadInitialFeeds();
   }, []);
+
+  // 스마트한 포커스 기반 새로고침
+  useFocusEffect(
+    useCallback(() => {
+      if (shouldRefreshFeeds) {
+        loadInitialFeeds();
+        setShouldRefreshFeeds(false); // 플래그 초기화
+      }
+    }, [shouldRefreshFeeds, setShouldRefreshFeeds])
+  );
 
   // 초기 피드 로드
   const loadInitialFeeds = async () => {

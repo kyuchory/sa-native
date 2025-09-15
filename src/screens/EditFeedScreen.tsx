@@ -28,6 +28,9 @@ import LoadingOverlay from '../components/LoadingOverlay';
 import { PostService } from '../services/postService';
 import { FeedService } from '../services/feedService';
 
+// Stores
+import useFeedStore from '../stores/feedStore';
+
 const { width: screenWidth } = Dimensions.get('window');
 const imageSize = (screenWidth - SPACING.MD * 3) / 3; // 3개씩 배치
 
@@ -50,6 +53,9 @@ export default function EditFeedScreen() {
   const styles = createStyles(colors);
 
   const { feedId } = route.params;
+
+  // Zustand 스토어 상태 및 액션들
+  const { setShouldRefreshFeeds } = useFeedStore();
 
   // 상태 관리
   const [content, setContent] = useState('');
@@ -273,6 +279,9 @@ export default function EditFeedScreen() {
       };
 
       await FeedService.updateFeed(feedId, feedData);
+
+      // 목록 새로고침 플래그 설정
+      setShouldRefreshFeeds(true);
 
       Alert.alert(
         '성공',

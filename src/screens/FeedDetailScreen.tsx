@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, Dimensions, Image, Pressable, TouchableOpacity, Alert } from 'react-native';
-import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SPACING, TYPOGRAPHY } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
@@ -23,6 +23,7 @@ import { HeartIcon, CommentIcon, BookmarkIcon } from '../components/FeedCardIcon
 
 // 서비스 imports
 import { FeedService } from '../services/feedService';
+import useFeedStore from '../stores/feedStore';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -71,28 +72,32 @@ export default function FeedDetailScreen() {
   const imageBlocks = feed ? feed.content_blocks.filter(block => block.type === 'image') : [];
   const textBlock = feed ? feed.content_blocks.find(block => block.type === 'text') : null;
 
-  // API 호출
-  useEffect(() => {
-    const fetchFeedDetailAndComments = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const feedResponse = await FeedService.getFeed(feedId);
-        setFeed(feedResponse);
+  // 피드 focus 시 데이터 로드 (수정 후 최신 데이터 보장)
+  useFocusEffect(
+    useCallback(() => {
+      loadFeedDetail();
+    }, [feedId])
+  );
 
-        
-        const commentsResponse = await FeedService.getComments(feedId);
-        setComments(commentsResponse);
-      } catch (err) {
-        console.error('데이터 조회 실패:', err);
-        setError('데이터를 불러오는데 실패했습니다.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  // 피드 상세 정보 로드
+  const loadFeedDetail = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const feedResponse = await FeedService.getFeed(feedId);
+      setFeed(feedResponse);
 
-    fetchFeedDetailAndComments();
-  }, [feedId]);
+      // 댓글 데이터 로드
+      const commentsResponse = await FeedService.getComments(feedId);
+      setComments(commentsResponse);
+    } catch (error) {
+      console.error('피드 상세 조회 실패:', error);
+      setError('피드를 불러오는데 실패했습니다.');
+      navigation.goBack();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 피드 좋아요 토글
   const onFeedLikePress = async () => {
@@ -311,6 +316,8 @@ export default function FeedDetailScreen() {
 
   // 피드 삭제
   const handleDeleteFeed = async () => {
+    const { setShouldRefreshFeeds } = useFeedStore.getState();
+
     Alert.alert(
       '피드 삭제',
       '피드를 삭제하시겠습니까? 삭제된 피드는 복구할 수 없습니다.',
@@ -328,6 +335,9 @@ export default function FeedDetailScreen() {
 
               // API 호출
               await FeedService.deleteFeed(feedId);
+
+              // 목록 새로고침 플래그 설정
+              setShouldRefreshFeeds(true);
 
               // 삭제 성공 시 이전 화면으로 돌아가기
               Alert.alert('삭제 완료', '피드가 삭제되었습니다.', [
