@@ -256,19 +256,8 @@ export default function CreatePostScreen() {
       // 목록 새로고침 플래그 설정
       setShouldRefreshPosts(true);
 
-      Alert.alert(
-        '성공',
-        '게시물이 성공적으로 작성되었습니다!',
-        [
-          {
-            text: '확인',
-            onPress: () => {
-              navigation.goBack();
-              // TODO: 작성된 게시물로 이동 (postId: result.postId)
-            }
-          }
-        ]
-      );
+      // 작성된 게시물 상세 화면으로 이동
+      navigation.replace('PostDetail', { postId: result.postId });
     } catch (error) {
       Alert.alert('오류', '게시물 작성에 실패했습니다. 다시 시도해주세요.');
       console.error('게시물 작성 실패:', error);

@@ -288,18 +288,8 @@ export default function CreateFeedScreen() {
       // 목록 새로고침 플래그 설정
       setShouldRefreshFeeds(true);
 
-      Alert.alert(
-        '성공',
-        '피드가 성공적으로 작성되었습니다!',
-        [
-          {
-            text: '확인',
-            onPress: () => {
-              navigation.goBack();
-            }
-          }
-        ]
-      );
+      // 작성된 피드 상세 화면으로 이동
+      navigation.replace('FeedDetail', { feedId: result.feedId });
     } catch (error) {
       Alert.alert('오류', '피드 작성에 실패했습니다. 다시 시도해주세요.');
       console.error('피드 작성 실패:', error);

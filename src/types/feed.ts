@@ -78,7 +78,7 @@ export interface UpdateFeedRequest {
 
 // 피드 수정 응답 데이터
 export interface UpdateFeedResponse {
-  feedId: number;
+  id: number;
   updated_at: string;
 }
 
