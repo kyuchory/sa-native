@@ -6,6 +6,7 @@ export type FeedContentBlockType = 'text' | 'image' | 'video';
 
 // 피드 콘텐츠 블록 인터페이스
 export interface FeedContentBlock {
+  id: number;
   type: FeedContentBlockType;
   value: string;
   sequence: number;
@@ -15,7 +16,7 @@ export interface FeedContentBlock {
 export interface FeedUser {
   id: number;
   nickname: string;
-  profile_img: string;
+  profile_img: string | null; // 사용자가 프로필 이미지를 설정하지 않은 경우 null
 }
 
 // 피드 목록 아이템
@@ -115,15 +116,16 @@ export type CommentListApiResponse = ApiResponse<CommentItem[]>;
 export interface FeedDetailResponse {
     id: number;
     created_at: string;
+    updated_at: string; // 추가된 필드
     user: FeedUser;
     content_blocks: FeedContentBlock[];
-    media_count: number;
+    media_count?: number; // 선택 필드로 변경 (API 명세에 따라)
     like_count: number;
     bookmark_count: number;
     comment_count: number;
     is_liked: boolean;
     is_bookmarked: boolean;
-    is_author: boolean;
+    is_author: boolean; // API 명세에 따라 필수 필드
     // 단일 조회 시 모든 콘텐츠 블록 포함
 }
 
@@ -176,3 +178,6 @@ export interface ToggleCommentLikeResponse {
 
 // 피드 댓글 좋아요 토글 API 응답
 export type ToggleCommentLikeApiResponse = ApiResponse<ToggleCommentLikeResponse>;
+
+// 피드 삭제 응답 (data는 null)
+export type DeleteFeedResponse = null;

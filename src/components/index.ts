@@ -10,7 +10,7 @@ export { default as ChatEditActionBar } from './ChatEditActionBar';
 export { default as CategoryPicker } from './CategoryPicker';
 export { default as CategorySelector } from './CategorySelector';
 export * from './ChatActionIcons';
-export { default as ChatActionSheet } from './ChatActionSheet';
+export { default as ChatActionSheet } from './MenuActionSheet';
 export * from './ChatDetailIcons';
 export { default as NotificationListItem } from './NotificationListItem';
 export { default as NotificationList } from './NotificationListItem';

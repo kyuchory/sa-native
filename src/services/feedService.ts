@@ -20,7 +20,8 @@ import {
   UpdateCommentResponse,
   UpdateCommentApiResponse,
   DeleteCommentResponse,
-  DeleteCommentApiResponse
+  DeleteCommentApiResponse,
+  DeleteFeedResponse
 } from '../types/feed';
 import type { ApiResponse } from '../types/api';
 import type { UploadedImage, ImageUploadResponse } from '../types/post';
@@ -150,6 +151,16 @@ export class FeedService {
       return response.data!;
     } catch (error) {
       console.error('댓글 삭제 실패:', error);
+      throw error;
+    }
+  }
+
+  // 피드 삭제
+  static async deleteFeed(feedId: number): Promise<void> {
+    try {
+      await apiClient.delete<ApiResponse<DeleteFeedResponse>>(`/feeds/${feedId}`);
+    } catch (error) {
+      console.error('피드 삭제 실패:', error);
       throw error;
     }
   }

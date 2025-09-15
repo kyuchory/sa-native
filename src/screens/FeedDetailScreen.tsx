@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, Dimensions, Image, Pressable, TouchableOpacity } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, Dimensions, Image, Pressable, TouchableOpacity, Alert } from 'react-native';
+import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { SPACING, TYPOGRAPHY } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 
@@ -10,7 +11,10 @@ import { CommentInput } from '../components/CommentInput';
 import { CommentEditInput } from '../components/CommentEditInput';
 import { ReplyInput } from '../components/ReplyInput';
 import LoadingOverlay from '../components/LoadingOverlay';
-import { CommentItem, FeedListItem } from '../types/feed';
+import { CommentItem, FeedDetailResponse } from '../types/feed';
+import { AuthStackParamList } from '../types/navigation';
+import MenuActionSheet from '../components/MenuActionSheet';
+import { MenuIcon, EditIcon, DeleteIcon, ReportIcon } from '../components/CommonIcons';
 
 // 불필요한 mock import는 제거됨
 
@@ -21,6 +25,10 @@ import { HeartIcon, CommentIcon, BookmarkIcon } from '../components/FeedCardIcon
 import { FeedService } from '../services/feedService';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+// 네비게이션 타입 정의
+type FeedDetailRouteProp = RouteProp<AuthStackParamList, 'FeedDetail'>;
+type FeedDetailNavigationProp = StackNavigationProp<AuthStackParamList, 'FeedDetail'>;
 
 // 시간 포맷 함수
 const formatTimeAgo = (dateString: string): string => {
@@ -38,8 +46,8 @@ const formatTimeAgo = (dateString: string): string => {
 };
 
 export default function FeedDetailScreen() {
-  const route = useRoute() as { params: { feedId: number } };
-  const navigation = useNavigation() as { navigate: (screen: string, params?: any) => void };
+  const route = useRoute<FeedDetailRouteProp>();
+  const navigation = useNavigation<FeedDetailNavigationProp>();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
   const feedId = route.params?.feedId || 15;
@@ -48,7 +56,7 @@ export default function FeedDetailScreen() {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // 피드 데이터 및 상태 관리
-  const [feed, setFeed] = useState<FeedListItem | null>(null);
+  const [feed, setFeed] = useState<FeedDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,6 +65,7 @@ export default function FeedDetailScreen() {
   const [isCommentLoading, setIsCommentLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
+  const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
 
   // 데이터 필터링 (feed가 null일 수 있음)
   const imageBlocks = feed ? feed.content_blocks.filter(block => block.type === 'image') : [];
@@ -300,6 +309,45 @@ export default function FeedDetailScreen() {
     }
   };
 
+  // 피드 삭제
+  const handleDeleteFeed = async () => {
+    Alert.alert(
+      '피드 삭제',
+      '피드를 삭제하시겠습니까? 삭제된 피드는 복구할 수 없습니다.',
+      [
+        {
+          text: '취소',
+          style: 'cancel',
+        },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+
+              // API 호출
+              await FeedService.deleteFeed(feedId);
+
+              // 삭제 성공 시 이전 화면으로 돌아가기
+              Alert.alert('삭제 완료', '피드가 삭제되었습니다.', [
+                {
+                  text: '확인',
+                  onPress: () => navigation.goBack(),
+                },
+              ]);
+            } catch (error) {
+              Alert.alert('오류', '피드 삭제에 실패했습니다.');
+              console.error('피드 삭제 실패:', error);
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // 텍스트 더보기/접기 처리
   const renderContent = () => {
     if (!textBlock) return null;
@@ -374,6 +422,15 @@ export default function FeedDetailScreen() {
       <CommonHeader
         title="피드"
         showBackButton={true}
+        rightComponent={
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => setMenuActionSheetVisible(true)}
+            activeOpacity={0.7}
+          >
+            <MenuIcon size={20} color={colors.GRAY_700} />
+          </TouchableOpacity>
+        }
       />
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
@@ -384,7 +441,7 @@ export default function FeedDetailScreen() {
             onPress={() => navigation.navigate('UserProfile', { userId: String(feed.user.id) })}
             activeOpacity={0.7}
           >
-            <Image source={{ uri: feed.user.profile_img }} style={styles.profileImage} />
+            <Image source={{ uri: feed.user.profile_img ?? undefined }} style={styles.profileImage} />
             <View style={styles.userInfo}>
               <Text style={styles.nickname}>{feed.user.nickname}</Text>
               <Text style={styles.location}>대한민국 서울시 (하드코딩)</Text>
@@ -480,6 +537,44 @@ export default function FeedDetailScreen() {
           placeholder="댓글을 작성해 보세요."
         />
       )}
+
+      {/* 메뉴 액션 시트 */}
+      <MenuActionSheet
+        visible={menuActionSheetVisible}
+        onClose={() => setMenuActionSheetVisible(false)}
+        title="피드"
+        actions={[
+          // 작성자의 피드인 경우 수정/삭제 메뉴 추가
+          ...(feed?.is_author ? [
+            {
+              id: 'edit',
+              title: '피드 수정',
+              icon: <EditIcon size={20} color={colors.GRAY_700} />,
+              color: colors.GRAY_700,
+              onPress: () => {
+                Alert.alert('수정', '피드 수정 기능이 구현 예정입니다.');
+              },
+            },
+            {
+              id: 'delete',
+              title: '피드 삭제',
+              icon: <DeleteIcon size={20} color={colors.ERROR} />,
+              color: colors.ERROR,
+              onPress: handleDeleteFeed,
+            },
+          ] : []),
+          // 신고는 모든 사용자에게 표시
+          {
+            id: 'report',
+            title: '피드 신고',
+            icon: <ReportIcon size={20} color={colors.ERROR} />,
+            color: colors.ERROR,
+            onPress: () => {
+              Alert.alert('신고', '피드 신고 기능이 구현 예정입니다.');
+            },
+          },
+        ]}
+      />
     </SafeAreaView>
   );
 }
@@ -614,5 +709,10 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.MD,
     color: colors.ERROR,
     textAlign: 'center',
+  },
+
+  // 메뉴 버튼
+  menuButton: {
+    padding: SPACING.SM,
   },
 });
