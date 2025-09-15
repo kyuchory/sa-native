@@ -13,6 +13,7 @@ import SignUpScreen from '../screens/SignUpScreen';
 import CreatePostScreen from '../screens/CreatePostScreen';
 import CreateFeedScreen from '../screens/CreateFeedScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
+import EditPostScreen from '../screens/EditPostScreen';
 import FeedDetailScreen from '../screens/FeedDetailScreen';
 // import ProfileScreen from '../screens/ProfileScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -83,13 +84,18 @@ export default function AuthNavigator() {
           component={TabNavigator}
           options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="CreatePost" 
+        <Stack.Screen
+          name="CreatePost"
           component={CreatePostScreen}
           options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="CreateFeed" 
+        <Stack.Screen
+          name="EditPost"
+          component={EditPostScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="CreateFeed"
           component={CreateFeedScreen}
           options={{ headerShown: false }}
         />

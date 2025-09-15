@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
@@ -64,10 +64,12 @@ export default function PostDetailScreen() {
   const currentUserId = user?.id;
   const styles = createStyles(colors);
 
-  // 컴포넌트 마운트 시 게시물 데이터 로드
-  useEffect(() => {
-    loadPostDetail();
-  }, [postId]);
+  // 게시물 focus 시 데이터 로드 (수정 후 최신 데이터 보장)
+  useFocusEffect(
+    useCallback(() => {
+      loadPostDetail();
+    }, [postId])
+  );
 
   // 게시물 상세 정보 로드
   const loadPostDetail = async () => {
@@ -608,7 +610,7 @@ export default function PostDetailScreen() {
               icon: <EditIcon size={20} color={colors.GRAY_700} />,
               color: colors.GRAY_700,
               onPress: () => {
-                Alert.alert('수정', '게시물 수정 기능이 구현 예정입니다.');
+                navigation.navigate('EditPost', { postId: postId });
               },
             },
             {

@@ -6,6 +6,7 @@ export type AuthStackParamList = {
   CreatePost: undefined;
   CreateFeed: undefined;
   PostDetail: { postId: number };
+  EditPost: { postId: number };
   FeedDetail: { feedId: number };
   UserProfile: { userId?: string };
   ProfileEdit: undefined;
