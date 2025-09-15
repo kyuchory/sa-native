@@ -24,6 +24,7 @@ import { HeartIcon, CommentIcon, BookmarkIcon } from '../components/FeedCardIcon
 // 서비스 imports
 import { FeedService } from '../services/feedService';
 import useFeedStore from '../stores/feedStore';
+import useProfileStore from '../stores/profileStore';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -67,6 +68,10 @@ export default function FeedDetailScreen() {
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
+
+  //Zustand
+  const { setShouldRefreshFeeds } = useFeedStore(); // 피드 목록 새로고침 플래그 설정용
+  const { setShouldRefreshProfileFeeds } = useProfileStore(); // 프로필 플래그 설정용
 
   // 데이터 필터링 (feed가 null일 수 있음)
   const imageBlocks = feed ? feed.content_blocks.filter(block => block.type === 'image') : [];
@@ -316,7 +321,6 @@ export default function FeedDetailScreen() {
 
   // 피드 삭제
   const handleDeleteFeed = async () => {
-    const { setShouldRefreshFeeds } = useFeedStore.getState();
 
     Alert.alert(
       '피드 삭제',
@@ -338,6 +342,11 @@ export default function FeedDetailScreen() {
 
               // 목록 새로고침 플래그 설정
               setShouldRefreshFeeds(true);
+
+              // 자신이 작성한 게시물을 삭제하는 경우 프로필 목록도 새로고침
+              if (feed?.is_author) {
+                setShouldRefreshProfileFeeds(true); // 자신의 피드 목록 새로고침
+              }
 
               // 삭제 성공 시 이전 화면으로 돌아가기
               Alert.alert('삭제 완료', '피드가 삭제되었습니다.', [

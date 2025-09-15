@@ -16,6 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import usePostStore from '../stores/postStore';
+import useProfileStore from '../stores/profileStore';
 import { AuthStackParamList } from '../types/navigation';
 import type { ContentBlock, ContentBlockType, Category, PostDetail } from '../types/post';
 
@@ -43,6 +44,7 @@ export default function EditPostScreen() {
   const navigation = useNavigation<EditPostNavigationProp>();
   const { colors } = useThemeStore();
   const { setShouldRefreshPosts } = usePostStore(); // Zustand 스토어에서 액션 가져오기
+  const { setShouldRefreshProfilePosts } = useProfileStore();
   const styles = createStyles(colors);
 
   const { postId } = route.params;
@@ -305,6 +307,7 @@ export default function EditPostScreen() {
 
       // 목록 새로고침 플래그 설정
       setShouldRefreshPosts(true);
+      setShouldRefreshProfilePosts(true); // 자신의 게시물 목록 새로고침 플래그
 
       Alert.alert(
         '성공',

@@ -30,6 +30,7 @@ import { FeedService } from '../services/feedService';
 
 // Stores
 import useFeedStore from '../stores/feedStore';
+import useProfileStore from '../stores/profileStore';
 
 const { width: screenWidth } = Dimensions.get('window');
 const imageSize = (screenWidth - SPACING.MD * 3) / 3; // 3개씩 배치
@@ -56,6 +57,7 @@ export default function EditFeedScreen() {
 
   // Zustand 스토어 상태 및 액션들
   const { setShouldRefreshFeeds } = useFeedStore();
+  const { setShouldRefreshProfileFeeds } = useProfileStore();
 
   // 상태 관리
   const [content, setContent] = useState('');
@@ -282,6 +284,7 @@ export default function EditFeedScreen() {
 
       // 목록 새로고침 플래그 설정
       setShouldRefreshFeeds(true);
+      setShouldRefreshProfileFeeds(true);
 
       Alert.alert(
         '성공',

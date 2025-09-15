@@ -30,6 +30,7 @@ import { PostService } from '../services/postService';
 
 // Stores
 import usePostStore from '../stores/postStore';
+import useProfileStore from '../stores/profileStore';
 
 type CreatePostNavigationProp = StackNavigationProp<AuthStackParamList, 'CreatePost'>;
 
@@ -49,6 +50,7 @@ export default function CreatePostScreen() {
 
   // Zustand 스토어
   const { setShouldRefreshPosts } = usePostStore();
+  const { setShouldRefreshProfilePosts } = useProfileStore();
 
   // 컴포넌트 마운트 시 카테고리 로드 및 기본 텍스트 블록 추가
   useEffect(() => {
@@ -255,6 +257,7 @@ export default function CreatePostScreen() {
 
       // 목록 새로고침 플래그 설정
       setShouldRefreshPosts(true);
+      setShouldRefreshProfilePosts(true); // 자신의 게시물 목록 새로고침 플래그
 
       // 작성된 게시물 상세 화면으로 이동
       navigation.replace('PostDetail', { postId: result.postId });

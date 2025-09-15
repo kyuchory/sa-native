@@ -29,6 +29,7 @@ import { FeedService } from '../services/feedService';
 
 // Stores
 import useFeedStore from '../stores/feedStore';
+import useProfileStore from '../stores/profileStore';
 
 const { width: screenWidth } = Dimensions.get('window');
 const imageSize = (screenWidth - SPACING.MD * 3) / 3; // 3개씩 배치
@@ -55,6 +56,7 @@ export default function CreateFeedScreen() {
 
   // Zustand 스토어
   const { setShouldRefreshFeeds } = useFeedStore();
+  const { setShouldRefreshProfilePosts } = useProfileStore();
 
   // 이미지 선택
   const selectImages = async () => {
@@ -287,6 +289,7 @@ export default function CreateFeedScreen() {
 
       // 목록 새로고침 플래그 설정
       setShouldRefreshFeeds(true);
+      setShouldRefreshProfilePosts(true);
 
       // 작성된 피드 상세 화면으로 이동
       navigation.replace('FeedDetail', { feedId: result.feedId });

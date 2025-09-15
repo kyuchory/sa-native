@@ -17,6 +17,10 @@ import ProfilePostsList from '../components/ProfilePostsList';
 import { ProfileService } from '../services/profileService';
 import { FollowService } from '../services/followService';
 
+
+// 스토어 imports
+import useProfileStore from '../stores/profileStore';
+
 // 타입 imports
 import type { Profile, ProfileFeedItem, ProfilePostItem, ProfilePagination } from '../types/profile';
 
@@ -44,6 +48,9 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
     total: 0,
     has_next: false,
   });
+
+  // 프로필 스토어 상태
+  const { shouldRefreshProfilePosts, shouldRefreshProfileFeeds, setShouldRefreshProfilePosts, setShouldRefreshProfileFeeds } = useProfileStore();
 
   // 프로필 데이터 조회
   const fetchProfile = async (showLoading = true) => {
@@ -130,10 +137,9 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
 
   useEffect(() => {
     fetchProfile();
-    // 초기 로드 시 피드 데이터도 함께 조회
-    if (activeTab === 'feed') {
-      fetchFeeds(true);
-    }
+    // 초기 로드 시 피드와 포스트 데이터 모두 한번에 불러오기
+    fetchFeeds(true);
+    fetchPosts();
   }, [targetUserId]);
 
   // 화면에 다시 포커스될 때 프로필과 피드 데이터 리프레시
@@ -142,11 +148,32 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
       // 프로필 데이터를 로딩 없이 다시 가져와서 최신 상태로 유지
       fetchProfile(false);
 
-      if (activeTab === 'feed') {
-        fetchFeeds(true);
+      // 자신의 프로필일 때만 플래그 기반으로 데이터 로드
+      if (isOwnProfile) {
+        if (shouldRefreshProfilePosts && activeTab === 'posts') {
+          fetchPosts();
+          setShouldRefreshProfilePosts(false); // 플래그 초기화
+        }
+        if (shouldRefreshProfileFeeds && activeTab === 'feed') {
+          fetchFeeds(true);
+          setShouldRefreshProfileFeeds(false); // 플래그 초기화
+        }
+      } else {
+        // 타인 프로필인 경우 기존 방식으로 로드
+        if (activeTab === 'feed') {
+          fetchFeeds(true);
+        }
       }
       return () => {};
-    }, [activeTab, targetUserId])
+    }, [
+      activeTab,
+      targetUserId,
+      isOwnProfile,
+      shouldRefreshProfilePosts,
+      shouldRefreshProfileFeeds,
+      setShouldRefreshProfilePosts,
+      setShouldRefreshProfileFeeds
+    ])
   );
 
   // ProfileHeader에 전달할 데이터 - API 응답 구조 그대로 사용
@@ -165,12 +192,10 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
   };
 
   const handleEditProfilePress = () => {
-    console.log('Edit profile pressed');
     navigation.navigate('ProfileEdit');
   };
 
   const handleMenuPress = () => {
-    console.log('Menu pressed');
   };
 
   const handleFollowPress = async () => {
@@ -214,24 +239,14 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
   };
 
   const handleChatPress = () => {
-    console.log('Chat pressed');
   };
 
   const handleTabChange = (tab: ProfileTabType) => {
+    // 탭 전환 시 API 호출 없이 그냥 상태만 변경 - 초기 로드한 데이터 사용
     setActiveTab(tab);
-    
-    // 피드 탭으로 변경 시 데이터 로드
-    if (tab === 'feed' && feedsData.length === 0) {
-      fetchFeeds(true);
-    }
-    // posts 탭 선택 시 데이터 로딩
-    if (tab === 'posts') {
-      fetchPosts();
-    }
   };
 
   const handleItemPress = (item: any) => {
-    console.log('Item pressed:', item);
     if (activeTab === 'feed') {
       navigation.navigate('FeedDetail', { feedId: item.id });
     } else if (activeTab === 'posts') {
