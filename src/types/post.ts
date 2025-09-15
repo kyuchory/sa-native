@@ -235,6 +235,16 @@ export interface PostLikeResponse {
   };
 }
 
+// 게시글 북마크 토글 응답
+export interface PostBookmarkResponse {
+  code: number;
+  message: string;
+  data: {
+    is_bookmarked: boolean;
+    bookmark_count: number;
+  };
+}
+
 // 게시글 삭제 응답 (data는 null)
 export type DeletePostResponse = null;
 

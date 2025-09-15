@@ -56,7 +56,9 @@ export default function PostDetailScreen() {
   const [isLiked, setIsLiked] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [bookmarkCount, setBookmarkCount] = useState(0);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
+  const [isBookmarkLoading, setIsBookmarkLoading] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [isCommentLoading, setIsCommentLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
@@ -84,7 +86,8 @@ export default function PostDetailScreen() {
       setIsLiked(postData.is_liked || false);
       setIsBookmarked(postData.is_bookmarked || false);
       setLikeCount(postData.like_count);
-      
+      setBookmarkCount(postData.bookmark_count);
+
       // 댓글 데이터 로드
       const commentsData = await PostService.getComments(postId);
       setComments(commentsData);
@@ -132,10 +135,39 @@ export default function PostDetailScreen() {
     }
   };
 
-  // 북마크 토글
-  const handleBookmarkToggle = () => {
-    setIsBookmarked(prev => !prev);
-    // TODO: API 호출
+  // 북마크 토글 (좋아요 토글과 동일한 패턴 적용)
+  const handleBookmarkToggle = async () => {
+    if (isBookmarkLoading) return; // 이미 요청 중이면 무시
+
+    // 낙관적 UI: 즉시 상태 업데이트
+    const originalIsBookmarked = isBookmarked;
+    const originalBookmarkCount = bookmarkCount;
+    const newBookmarkState = !isBookmarked;
+
+    setIsBookmarked(newBookmarkState);
+    setBookmarkCount(prev => newBookmarkState ? prev + 1 : Math.max(0, prev - 1));
+    setIsBookmarkLoading(true);
+
+    try {
+      // API 호출
+      const response = await PostService.togglePostBookmark(postId);
+
+      // 서버 응답으로 최종 상태 동기화
+      setIsBookmarked(response.is_bookmarked);
+      setBookmarkCount(response.bookmark_count);
+
+    } catch (error) {
+      console.error('북마크 토글 실패:', error);
+
+      // 실패 시 원래 상태로 롤백
+      setIsBookmarked(originalIsBookmarked);
+      setBookmarkCount(originalBookmarkCount);
+
+      Alert.alert('오류', '북마크 처리에 실패했습니다.');
+
+    } finally {
+      setIsBookmarkLoading(false);
+    }
   };
 
   // 댓글 좋아요 토글
@@ -561,14 +593,19 @@ export default function PostDetailScreen() {
             style={styles.compactStatButton}
             onPress={handleBookmarkToggle}
             activeOpacity={0.7}
+            disabled={isBookmarkLoading}
           >
-            <BookmarkIcon
-              size={16}
-              filled={isBookmarked}
-              color={isBookmarked ? colors.PRIMARY : colors.GRAY_500}
-            />
-            <Text style={[styles.compactStatText, isBookmarked && styles.bookmarkedText]}>
-              {post.bookmark_count}
+            {isBookmarkLoading ? (
+              <ActivityIndicator size="small" color={colors.PRIMARY} />
+            ) : (
+              <BookmarkIcon
+                size={16}
+                filled={isBookmarked}
+                color={isBookmarked ? colors.PRIMARY : colors.GRAY_500}
+              />
+            )}
+            <Text style={[styles.compactStatText, isBookmarked && styles.bookmarkedText, isBookmarkLoading && styles.loadingText]}>
+              {bookmarkCount}
             </Text>
           </TouchableOpacity>
         </View>

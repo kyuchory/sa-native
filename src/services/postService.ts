@@ -13,6 +13,7 @@ import type {
   PostListResponse,
   PostListItem,
   PostLikeResponse,
+  PostBookmarkResponse,
   DeleteCommentRequest,
   DeletePostResponse,
   UpdatePostRequest,
@@ -231,6 +232,17 @@ export class PostService {
       return response.data;
     } catch (error) {
       console.error('게시글 좋아요 토글 실패:', error);
+      throw error;
+    }
+  }
+
+  // 게시글 북마크 토글
+  static async togglePostBookmark(postId: number): Promise<{ is_bookmarked: boolean; bookmark_count: number }> {
+    try {
+      const response = await apiClient.post<PostBookmarkResponse>(`/posts/${postId}/bookmark`, {});
+      return response.data;
+    } catch (error) {
+      console.error('게시글 북마크 토글 실패:', error);
       throw error;
     }
   }
