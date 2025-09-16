@@ -46,6 +46,7 @@ export default function CreatePostScreen() {
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number>(0);
   const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
   // Zustand 스토어
@@ -184,6 +185,7 @@ export default function CreatePostScreen() {
         
         // 이미지 업로드
         try {
+          setIsUploadingImage(true);
           setIsLoading(true);
           const uploadedImage = await PostService.uploadImage(selectedImage.uri);
           
@@ -195,8 +197,6 @@ export default function CreatePostScreen() {
                 : block
             )
           );
-          
-          Alert.alert('성공', '이미지가 업로드되었습니다.');
         } catch (uploadError) {
           console.error('이미지 업로드 실패:', uploadError);
           Alert.alert('오류', '이미지 업로드에 실패했습니다.');
@@ -210,6 +210,7 @@ export default function CreatePostScreen() {
       Alert.alert('오류', '이미지 선택에 실패했습니다.');
     } finally {
       setIsLoading(false);
+      setIsUploadingImage(false);
     }
   };
 
@@ -379,7 +380,10 @@ export default function CreatePostScreen() {
       </View>
 
       {/* 로딩 오버레이 */}
-      <LoadingOverlay visible={isLoading} />
+      <LoadingOverlay
+        visible={isLoading}
+        message={isUploadingImage ? '이미지를 업로드중입니다...' : undefined}
+      />
     </View>
   );
 }
