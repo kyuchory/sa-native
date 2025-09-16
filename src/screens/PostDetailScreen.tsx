@@ -634,28 +634,26 @@ export default function PostDetailScreen() {
       </ScrollView>
 
       {/* 댓글 입력창 */}
-      <View style={{ paddingBottom: insets.bottom }}>
-        {replyingTo ? (
-          <ReplyInput
-            onSendReply={handleSendReply}
-            onCancel={() => setReplyingTo(null)}
-            replyToUser={replyingTo.userName}
-            isLoading={isCommentLoading}
-          />
-        ) : editingComment ? (
-          <CommentEditInput
-            initialText={editingComment.content}
-            onSave={handleSaveEdit}
-            onCancel={() => setEditingComment(null)}
-            isLoading={isCommentLoading}
-          />
-        ) : (
-          <CommentInput
-            onSendComment={handleSendComment}
-            isLoading={isCommentLoading}
-          />
-        )}
-      </View>
+      {replyingTo ? (
+        <ReplyInput
+          onSendReply={handleSendReply}
+          onCancel={() => setReplyingTo(null)}
+          replyToUser={replyingTo.userName}
+          isLoading={isCommentLoading}
+        />
+      ) : editingComment ? (
+        <CommentEditInput
+          initialText={editingComment.content}
+          onSave={handleSaveEdit}
+          onCancel={() => setEditingComment(null)}
+          isLoading={isCommentLoading}
+        />
+      ) : (
+        <CommentInput
+          onSendComment={handleSendComment}
+          isLoading={isCommentLoading}
+        />
+      )}
 
       {/* 메뉴 액션 시트 */}
       <MenuActionSheet
