@@ -37,7 +37,7 @@ const ChatIconComponent = ({ size = 22, color = '#6B7280' }) => (
 
 export default function MainHeader({ leftButtons = [], rightButtons = [] }: MainHeaderProps) {
   const insets = useSafeAreaInsets();
-  const { colors } = useThemeStore();
+  const { isDark, colors } = useThemeStore();
   const navigation = useNavigation();
   const { unreadCount, initializeNotificationEvents, subscribeToHeaderNotifications, fetchUnreadCount } = useNotificationStore();
   const { isAuthenticated, user } = useAuthStore();
@@ -99,7 +99,7 @@ export default function MainHeader({ leftButtons = [], rightButtons = [] }: Main
 
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.WHITE} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.WHITE} />
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.content}>
           {/* 왼쪽 버튼들 */}

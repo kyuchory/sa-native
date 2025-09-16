@@ -488,26 +488,26 @@ export default function PostDetailScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <CommonHeader title="게시물" />
         <LoadingOverlay visible={true} message="게시물 로딩 중..."/>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!post) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <CommonHeader title="게시물" />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>게시물을 찾을 수 없습니다.</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* 헤더 */}
       <CommonHeader
         title="게시물"
@@ -691,7 +691,7 @@ export default function PostDetailScreen() {
           },
         ]}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

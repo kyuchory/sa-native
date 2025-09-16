@@ -179,7 +179,7 @@ export default function FeedScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* 헤더 */}
       <MainHeader rightButtons={headerRightButtons} />
 
@@ -207,7 +207,7 @@ export default function FeedScreen() {
         windowSize={10}
         initialNumToRender={3}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

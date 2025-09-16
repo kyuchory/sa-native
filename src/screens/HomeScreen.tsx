@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, FlatList, StyleSheet, SafeAreaView, RefreshControl, Alert, ActivityIndicator, Text } from 'react-native';
+import { View, FlatList, StyleSheet, RefreshControl, Alert, ActivityIndicator, Text } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SPACING } from '../constants/theme';
@@ -173,7 +173,7 @@ export default function HomeScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* 헤더 */}
       <MainHeader rightButtons={headerRightButtons} />
 
@@ -194,14 +194,14 @@ export default function HomeScreen() {
         style={styles.postList}
         contentContainerStyle={styles.postListContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={
+        refreshControl={(
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
             tintColor={colors.PRIMARY}
             colors={[colors.PRIMARY]}
           />
-        }
+        )}
         // 성능 최적화
         removeClippedSubviews={true}
         maxToRenderPerBatch={10}
@@ -212,12 +212,12 @@ export default function HomeScreen() {
           offset: 200 * index,
           index,
         })}
-        ListFooterComponent={
+        ListFooterComponent={(
           <Pagination
             pagination={pagination}
             onPageChange={handlePageChange}
           />
-        }
+        )}
         ListEmptyComponent={
           isLoading ? (
             <ActivityIndicator size="large" color={colors.PRIMARY} style={styles.loadingIndicator} />
@@ -229,7 +229,7 @@ export default function HomeScreen() {
           )
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
