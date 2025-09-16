@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
@@ -45,6 +46,7 @@ type PostDetailNavigationProp = StackNavigationProp<AuthStackParamList, 'PostDet
 export default function PostDetailScreen() {
   const route = useRoute<PostDetailRouteProp>();
   const navigation = useNavigation<PostDetailNavigationProp>();
+  const insets = useSafeAreaInsets();
 
   const { postId } = route.params;
   const { colors } = useThemeStore();
@@ -632,26 +634,28 @@ export default function PostDetailScreen() {
       </ScrollView>
 
       {/* 댓글 입력창 */}
-      {replyingTo ? (
-        <ReplyInput
-          onSendReply={handleSendReply}
-          onCancel={() => setReplyingTo(null)}
-          replyToUser={replyingTo.userName}
-          isLoading={isCommentLoading}
-        />
-      ) : editingComment ? (
-        <CommentEditInput
-          initialText={editingComment.content}
-          onSave={handleSaveEdit}
-          onCancel={() => setEditingComment(null)}
-          isLoading={isCommentLoading}
-        />
-      ) : (
-        <CommentInput
-          onSendComment={handleSendComment}
-          isLoading={isCommentLoading}
-        />
-      )}
+      <View style={{ paddingBottom: insets.bottom }}>
+        {replyingTo ? (
+          <ReplyInput
+            onSendReply={handleSendReply}
+            onCancel={() => setReplyingTo(null)}
+            replyToUser={replyingTo.userName}
+            isLoading={isCommentLoading}
+          />
+        ) : editingComment ? (
+          <CommentEditInput
+            initialText={editingComment.content}
+            onSave={handleSaveEdit}
+            onCancel={() => setEditingComment(null)}
+            isLoading={isCommentLoading}
+          />
+        ) : (
+          <CommentInput
+            onSendComment={handleSendComment}
+            isLoading={isCommentLoading}
+          />
+        )}
+      </View>
 
       {/* 메뉴 액션 시트 */}
       <MenuActionSheet
