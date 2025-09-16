@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 
@@ -15,32 +15,36 @@ export default function LoadingOverlay({
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
+  // iOS 호환성을 위해 Modal 대신 View 사용
+  if (!visible) {
+    return null;
+  }
+
   return (
-    <Modal
-      transparent
-      visible={visible}
-      animationType="fade"
-    >
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          <ActivityIndicator
-            size="large"
-            color={colors.PRIMARY}
-            style={styles.spinner}
-          />
-          <Text style={styles.message}>{message}</Text>
-        </View>
+    <View style={styles.overlay}>
+      <View style={styles.container}>
+        <ActivityIndicator
+          size="large"
+          color={colors.PRIMARY}
+          style={styles.spinner}
+        />
+        <Text style={styles.message}>{message}</Text>
       </View>
-    </Modal>
+    </View>
   );
 }
 
 const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   overlay: {
-    flex: 1,
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
+    zIndex: 9999,
   },
   container: {
     backgroundColor: colors.WHITE,

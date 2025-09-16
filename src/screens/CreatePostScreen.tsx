@@ -182,7 +182,7 @@ export default function CreatePostScreen() {
         };
         
         setContentBlocks(prev => [...prev, newImageBlock]);
-        
+
         // 이미지 업로드
         try {
           setIsUploadingImage(true);
@@ -197,10 +197,11 @@ export default function CreatePostScreen() {
                 : block
             )
           );
+
         } catch (uploadError) {
           console.error('이미지 업로드 실패:', uploadError);
           Alert.alert('오류', '이미지 업로드에 실패했습니다.');
-          
+
           // 업로드 실패 시 블록 제거
           setContentBlocks(prev => prev.filter(block => block.id !== newImageBlock.id));
         }
