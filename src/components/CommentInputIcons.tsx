@@ -1,5 +1,5 @@
 import React from 'react';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Circle } from 'react-native-svg';
 import { COLORS } from '../constants/theme';
 
 interface IconProps {
@@ -7,13 +7,17 @@ interface IconProps {
   color?: string;
 }
 
-// 댓글 전송 아이콘 (종이비행기 스타일)
+// 댓글 전송 아이콘 (연결된 선 디자인)
 export function SendIcon({ size = 24, color = COLORS.PRIMARY }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="12" r="10" fill={color} />
       <Path
-        d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"
-        fill={color}
+        d="M8 12L11 15L16 9"
+        stroke="#fff"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </Svg>
   );
@@ -24,26 +28,19 @@ export function EmojiIcon({ size = 24, color = COLORS.GRAY_400 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+        d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"
         stroke={color}
-        strokeWidth="2"
+        strokeWidth="1.5"
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
-        d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"
-        stroke={color}
-        strokeWidth="1.5"
-        fill="none"
-      />
-      <Path
-        d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"
+        d="M8 9h8M8 13h6"
         stroke={color}
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        fill="none"
       />
     </Svg>
   );

@@ -79,7 +79,7 @@ export function ReplyInput({
           >
             <SendIcon
               size={20}
-              color={canSend ? COLORS.WHITE : COLORS.GRAY_400}
+              color={canSend ? COLORS.PRIMARY : COLORS.GRAY_400}
             />
           </TouchableOpacity>
         </View>
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     backgroundColor: BG_COLORS.SECONDARY,
     borderRadius: BORDER_RADIUS.XL,
     paddingHorizontal: SPACING.SM,
@@ -139,12 +139,12 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.GRAY_300,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: SPACING.XS,
   },
   sendButtonActive: {
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: 'transparent',
   },
 });

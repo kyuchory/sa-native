@@ -64,16 +64,6 @@ export function CommentInput({
             editable={!isLoading}
           />
 
-          {/* 카메라 버튼 */}
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => {
-              // TODO: 이미지 첨부 구현
-            }}
-          >
-            <CameraIcon size={24} color={colors.GRAY_400} />
-          </TouchableOpacity>
-
           {/* 전송 버튼 */}
           <TouchableOpacity
             style={[
@@ -84,8 +74,8 @@ export function CommentInput({
             disabled={!canSend}
           >
             <SendIcon
-              size={20}
-              color={canSend ? colors.WHITE : colors.GRAY_400}
+              size={24}
+              color={canSend ? colors.PRIMARY : colors.GRAY_400}
             />
           </TouchableOpacity>
         </View>
@@ -108,7 +98,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     backgroundColor: colors.WHITE, // BG_COLORS.SECONDARY
     borderRadius: BORDER_RADIUS.XL,
     paddingHorizontal: SPACING.SM,
@@ -133,12 +123,12 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.GRAY_300,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: SPACING.XS,
   },
   sendButtonActive: {
-    backgroundColor: colors.PRIMARY,
+    backgroundColor: 'transparent',
   },
 });
