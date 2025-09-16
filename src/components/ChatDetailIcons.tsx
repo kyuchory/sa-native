@@ -35,19 +35,8 @@ export const PlusCircleIcon: React.FC<IconProps> = ({ size = 24, color = '#000' 
 // 전송 아이콘 (종이비행기)
 export const SendIcon: React.FC<IconProps> = ({ size = 24, color = '#000' }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path 
-      d="M22 2L11 13" 
-      stroke={color} 
-      strokeWidth={2} 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-    />
-    <Path 
-      d="M22 2L15 22L11 13L2 9L22 2Z" 
-      stroke={color} 
-      strokeWidth={2} 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
+    <Path
+      d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z"
       fill={color}
     />
   </Svg>
