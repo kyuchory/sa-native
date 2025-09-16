@@ -5,8 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Text,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { COLORS, BG_COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants/theme';
 import { SendIcon } from './CommentInputIcons';
@@ -44,47 +42,42 @@ export function ReplyInput({
   const canSend = replyText.replace(`@${replyToUser} `, '').trim().length > 0 && !isLoading;
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.keyboardAvoidingView}
-    >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.replyLabel}>{replyToUser}님에게 답글</Text>
-          <TouchableOpacity onPress={onCancel} style={styles.cancelButton}>
-            <Text style={styles.cancelText}>취소</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.inputContainer}>
-          <TextInput
-            ref={textInputRef}
-            style={styles.textInput}
-            value={replyText}
-            onChangeText={setReplyText}
-            placeholder="답글을 입력하세요..."
-            placeholderTextColor={COLORS.GRAY_400}
-            multiline
-            maxLength={500}
-            editable={!isLoading}
-          />
-
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              canSend && styles.sendButtonActive,
-            ]}
-            onPress={handleSend}
-            disabled={!canSend}
-          >
-            <SendIcon
-              size={20}
-              color={canSend ? COLORS.PRIMARY : COLORS.GRAY_400}
-            />
-          </TouchableOpacity>
-        </View>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.replyLabel}>{replyToUser}님에게 답글</Text>
+        <TouchableOpacity onPress={onCancel} style={styles.cancelButton}>
+          <Text style={styles.cancelText}>취소</Text>
+        </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          ref={textInputRef}
+          style={styles.textInput}
+          value={replyText}
+          onChangeText={setReplyText}
+          placeholder="답글을 입력하세요..."
+          placeholderTextColor={COLORS.GRAY_400}
+          multiline
+          maxLength={500}
+          editable={!isLoading}
+        />
+
+        <TouchableOpacity
+          style={[
+            styles.sendButton,
+            canSend && styles.sendButtonActive,
+          ]}
+          onPress={handleSend}
+          disabled={!canSend}
+        >
+          <SendIcon
+            size={20}
+            color={canSend ? COLORS.PRIMARY : COLORS.GRAY_400}
+          />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 

@@ -4,8 +4,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants/theme';
 import { SendIcon, EmojiIcon, CameraIcon } from './CommentInputIcons';
@@ -36,51 +34,46 @@ export function CommentInput({
   const canSend = commentText.trim().length > 0 && !isLoading;
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.keyboardAvoidingView}
-    >
-      <View style={styles.container}>
-        <View style={styles.inputContainer}>
-          {/* 이모지 버튼 */}
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => {
-              // TODO: 이모지 피커 구현
-            }}
-          >
-            <EmojiIcon size={24} color={colors.GRAY_400} />
-          </TouchableOpacity>
+    <View style={styles.container}>
+      <View style={styles.inputContainer}>
+        {/* 이모지 버튼 */}
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => {
+            // TODO: 이모지 피커 구현
+          }}
+        >
+          <EmojiIcon size={24} color={colors.GRAY_400} />
+        </TouchableOpacity>
 
-          {/* 텍스트 입력 */}
-          <TextInput
-            style={styles.textInput}
-            value={commentText}
-            onChangeText={setCommentText}
-            placeholder={placeholder}
-            placeholderTextColor={colors.GRAY_400}
-            multiline
-            maxLength={500}
-            editable={!isLoading}
+        {/* 텍스트 입력 */}
+        <TextInput
+          style={styles.textInput}
+          value={commentText}
+          onChangeText={setCommentText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.GRAY_400}
+          multiline
+          maxLength={500}
+          editable={!isLoading}
+        />
+
+        {/* 전송 버튼 */}
+        <TouchableOpacity
+          style={[
+            styles.sendButton,
+            canSend && styles.sendButtonActive,
+          ]}
+          onPress={handleSend}
+          disabled={!canSend}
+        >
+          <SendIcon
+            size={24}
+            color={canSend ? colors.PRIMARY : colors.GRAY_400}
           />
-
-          {/* 전송 버튼 */}
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              canSend && styles.sendButtonActive,
-            ]}
-            onPress={handleSend}
-            disabled={!canSend}
-          >
-            <SendIcon
-              size={24}
-              color={canSend ? colors.PRIMARY : colors.GRAY_400}
-            />
-          </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
@@ -96,7 +96,6 @@ export default function MainHeader({ leftButtons = [], rightButtons = [] }: Main
 
   return (
     <>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.WHITE} />
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.content}>
           {/* 왼쪽 버튼들 */}

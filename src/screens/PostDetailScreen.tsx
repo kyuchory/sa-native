@@ -8,6 +8,8 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -509,189 +511,201 @@ export default function PostDetailScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 헤더 */}
-      <CommonHeader
-        title="게시물"
-        rightComponent={
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => setMenuActionSheetVisible(true)}
-            activeOpacity={0.7}
-          >
-            <MenuIcon size={20} color={colors.GRAY_700} />
-          </TouchableOpacity>
-        }
-      />
-
-      <ScrollView 
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={{flex: 1}}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? -insets.bottom : 28 } // 헤더 높이만큼 오프셋 조정
       >
-        {/* 작성자 정보 */}
-        <View style={styles.authorSection}>
-          <TouchableOpacity
-            style={styles.authorInfo}
-            onPress={() => navigation.navigate('UserProfile', { userId: String(post.user.id) })}
-            activeOpacity={0.7}
-          >
-            {renderProfileImage()}
-            <View style={styles.authorDetails}>
-              <Text style={styles.authorName}>{post.user.nickname}</Text>
-              <Text style={styles.postTime}>{formatTime(post.created_at)}</Text>
+        {/* 헤더 */}
+        <CommonHeader
+          title="게시물"
+          rightComponent={
+            <TouchableOpacity
+              style={styles.menuButton}
+              onPress={() => setMenuActionSheetVisible(true)}
+              activeOpacity={0.7}
+            >
+              <MenuIcon size={20} color={colors.GRAY_700} />
+            </TouchableOpacity>
+          }
+        />
+
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* 작성자 정보 */}
+          <View style={styles.authorSection}>
+            <TouchableOpacity
+              style={styles.authorInfo}
+              onPress={() => navigation.navigate('UserProfile', { userId: String(post.user.id) })}
+              activeOpacity={0.7}
+            >
+              {renderProfileImage()}
+              <View style={styles.authorDetails}>
+                <Text style={styles.authorName}>{post.user.nickname}</Text>
+                <Text style={styles.postTime}>{formatTime(post.created_at)}</Text>
+              </View>
+            </TouchableOpacity>
+            <View style={styles.categoryInfo}>
+              <Text style={styles.categoryText}>
+                {post.sub_category.category.name} {'>'} {post.sub_category.name}
+              </Text>
             </View>
-          </TouchableOpacity>
-          <View style={styles.categoryInfo}>
-            <Text style={styles.categoryText}>
-              {post.sub_category.category.name} {'>'} {post.sub_category.name}
-            </Text>
           </View>
-        </View>
 
-        {/* 제목 */}
-        <View style={styles.titleSection}>
-          <Text style={styles.title}>{post.title}</Text>
-        </View>
+          {/* 제목 */}
+          <View style={styles.titleSection}>
+            <Text style={styles.title}>{post.title}</Text>
+          </View>
 
-        {/* 콘텐츠 블록들 */}
-        <View style={styles.contentSection}>
-          {post.content_blocks
-            .sort((a, b) => a.sequence - b.sequence)
-            .map((block, index) => renderContentBlock(block, index))}
-        </View>
+          {/* 콘텐츠 블록들 */}
+          <View style={styles.contentSection}>
+            {post.content_blocks
+              .sort((a, b) => a.sequence - b.sequence)
+              .map((block, index) => renderContentBlock(block, index))}
+          </View>
 
-        {/* 태그 */}
-        {renderTags(post.tags)}
+          {/* 태그 */}
+          {renderTags(post.tags)}
 
-        {/* 통계 - 작은 버튼들을 왼쪽에 배치 */}
-        <View style={styles.compactStatsSection}>
-          <TouchableOpacity 
-            style={styles.compactStatButton}
-            onPress={handleLikeToggle}
-            activeOpacity={0.7}
-            disabled={isLikeLoading}
-          >
-            {isLikeLoading ? (
-              <ActivityIndicator size="small" color={colors.ERROR} />
-            ) : (
-              <LikeIcon
+          {/* 통계 - 작은 버튼들을 왼쪽에 배치 */}
+          <View style={styles.compactStatsSection}>
+            <TouchableOpacity
+              style={styles.compactStatButton}
+              onPress={handleLikeToggle}
+              activeOpacity={0.7}
+              disabled={isLikeLoading}
+            >
+              {isLikeLoading ? (
+                <ActivityIndicator size="small" color={colors.ERROR} />
+              ) : (
+                <LikeIcon
+                  size={18}
+                  filled={isLiked}
+                  color={isLiked ? colors.ERROR : colors.GRAY_500}
+                />
+              )}
+              <Text style={[styles.compactStatText, isLiked && styles.likedText, isLikeLoading && styles.loadingText]}>
+                {likeCount}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.compactStatButton}
+              onPress={() => {
+                // 댓글 섹션으로 스크롤 (추후 구현 가능)
+                console.log('댓글로 이동');
+              }}
+              activeOpacity={0.7}
+            >
+              <CommentIcon
                 size={18}
-                filled={isLiked}
-                color={isLiked ? colors.ERROR : colors.GRAY_500}
+                color={colors.GRAY_500}
               />
-            )}
-            <Text style={[styles.compactStatText, isLiked && styles.likedText, isLikeLoading && styles.loadingText]}>
-              {likeCount}
-            </Text>
-          </TouchableOpacity>
+              <Text style={styles.compactStatText}>{comments.length}</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.compactStatButton}
-            onPress={() => {
-              // 댓글 섹션으로 스크롤 (추후 구현 가능)
-              console.log('댓글로 이동');
-            }}
-            activeOpacity={0.7}
-          >
-            <CommentIcon
-              size={18}
-              color={colors.GRAY_500}
-            />
-            <Text style={styles.compactStatText}>{comments.length}</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.compactStatButton}
+              onPress={handleBookmarkToggle}
+              activeOpacity={0.7}
+              disabled={isBookmarkLoading}
+            >
+              {isBookmarkLoading ? (
+                <ActivityIndicator size="small" color={colors.PRIMARY} />
+              ) : (
+                <BookmarkIcon
+                  size={18}
+                  filled={isBookmarked}
+                  color={isBookmarked ? colors.PRIMARY : colors.GRAY_500}
+                />
+              )}
+              <Text style={[styles.compactStatText, isBookmarked && styles.bookmarkedText, isBookmarkLoading && styles.loadingText]}>
+                {bookmarkCount}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-          <TouchableOpacity
-            style={styles.compactStatButton}
-            onPress={handleBookmarkToggle}
-            activeOpacity={0.7}
-            disabled={isBookmarkLoading}
-          >
-            {isBookmarkLoading ? (
-              <ActivityIndicator size="small" color={colors.PRIMARY} />
-            ) : (
-              <BookmarkIcon
-                size={18}
-                filled={isBookmarked}
-                color={isBookmarked ? colors.PRIMARY : colors.GRAY_500}
-              />
-            )}
-            <Text style={[styles.compactStatText, isBookmarked && styles.bookmarkedText, isBookmarkLoading && styles.loadingText]}>
-              {bookmarkCount}
-            </Text>
-          </TouchableOpacity>
+          {/* 댓글 목록 */}
+          <CommentList
+            comments={comments}
+            onCommentLike={handleCommentLike}
+            onReplyPress={handleReplyPress}
+            onEditComment={handleEditComment}
+            onDeleteComment={handleDeleteComment}
+          />
+
+          {/* 하단 여백 */}
+          <View style={styles.bottomSpacing} />
+        </ScrollView>
+
+        {/* 댓글 입력창 */}
+        <View
+          style={{
+            paddingBottom: Platform.OS === 'ios' ? insets.bottom : 0,
+          }}
+        >
+        {replyingTo ? (
+          <ReplyInput
+            onSendReply={handleSendReply}
+            onCancel={() => setReplyingTo(null)}
+            replyToUser={replyingTo.userName}
+            isLoading={isCommentLoading}
+          />
+        ) : editingComment ? (
+          <CommentEditInput
+            initialText={editingComment.content}
+            onSave={handleSaveEdit}
+            onCancel={() => setEditingComment(null)}
+            isLoading={isCommentLoading}
+          />
+        ) : (
+          <CommentInput
+            onSendComment={handleSendComment}
+            isLoading={isCommentLoading}
+          />
+        )}
         </View>
 
-        {/* 댓글 목록 */}
-        <CommentList 
-          comments={comments}
-          onCommentLike={handleCommentLike}
-          onReplyPress={handleReplyPress}
-          onEditComment={handleEditComment}
-          onDeleteComment={handleDeleteComment}
-        />
-
-        {/* 하단 여백 */}
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
-
-      {/* 댓글 입력창 */}
-      {replyingTo ? (
-        <ReplyInput
-          onSendReply={handleSendReply}
-          onCancel={() => setReplyingTo(null)}
-          replyToUser={replyingTo.userName}
-          isLoading={isCommentLoading}
-        />
-      ) : editingComment ? (
-        <CommentEditInput
-          initialText={editingComment.content}
-          onSave={handleSaveEdit}
-          onCancel={() => setEditingComment(null)}
-          isLoading={isCommentLoading}
-        />
-      ) : (
-        <CommentInput
-          onSendComment={handleSendComment}
-          isLoading={isCommentLoading}
-        />
-      )}
-
-      {/* 메뉴 액션 시트 */}
-      <MenuActionSheet
-        visible={menuActionSheetVisible}
-        onClose={() => setMenuActionSheetVisible(false)}
-        title="게시물"
-        actions={[
-          // 작성자의 게시물인 경우 수정/삭제 메뉴 추가
-          ...(post?.is_author ? [
+        {/* 메뉴 액션 시트 */}
+        <MenuActionSheet
+          visible={menuActionSheetVisible}
+          onClose={() => setMenuActionSheetVisible(false)}
+          title="게시물"
+          actions={[
+            // 작성자의 게시물인 경우 수정/삭제 메뉴 추가
+            ...(post?.is_author ? [
+              {
+                id: 'edit',
+                title: '게시물 수정',
+                icon: <EditIcon size={20} color={colors.GRAY_700} />,
+                color: colors.GRAY_700,
+                onPress: () => {
+                  navigation.navigate('EditPost', { postId: postId });
+                },
+              },
+              {
+                id: 'delete',
+                title: '게시물 삭제',
+                icon: <DeleteIcon size={20} color={colors.GRAY_700} />,
+                color: colors.GRAY_700,
+                onPress: handleDeletePost,
+              },
+            ] : []),
+            // 신고는 모든 사용자에게 표시
             {
-              id: 'edit',
-              title: '게시물 수정',
-              icon: <EditIcon size={20} color={colors.GRAY_700} />,
-              color: colors.GRAY_700,
+              id: 'report',
+              title: '게시물 신고',
+              icon: <ReportIcon size={20} color={colors.ERROR} />,
+              color: colors.ERROR,
               onPress: () => {
-                navigation.navigate('EditPost', { postId: postId });
+                Alert.alert('신고', '게시물 신고 기능이 구현 예정입니다.');
               },
             },
-            {
-              id: 'delete',
-              title: '게시물 삭제',
-              icon: <DeleteIcon size={20} color={colors.GRAY_700} />,
-              color: colors.GRAY_700,
-              onPress: handleDeletePost,
-            },
-          ] : []),
-          // 신고는 모든 사용자에게 표시
-          {
-            id: 'report',
-            title: '게시물 신고',
-            icon: <ReportIcon size={20} color={colors.ERROR} />,
-            color: colors.ERROR,
-            onPress: () => {
-              Alert.alert('신고', '게시물 신고 기능이 구현 예정입니다.');
-            },
-          },
-        ]}
-      />
+          ]}
+        />
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -699,7 +713,7 @@ export default function PostDetailScreen() {
 const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.GRAY_50, // BG_COLORS.PRIMARY 대신
+    backgroundColor: colors.GRAY_50
   },
   content: {
     flex: 1,

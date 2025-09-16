@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
@@ -33,35 +33,32 @@ export default function CommonHeader({
   };
 
   return (
-    <>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.WHITE} />
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.content}>
-          {/* 왼쪽 영역 - 뒤로가기 버튼 */}
-          <View style={styles.leftSection}>
-            {showBackButton && (
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={handleBackPress}
-                activeOpacity={0.7}
-              >
-                <BackIcon size={24} color={colors.GRAY_700} />
-              </TouchableOpacity>
-            )}
-          </View>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.content}>
+        {/* 왼쪽 영역 - 뒤로가기 버튼 */}
+        <View style={styles.leftSection}>
+          {showBackButton && (
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={handleBackPress}
+              activeOpacity={0.7}
+            >
+              <BackIcon size={24} color={colors.GRAY_700} />
+            </TouchableOpacity>
+          )}
+        </View>
 
-          {/* 중앙 영역 - 제목 */}
-          <View style={styles.centerSection}>
-            <Text style={styles.title}>{title}</Text>
-          </View>
+        {/* 중앙 영역 - 제목 */}
+        <View style={styles.centerSection}>
+          <Text style={styles.title}>{title}</Text>
+        </View>
 
-          {/* 우측 영역 - 추가 컴포넌트 */}
-          <View style={styles.rightSection}>
-            {rightComponent}
-          </View>
+        {/* 우측 영역 - 추가 컴포넌트 */}
+        <View style={styles.rightSection}>
+          {rightComponent}
         </View>
       </View>
-    </>
+    </View>
   );
 }
 

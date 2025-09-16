@@ -5,8 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Text,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { COLORS, BG_COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants/theme';
 import { SendIcon } from './CommentInputIcons';
@@ -46,48 +44,43 @@ export function CommentEditInput({
                   !isLoading;
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.keyboardAvoidingView}
-    >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.editLabel}>댓글 수정</Text>
-          <TouchableOpacity onPress={onCancel} style={styles.cancelButton}>
-            <Text style={styles.cancelText}>취소</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.inputContainer}>
-          <TextInput
-            ref={textInputRef}
-            style={styles.textInput}
-            value={editText}
-            onChangeText={setEditText}
-            placeholder="댓글을 입력하세요..."
-            placeholderTextColor={COLORS.GRAY_400}
-            multiline
-            maxLength={500}
-            editable={!isLoading}
-            selectTextOnFocus
-          />
-
-          <TouchableOpacity
-            style={[
-              styles.saveButton,
-              canSave && styles.saveButtonActive,
-            ]}
-            onPress={handleSave}
-            disabled={!canSave}
-          >
-            <SendIcon
-              size={20}
-              color={canSave ? COLORS.PRIMARY : COLORS.GRAY_400}
-            />
-          </TouchableOpacity>
-        </View>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.editLabel}>댓글 수정</Text>
+        <TouchableOpacity onPress={onCancel} style={styles.cancelButton}>
+          <Text style={styles.cancelText}>취소</Text>
+        </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          ref={textInputRef}
+          style={styles.textInput}
+          value={editText}
+          onChangeText={setEditText}
+          placeholder="댓글을 입력하세요..."
+          placeholderTextColor={COLORS.GRAY_400}
+          multiline
+          maxLength={500}
+          editable={!isLoading}
+          selectTextOnFocus
+        />
+
+        <TouchableOpacity
+          style={[
+            styles.saveButton,
+            canSave && styles.saveButtonActive,
+          ]}
+          onPress={handleSave}
+          disabled={!canSave}
+        >
+          <SendIcon
+            size={20}
+            color={canSave ? COLORS.PRIMARY : COLORS.GRAY_400}
+          />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 

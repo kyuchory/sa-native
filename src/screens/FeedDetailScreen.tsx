@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, Image, Pressable, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, Image, Pressable, TouchableOpacity, Alert, Platform, KeyboardAvoidingView } from 'react-native';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SPACING, TYPOGRAPHY } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CommonHeader from '../components/CommonHeader';
 import CommentList from '../components/CommentList';
@@ -53,6 +54,7 @@ export default function FeedDetailScreen() {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
   const feedId = route.params?.feedId || 15;
+  const insets = useSafeAreaInsets();
 
   // expand/collapse 상태 관리
   const [isExpanded, setIsExpanded] = useState(false);
@@ -485,6 +487,11 @@ export default function FeedDetailScreen() {
   return (
     <View style={styles.container}>
       {/* 헤더 */}
+      <KeyboardAvoidingView
+        style={{flex: 1}}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? -insets.bottom : 28 } // 헤더 높이만큼 오프셋 조정
+      >
       <CommonHeader
         title="피드"
         showBackButton={true}
@@ -589,6 +596,11 @@ export default function FeedDetailScreen() {
       </ScrollView>
 
       {/* 댓글 입력 또는 수정 입력 */}
+      <View
+          style={{
+            paddingBottom: Platform.OS === 'ios' ? insets.bottom : 0,
+          }}
+        >
       {editingComment ? (
         <CommentEditInput
           initialText={editingComment.content}
@@ -609,6 +621,7 @@ export default function FeedDetailScreen() {
           placeholder="댓글을 작성해 보세요."
         />
       )}
+      </View>
 
       {/* 메뉴 액션 시트 */}
       <MenuActionSheet
@@ -647,6 +660,7 @@ export default function FeedDetailScreen() {
           },
         ]}
       />
+      </KeyboardAvoidingView>
     </View>
   );
 }

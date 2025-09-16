@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Image, Alert as RNAlert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Alert as RNAlert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TYPOGRAPHY, SPACING, SHADOWS, BORDER_RADIUS } from '../constants/theme';
 import { SettingsIcon, MenuIcon, FollowIcon, ChatIcon } from './ProfileIcons';
@@ -82,7 +82,6 @@ export default function ProfileHeader({
 
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.WHITE} />
       <View style={[styles.container, { paddingTop: insets.top }]}>
         {/* 상단 닉네임 + 설정 */}
         <View style={styles.topSection}>
