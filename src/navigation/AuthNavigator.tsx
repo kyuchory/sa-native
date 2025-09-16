@@ -68,7 +68,7 @@ export default function AuthNavigator() {
       socketStore.disconnectAll();
       console.log('🎯 All socket connections disconnected due to logout');
     }
-  }, [isAuthenticated, socketStore, chatStore, notificationStore]);
+  }, [isAuthenticated]);
 
   return (
     <NavigationContainer>
