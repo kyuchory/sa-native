@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, Dimensions, Image, Pressable, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, Image, Pressable, TouchableOpacity, Alert } from 'react-native';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SPACING, TYPOGRAPHY } from '../constants/theme';
@@ -451,39 +451,39 @@ export default function FeedDetailScreen() {
   // 로딩 상태 (PostDetailScreen과 같은 패턴으로 분리)
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <CommonHeader title="피드" showBackButton={true} />
         <LoadingOverlay visible={loading} message="피드 로딩 중..." />
-      </SafeAreaView>
+      </View>
     );
   }
 
   // 에러 상태
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <CommonHeader title="피드" showBackButton={true} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   // feed가 로드되지 않은 경우 (언리치에이블)
   if (!feed) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <CommonHeader title="피드" showBackButton={true} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>피드를 찾을 수 없습니다.</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* 헤더 */}
       <CommonHeader
         title="피드"
@@ -647,7 +647,7 @@ export default function FeedDetailScreen() {
           },
         ]}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

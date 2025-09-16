@@ -286,8 +286,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   searchContainer: {
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
-    borderColor: 'red',        // 전체 테두리 색상
-    borderWidth: 1,            // 테두리 두께 (필수!)
   },
   searchInputContainer: {
     flexDirection: 'row',

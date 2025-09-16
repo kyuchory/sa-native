@@ -270,7 +270,7 @@ export default function CreatePostScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* 헤더 */}
       <CommonHeader
         title="새 게시물"
@@ -380,7 +380,7 @@ export default function CreatePostScreen() {
 
       {/* 로딩 오버레이 */}
       <LoadingOverlay visible={isLoading} />
-    </SafeAreaView>
+    </View>
   );
 }
 

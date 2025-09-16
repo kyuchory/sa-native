@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   FlatList,
   Image,
@@ -438,7 +437,7 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* 헤더 */}
       <ChatHeader onCreateChat={handleCreateChat} />
 
@@ -540,7 +539,7 @@ export default function ChatScreen() {
           onDelete={handleBulkDelete}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

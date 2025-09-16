@@ -5,7 +5,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   FlatList,
   TextInput,
   TouchableOpacity,
@@ -190,7 +189,7 @@ export default function SelectChatUserScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* 헤더 */}
       <CommonHeader
         title="채팅 상대 선택"
@@ -236,7 +235,7 @@ export default function SelectChatUserScreen() {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

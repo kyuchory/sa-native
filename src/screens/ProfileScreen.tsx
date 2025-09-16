@@ -261,16 +261,16 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
   // 로딩 중이거나 프로필 데이터가 없으면 기본값 사용
   if (loading || !profileUser) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>프로필을 불러오는 중...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* 헤더 - 본인/타인에 따라 다르게 표시 */}
       {!userId ? (
         // 본인 프로필 (tabs에서 접근): 기존 ProfileHeader 사용
@@ -326,7 +326,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
           />
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

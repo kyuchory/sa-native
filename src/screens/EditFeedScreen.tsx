@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   TextInput,
   Alert,
@@ -356,15 +355,15 @@ export default function EditFeedScreen() {
 
   if (isLoadingFeed) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <CommonHeader title="피드 수정" />
         <LoadingOverlay visible={true} message="피드 로딩 중..." />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <CommonHeader
         title="피드 수정"
         rightComponent={
@@ -438,7 +437,7 @@ export default function EditFeedScreen() {
       </View>
 
       <LoadingOverlay visible={isLoading} />
-    </SafeAreaView>
+    </View>
   );
 }
 

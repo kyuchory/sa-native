@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   FlatList,
   TextInput,
   TouchableOpacity,
@@ -534,7 +533,7 @@ export default function ChatDetailScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <KeyboardAvoidingView 
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -665,7 +664,7 @@ export default function ChatDetailScreen() {
         onViewAllMedia={handleViewAllMedia}
         onViewNotice={handleViewNotice}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, SafeAreaView, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, FlatList, StyleSheet, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
@@ -230,7 +230,7 @@ export default function NotificationScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* 헤더 */}
       <CommonHeader
         title="알림"
@@ -252,7 +252,7 @@ export default function NotificationScreen() {
         windowSize={10}
         initialNumToRender={5}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

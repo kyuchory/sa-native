@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   TextInput,
   Alert,
@@ -357,7 +356,7 @@ export default function CreateFeedScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* 헤더 */}
       <CommonHeader
         title="새 피드"
@@ -437,7 +436,7 @@ export default function CreateFeedScreen() {
 
       {/* 로딩 오버레이 */}
       <LoadingOverlay visible={isLoading} />
-    </SafeAreaView>
+    </View>
   );
 }
 

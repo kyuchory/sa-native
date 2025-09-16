@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   TextInput,
   Alert
@@ -333,15 +332,15 @@ export default function EditPostScreen() {
   // 로딩 중 표시
   if (isLoadingPost) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <CommonHeader title="게시물 수정" />
         <LoadingOverlay visible={true} message="게시물 로딩 중..." />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* 헤더 */}
       <CommonHeader
         title="게시물 수정"
@@ -451,7 +450,7 @@ export default function EditPostScreen() {
 
       {/* 로딩 오버레이 */}
       <LoadingOverlay visible={isLoading} />
-    </SafeAreaView>
+    </View>
   );
 }
 
