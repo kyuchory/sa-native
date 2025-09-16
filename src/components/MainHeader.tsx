@@ -23,14 +23,11 @@ interface MainHeaderProps {
 }
 
 // 채팅 아이콘 (비행기 모양)
-const ChatIconComponent = ({ size = 22, color = '#6B7280' }) => (
+const ChatIconComponent = ({ size = 22, color = '#6B7280', strokeWidth = 2 }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path
-      d="M2 21L23 12L2 3V10L17 12L2 14V21Z"
-      stroke={color}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z"
+      fill={color}
     />
   </Svg>
 );
