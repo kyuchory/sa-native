@@ -34,7 +34,7 @@ export interface ChatRoomMedia {
   created_at: string;
 }
 
-// 채팅방 멤버 정보
+// 채팅방 멤버 정보 (API 형태)
 export interface ChatRoomMember {
   id: number; // ChatMember 테이블 ID
   user_id: number; // User 테이블 사용자 ID
@@ -72,11 +72,11 @@ export interface ChatRoom {
   created_at: string;
   memberCount: number;
   lastMessage: LastMessage | null; // null일 수 있음
-  
+
   // 타입별 멤버 정보 (API에서 제공)
   other_user?: ChatUser; // 1:1 채팅일 때만 존재
   other_users?: ChatUser[]; // 그룹 채팅일 때만 존재 (나를 제외한 모든 멤버)
-  
+
   // 클라이언트 계산 필드
   unread_count?: number; // 별도 API로 조회하거나 계산
 }
@@ -91,7 +91,7 @@ export interface Message {
   created_at: string;
   sender: ChatUser;
   mentions: any[]; // 멘션 배열 (향후 타입 정의 가능)
-  
+
   // 임시 메시지 관련 필드
   isTemporary?: boolean; // 임시 메시지 여부
   status?: 'sending' | 'sent' | 'failed'; // 전송 상태

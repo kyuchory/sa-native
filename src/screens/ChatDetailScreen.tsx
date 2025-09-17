@@ -43,6 +43,7 @@ import { useSocketStore } from '../stores/socketStore';
 // Services
 import { ChatService } from '../services/chatService';
 import { LocalMessageService } from '../services/localMessageService';
+import { ChatRoomDetail, ChatRoomMember, ChatRoomNotice, ChatRoomMedia } from '../types/chat';
 
 // Utils
 import { formatMessageTime, isSameDay, formatMessageDate, shouldShowDateSeparator } from '../utils';
@@ -107,89 +108,12 @@ export default function ChatDetailScreen() {
   const [inputText, setInputText] = useState('');
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
 
+  // 채팅방 상세 정보 상태
+  const [chatRoomDetail, setChatRoomDetail] = useState<ChatRoomDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
   // WebSocket 연결 상태 (JSX에서 사용하기 위한 별도 변수)
   const isChatConnected = socketStore.isConnected('/chat');
-
-  // Mock 데이터 (추후 API로 대체)
-  const mockMembers = [
-    {
-      id: user?.id || 1,
-      nickname: user?.nickname || '나',
-      avatar_url: user?.profile_img || undefined,
-      isOnline: true,
-    },
-    {
-      id: chatPartnerId || 2,
-      nickname: chatRoomName,
-      avatar_url: undefined,
-      isOnline: Math.random() > 0.5, // 랜덤하게 온라인 상태
-    },
-  ];
-
-  const mockSharedMedia = [
-    {
-      id: '1',
-      type: 'image' as const,
-      url: 'https://via.placeholder.com/300x300/FFB6C1/000000?text=Image1',
-      date: '2024-01-15',
-    },
-    {
-      id: '2',
-      type: 'video' as const,
-      url: 'https://via.placeholder.com/300x300/87CEEB/000000?text=Video1',
-      thumbnail: 'https://via.placeholder.com/300x300/87CEEB/000000?text=Video1',
-      date: '2024-01-14',
-    },
-    {
-      id: '3',
-      type: 'image' as const,
-      url: 'https://via.placeholder.com/300x300/98FB98/000000?text=Image2',
-      date: '2024-01-13',
-    },
-    {
-      id: '4',
-      type: 'video' as const,
-      url: 'https://via.placeholder.com/300x300/DDA0DD/000000?text=Video2',
-      thumbnail: 'https://via.placeholder.com/300x300/DDA0DD/000000?text=Video2',
-      date: '2024-01-12',
-    },
-    {
-      id: '5',
-      type: 'image' as const,
-      url: 'https://via.placeholder.com/300x300/F0E68C/000000?text=Image3',
-      date: '2024-01-11',
-    },
-    {
-      id: '6',
-      type: 'video' as const,
-      url: 'https://via.placeholder.com/300x300/FFA07A/000000?text=Video3',
-      thumbnail: 'https://via.placeholder.com/300x300/FFA07A/000000?text=Video3',
-      date: '2024-01-10',
-    },
-    {
-      id: '7',
-      type: 'image' as const,
-      url: 'https://via.placeholder.com/300x300/20B2AA/FFFFFF?text=Image4',
-      date: '2024-01-09',
-    },
-  ];
-
-  const mockNotices = [
-    {
-      id: '1',
-      title: '채팅방 공지사항',
-      content: '모든 분들께 알려드립니다. 채팅방 이용 시 서로를 존중하며 즐거운 대화를 나누어주세요.',
-      date: '2024-01-10',
-      author: '관리자',
-    },
-    {
-      id: '2',
-      title: '새로운 기능 안내',
-      content: '이제 사진과 동영상을 공유할 수 있습니다. 첨부 버튼을 눌러 미디어를 선택해보세요.',
-      date: '2024-01-08',
-      author: chatRoomName,
-    },
-  ];
 
   // 채팅방 참가 및 초기화
   useEffect(() => {
@@ -206,6 +130,9 @@ export default function ChatDetailScreen() {
 
         // 채팅 히스토리 로드
         loadChatHistory();
+
+        // 채팅방 상세 정보 로드 (멤버, 미디어, 공지사항 등)
+        loadChatRoomDetail();
 
       } catch (error) {
         console.error('채팅방 초기화 실패:', error);
@@ -316,17 +243,17 @@ export default function ChatDetailScreen() {
   // 더 많은 메시지 로드 (무한 스크롤)
   const loadMoreMessages = async () => {
     if (!hasNext || !nextCursor || isLoadingMore) return;
-    
+
     try {
       setIsLoadingMore(true);
       const response = await ChatService.getMessages(chatRoomId, nextCursor);
-      
+
       // 새 메시지를 기존 메시지 앞에 추가 (과거 메시지이므로)
       const newMessages = [...response.messages, ...messages];
       setMessages(newMessages);
       setHasNext(response.hasNext);
       setNextCursor(response.nextCursor);
-      
+
       console.log('📨 더 많은 메시지 로드 완료:', response.messages.length, '개 메시지');
     } catch (error) {
       console.error('더 많은 메시지 로드 실패:', error);
@@ -335,6 +262,29 @@ export default function ChatDetailScreen() {
       setIsLoadingMore(false);
     }
   };
+
+  // 채팅방 상세 정보 로드 (멤버, 미디어, 공지사항)
+  const loadChatRoomDetail = async () => {
+    try {
+      setLoadingDetail(true);
+      const detail = await ChatService.getChatRoomDetail(chatRoomId);
+      setChatRoomDetail(detail);
+
+      console.log('📝 채팅방 상세 정보 로드 완료:', {
+        members: detail.members.length,
+        notices: detail.latest_notices.length,
+        media: detail.chat_room_images_videos.length,
+      });
+    } catch (error) {
+      console.error('채팅방 상세 정보 로드 실패:', error);
+      Alert.alert('오류', '채팅방 정보를 불러오는데 실패했습니다.');
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  // 조건부 렌더링을 위한 computed 값들 - 사이드바에서 직접 타입 처리하여 사용
+  const chatRoomData = chatRoomDetail;
 
   // 뒤로 가기 핸들러
   const handleBack = () => {
@@ -712,17 +662,15 @@ export default function ChatDetailScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {/* 사이드바 */}
+      {/* 사이드바 - 실제 API 데이터를 사용 */}
       <ChatDetailSidebar
         isVisible={isSidebarVisible}
         onClose={handleCloseSidebar}
         chatRoomName={chatRoomName}
-        members={mockMembers}
-        sharedMedia={mockSharedMedia}
-        notices={mockNotices}
         onAddMember={handleAddMember}
         onViewAllMedia={handleViewAllMedia}
         onViewNotice={handleViewNotice}
+        chatRoomDetail={chatRoomDetail}
       />
     </View>
   );

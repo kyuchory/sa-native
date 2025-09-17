@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,15 @@ import {
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { MediaIcon, NoticeIcon, MembersIcon, ChevronRightIcon } from './SidebarIcons';
+import { ChatRoomMember, ChatRoomNotice, ChatRoomMedia, ChatRoomDetail } from '../types/chat';
+
+// UI 컴포넌트용 내부 인터페이스들
+interface ChatMember {
+  id: number;
+  nickname: string;
+  avatar_url?: string;
+  isOnline: boolean;
+}
 
 interface MediaItem {
   id: string;
@@ -31,23 +40,14 @@ interface NoticeItem {
   author: string;
 }
 
-interface ChatMember {
-  id: number;
-  nickname: string;
-  avatar_url?: string;
-  isOnline: boolean;
-}
-
 interface ChatDetailSidebarProps {
   isVisible: boolean;
   onClose: () => void;
   chatRoomName: string;
-  members: ChatMember[];
-  sharedMedia: MediaItem[];
-  notices: NoticeItem[];
   onAddMember: () => void;
   onViewAllMedia: () => void;
   onViewNotice: (notice: NoticeItem) => void;
+  chatRoomDetail?: ChatRoomDetail | null;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -56,50 +56,78 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
   isVisible,
   onClose,
   chatRoomName,
-  members,
-  sharedMedia,
-  notices,
   onAddMember,
   onViewAllMedia,
   onViewNotice,
+  chatRoomDetail,
 }) => {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
-  const slideAnim = useRef(new Animated.Value(screenWidth * 0.8)).current; // 시작: 사이드바 너비만큼 오른쪽 밖
-  const opacityAnim = useRef(new Animated.Value(0)).current; // 시작: 투명
+  const slideAnim = useRef(new Animated.Value(screenWidth * 0.8)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  // API 데이터를 UI 데이터로 변환
+  const {
+    members,
+    sharedMedia,
+    notices,
+  } = useMemo(() => {
+    if (!chatRoomDetail) {
+      // 빈 데이터 (실제 사용 시 mock 데이터로 교체 가능)
+      return {
+        members: [],
+        sharedMedia: [],
+        notices: [],
+      };
+    }
+
+    const members: ChatMember[] = chatRoomDetail.members.map(member => ({
+      id: member.user.id,
+      nickname: member.user.nickname,
+      avatar_url: member.user.profile_img || undefined,
+      isOnline: true, // 실제 온라인 상태 확인 로직 추가 필요
+    }));
+
+    const sharedMedia: MediaItem[] = chatRoomDetail.chat_room_images_videos
+      .slice()
+      .reverse() // 최신 순으로 정렬
+      .map(media => ({
+        id: media.message_id.toString(),
+        type: media.type,
+        url: media.content,
+        thumbnail: media.type === 'video' ? media.content : undefined,
+        date: media.created_at.split('T')[0], // 날짜만 표시
+      }));
+
+    const notices: NoticeItem[] = chatRoomDetail.latest_notices
+      .slice()
+      .reverse() // 최신 순으로 정렬
+      .map(notice => ({
+        id: notice.notice_id.toString(),
+        title: '공지사항',
+        content: notice.content,
+        date: notice.created_at.split('T')[0], // 날짜만 표시
+        author: notice.user_nickname,
+      }));
+
+    return { members, sharedMedia, notices };
+  }, [chatRoomDetail]);
 
   useEffect(() => {
     if (isVisible) {
-      // 사이드바 열기: 오른쪽에서 슬라이드 인
       Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: 0, // 완전히 보이는 위치 (0)
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
+        Animated.timing(slideAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+        Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
       ]).start();
     } else {
-      // 사이드바 닫기: 오른쪽으로 슬라이드 아웃
       Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: screenWidth * 0.8, // 사이드바 너비만큼 오른쪽으로 이동
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
+        Animated.timing(slideAnim, { toValue: screenWidth * 0.8, duration: 250, useNativeDriver: true }),
+        Animated.timing(opacityAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
       ]).start();
     }
   }, [isVisible, slideAnim, opacityAnim, screenWidth]);
+
   const renderMemberItem = (member: ChatMember) => (
     <View key={member.id} style={styles.memberItem}>
       <View style={styles.memberAvatarContainer}>
@@ -122,10 +150,7 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
 
   const renderMediaItem = (item: MediaItem, index: number) => (
     <TouchableOpacity key={item.id} style={styles.mediaItem}>
-      <Image 
-        source={{ uri: item.thumbnail || item.url }} 
-        style={styles.mediaThumbnail} 
-      />
+      <Image source={{ uri: item.thumbnail || item.url }} style={styles.mediaThumbnail} />
       {item.type === 'video' && (
         <View style={styles.videoOverlay}>
           <Text style={styles.videoIcon}>▶</Text>
@@ -135,8 +160,8 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
   );
 
   const renderNoticeItem = (notice: NoticeItem) => (
-    <TouchableOpacity 
-      key={notice.id} 
+    <TouchableOpacity
+      key={notice.id}
       style={styles.noticeItem}
       onPress={() => onViewNotice(notice)}
     >
@@ -164,31 +189,27 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <Animated.View 
+        <Animated.View
           style={[
             styles.backdrop,
-            {
-              opacity: opacityAnim,
-            }
+            { opacity: opacityAnim },
           ]}
         >
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFillObject} 
-            activeOpacity={1} 
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
             onPress={onClose}
           />
         </Animated.View>
-        <Animated.View 
+        <Animated.View
           style={[
             styles.sidebarContainer,
-            {
-              transform: [{ translateX: slideAnim }],
-            }
+            { transform: [{ translateX: slideAnim }] },
           ]}
         >
           <SafeAreaView style={styles.safeArea}>
             <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-              
+
               {/* 헤더 */}
               <View style={styles.header}>
                 <Text style={styles.chatRoomTitle} numberOfLines={1}>
@@ -206,19 +227,27 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
                     <MediaIcon size={20} color={colors.PRIMARY} />
                     <Text style={styles.sectionTitle}>사진/동영상</Text>
                   </View>
-                  <TouchableOpacity onPress={onViewAllMedia} style={styles.viewAllContainer}>
-                    <Text style={styles.viewAllButton}>더보기</Text>
-                    <ChevronRightIcon size={14} color={colors.PRIMARY} />
-                  </TouchableOpacity>
+                  {sharedMedia.length > 4 && (
+                    <TouchableOpacity onPress={onViewAllMedia} style={styles.viewAllContainer}>
+                      <Text style={styles.viewAllButton}>더보기</Text>
+                      <ChevronRightIcon size={14} color={colors.PRIMARY} />
+                    </TouchableOpacity>
+                  )}
                 </View>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.mediaScroll}
-                  contentContainerStyle={styles.mediaScrollContent}
-                >
-                  {sharedMedia.map((item, index) => renderMediaItem(item, index))}
-                </ScrollView>
+                {sharedMedia.length > 0 ? (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.mediaScroll}
+                    contentContainerStyle={styles.mediaScrollContent}
+                  >
+                    {sharedMedia.slice(0, 6).map((item, index) => renderMediaItem(item, index))}
+                  </ScrollView>
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateText}>공유된 미디어파일이 없습니다</Text>
+                  </View>
+                )}
               </View>
 
               {/* 공지사항 섹션 */}
@@ -251,9 +280,15 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
                     <Text style={styles.addButtonText}>+</Text>
                   </TouchableOpacity>
                 </View>
-                <View style={styles.membersContainer}>
-                  {members.map(renderMemberItem)}
-                </View>
+                {members.length > 0 ? (
+                  <View style={styles.membersContainer}>
+                    {members.map(renderMemberItem)}
+                  </View>
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateText}>멤버 정보가 없습니다</Text>
+                  </View>
+                )}
               </View>
 
             </ScrollView>
@@ -283,7 +318,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     right: 0,
     bottom: 0,
     width: '80%',
-    backgroundColor: colors.GRAY_50, // BG_COLORS.PRIMARY
+    backgroundColor: colors.GRAY_50,
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: -2, height: 0 },
@@ -299,9 +334,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
 
   // 헤더
   header: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: SPACING.LG,
     paddingVertical: SPACING.MD,
     backgroundColor: colors.PRIMARY,
@@ -317,8 +352,8 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     height: 32,
     borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   closeButtonText: {
     color: colors.WHITE,
@@ -332,24 +367,24 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     paddingHorizontal: SPACING.LG,
   },
   sectionHeader: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: SPACING.MD,
   },
   sectionTitleContainer: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: SPACING.SM,
   },
   sectionTitle: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
+    color: colors.GRAY_900,
   },
   viewAllContainer: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
   },
   viewAllButton: {
@@ -364,7 +399,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   mediaScrollContent: {
     paddingHorizontal: SPACING.LG,
-    paddingRight: SPACING.LG + SPACING.MD, // 마지막 아이템 여백
+    paddingRight: SPACING.LG + SPACING.MD,
   },
   mediaItem: {
     marginRight: SPACING.MD,
@@ -374,7 +409,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     width: 75,
     height: 75,
     borderRadius: BORDER_RADIUS.SM,
-    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
+    backgroundColor: colors.GRAY_100,
   },
   videoOverlay: {
     position: 'absolute',
@@ -384,8 +419,8 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     borderRadius: BORDER_RADIUS.SM,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   videoIcon: {
     color: colors.WHITE,
@@ -397,7 +432,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     gap: SPACING.SM,
   },
   noticeItem: {
-    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
+    backgroundColor: colors.GRAY_100,
     borderRadius: BORDER_RADIUS.MD,
     padding: SPACING.MD,
   },
@@ -407,17 +442,17 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   noticeTitle: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
+    color: colors.GRAY_900,
   },
   noticePreview: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
+    color: colors.GRAY_700,
     lineHeight: 18,
   },
   noticeFooter: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: SPACING.XS,
   },
   noticeAuthor: {
@@ -427,7 +462,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   noticeDate: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: colors.GRAY_500, // TEXT_COLORS.DISABLED
+    color: colors.GRAY_500,
   },
 
   // 대화상대 섹션
@@ -436,8 +471,8 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     height: 28,
     borderRadius: 14,
     backgroundColor: colors.PRIMARY,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addButtonText: {
     color: colors.WHITE,
@@ -445,12 +480,12 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
   },
   membersContainer: {
-    flexDirection: 'row' as const,
-    flexWrap: 'wrap' as const,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: SPACING.MD,
   },
   memberItem: {
-    alignItems: 'center' as const,
+    alignItems: 'center',
     width: 70,
   },
   memberAvatarContainer: {
@@ -461,15 +496,15 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
+    backgroundColor: colors.GRAY_100,
   },
   memberAvatarPlaceholder: {
     width: 50,
     height: 50,
     borderRadius: 25,
     backgroundColor: colors.PRIMARY,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   memberAvatarText: {
     color: colors.WHITE,
@@ -485,24 +520,24 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     borderRadius: 6,
     backgroundColor: '#4CAF50',
     borderWidth: 2,
-    borderColor: colors.GRAY_50, // BG_COLORS.PRIMARY
+    borderColor: colors.GRAY_50,
   },
   memberName: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
+    color: colors.GRAY_900,
     textAlign: 'center',
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 
   // 빈 상태
   emptyState: {
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: SPACING.XL,
   },
   emptyStateText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_500, // TEXT_COLORS.DISABLED
+    color: colors.GRAY_500,
   },
 });
 
