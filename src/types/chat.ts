@@ -6,6 +6,46 @@ export type ChatType = 'private' | 'group'; // API 명세에 맞게 수정
 // 메시지 타입
 export type MessageType = 'text' | 'image' | 'video'; // API 명세에 맞게 수정
 
+// 채팅방 상세 정보 타입
+export interface ChatRoomDetail {
+  id: number;
+  name: string | null; // private 채팅은 항상 null, group 채팅은 필수
+  type: ChatType;
+  avatar_url: string | null;
+  created_at: string;
+  latest_notices: ChatRoomNotice[];
+  chat_room_images_videos: ChatRoomMedia[];
+  members: ChatRoomMember[];
+}
+
+// 채팅방 공지사항 정보
+export interface ChatRoomNotice {
+  notice_id: number;
+  content: string;
+  user_nickname: string;
+  created_at: string;
+}
+
+// 채팅방 미디어 정보
+export interface ChatRoomMedia {
+  message_id: number;
+  type: 'image' | 'video';
+  content: string; // 이미지/비디오 URL
+  created_at: string;
+}
+
+// 채팅방 멤버 정보
+export interface ChatRoomMember {
+  id: number; // ChatMember 테이블 ID
+  user_id: number; // User 테이블 사용자 ID
+  joined_at: string;
+  user: {
+    id: number;
+    nickname: string;
+    profile_img?: string | null;
+  };
+}
+
 // 채팅 참여자 정보 (간소화)
 export interface ChatUser {
   id: number;

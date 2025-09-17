@@ -1,7 +1,14 @@
 // 채팅 API 서비스
 
 import { apiClient } from './apiClient';
-import { ChatRoom, ChatRoomsResponse, SingleChatRoomResponse, MessagesResponse, ApiResponse } from '../types/chat';
+import {
+  ChatRoom,
+  ChatRoomsResponse,
+  SingleChatRoomResponse,
+  MessagesResponse,
+  ChatRoomDetail,
+  ApiResponse
+} from '../types/chat';
 
 /**
  * 채팅 서비스 클래스
@@ -41,18 +48,24 @@ export class ChatService {
 
   // 채팅 메시지 목록 조회 (페이지네이션)
   static async getMessages(
-    chatRoomId: number, 
-    cursor?: number, 
+    chatRoomId: number,
+    cursor?: number,
     limit: number = 20
   ): Promise<{ messages: any[]; hasNext: boolean; nextCursor: number | null }> {
     const params = new URLSearchParams();
     if (cursor) params.append('cursor', cursor.toString());
     params.append('limit', limit.toString());
-    
+
     const queryString = params.toString();
     const url = `/chats/${chatRoomId}/messages${queryString ? `?${queryString}` : ''}`;
-    
+
     const response = await apiClient.get<MessagesResponse>(url);
     return response.data; // { messages, hasNext, nextCursor }
+  }
+
+  // 채팅방 상세 정보 조회
+  static async getChatRoomDetail(chatRoomId: number): Promise<ChatRoomDetail> {
+    const response = await apiClient.get<ApiResponse<ChatRoomDetail>>(`/chats/${chatRoomId}`);
+    return response.data; // apiClient가 이미 data를 추출해서 반환
   }
 }
