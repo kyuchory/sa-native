@@ -67,6 +67,7 @@ export default function PostDetailScreen() {
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
+  const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
   const { user } = useAuthStore();
   const currentUserId = user?.id;
   const { setShouldRefreshPosts } = usePostStore(); // 게시물 목록 새로고침 플래그 설정용
@@ -79,6 +80,21 @@ export default function PostDetailScreen() {
       loadPostDetail();
     }, [postId])
   );
+
+  // 이미지 비율 로드
+  useEffect(() => {
+    if (post) {
+      post.content_blocks.forEach((block) => {
+        if (block.type === 'image' && block.value && !imageAspectRatios[block.value]) {
+          Image.getSize(block.value, (w, h) => {
+            setImageAspectRatios(prev => ({ ...prev, [block.value as string]: w / h }));
+          }, () => {
+            // On error, do nothing
+          });
+        }
+      });
+    }
+  }, [post, imageAspectRatios]);
 
   // 게시물 상세 정보 로드
   const loadPostDetail = async () => {
@@ -453,10 +469,13 @@ export default function PostDetailScreen() {
       case 'image':
         return (
           <View key={index} style={styles.imageBlock}>
-            <Image 
-              source={{ uri: block.value }} 
-              style={styles.contentImage}
-              resizeMode="cover"
+            <Image
+              source={{ uri: block.value }}
+              style={[
+                styles.contentImage,
+                imageAspectRatios[block.value!] ? {aspectRatio: imageAspectRatios[block.value!]} : {height: 250},
+              ]}
+              resizeMode="contain"
             />
           </View>
         );

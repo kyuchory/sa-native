@@ -11,7 +11,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Keyboard,
+  Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
@@ -47,9 +50,13 @@ import { formatMessageTime, isSameDay, formatMessageDate, shouldShowDateSeparato
 type ChatDetailScreenRouteProp = RouteProp<AuthStackParamList, 'ChatDetail'>;
 type ChatDetailScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ChatDetail'>;
 
+const { height: screenHeight } = Dimensions.get('window');
+
 export default function ChatDetailScreen() {
   const { colors } = useThemeStore();
-  const styles = createStyles(colors);
+  const insets = useSafeAreaInsets();
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const styles = createStyles(colors, insets.bottom, keyboardHeight);
 
   const navigation = useNavigation<ChatDetailScreenNavigationProp>();
   const route = useRoute<ChatDetailScreenRouteProp>();
@@ -228,6 +235,42 @@ export default function ChatDetailScreen() {
     }
   }, [messages.length]);
 
+  // 키보드 이벤트 리스너 (안드로이드 최적화)
+  useEffect(() => {
+    let keyboardDidShowListener: any;
+    let keyboardDidHideListener: any;
+
+    if (Platform.OS === 'android') {
+      keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+        // 키보드가 올라왔을 때 스크롤을 맨 아래로
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      });
+
+      keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+        setKeyboardHeight(0);
+      });
+    } else {
+      // iOS는 기본 키보드 이벤트만 사용
+      keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      });
+
+      keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+        // iOS는 키보드 높이를 직접 관리하지 않음
+      });
+    }
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
+
   // 초기 채팅 히스토리 로드 (서버 메시지 + 로컬 메시지 병합)
   const loadChatHistory = async () => {
     try {
@@ -374,8 +417,6 @@ export default function ChatDetailScreen() {
     await retryAllFailedMessages();
   };
 
-
-
   // 같은 발신자의 연속 메시지인지 체크
   const isContinuousMessage = (currentMessage: Message, prevMessage: Message | null) => {
     if (!prevMessage) return false;
@@ -439,23 +480,23 @@ export default function ChatDetailScreen() {
             )}
             
             <View style={styles.messageRow}>
-                          {/* 내 메시지의 경우 시간이 왼쪽에 */}
-            {isMyMessage && (
-              <View style={styles.myMessageTimeContainer}>
-                {item.status === 'failed' && (
-                  <Text style={styles.messageStatusFailed}>실패</Text>
-                )}
-                <View style={styles.messageTimeContainer}>
-                  {item.status === 'sending' ? (
-                    <ActivityIndicator size="small" color={colors.PRIMARY} />
-                  ) : (
-                    <Text style={styles.messageTime}>
-                      {formatMessageTime(item.created_at)}
-                    </Text>
+              {/* 내 메시지의 경우 시간이 왼쪽에 */}
+              {isMyMessage && (
+                <View style={styles.myMessageTimeContainer}>
+                  {item.status === 'failed' && (
+                    <Text style={styles.messageStatusFailed}>실패</Text>
                   )}
+                  <View style={styles.messageTimeContainer}>
+                    {item.status === 'sending' ? (
+                      <ActivityIndicator size="small" color={colors.PRIMARY} />
+                    ) : (
+                      <Text style={styles.messageTime}>
+                        {formatMessageTime(item.created_at)}
+                      </Text>
+                    )}
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
               
               {/* 메시지 말풍선 */}
               <TouchableOpacity 
@@ -534,121 +575,136 @@ export default function ChatDetailScreen() {
 
   return (
     <View style={styles.container}>
+      {/* 헤더 */}
+      <CommonHeader
+        title={chatRoomName}
+        onBackPress={handleBack}
+        showBackButton={true}
+        rightComponent={renderHeaderRight()}
+      />
+        
+      {/* KeyboardAvoidingView - Android와 iOS 다르게 설정 */}
       <KeyboardAvoidingView 
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        {/* 헤더 */}
-        <CommonHeader
-          title={chatRoomName}
-          onBackPress={handleBack}
-          showBackButton={true}
-          rightComponent={renderHeaderRight()}
-        />
-
-        {/* 채팅 메시지 목록 */}
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessageItem}
-          keyExtractor={(item) => item.id.toString()}
-          style={styles.messagesList}
-          contentContainerStyle={styles.messagesContent}
-          showsVerticalScrollIndicator={false}
-          onContentSizeChange={() => {
-            if (!isInitialLoading && !isLoadingMore) {
-              flatListRef.current?.scrollToEnd({ animated: true });
+        <View style={styles.contentContainer}>
+          {/* 채팅 메시지 목록 */}
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessageItem}
+            keyExtractor={(item) => item.id.toString()}
+            style={styles.messagesList}
+            contentContainerStyle={[
+              styles.messagesContent,
+              // Android에서 키보드 높이만큼 bottom padding 추가
+              Platform.OS === 'android' && keyboardHeight > 0 && {
+                paddingBottom: keyboardHeight + SPACING.MD
+              }
+            ]}
+            showsVerticalScrollIndicator={false}
+            onContentSizeChange={() => {
+              if (!isInitialLoading && !isLoadingMore) {
+                flatListRef.current?.scrollToEnd({ animated: true });
+              }
+            }}
+            // 무한 스크롤 설정
+            onRefresh={loadMoreMessages}
+            refreshing={isLoadingMore}
+            // ListHeaderComponent에 로딩 인디케이터 추가
+            ListHeaderComponent={() => 
+              isLoadingMore ? (
+                <View style={styles.loadingMoreContainer}>
+                  <Text style={styles.loadingMoreText}>이전 메시지를 불러오는 중...</Text>
+                </View>
+              ) : null
             }
-          }}
-          // 무한 스크롤 설정
-          onRefresh={loadMoreMessages}
-          refreshing={isLoadingMore}
-          // ListHeaderComponent에 로딩 인디케이터 추가
-          ListHeaderComponent={() => 
-            isLoadingMore ? (
-              <View style={styles.loadingMoreContainer}>
-                <Text style={styles.loadingMoreText}>이전 메시지를 불러오는 중...</Text>
+            ListEmptyComponent={() => (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
+                  {isInitialLoading ? '메시지를 불러오는 중...' :
+                   isChatConnected ? '메시지를 입력해 대화를 시작해보세요.' :
+                   '서버에 연결 중...'}
+                </Text>
               </View>
-            ) : null
-          }
-          ListEmptyComponent={() => (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
-                {isInitialLoading ? '메시지를 불러오는 중...' :
-                 isChatConnected ? '메시지를 입력해 대화를 시작해보세요.' :
-                 '서버에 연결 중...'}
+            )}
+            // 초기 로딩 중이 아닐 때만 자동 스크롤
+            maintainVisibleContentPosition={isLoadingMore ? {
+              minIndexForVisible: 0,
+              autoscrollToTopThreshold: 100,
+            } : undefined}
+          />
+
+          {/* 타이핑 인디케이터 */}
+          {typingUsers.length > 0 && (
+            <View style={styles.typingContainer}>
+              <Text style={styles.typingText}>
+                {typingUsers.map(u => u.nickname).join(', ')}님이 입력 중...
               </Text>
             </View>
           )}
-          // 초기 로딩 중이 아닐 때만 자동 스크롤
-          maintainVisibleContentPosition={isLoadingMore ? {
-            minIndexForVisible: 0,
-            autoscrollToTopThreshold: 100,
-          } : undefined}
-        />
 
-        {/* 타이핑 인디케이터 */}
-        {typingUsers.length > 0 && (
-          <View style={styles.typingContainer}>
-            <Text style={styles.typingText}>
-              {typingUsers.map(u => u.nickname).join(', ')}님이 입력 중...
-            </Text>
-          </View>
-        )}
+          {/* 실패한 메시지 재전송 알림 */}
+          {messages.some(msg => msg.status === 'failed') && (
+            <View style={styles.failedMessagesContainer}>
+              <Text style={styles.failedMessagesText}>
+                전송에 실패한 메시지가 있습니다.
+              </Text>
+              <TouchableOpacity 
+                style={styles.retryAllButton}
+                onPress={handleRetryAllFailedMessages}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.retryAllButtonText}>모두 재전송</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-        {/* 실패한 메시지 재전송 알림 */}
-        {messages.some(msg => msg.status === 'failed') && (
-          <View style={styles.failedMessagesContainer}>
-            <Text style={styles.failedMessagesText}>
-              전송에 실패한 메시지가 있습니다.
-            </Text>
-            <TouchableOpacity 
-              style={styles.retryAllButton}
-              onPress={handleRetryAllFailedMessages}
+          {/* 메시지 입력 영역 */}
+          <View style={[
+            styles.inputContainer,
+            // Android에서 키보드가 올라왔을 때 하단 여백 제거
+            Platform.OS === 'android' && keyboardHeight > 0 && {
+              paddingBottom: SPACING.SM
+            }
+          ]}>
+            <TouchableOpacity style={styles.attachButton} activeOpacity={0.7}>
+              <PlusCircleIcon size={24} color={colors.GRAY_700} />
+            </TouchableOpacity>
+
+            <View style={styles.textInputContainer}>
+              <TextInput
+                style={styles.textInput}
+                placeholder={isChatConnected ? "메시지를 입력하세요..." : "연결 중..."}
+                placeholderTextColor={colors.GRAY_500}
+                value={inputText}
+                onChangeText={handleInputChange}
+                multiline={true}
+                maxLength={1000}
+                returnKeyType="send"
+                onSubmitEditing={handleSendMessage}
+                blurOnSubmit={false}
+                editable={isChatConnected}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                (inputText.trim() && isChatConnected) ? styles.sendButtonActive : styles.sendButtonInactive
+              ]}
+              onPress={handleSendMessage}
               activeOpacity={0.7}
+              disabled={!inputText.trim() || !isChatConnected}
             >
-              <Text style={styles.retryAllButtonText}>모두 재전송</Text>
+              <SendIcon
+                size={24}
+                color={(inputText.trim() && isChatConnected) ? colors.WHITE : colors.GRAY_500}
+              />
             </TouchableOpacity>
           </View>
-        )}
-
-        {/* 메시지 입력 영역 */}
-        <View style={styles.inputContainer}>
-          <TouchableOpacity style={styles.attachButton} activeOpacity={0.7}>
-            <PlusCircleIcon size={24} color={colors.GRAY_700} />
-          </TouchableOpacity>
-
-          <View style={styles.textInputContainer}>
-            <TextInput
-              style={styles.textInput}
-              placeholder={isChatConnected ? "메시지를 입력하세요..." : "연결 중..."}
-              placeholderTextColor={colors.GRAY_500}
-              value={inputText}
-              onChangeText={handleInputChange}
-              multiline={true}
-              maxLength={1000}
-              returnKeyType="send"
-              onSubmitEditing={handleSendMessage}
-              blurOnSubmit={false}
-              editable={isChatConnected}
-            />
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              (inputText.trim() && isChatConnected) ? styles.sendButtonActive : styles.sendButtonInactive
-            ]}
-            onPress={handleSendMessage}
-            activeOpacity={0.7}
-            disabled={!inputText.trim() || !isChatConnected}
-          >
-            <SendIcon
-              size={20}
-              color={(inputText.trim() && isChatConnected) ? colors.WHITE : colors.GRAY_500}
-            />
-          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
 
@@ -668,10 +724,20 @@ export default function ChatDetailScreen() {
   );
 }
 
-const createStyles = (colors: Record<string, string>) => StyleSheet.create({
+const createStyles = (colors: Record<string, string>, bottomInset: number, keyboardHeight: number) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.GRAY_50, // BG_COLORS.PRIMARY
+    backgroundColor: colors.GRAY_50,
+  },
+
+  // KeyboardAvoidingView 스타일
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+
+  // 컨텐츠 컨테이너
+  contentContainer: {
+    flex: 1,
   },
 
   // 헤더 관련
@@ -687,11 +753,12 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   // 메시지 목록
   messagesList: {
     flex: 1,
-    backgroundColor: colors.GRAY_50, // BG_COLORS.PRIMARY
+    backgroundColor: colors.GRAY_50,
   },
   messagesContent: {
     paddingVertical: SPACING.MD,
     paddingHorizontal: SPACING.SM,
+    flexGrow: 1,
   },
 
   // 메시지 컨테이너
