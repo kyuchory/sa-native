@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -52,7 +53,8 @@ export default function PostDetailScreen() {
 
   const { postId } = route.params;
   const { colors } = useThemeStore();
-  
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
   // 상태 관리
   const [post, setPost] = useState<PostDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,6 +97,22 @@ export default function PostDetailScreen() {
       });
     }
   }, [post, imageAspectRatios]);
+
+  // 키보드 이벤트 리스너 (양쪽 플랫폼 모두 키보드 높이 추적)
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
 
   // 게시물 상세 정보 로드
   const loadPostDetail = async () => {
@@ -530,24 +548,25 @@ export default function PostDetailScreen() {
 
   return (
     <View style={styles.container}>
+      {/* 헤더 */}
+      <CommonHeader
+        title="게시물"
+        rightComponent={
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => setMenuActionSheetVisible(true)}
+            activeOpacity={0.7}
+          >
+            <MenuIcon size={20} color={colors.GRAY_700} />
+          </TouchableOpacity>
+        }
+      />
+
       <KeyboardAvoidingView
-        style={{flex: 1}}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? -insets.bottom : 28 } // 헤더 높이만큼 오프셋 조정
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        {/* 헤더 */}
-        <CommonHeader
-          title="게시물"
-          rightComponent={
-            <TouchableOpacity
-              style={styles.menuButton}
-              onPress={() => setMenuActionSheetVisible(true)}
-              activeOpacity={0.7}
-            >
-              <MenuIcon size={20} color={colors.GRAY_700} />
-            </TouchableOpacity>
-          }
-        />
 
         <ScrollView
           style={styles.content}
@@ -661,9 +680,18 @@ export default function PostDetailScreen() {
 
         {/* 댓글 입력창 */}
         <View
-          style={{
-            paddingBottom: Platform.OS === 'ios' ? insets.bottom : 0,
-          }}
+          style={[
+            {
+              paddingBottom: Platform.OS === 'ios' ? insets.bottom : 0,
+            },
+            // 플랫폼별 키보드 대응
+            Platform.OS === 'android' && keyboardHeight > 0 && {
+              paddingBottom: SPACING.SM
+            },
+            Platform.OS === 'ios' && keyboardHeight > 0 && {
+              paddingBottom: SPACING.SM // iOS에서 키보드 올라올 때 insets 제거
+            }
+          ]}
         >
         {replyingTo ? (
           <ReplyInput
@@ -733,6 +761,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.GRAY_50
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   content: {
     flex: 1,

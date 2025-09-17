@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, Image, Pressable, TouchableOpacity, Alert, Platform, KeyboardAvoidingView } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, Dimensions, Image, Pressable, TouchableOpacity, Alert, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SPACING, TYPOGRAPHY } from '../constants/theme';
@@ -55,6 +55,7 @@ export default function FeedDetailScreen() {
   const styles = createStyles(colors);
   const feedId = route.params?.feedId || 15;
   const insets = useSafeAreaInsets();
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // expand/collapse 상태 관리
   const [isExpanded, setIsExpanded] = useState(false);
@@ -78,6 +79,22 @@ export default function FeedDetailScreen() {
   // 데이터 필터링 (feed가 null일 수 있음)
   const imageBlocks = feed ? feed.content_blocks.filter(block => block.type === 'image') : [];
   const textBlock = feed ? feed.content_blocks.find(block => block.type === 'text') : null;
+
+  // 키보드 이벤트 리스너 (양쪽 플랫폼 모두 키보드 높이 추적)
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e: any) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
 
   // 피드 focus 시 데이터 로드 (수정 후 최신 데이터 보장)
   useFocusEffect(
@@ -488,9 +505,9 @@ export default function FeedDetailScreen() {
     <View style={styles.container}>
       {/* 헤더 */}
       <KeyboardAvoidingView
-        style={{flex: 1}}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? -insets.bottom : 28 } // 헤더 높이만큼 오프셋 조정
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
       <CommonHeader
         title="피드"
@@ -595,11 +612,20 @@ export default function FeedDetailScreen() {
         />
       </ScrollView>
 
-      {/* 댓글 입력 또는 수정 입력 */}
-      <View
-          style={{
-            paddingBottom: Platform.OS === 'ios' ? insets.bottom : 0,
-          }}
+        {/* 댓글 입력 또는 수정 입력 */}
+        <View
+          style={[
+            {
+              paddingBottom: Platform.OS === 'ios' ? insets.bottom : 0,
+            },
+            // 플랫폼별 키보드 대응
+            Platform.OS === 'android' && keyboardHeight > 0 && {
+              paddingBottom: SPACING.SM
+            },
+            Platform.OS === 'ios' && keyboardHeight > 0 && {
+              paddingBottom: SPACING.SM // iOS에서 키보드 올라올 때 insets 제거
+            }
+          ]}
         >
       {editingComment ? (
         <CommentEditInput
@@ -670,6 +696,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.GRAY_50, // BG_COLORS.SECONDARY
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   scrollContainer: {
     flex: 1,
