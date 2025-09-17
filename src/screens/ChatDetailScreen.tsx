@@ -235,7 +235,7 @@ export default function ChatDetailScreen() {
     }
   }, [messages.length]);
 
-  // 키보드 이벤트 리스너 (안드로이드 최적화)
+  // 키보드 이벤트 리스너 (플랫폼별 최적화)
   useEffect(() => {
     let keyboardDidShowListener: any;
     let keyboardDidHideListener: any;
@@ -253,15 +253,16 @@ export default function ChatDetailScreen() {
         setKeyboardHeight(0);
       });
     } else {
-      // iOS는 기본 키보드 이벤트만 사용
-      keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      // iOS는 KeyboardAvoidingView가 처리하므로 키보드 높이 추적
+      keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
         }, 100);
       });
 
       keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-        // iOS는 키보드 높이를 직접 관리하지 않음
+        setKeyboardHeight(0);
       });
     }
 
@@ -665,9 +666,12 @@ export default function ChatDetailScreen() {
           {/* 메시지 입력 영역 */}
           <View style={[
             styles.inputContainer,
-            // Android에서 키보드가 올라왔을 때 하단 여백 제거
+            // 플랫폼별 키보드 대응
             Platform.OS === 'android' && keyboardHeight > 0 && {
               paddingBottom: SPACING.SM
+            },
+            Platform.OS === 'ios' && keyboardHeight > 0 && {
+              paddingBottom: SPACING.SM // iOS에서 키보드 올라올 때 insets 제거
             }
           ]}>
             <TouchableOpacity style={styles.attachButton} activeOpacity={0.7}>
@@ -782,7 +786,7 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
+    backgroundColor: colors.GRAY_100,
   },
   profileImagePlaceholder: {
     width: 32,
@@ -805,7 +809,7 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
   senderName: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
+    color: colors.GRAY_700,
     marginBottom: SPACING.XS,
   },
 
@@ -845,20 +849,20 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
     color: colors.WHITE,
   },
   otherMessageText: {
-    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
+    color: colors.GRAY_900,
   },
 
   // 메시지 시간
   messageTime: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: colors.GRAY_500, // TEXT_COLORS.DISABLED
+    color: colors.GRAY_500,
     alignSelf: 'flex-end',
     marginBottom: SPACING.XS,
   },
   messageTimeContainer: {
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    minHeight: 16, // 로딩 스피너와 텍스트 높이 일치
+    minHeight: 16,
   },
 
   // 내 메시지 시간 컨테이너
@@ -880,6 +884,8 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
     alignItems: 'center' as const,
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
+    // 기본 상태에서는 bottomInset 적용, 키보드 올라올 때는 동적으로 변경
+    paddingBottom: keyboardHeight > 0 ? SPACING.SM : bottomInset + SPACING.SM,
     backgroundColor: colors.WHITE,
     borderTopWidth: 1,
     borderTopColor: colors.GRAY_200,
@@ -893,7 +899,7 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
   },
   textInputContainer: {
     flex: 1,
-    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
+    backgroundColor: colors.GRAY_100,
     borderRadius: BORDER_RADIUS.LG,
     paddingHorizontal: SPACING.SM,
     paddingVertical: 0,
@@ -903,7 +909,7 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
   },
   textInput: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
+    color: colors.GRAY_900,
     textAlignVertical: 'center',
     includeFontPadding: false,
     textAlign: 'left',
@@ -920,18 +926,18 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
     backgroundColor: colors.PRIMARY,
   },
   sendButtonInactive: {
-    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
+    backgroundColor: colors.GRAY_100,
   },
 
   // 타이핑 인디케이터
   typingContainer: {
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.XS,
-    backgroundColor: colors.GRAY_100, // BG_COLORS.SECONDARY
+    backgroundColor: colors.GRAY_100,
   },
   typingText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
+    color: colors.GRAY_700,
     fontStyle: 'italic',
   },
 
@@ -942,24 +948,24 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
     justifyContent: 'space-between' as const,
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
-    backgroundColor: '#FFF3E0', // 연한 주황색 배경 (흰색 텍스트와는 상관없지만 유지)
+    backgroundColor: '#FFF3E0',
     borderTopWidth: 1,
     borderTopColor: '#FFE0B2',
   },
   failedMessagesText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: '#F57C00', // 주황색 텍스트 (그대로 유지)
+    color: '#F57C00',
     flex: 1,
   },
   retryAllButton: {
-    backgroundColor: '#FF9800', // 주황색 버튼 (그대로 유지)
+    backgroundColor: '#FF9800',
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.XS,
     borderRadius: BORDER_RADIUS.SM,
   },
   retryAllButtonText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.WHITE, // 이 텍스트는 다시 완전하게 흰색으로 유지
+    color: colors.WHITE,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 
@@ -972,7 +978,7 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
   },
   emptyText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
+    color: colors.GRAY_700,
     textAlign: 'center',
   },
 
@@ -983,7 +989,7 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
   },
   loadingMoreText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
+    color: colors.GRAY_700,
     fontStyle: 'italic',
   },
 
@@ -1001,8 +1007,8 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
   },
   dateSeparatorText: {
     fontSize: TYPOGRAPHY.SIZE.XS,
-    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
-    backgroundColor: colors.GRAY_50, // BG_COLORS.PRIMARY
+    color: colors.GRAY_700,
+    backgroundColor: colors.GRAY_50,
     paddingHorizontal: SPACING.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
