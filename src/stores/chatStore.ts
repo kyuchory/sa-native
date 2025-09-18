@@ -74,10 +74,32 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
 
     try {
-      // /chat 네임스페이스 연결 (이미 연결되어 있어야 함)
-      const socket = useSocketStore.getState().getSocket('/chat');
+      // 연결 상태 확인 - 연결될 때까지 최대 3초 대기
+      let attempts = 0;
+      const maxAttempts = 30; // 30 * 100ms = 3초
+      let socket = useSocketStore.getState().getSocket('/chat');
+
+      while (!socket && attempts < maxAttempts) {
+        console.log(`🔄 /chat 연결 대기 중... (${++attempts}/${maxAttempts})`);
+        await new Promise(resolve => setTimeout(resolve, 100)); // 100ms 대기
+        socket = useSocketStore.getState().getSocket('/chat');
+      }
+
       if (!socket) {
-        throw new Error('Chat socket not connected');
+        throw new Error('Chat socket not connected after timeout');
+      }
+
+      const isConnected = useSocketStore.getState().isConnected('/chat');
+      if (!isConnected) {
+        console.warn('⚠️ /chat 소켓은 있지만 연결 상태가 아직 false임');
+        // 연결 상태를 기다리되 타임아웃 설정
+        let connectedAttempts = 0;
+        const maxConnectedAttempts = 20; // 20 * 100ms = 2초 추가 대기
+
+        while (!useSocketStore.getState().isConnected('/chat') && connectedAttempts < maxConnectedAttempts) {
+          console.log(`🔄 /chat 연결 상태 대기 중... (${++connectedAttempts}/${maxConnectedAttempts})`);
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       }
 
       useSocketStore.getState().subscribe('/chat', 'chatStore');

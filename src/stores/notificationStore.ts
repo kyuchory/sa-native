@@ -49,10 +49,32 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
     }
 
     try {
-      // /notification 네임스페이스 연결 (이미 연결되어 있어야 함)
-      const socket = useSocketStore.getState().getSocket('/notification');
+      // 연결 상태 확인 - 연결될 때까지 최대 3초 대기
+      let attempts = 0;
+      const maxAttempts = 30; // 30 * 100ms = 3초
+      let socket = useSocketStore.getState().getSocket('/notification');
+
+      while (!socket && attempts < maxAttempts) {
+        console.log(`🔄 /notification 연결 대기 중... (${++attempts}/${maxAttempts})`);
+        await new Promise(resolve => setTimeout(resolve, 100)); // 100ms 대기
+        socket = useSocketStore.getState().getSocket('/notification');
+      }
+
       if (!socket) {
-        throw new Error('Notification socket not connected');
+        throw new Error('Notification socket not connected after timeout');
+      }
+
+      const isConnected = useSocketStore.getState().isConnected('/notification');
+      if (!isConnected) {
+        console.warn('⚠️ /notification 소켓은 있지만 연결 상태가 아직 false임');
+        // 연결 상태를 기다리되 타임아웃 설정
+        let connectedAttempts = 0;
+        const maxConnectedAttempts = 20; // 20 * 100ms = 2초 추가 대기
+
+        while (!useSocketStore.getState().isConnected('/notification') && connectedAttempts < maxConnectedAttempts) {
+          console.log(`🔄 /notification 연결 상태 대기 중... (${++connectedAttempts}/${maxConnectedAttempts})`);
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       }
 
       useSocketStore.getState().subscribe('/notification', 'notificationStore');
@@ -66,6 +88,13 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
       socket.off('notification:unsubscribed');
       socket.off('unread_count');
       socket.off('error');
+      socket.off('notification:followed');
+      socket.off('notification:feed_liked');
+      socket.off('notification:feed_created');
+      socket.off('notification:feed_commented');
+      socket.off('notification:post_commented');
+      socket.off('notification:post_liked');
+      socket.off('notification:post_created');
 
       // 알림 이벤트 핸들러 설정
       socket.on('notification:new', (notification: Notification) => {

@@ -44,25 +44,46 @@ export default function AuthNavigator() {
     if (isAuthenticated) {
       const initializeGlobalSockets = async () => {
         try {
-          // /chat 네임스페이스 글로벌 연결 및 초기화
+          // /chat 네임스페이스 글로벌 연결
           await socketStore.connect('/chat');
           console.log('📡 Global chat socket connected');
 
-          await chatStore.initializeChatEvents();
-          console.log('📡 Global chat event listeners registered');
+          // chat 이벤트 초기화 전 약간 대기하여 안정성 확보
+          setTimeout(async () => {
+            try {
+              await chatStore.initializeChatEvents();
+              console.log('📡 Global chat event listeners registered');
+            } catch (error) {
+              console.error('❌ Failed to initialize chat events:', error);
+              // chat 초기화 실패 시에도 앱은 계속 동작
+            }
+          }, 300); // 300ms 지연
 
-          // /notification 네임스페이스 글로벌 연결 및 초기화
+          // /notification 네임스페이스 글로벌 연결 (약간의 지연 추가)
+          console.log('🔔 Starting notification socket connection...');
           await socketStore.connect('/notification');
           console.log('🔔 Global notification socket connected');
 
-          await notificationStore.initializeNotificationEvents();
-          console.log('🔔 Global notification event listeners registered');
+          // notification 이벤트 초기화 전 약간 대기하여 안정성 확보
+          setTimeout(async () => {
+            try {
+              await notificationStore.initializeNotificationEvents();
+              console.log('🔔 Global notification event listeners registered');
+            } catch (error) {
+              console.error('❌ Failed to initialize notification events:', error);
+              // notification 초기화 실패 시에도 앱은 계속 동작
+            }
+          }, 500); // 500ms 지연
+
         } catch (error) {
           console.error('❌ Failed to initialize global sockets:', error);
         }
       };
 
-      initializeGlobalSockets();
+      // 약간의 초기 지연을 주어 네트워크 안정화
+      setTimeout(() => {
+        initializeGlobalSockets();
+      }, 1000);
     } else {
       // 인증 해제 시 모든 연결 해제
       socketStore.disconnectAll();
