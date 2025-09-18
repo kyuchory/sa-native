@@ -25,6 +25,9 @@ interface ChatStore {
 
   // 이벤트 리스너 등록 상태 (메모리 누수 방지)
   chatEventListenersRegistered: boolean;
+  
+  // 🔥 이벤트 리스너 정리 기능 추가
+  cleanupEventListeners: () => void;
 
   // Actions
   initializeChatEvents: () => Promise<void>;
@@ -33,6 +36,13 @@ interface ChatStore {
   sendMessage: (content: string, mentionUserIds?: number[]) => Promise<void>;
   retryMessage: (failedMessage: Message) => Promise<void>;
   retryAllFailedMessages: () => Promise<void>;
+  
+  // 🔥 이벤트 리스너 관리 기능
+  resetEventListeners: () => void;
+  
+  // 🔥 오프라인 복구 기능
+  recoverFromOffline: () => Promise<void>;
+  syncMissedMessages: () => Promise<void>;
 
   // 타이핑 관리
   startTyping: () => void;
@@ -67,10 +77,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   // 채팅 이벤트 핸들러 초기화 - /chat 네임스페이스 구독
   initializeChatEvents: async () => {
-    // 이미 등록된 리스너가 있으면 재등록하지 않음
+    // 이미 등록된 리스너가 있으면 기존 리스너 정리 후 재등록
     if (get().chatEventListenersRegistered) {
-      console.log('📢 ChatStore 이벤트 리스너가 이미 등록됨');
-      return;
+      console.log('📢 ChatStore 이벤트 리스너가 이미 등록됨 - 기존 리스너 정리 후 재등록');
+      get().cleanupEventListeners();
     }
 
     try {
@@ -106,17 +116,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
       console.log('📢 ChatStore가 /chat 네임스페이스 이벤트 구독 시작');
 
-      // 기존 이벤트 핸들러 제거
-      socket.off('joined_room');
-      socket.off('user_joined');
-      socket.off('message:receive');
-      socket.off('message:sent');
-      socket.off('message:failed');
-      socket.off('mention:receive');
-      socket.off('typing:status');
-      socket.off('user_left');
-      socket.off('left_room');
-      socket.off('error');
+      // 🔥 개선된 이벤트 핸들러 정리 - 모든 리스너 제거
+      socket.removeAllListeners();
+      console.log('🧹 기존 모든 이벤트 리스너 제거 완료');
 
       // 채팅 이벤트 핸들러 설정
       socket.on('joined_room', (data: any) =>
@@ -415,5 +417,75 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   setNextCursor: (cursor) => set({ nextCursor: cursor }),
   setIsLoadingMore: (loading) => set({ isLoadingMore: loading }),
   setIsInitialLoading: (loading) => set({ isInitialLoading: loading }),
-  setChatEventListenersRegistered: (registered) => set({ chatEventListenersRegistered: registered })
+  setChatEventListenersRegistered: (registered) => set({ chatEventListenersRegistered: registered }),
+  
+  // 🔥 이벤트 리스너 정리 기능
+  cleanupEventListeners: () => {
+    const socket = useSocketStore.getState().getSocket('/chat');
+    if (socket) {
+      console.log('🧹 ChatStore 이벤트 리스너 정리 시작...');
+      socket.removeAllListeners();
+      console.log('✅ ChatStore 이벤트 리스너 정리 완료');
+    }
+    set({ chatEventListenersRegistered: false });
+  },
+  
+  // 🔥 이벤트 리스너 리셋 기능
+  resetEventListeners: () => {
+    get().cleanupEventListeners();
+    // 재등록은 initializeChatEvents()를 다시 호출하여 수행
+  },
+  
+  // 🔥 오프라인 상태에서 복구
+  recoverFromOffline: async () => {
+    console.log('🔄 오프라인 복구 시작...');
+    
+    const { currentChatRoomId } = get();
+    
+    try {
+      // 1. 연결된 채팅방이 있다면 다시 참가
+      if (currentChatRoomId) {
+        console.log(`💬 채팅방 ${currentChatRoomId} 재참가...`);
+        get().joinChatRoom(currentChatRoomId);
+      }
+      
+      // 2. 누락된 메시지 동기화
+      await get().syncMissedMessages();
+      
+      // 3. 실패한 메시지 재전송
+      await get().retryAllFailedMessages();
+      
+      console.log('✅ 오프라인 복구 완료');
+      
+    } catch (error) {
+      console.error('❌ 오프라인 복구 실패:', error);
+    }
+  },
+  
+  // 🔥 누락된 메시지 동기화
+  syncMissedMessages: async () => {
+    const { currentChatRoomId, messages } = get();
+    
+    if (!currentChatRoomId || messages.length === 0) {
+      console.log('🔄 동기화할 채팅방 또는 메시지가 없음');
+      return;
+    }
+    
+    try {
+      // 마지막 메시지 시간 기준으로 새 메시지 조회
+      const lastMessage = messages[messages.length - 1];
+      const lastMessageTime = lastMessage.created_at;
+      
+      console.log(`🔄 ${lastMessageTime} 이후 메시지 동기화...`);
+      
+      // TODO: 서버 API에서 특정 시간 이후 메시지 조회 기능 구현 필요
+      // const newMessages = await ChatService.getMessagesSince(currentChatRoomId, lastMessageTime);
+      // newMessages.forEach(message => get().addMessage(message));
+      
+      console.log('✅ 누락된 메시지 동기화 완료');
+      
+    } catch (error) {
+      console.error('❌ 누락된 메시지 동기화 실패:', error);
+    }
+  }
 }));

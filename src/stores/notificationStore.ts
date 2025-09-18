@@ -29,6 +29,14 @@ interface NotificationStore {
   loadNotifications: (notifications: Notification[]) => void;
   removeAllNotifications: () => void;
 
+  // 🔥 이벤트 리스너 관리 기능 추가
+  cleanupEventListeners: () => void;
+  resetEventListeners: () => void;
+  
+  // 🔥 오프라인 복구 기능 추가
+  recoverFromOffline: () => Promise<void>;
+  syncMissedNotifications: () => Promise<void>;
+
   // Setters
   setUnreadCount: (count: number) => void;
   setNotificationEventListenersRegistered: (registered: boolean) => void;
@@ -42,10 +50,10 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
   // 알림 이벤트 핸들러 초기화 - /notification 네임스페이스 리스너 등록
   initializeNotificationEvents: async () => {
-    // 이미 등록된 리스너가 있으면 재등록하지 않음
+    // 이미 등록된 리스너가 있으면 기존 리스너 정리 후 재등록
     if (get().notificationEventListenersRegistered) {
-      console.log('🔔 NotificationStore 이벤트 리스너가 이미 등록됨');
-      return;
+      console.log('🔔 NotificationStore 이벤트 리스너가 이미 등록됨 - 기존 리스너 정리 후 재등록');
+      get().cleanupEventListeners();
     }
 
     try {
@@ -81,20 +89,9 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
       console.log('🔔 NotificationStore가 /notification 네임스페이스 이벤트 구독 시작');
 
-      // 기존 이벤트 핸들러 제거
-      socket.off('notification:new');
-      socket.off('notification:subscribed');
-      socket.off('notification:header_subscribed');
-      socket.off('notification:unsubscribed');
-      socket.off('unread_count');
-      socket.off('error');
-      socket.off('notification:followed');
-      socket.off('notification:feed_liked');
-      socket.off('notification:feed_created');
-      socket.off('notification:feed_commented');
-      socket.off('notification:post_commented');
-      socket.off('notification:post_liked');
-      socket.off('notification:post_created');
+      // 🔥 개선된 이벤트 핸들러 정리 - 모든 리스너 제거
+      socket.removeAllListeners();
+      console.log('🧹 기존 모든 알림 이벤트 리스너 제거 완료');
 
       // 알림 이벤트 핸들러 설정
       socket.on('notification:new', (notification: Notification) => {
@@ -388,5 +385,73 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
   // Setters
   setUnreadCount: (count) => set({ unreadCount: count }),
-  setNotificationEventListenersRegistered: (registered) => set({ notificationEventListenersRegistered: registered })
+  setNotificationEventListenersRegistered: (registered) => set({ notificationEventListenersRegistered: registered }),
+  
+  // 🔥 이벤트 리스너 정리 기능
+  cleanupEventListeners: () => {
+    const socket = useSocketStore.getState().getSocket('/notification');
+    if (socket) {
+      console.log('🧹 NotificationStore 이벤트 리스너 정리 시작...');
+      socket.removeAllListeners();
+      console.log('✅ NotificationStore 이벤트 리스너 정리 완료');
+    }
+    set({ notificationEventListenersRegistered: false });
+  },
+  
+  // 🔥 이벤트 리스너 리셋 기능
+  resetEventListeners: () => {
+    get().cleanupEventListeners();
+    // 재등록은 initializeNotificationEvents()를 다시 호출하여 수행
+  },
+  
+  // 🔥 오프라인 상태에서 복구
+  recoverFromOffline: async () => {
+    console.log('🔄 알림 오프라인 복구 시작...');
+    
+    try {
+      // 1. 알림 구독 재등록
+      console.log('📨 알림 구독 재등록...');
+      get().subscribeToNotifications();
+      get().subscribeToHeaderNotifications();
+      
+      // 2. 누락된 알림 동기화
+      await get().syncMissedNotifications();
+      
+      // 3. 읽지 않은 알림 개수 갱신
+      await get().fetchUnreadCount();
+      
+      console.log('✅ 알림 오프라인 복구 완료');
+      
+    } catch (error) {
+      console.error('❌ 알림 오프라인 복구 실패:', error);
+    }
+  },
+  
+  // 🔥 누락된 알림 동기화
+  syncMissedNotifications: async () => {
+    const { notifications } = get();
+    
+    try {
+      // 마지막 알림 시간 기준으로 새 알림 조회
+      const lastNotification = notifications[0]; // 가장 최근 알림
+      const lastNotificationTime = lastNotification?.created_at;
+      
+      if (lastNotificationTime) {
+        console.log(`🔄 ${lastNotificationTime} 이후 알림 동기화...`);
+        
+        // TODO: 서버 API에서 특정 시간 이후 알림 조회 기능 구현 필요
+        // const newNotifications = await NotificationService.getNotificationsSince(lastNotificationTime);
+        // newNotifications.forEach(notification => get().addNotification(notification));
+        
+        console.log('✅ 누락된 알림 동기화 완료');
+      } else {
+        console.log('🔄 첫 번째 알림 동기화 - 최신 알림 조회');
+        // 전체 알림 목록 새로고침
+        await get().fetchUnreadCount();
+      }
+      
+    } catch (error) {
+      console.error('❌ 누락된 알림 동기화 실패:', error);
+    }
+  }
 }));

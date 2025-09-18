@@ -6,6 +6,7 @@ import { useSocketStore } from '../stores/socketStore';
 import { useChatStore } from '../stores/chatStore';
 import { useNotificationStore } from '../stores/notificationStore';
 import { AuthStackParamList } from '../types/navigation';
+// 🔧 개선된 소켓 초기화 로직으로 더 안정적인 연결 관리
 
 // Screens
 import LoginScreen from '../screens/LoginScreen';
@@ -39,55 +40,52 @@ export default function AuthNavigator() {
   const chatStore = useChatStore();
   const notificationStore = useNotificationStore();
 
-  // 글로벌 소켓 초기화 (인증된 상태에서만)
+  // 🔧 개선된 글로벌 소켓 초기화 (인증된 상태에서만)
   useEffect(() => {
     if (isAuthenticated) {
       const initializeGlobalSockets = async () => {
+        console.log('🚀 글로벌 소켓 초기화 시작...');
+        
         try {
-          // /chat 네임스페이스 글로벌 연결
+          // 💬 Chat 네임스페이스 연결 및 이벤트 초기화
+          console.log('💬 Chat 소켓 연결 시작...');
           await socketStore.connect('/chat');
-          console.log('📡 Global chat socket connected');
-
-          // chat 이벤트 초기화 전 약간 대기하여 안정성 확보
-          setTimeout(async () => {
-            try {
-              await chatStore.initializeChatEvents();
-              console.log('📡 Global chat event listeners registered');
-            } catch (error) {
-              console.error('❌ Failed to initialize chat events:', error);
-              // chat 초기화 실패 시에도 앱은 계속 동작
-            }
-          }, 300); // 300ms 지연
-
-          // /notification 네임스페이스 글로벌 연결 (약간의 지연 추가)
-          console.log('🔔 Starting notification socket connection...');
+          console.log('✅ Chat 소켓 연결 완료');
+          
+          // Chat 이벤트 초기화 (연결 후 즉시)
+          await chatStore.initializeChatEvents();
+          console.log('✅ Chat 이벤트 리스너 등록 완료');
+          
+          // 🔔 Notification 네임스페이스 연결 및 이벤트 초기화
+          console.log('🔔 Notification 소켓 연결 시작...');
           await socketStore.connect('/notification');
-          console.log('🔔 Global notification socket connected');
-
-          // notification 이벤트 초기화 전 약간 대기하여 안정성 확보
-          setTimeout(async () => {
-            try {
-              await notificationStore.initializeNotificationEvents();
-              console.log('🔔 Global notification event listeners registered');
-            } catch (error) {
-              console.error('❌ Failed to initialize notification events:', error);
-              // notification 초기화 실패 시에도 앱은 계속 동작
-            }
-          }, 500); // 500ms 지연
-
+          console.log('✅ Notification 소켓 연결 완료');
+          
+          // Notification 이벤트 초기화 (연결 후 즉시)
+          await notificationStore.initializeNotificationEvents();
+          console.log('✅ Notification 이벤트 리스너 등록 완료');
+          
+          console.log('🎉 모든 글로벌 소켓 초기화 완료!');
+          
         } catch (error) {
-          console.error('❌ Failed to initialize global sockets:', error);
+          console.error('❌ 글로벌 소켓 초기화 실패:', error);
+          
+          // 부분적 실패 시 재시도 로직 (5초 후)
+          console.log('🔄 5초 후 소켓 연결 재시도...');
+          setTimeout(() => {
+            initializeGlobalSockets();
+          }, 5000);
         }
       };
 
-      // 약간의 초기 지연을 주어 네트워크 안정화
-      setTimeout(() => {
-        initializeGlobalSockets();
-      }, 1000);
+      // 즉시 시작 (지연 없이)
+      initializeGlobalSockets();
+      
     } else {
       // 인증 해제 시 모든 연결 해제
+      console.log('🚪 로그아웃 - 모든 소켓 연결 해제...');
       socketStore.disconnectAll();
-      console.log('🎯 All socket connections disconnected due to logout');
+      console.log('✅ 모든 소켓 연결 해제 완료');
     }
   }, [isAuthenticated]);
 

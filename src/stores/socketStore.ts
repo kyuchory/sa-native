@@ -11,72 +11,103 @@ interface SocketConnection {
   isConnecting: boolean;
   lastConnectionError: string | null;
   subscribers: Set<string>;
+  reconnectAttempts: number;
+  maxReconnectAttempts: number;
+  reconnectTimeout: NodeJS.Timeout | null;
+  connectionId: string; // 중복 연결 방지용 고유 ID
+  tokenRefreshAttempts: number; // 🔥 토큰 갱신 시도 횟수
+  maxTokenRefreshAttempts: number; // 🔥 최대 토큰 갱신 시도 횟수
 }
 
 interface SocketStore {
-  // 네임스페이스별 Socket 연결 상태
   connections: Map<string, SocketConnection>;
+  // 🗑️ isGloballyConnecting 제거 - 네임스페이스별 개별 관리로 변경
 
-  // Connection 관리 액션
-  connect: (namespace: string) => Promise<Socket>;
+  connect: (namespace: string, options?: ConnectOptions) => Promise<Socket>;
   disconnect: (namespace: string) => void;
   disconnectAll: () => void;
   reconnect: (namespace: string) => Promise<Socket>;
+  forceReconnect: (namespace: string) => Promise<Socket>;
 
-  // 이벤트 구독 관리 (네임스페이스별)
   subscribe: (namespace: string, storeName: string) => void;
   unsubscribe: (namespace: string, storeName: string) => void;
   getSubscriberCount: (namespace: string) => number;
 
-  // 유틸리티 메소드
   isConnected: (namespace: string) => boolean;
   getSocket: (namespace: string) => Socket | null;
   getNamespaces: () => string[];
+  
+  // 새로운 메소드들
+  cleanupConnection: (namespace: string) => void;
+  scheduleReconnect: (namespace: string, delay?: number) => void;
+  cancelReconnect: (namespace: string) => void;
+}
+
+interface ConnectOptions {
+  forceReconnect?: boolean;
+  timeout?: number;
 }
 
 export const useSocketStore = create<SocketStore>((set, get) => ({
-  // 초기 상태
   connections: new Map<string, SocketConnection>(),
+  // 🗑️ isGloballyConnecting 제거
 
-  // 특정 네임스페이스의 Socket 연결 생성/재사용
-  connect: async (namespace: string): Promise<Socket> => {
+  connect: async (namespace: string, options: ConnectOptions = {}): Promise<Socket> => {
     const { connections } = get();
+    const { forceReconnect = false, timeout = 10000 } = options;
 
-    // 기존 연결 확인
+    // 🔧 단순화된 연결 중복 방지 - 네임스페이스별로 개별 처리
     const existingConnection = connections.get(namespace);
-
-    // 이미 연결되어 있다면 재사용
-    if (existingConnection?.socket && existingConnection.isConnected) {
-      console.log(`✅ ${namespace} 네임스페이스 기존 연결 재사용`);
-      return existingConnection.socket;
-    }
-
-    // 연결 중이라면 무시
-    if (existingConnection?.isConnecting) {
-      console.log(`🔄 ${namespace} 네임스페이스 연결 진행 중...`);
+    if (!forceReconnect && existingConnection?.isConnecting) {
+      console.log(`🔄 ${namespace} 이미 연결 진행 중 - 대기`);
       return new Promise((resolve, reject) => {
-        const checkConnection = () => {
-          const updatedConnection = get().connections.get(namespace);
-          if (updatedConnection?.socket && updatedConnection.isConnected) {
-            resolve(updatedConnection.socket);
-          } else if (updatedConnection && !updatedConnection.isConnecting) {
+        const checkInterval = setInterval(() => {
+          const connection = get().connections.get(namespace);
+          if (connection?.socket && connection.isConnected) {
+            clearInterval(checkInterval);
+            resolve(connection.socket);
+          } else if (!connection?.isConnecting) {
+            clearInterval(checkInterval);
             reject(new Error(`${namespace} 연결 실패`));
-          } else {
-            setTimeout(checkConnection, 100);
           }
-        };
-        checkConnection();
+        }, 100);
+
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          reject(new Error(`${namespace} 연결 타임아웃`));
+        }, timeout);
       });
     }
 
+    // 기존 연결 재사용 (강제 재연결이 아닌 경우)
+    if (!forceReconnect && existingConnection?.socket && existingConnection.isConnected) {
+      console.log(`✅ ${namespace} 기존 연결 재사용`);
+      return existingConnection.socket;
+    }
+
+    // 기존 연결 정리 (강제 재연결인 경우)
+    if (forceReconnect && existingConnection) {
+      get().cleanupConnection(namespace);
+    }
+
+    // 🗑️ 글로벌 연결 상태 제거 - 네임스페이스별 개별 관리
+
     try {
-      // 연결 상태 업데이트
+      const connectionId = `${namespace}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // 연결 상태 초기화
       const newConnection: SocketConnection = {
         socket: null,
         isConnected: false,
         isConnecting: true,
         lastConnectionError: null,
         subscribers: existingConnection?.subscribers || new Set<string>(),
+        reconnectAttempts: existingConnection?.reconnectAttempts || 0,
+        maxReconnectAttempts: 5,
+        reconnectTimeout: null,
+        connectionId,
+        tokenRefreshAttempts: 0, // 🔥 토큰 갱신 시도 횟수 초기화
+        maxTokenRefreshAttempts: 3 // 🔥 최대 3번까지 토큰 갱신 시도
       };
 
       set((state) => {
@@ -90,113 +121,293 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
         throw new Error('인증 토큰이 없습니다.');
       }
 
-      console.log(`🔌 ${namespace} 네임스페이스 WebSocket 연결 시도...`);
+      console.log(`🔌 ${namespace} WebSocket 연결 시도... (ID: ${connectionId})`);
 
       const newSocket = io(WS_BASE_URL + namespace, {
-        auth: { token }
+        auth: { token },
+        autoConnect: true,
+        reconnection: false, // 수동 재연결 관리
+        timeout: timeout,
+        forceNew: forceReconnect,
+        transports: ['websocket', 'polling'] // fallback 추가
       });
 
-      // Socket 이벤트 설정
-      newSocket.on('connected', (data) => {
-        console.log(`✅ ${namespace} 네임스페이스 연결 성공:`, data);
+      // 연결 타임아웃 처리
+      const connectTimeout = setTimeout(() => {
+        if (!get().connections.get(namespace)?.isConnected) {
+          console.error(`⏰ ${namespace} 연결 타임아웃`);
+          newSocket.disconnect();
+          throw new Error('연결 타임아웃');
+        }
+      }, timeout);
+
+      // 연결 성공 이벤트
+      newSocket.on('connect', () => {
+        clearTimeout(connectTimeout);
+        console.log(`✅ ${namespace} 연결 성공 (ID: ${connectionId})`);
+        
         set((state) => {
           const updatedConnections = new Map(state.connections);
           const connection = updatedConnections.get(namespace);
-          if (connection) {
+          if (connection && connection.connectionId === connectionId) {
             updatedConnections.set(namespace, {
               ...connection,
               socket: newSocket,
               isConnected: true,
               isConnecting: false,
               lastConnectionError: null,
+              reconnectAttempts: 0,
+              tokenRefreshAttempts: 0 // 연결 성공 시 토큰 갱신 시도 횟수도 초기화
             });
           }
           return { connections: updatedConnections };
         });
+        
+        // 🔥 재연결 시 자동 상태 복구
+        if (namespace === '/chat') {
+          setTimeout(() => {
+            // ChatStore에서 오프라인 복구 수행
+            import('../stores/chatStore').then(({ useChatStore }) => {
+              const chatStore = useChatStore.getState();
+              chatStore.recoverFromOffline().catch(error => {
+                console.error('❌ 채팅 상태 복구 실패:', error);
+              });
+            });
+          }, 1000); // 1초 후 복구 시작
+        } else if (namespace === '/notification') {
+          setTimeout(() => {
+            // NotificationStore에서 오프라인 복구 수행
+            import('../stores/notificationStore').then(({ useNotificationStore }) => {
+              const notificationStore = useNotificationStore.getState();
+              notificationStore.recoverFromOffline().catch(error => {
+                console.error('❌ 알림 상태 복구 실패:', error);
+              });
+            });
+          }, 1200); // 1.2초 후 복구 시작 (chat보다 약간 늦게)
+        }
       });
 
-      // 연결 에러 처리 - 자동 토큰 재발급 포함
+      // 연결 성공 응답 (서버에서 보내는 커스텀 이벤트)
+      newSocket.on('connected', (data) => {
+        console.log(`✅ ${namespace} 서버 연결 확인:`, data);
+      });
+
+      // 🔧 개선된 연결 오류 처리 - 토큰 갱신 동기화 개선
       newSocket.on('connect_error', async (error) => {
-        console.error(`❌ ${namespace} 네임스페이스 연결 실패:`, error);
-        set((state) => {
-          const updatedConnections = new Map(state.connections);
-          const connection = updatedConnections.get(namespace);
-          if (connection) {
-            updatedConnections.set(namespace, {
-              ...connection,
-              isConnecting: false,
-              lastConnectionError: error.message,
-            });
-          }
-          return { connections: updatedConnections };
-        });
+        clearTimeout(connectTimeout);
+        console.error(`❌ ${namespace} 연결 실패:`, error.message);
+        
+        const connection = get().connections.get(namespace);
+        if (!connection || connection.connectionId !== connectionId) {
+          console.log(`🚫 ${namespace} 연결 ID 불일치, 무시`);
+          return;
+        }
 
-        // TOKEN_EXPIRED 에러 체크
-        if (error.message && error.message.includes('TOKEN_EXPIRED')) {
-          console.log(`🔄 ${namespace} 네임스페이스 토큰 만료 감지 - 자동 재연결 시도...`);
-
-          try {
-            const newAccessToken = await apiClient.refreshToken();
-            console.log(`🔄 ${namespace} 네임스페이스 새 토큰으로 재연결 시도...`);
-
-            // 기존 소켓 정리
-            newSocket.disconnect();
-
-            // 새 토큰으로 재연결
-            await get().reconnect(namespace);
-
-          } catch (refreshError) {
-            console.error(`🛑 ${namespace} 네임스페이스 토큰 갱신 실패:`, refreshError);
+        // 🔥 토큰 만료 처리 - 무한 루프 방지 개선
+        if (error.message?.includes('TOKEN_EXPIRED')) {
+          const currentAttempts = connection.tokenRefreshAttempts;
+          
+          if (currentAttempts >= connection.maxTokenRefreshAttempts) {
+            console.error(`🛑 ${namespace} 토큰 갱신 최대 시도 횟수 초과 (${currentAttempts}/${connection.maxTokenRefreshAttempts})`);
+            
             set((state) => {
               const updatedConnections = new Map(state.connections);
-              const connection = updatedConnections.get(namespace);
-              if (connection) {
+              const conn = updatedConnections.get(namespace);
+              if (conn && conn.connectionId === connectionId) {
                 updatedConnections.set(namespace, {
-                  ...connection,
+                  ...conn,
+                  isConnecting: false,
                   isConnected: false,
                   socket: null,
+                  lastConnectionError: '토큰 갱신 최대 시도 횟수 초과 - 로그인 필요',
                 });
               }
               return { connections: updatedConnections };
             });
+            
+            Alert.alert('인증 만료', '로그인이 만료되었습니다. 다시 로그인해주세요.');
+            return;
+          }
+          
+          console.log(`🔄 ${namespace} 토큰 만료 - 동기화된 갱신 시도 (${currentAttempts + 1}/${connection.maxTokenRefreshAttempts})...`);
+          
+          try {
+            // 토큰 갱신 시도 횟수 증가
+            set((state) => {
+              const updatedConnections = new Map(state.connections);
+              const conn = updatedConnections.get(namespace);
+              if (conn && conn.connectionId === connectionId) {
+                updatedConnections.set(namespace, {
+                  ...conn,
+                  tokenRefreshAttempts: currentAttempts + 1
+                });
+              }
+              return { connections: updatedConnections };
+            });
+            
+            // 기존 소켓 즉시 정리
+            newSocket.removeAllListeners();
+            newSocket.disconnect();
+            
+            // 토큰 갱신 실행
+            await apiClient.refreshToken();
+            console.log(`✅ ${namespace} 토큰 갱신 성공`);
+            
+            // 연결 상태 초기화 (토큰 갱신 성공 시 재연결 시도 횟수 초기화)
+            set((state) => {
+              const updatedConnections = new Map(state.connections);
+              const conn = updatedConnections.get(namespace);
+              if (conn && conn.connectionId === connectionId) {
+                updatedConnections.set(namespace, {
+                  ...conn,
+                  socket: null,
+                  isConnected: false,
+                  isConnecting: false,
+                  lastConnectionError: null,
+                  reconnectAttempts: 0,
+                  tokenRefreshAttempts: 0 // 성공 시 초기화
+                });
+              }
+              return { connections: updatedConnections };
+            });
+            
+            // 새 토큰으로 즉시 재연결 시도 (지연 없이)
+            console.log(`🔄 ${namespace} 새 토큰으로 재연결 시도...`);
+            setTimeout(() => {
+              get().forceReconnect(namespace).catch(reconnectError => {
+                console.error(`❌ ${namespace} 토큰 갱신 후 재연결 실패:`, reconnectError);
+              });
+            }, 500); // 짧은 지연으로 안정성 확보
+            
+          } catch (refreshError) {
+            console.error(`🛑 ${namespace} 토큰 갱신 실패:`, refreshError);
+            
+            set((state) => {
+              const updatedConnections = new Map(state.connections);
+              const conn = updatedConnections.get(namespace);
+              if (conn && conn.connectionId === connectionId) {
+                updatedConnections.set(namespace, {
+                  ...conn,
+                  isConnecting: false,
+                  isConnected: false,
+                  socket: null,
+                  lastConnectionError: '인증 실패 - 토큰 갱신 실패',
+                });
+              }
+              return { connections: updatedConnections,  };
+            });
 
             const errorMessage = String(refreshError);
-            if (errorMessage.includes('TOKEN_EXPIRED') ||
-                errorMessage.includes('refresh') ||
-                errorMessage.includes('expired') ||
-                errorMessage.includes('Refresh token')) {
-              console.log('리프레시 토큰 만료 - apiClient에서 로그아웃 처리 완료');
+            if (errorMessage.includes('TOKEN_EXPIRED') || 
+                errorMessage.includes('refresh') || 
+                errorMessage.includes('expired')) {
+              console.log('🚪 리프레시 토큰 만료 - 로그아웃 처리됨');
             } else {
-              Alert.alert(`토큰 갱신 실패`, `자동 로그인 갱신에 실패했습니다.`);
+              Alert.alert('인증 오류', '자동 로그인 갱신에 실패했습니다.');
             }
           }
         } else {
-          Alert.alert('연결 오류', `${namespace} 네임스페이스 서버에 연결할 수 없습니다.`);
+          // 일반적인 연결 오류 - 재시도 로직
+          const currentAttempts = connection.reconnectAttempts;
+          
+          if (currentAttempts < connection.maxReconnectAttempts) {
+            const delay = Math.min(1000 * Math.pow(2, currentAttempts), 30000); // 지수 백오프
+            console.log(`🔄 ${namespace} 재연결 시도 ${currentAttempts + 1}/${connection.maxReconnectAttempts} (${delay}ms 후)`);
+            
+            set((state) => {
+              const updatedConnections = new Map(state.connections);
+              const conn = updatedConnections.get(namespace);
+              if (conn && conn.connectionId === connectionId) {
+                updatedConnections.set(namespace, {
+                  ...conn,
+                  isConnecting: false,
+                  reconnectAttempts: currentAttempts + 1,
+                  lastConnectionError: error.message
+                });
+              }
+              return { connections: updatedConnections,  };
+            });
+            
+            get().scheduleReconnect(namespace, delay);
+          } else {
+            // 최대 재시도 횟수 초과
+            console.error(`🛑 ${namespace} 최대 재시도 횟수 초과`);
+            
+            set((state) => {
+              const updatedConnections = new Map(state.connections);
+              const conn = updatedConnections.get(namespace);
+              if (conn && conn.connectionId === connectionId) {
+                updatedConnections.set(namespace, {
+                  ...conn,
+                  isConnecting: false,
+                  isConnected: false,
+                  socket: null,
+                  lastConnectionError: '최대 재시도 횟수 초과'
+                });
+              }
+              return { connections: updatedConnections,  };
+            });
+            
+            Alert.alert('연결 실패', `${namespace} 서버에 연결할 수 없습니다. 네트워크를 확인해주세요.`);
+          }
         }
       });
 
-      // 연결 끊김 이벤트
+      // 🔧 개선된 연결 해제 이벤트 - 스마트 재연결 정책
       newSocket.on('disconnect', (reason) => {
-        console.log(`🔌 ${namespace} 네임스페이스 연결 해제:`, reason);
+        console.log(`🔌 ${namespace} 연결 해제:`, reason);
+        
+        const connection = get().connections.get(namespace);
+        if (!connection || connection.connectionId !== connectionId) return;
+        
         set((state) => {
           const updatedConnections = new Map(state.connections);
-          const connection = updatedConnections.get(namespace);
-          if (connection) {
+          const conn = updatedConnections.get(namespace);
+          if (conn && conn.connectionId === connectionId) {
             updatedConnections.set(namespace, {
-              ...connection,
+              ...conn,
               isConnected: false,
               socket: null,
             });
           }
           return { connections: updatedConnections };
         });
+
+        // 🔥 스마트 재연결 정책
+        const RECONNECT_POLICIES: Record<string, boolean> = {
+          'io server disconnect': false,    // 서버가 의도적으로 끊음 - 재연결 X
+          'client disconnect': false,       // 클라이언트가 끊음 - 재연결 X
+          'io client disconnect': false,    // 클라이언트 의도적 끊기 - 재연결 X
+          'transport close': true,          // 네트워크 문제 - 재연결 O
+          'transport error': true,          // 전송 오류 - 재연결 O
+          'ping timeout': true,             // 핀 타임아웃 - 재연결 O
+          'server error': false,            // 서버 오류 - 재연결 X
+          'forced close': false,            // 강제 종료 - 재연겸 X
+        };
+        
+        const shouldReconnect = RECONNECT_POLICIES[reason] ?? true; // 기본적으로 재연결 시도
+        
+        if (shouldReconnect) {
+          console.log(`🔄 ${namespace} 예상치 못한 연결 해제 (${reason}) - 재연결 시도`);
+          
+          // 지수 백오프 + 지터로 더 안정적인 재연결
+          const currentAttempts = connection.reconnectAttempts;
+          const baseDelay = 1000;
+          const maxDelay = 30000;
+          const jitter = Math.random() * 1000;
+          const delay = Math.min(baseDelay * Math.pow(2, currentAttempts) + jitter, maxDelay);
+          
+          get().scheduleReconnect(namespace, delay);
+        } else {
+          console.log(`🚫 ${namespace} 연결 해제 (${reason}) - 재연결 안함`);
+        }
       });
 
-      // Socket을 초기 상태로 설정
+      // Socket 객체를 연결 상태에 즉시 설정
       set((state) => {
         const updatedConnections = new Map(state.connections);
         const connection = updatedConnections.get(namespace);
-        if (connection) {
+        if (connection && connection.connectionId === connectionId) {
           updatedConnections.set(namespace, {
             ...connection,
             socket: newSocket,
@@ -205,23 +416,33 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
         return { connections: updatedConnections };
       });
 
-      // 연결 완료를 기다림
+      // 연결 완료 대기
       return new Promise((resolve, reject) => {
         const checkConnection = () => {
           const updatedConnection = get().connections.get(namespace);
-          if (updatedConnection?.socket && updatedConnection.isConnected) {
+          if (updatedConnection?.socket && 
+              updatedConnection.isConnected && 
+              updatedConnection.connectionId === connectionId) {
             resolve(newSocket);
-          } else if (updatedConnection && !updatedConnection.isConnecting) {
-            reject(new Error(`${namespace} 연결 실패`));
+          } else if (updatedConnection && 
+                    !updatedConnection.isConnecting &&
+                    updatedConnection.connectionId === connectionId) {
+            reject(new Error(`${namespace} 연결 실패: ${updatedConnection.lastConnectionError}`));
           } else {
             setTimeout(checkConnection, 100);
           }
         };
         setTimeout(checkConnection, 0);
+
+        // 전체 타임아웃
+        setTimeout(() => {
+          reject(new Error(`${namespace} 연결 타임아웃`));
+        }, timeout);
       });
 
     } catch (error) {
       console.error(`💥 ${namespace} Socket 초기화 실패:`, error);
+      
       set((state) => {
         const updatedConnections = new Map(state.connections);
         const connection = updatedConnections.get(namespace);
@@ -232,60 +453,150 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
             lastConnectionError: error instanceof Error ? error.message : '알 수 없는 오류',
           });
         }
-        return { connections: updatedConnections };
+        return { connections: updatedConnections,  };
       });
+      
       Alert.alert('오류', `${namespace} WebSocket 연결에 실패했습니다.`);
       throw error;
     }
   },
 
-  // 특정 네임스페이스 연결 해제
-  disconnect: (namespace: string) => {
+  // 연결 정리 함수
+  cleanupConnection: (namespace: string) => {
     const { connections } = get();
     const connection = connections.get(namespace);
 
-    if (connection?.socket) {
-      console.log(`🔌 ${namespace} 네임스페이스 연결 해제`);
-      connection.socket.disconnect();
+    if (connection) {
+      // 재연결 타임아웃 취소
+      if (connection.reconnectTimeout) {
+        clearTimeout(connection.reconnectTimeout);
+      }
 
+      // 소켓 연결 해제
+      if (connection.socket) {
+        connection.socket.removeAllListeners();
+        connection.socket.disconnect();
+      }
+
+      console.log(`🧹 ${namespace} 연결 정리 완료`);
+    }
+  },
+
+  // 재연결 스케줄링
+  scheduleReconnect: (namespace: string, delay: number = 2000) => {
+    const { connections } = get();
+    const connection = connections.get(namespace);
+
+    if (!connection) return;
+
+    // 기존 타임아웃 취소
+    if (connection.reconnectTimeout) {
+      clearTimeout(connection.reconnectTimeout);
+    }
+
+    const timeout = setTimeout(async () => {
+      console.log(`🔄 ${namespace} 스케줄된 재연결 실행`);
+      try {
+        await get().forceReconnect(namespace);
+      } catch (error) {
+        console.error(`❌ ${namespace} 스케줄된 재연결 실패:`, error);
+      }
+    }, delay);
+
+    set((state) => {
+      const updatedConnections = new Map(state.connections);
+      const conn = updatedConnections.get(namespace);
+      if (conn) {
+        updatedConnections.set(namespace, {
+          ...conn,
+          reconnectTimeout: timeout
+        });
+      }
+      return { connections: updatedConnections };
+    });
+  },
+
+  // 재연결 취소
+  cancelReconnect: (namespace: string) => {
+    const { connections } = get();
+    const connection = connections.get(namespace);
+
+    if (connection?.reconnectTimeout) {
+      clearTimeout(connection.reconnectTimeout);
+      
       set((state) => {
         const updatedConnections = new Map(state.connections);
+        const conn = updatedConnections.get(namespace);
+        if (conn) {
+          updatedConnections.set(namespace, {
+            ...conn,
+            reconnectTimeout: null
+          });
+        }
+        return { connections: updatedConnections };
+      });
+    }
+  },
+
+  // 강제 재연결
+  forceReconnect: async (namespace: string): Promise<Socket> => {
+    console.log(`🔄 ${namespace} 강제 재연결 시작`);
+    get().cleanupConnection(namespace);
+    return get().connect(namespace, { forceReconnect: true });
+  },
+
+  // 연결 해제
+  disconnect: (namespace: string) => {
+    console.log(`🔌 ${namespace} 연결 해제 요청`);
+    get().cancelReconnect(namespace);
+    get().cleanupConnection(namespace);
+
+    set((state) => {
+      const updatedConnections = new Map(state.connections);
+      const connection = updatedConnections.get(namespace);
+      if (connection) {
         updatedConnections.set(namespace, {
           ...connection,
           socket: null,
           isConnected: false,
           isConnecting: false,
           lastConnectionError: null,
+          reconnectAttempts: 0,
+          reconnectTimeout: null
         });
-        return { connections: updatedConnections };
-      });
-    }
+      }
+      return { connections: updatedConnections };
+    });
   },
 
-  // 모든 네임스페이스 연결 해제
+  // 모든 연결 해제
   disconnectAll: () => {
     const { connections } = get();
 
-    console.log('🔌 모든 네임스페이스 연결 해제');
-    connections.forEach((connection, namespace) => {
-      if (connection.socket) {
-        connection.socket.disconnect();
-      }
+    console.log('🔌 모든 연결 해제');
+    connections.forEach((_, namespace) => {
+      get().disconnect(namespace);
     });
 
     set({
-      connections: new Map<string, SocketConnection>(),
+      connections: new Map<string, SocketConnection>()
+      // 🗑️ isGloballyConnecting 제거
     });
   },
 
-  // 특정 네임스페이스 재연결
+  // 재연결 (기존 연결 유지 시도)
   reconnect: async (namespace: string): Promise<Socket> => {
-    console.log(`🔄 ${namespace} 네임스페이스 재연결 시도...`);
-    get().disconnect(namespace);
+    console.log(`🔄 ${namespace} 재연결 시도`);
+    const connection = get().connections.get(namespace);
+    
+    if (connection?.isConnected && connection.socket) {
+      return connection.socket;
+    }
+    
     return get().connect(namespace);
   },
 
-  // 네임스페이스 이벤트 구독 등록
+  // 나머지 메소드들은 동일...
   subscribe: (namespace: string, storeName: string) => {
     set((state) => {
       const updatedConnections = new Map(state.connections);
@@ -295,9 +606,15 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
         isConnecting: false,
         lastConnectionError: null,
         subscribers: new Set<string>(),
+        reconnectAttempts: 0,
+        maxReconnectAttempts: 5,
+        reconnectTimeout: null,
+        connectionId: '',
+        tokenRefreshAttempts: 0, // 🔥 누락된 필드 추가
+        maxTokenRefreshAttempts: 3 // 🔥 누락된 필드 추가
       };
 
-      console.log(`📢 ${storeName} 스토어가 ${namespace} 네임스페이스 구독`);
+      console.log(`📢 ${storeName} 스토어가 ${namespace} 구독`);
       connection.subscribers.add(storeName);
       updatedConnections.set(namespace, connection);
 
@@ -305,44 +622,42 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
     });
   },
 
-  // 네임스페이스 이벤트 구독 해제
   unsubscribe: (namespace: string, storeName: string) => {
     set((state) => {
       const updatedConnections = new Map(state.connections);
       const connection = updatedConnections.get(namespace);
 
       if (connection) {
-        console.log(`📭 ${storeName} 스토어가 ${namespace} 네임스페이스 구독 해제`);
+        console.log(`📭 ${storeName} 스토어가 ${namespace} 구독 해제`);
         connection.subscribers.delete(storeName);
         updatedConnections.set(namespace, connection);
+
+        // 구독자가 없으면 연결 해제
+        if (connection.subscribers.size === 0) {
+          console.log(`🔌 ${namespace} 구독자가 없어서 연결 해제`);
+          get().disconnect(namespace);
+        }
       }
 
       return { connections: updatedConnections };
     });
   },
 
-  // 네임스페이스 구독자 수 확인
   getSubscriberCount: (namespace: string) => {
     const { connections } = get();
-    const connection = connections.get(namespace);
-    return connection?.subscribers.size || 0;
+    return connections.get(namespace)?.subscribers.size || 0;
   },
 
-  // 네임스페이스 연결 상태 확인
   isConnected: (namespace: string) => {
     const { connections } = get();
-    const connection = connections.get(namespace);
-    return connection?.isConnected || false;
+    return connections.get(namespace)?.isConnected || false;
   },
 
-  // 네임스페이스 Socket 직접 접근
   getSocket: (namespace: string) => {
     const { connections } = get();
-    const connection = connections.get(namespace);
-    return connection?.socket || null;
+    return connections.get(namespace)?.socket || null;
   },
 
-  // 모든 네임스페이스 목록 반환
   getNamespaces: () => {
     const { connections } = get();
     return Array.from(connections.keys());
