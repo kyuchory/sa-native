@@ -120,7 +120,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
       // 채팅 이벤트 핸들러 설정
       socket.on('joined_room', (data: any) =>
-        console.log(`📨 채팅방 ${data.chatRoomId} 참가 완료`));
+        console.log(`📨 채팅방 ${data.chat_room_id} 참가 완료`));
 
       socket.on('user_joined', (data: any) =>
         console.log(`👋 ${data.nickname}님이 참가했습니다.`));
@@ -135,61 +135,61 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         updateChatRoomLastMessage(message.chat_room_id, message);
       });
 
-      socket.on('message:sent', async (data: { tempId: string; message: Message }) => {
+      socket.on('message:sent', async (data: { temp_id: string; message: Message }) => {
         console.log('✅ 메시지 전송 성공:', data);
         const { currentChatRoomId, updateMessageStatus, updateChatRoomLastMessage } = get();
 
         if (currentChatRoomId) {
           await LocalMessageService.replaceWithServerMessage(
             currentChatRoomId,
-            data.tempId,
+            data.temp_id,
             data.message
           );
         }
 
-        updateMessageStatus(data.tempId, 'sent', data.message);
+        updateMessageStatus(data.temp_id, 'sent', data.message);
         updateChatRoomLastMessage(data.message.chat_room_id, data.message);
       });
 
-      socket.on('message:failed', async (data: { tempId: string; error: string }) => {
+      socket.on('message:failed', async (data: { temp_id: string; error: string }) => {
         console.log('❌ 메시지 전송 실패:', data);
         const { currentChatRoomId, updateMessageStatus } = get();
 
         if (currentChatRoomId) {
           await LocalMessageService.updateLocalMessageStatus(
             currentChatRoomId,
-            data.tempId,
+            data.temp_id,
             'failed'
           );
         }
 
-        updateMessageStatus(data.tempId, 'failed');
+        updateMessageStatus(data.temp_id, 'failed');
         Alert.alert('전송 실패', '메시지 전송에 실패했습니다. 메시지를 탭하여 재전송할 수 있습니다.');
       });
 
       socket.on('mention:receive', (mention: any) => {
         console.log('🔔 멘션 알림:', mention);
-        Alert.alert('멘션 알림', `${mention.senderNickname}님이 회원님을 멘션했습니다.`);
+        Alert.alert('멘션 알림', `${mention.sender_nickname}님이 회원님을 멘션했습니다.`);
       });
 
       socket.on('typing:status', (data: any) => {
         const { currentChatRoomId } = get();
 
-        if (currentChatRoomId === data.chatRoomId) {
+        if (currentChatRoomId === data.chat_room_id) {
           set((state) => {
             let newTypingUsers = [...state.typingUsers];
 
-            if (data.isTyping) {
+            if (data.is_typing) {
               // 타이핑 시작 - 중복 제거
-              const filtered = newTypingUsers.filter(u => u.id !== data.userId);
+              const filtered = newTypingUsers.filter(u => u.id !== data.user_id);
               newTypingUsers = [...filtered, {
-                id: data.userId,
+                id: data.user_id,
                 nickname: data.nickname,
                 profile_img: null
               }];
             } else {
               // 타이핑 중단
-              newTypingUsers = newTypingUsers.filter(u => u.id !== data.userId);
+              newTypingUsers = newTypingUsers.filter(u => u.id !== data.user_id);
             }
 
             return { typingUsers: newTypingUsers };
@@ -201,7 +201,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         console.log(`👋 ${data.nickname}님이 나갔습니다.`));
 
       socket.on('left_room', (data: any) =>
-        console.log(`📤 채팅방 ${data.chatRoomId}에서 나갔습니다.`));
+        console.log(`📤 채팅방 ${data.chat_room_id}에서 나갔습니다.`));
 
       socket.on('error', (error: any) => {
         console.error('💥 Socket 에러:', error);
@@ -234,7 +234,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
 
     console.log(`📨 채팅방 ${chatRoomId} 참가 요청`);
-    socket.emit('join_room', { chatRoomId });
+    socket.emit('join_room', { chat_room_id: chatRoomId });
     set({ currentChatRoomId: chatRoomId });
   },
 
@@ -245,7 +245,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     if (socket && socket.connected && currentChatRoomId) {
       console.log(`📤 채팅방 ${currentChatRoomId} 나가기 요청`);
-      socket.emit('leave_room', { chatRoomId: currentChatRoomId });
+      socket.emit('leave_room', { chat_room_id: currentChatRoomId });
       set({
         currentChatRoomId: null,
         messages: [],
@@ -302,11 +302,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     // 소켓으로 전송
     socket.emit('message:send', {
-      chatRoomId: currentChatRoomId,
+      chat_room_id: currentChatRoomId,
       type: 'text',
       content,
-      mentionUserIds,
-      tempId: localId
+      mention_user_ids: mentionUserIds,
+      temp_id: localId
     });
 
     // 타이핑 상태 중단
@@ -334,11 +334,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     // 다시 전송
     socket.emit('message:send', {
-      chatRoomId: currentChatRoomId,
+      chat_room_id: currentChatRoomId,
       type: failedMessage.type,
       content: failedMessage.content,
-      mentionUserIds: [],
-      tempId: messageId
+      mention_user_ids: [],
+      temp_id: messageId
     });
   },
 
@@ -362,7 +362,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     if (!socket || !isConnected || !currentChatRoomId || get().isTyping) return;
 
     set({ isTyping: true });
-    socket.emit('typing:start', { chatRoomId: currentChatRoomId });
+    socket.emit('typing:start', { chat_room_id: currentChatRoomId });
   },
 
   // 타이핑 중단
@@ -374,7 +374,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     if (!socket || !isConnected || !currentChatRoomId || !get().isTyping) return;
 
     set({ isTyping: false });
-    socket.emit('typing:stop', { chatRoomId: currentChatRoomId });
+    socket.emit('typing:stop', { chat_room_id: currentChatRoomId });
   },
 
   // Setters
