@@ -46,7 +46,6 @@ import { useSocketStore } from '../stores/socketStore';
 // Services
 import { ChatService } from '../services/chatService';
 import { LocalMessageService } from '../services/localMessageService';
-import { ChatRoomDetail, ChatRoomMember, ChatRoomNotice, ChatRoomMedia } from '../types/chat';
 
 // Utils
 import { formatMessageTime, isSameDay, formatMessageDate, shouldShowDateSeparator } from '../utils';
@@ -113,9 +112,7 @@ export default function ChatDetailScreen() {
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
 
-  // 채팅방 상세 정보 상태
-  const [chatRoomDetail, setChatRoomDetail] = useState<ChatRoomDetail | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
+
 
   // WebSocket 연결 상태 (JSX에서 사용하기 위한 별도 변수)
   const isChatConnected = socketStore.isConnected('/chat');
@@ -135,9 +132,6 @@ export default function ChatDetailScreen() {
 
         // 채팅 히스토리 로드
         loadChatHistory();
-
-        // 채팅방 상세 정보 로드 (멤버, 미디어, 공지사항 등)
-        loadChatRoomDetail();
 
       } catch (error) {
         console.error('채팅방 초기화 실패:', error);
@@ -211,6 +205,7 @@ export default function ChatDetailScreen() {
       
       // 1. 서버에서 메시지 조회
       const response = await ChatService.getMessages(chatRoomId);
+      console.log('채팅내역 조회 테스트: ', response);
       
       // 2. 로컬 저장소에서 메시지 조회 (전송 실패한 것들 포함)
       const localMessages = await LocalMessageService.getLocalMessages(chatRoomId);
@@ -268,28 +263,7 @@ export default function ChatDetailScreen() {
     }
   };
 
-  // 채팅방 상세 정보 로드 (멤버, 미디어, 공지사항)
-  const loadChatRoomDetail = async () => {
-    try {
-      setLoadingDetail(true);
-      const detail = await ChatService.getChatRoomDetail(chatRoomId);
-      setChatRoomDetail(detail);
 
-      console.log('📝 채팅방 상세 정보 로드 완료:', {
-        members: detail.members.length,
-        notices: detail.latest_notices.length,
-        media: detail.chat_room_images_videos.length,
-      });
-    } catch (error) {
-      console.error('채팅방 상세 정보 로드 실패:', error);
-      Alert.alert('오류', '채팅방 정보를 불러오는데 실패했습니다.');
-    } finally {
-      setLoadingDetail(false);
-    }
-  };
-
-  // 조건부 렌더링을 위한 computed 값들 - 사이드바에서 직접 타입 처리하여 사용
-  const chatRoomData = chatRoomDetail;
 
   // 뒤로 가기 핸들러
   const handleBack = () => {
@@ -543,8 +517,7 @@ export default function ChatDetailScreen() {
         [{ text: '확인' }]
       );
 
-      // 채팅방 상세 정보 새로고침 (공지사항 목록 업데이트)
-      await loadChatRoomDetail();
+      // 공지사항 등록 후 사이드바 새로고침 (사이드바에서 직접 데이터 로드)
 
       console.log('공지사항 등록 성공:', response);
     } catch (error: any) {
@@ -727,10 +700,10 @@ export default function ChatDetailScreen() {
         isVisible={isSidebarVisible}
         onClose={handleCloseSidebar}
         chatRoomName={chatRoomName}
+        chatRoomId={chatRoomId}
         onAddMember={handleAddMember}
         onViewAllMedia={handleViewAllMedia}
         onViewNotice={handleViewNotice}
-        chatRoomDetail={chatRoomDetail}
       />
 
       {/* 메뉴 액션 시트 */}

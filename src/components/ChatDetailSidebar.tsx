@@ -15,6 +15,7 @@ import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { MediaIcon, NoticeIcon, MembersIcon, ChevronRightIcon } from './SidebarIcons';
 import { ChatRoomMember, ChatRoomNotice, ChatRoomMedia, ChatRoomDetail } from '../types/chat';
+import { ChatService } from '../services/chatService';
 
 // UI 컴포넌트용 내부 인터페이스들
 interface ChatMember {
@@ -44,10 +45,10 @@ interface ChatDetailSidebarProps {
   isVisible: boolean;
   onClose: () => void;
   chatRoomName: string;
+  chatRoomId: number;
   onAddMember: () => void;
   onViewAllMedia: () => void;
   onViewNotice: (notice: NoticeItem) => void;
-  chatRoomDetail?: ChatRoomDetail | null;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -56,16 +57,20 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
   isVisible,
   onClose,
   chatRoomName,
+  chatRoomId,
   onAddMember,
   onViewAllMedia,
   onViewNotice,
-  chatRoomDetail,
 }) => {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
   const slideAnim = useRef(new Animated.Value(screenWidth * 0.8)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  // 로컬 상태 - 사이드바에서 직접 관리
+  const [chatRoomDetail, setChatRoomDetail] = React.useState<ChatRoomDetail | null>(null);
+  const [loading, setLoading] = React.useState(false);
 
   // API 데이터를 UI 데이터로 변환
   const {
@@ -120,13 +125,34 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
         Animated.timing(slideAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
         Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
       ]).start();
+
+      // 사이드바가 열릴 때 API 호출
+      const loadChatRoomDetail = async () => {
+        try {
+          setLoading(true);
+          const detail = await ChatService.getChatRoomDetail(chatRoomId);
+          setChatRoomDetail(detail);
+
+          console.log('📝 사이드바에서 채팅방 상세 정보 로드 완료:', {
+            members: detail.members.length,
+            notices: detail.latest_notices.length,
+            media: detail.chat_room_images_videos.length,
+          });
+        } catch (error) {
+          console.error('사이드바 채팅방 상세 정보 로드 실패:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadChatRoomDetail();
     } else {
       Animated.parallel([
         Animated.timing(slideAnim, { toValue: screenWidth * 0.8, duration: 250, useNativeDriver: true }),
         Animated.timing(opacityAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
       ]).start();
     }
-  }, [isVisible, slideAnim, opacityAnim, screenWidth]);
+  }, [isVisible, chatRoomId, slideAnim, opacityAnim, screenWidth]);
 
   const renderMemberItem = (member: ChatMember) => (
     <View key={member.id} style={styles.memberItem}>
