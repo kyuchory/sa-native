@@ -126,7 +126,11 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
       const newSocket = io(WS_BASE_URL + namespace, {
         auth: { token },
         autoConnect: true,
-        reconnection: false, // 수동 재연결 관리
+        reconnection: true,           // 🔥 자동 재연결 활성화
+        reconnectionAttempts: 5,      // 최대 5번 재시도
+        reconnectionDelay: 1000,      // 1초 후 재시도
+        reconnectionDelayMax: 5000,   // 최대 5초 지연
+        randomizationFactor: 0.5,     // 지터 추가 (서버 부하 분산)
         timeout: timeout,
         forceNew: forceReconnect,
         transports: ['websocket', 'polling'] // fallback 추가
@@ -378,17 +382,17 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
           'io server disconnect': false,    // 서버가 의도적으로 끊음 - 재연결 X
           'client disconnect': false,       // 클라이언트가 끊음 - 재연결 X
           'io client disconnect': false,    // 클라이언트 의도적 끊기 - 재연결 X
-          'transport close': true,          // 네트워크 문제 - 재연결 O
-          'transport error': true,          // 전송 오류 - 재연결 O
-          'ping timeout': true,             // 핀 타임아웃 - 재연결 O
+          'transport close': false,         // 네트워크 문제 - Socket.IO 자동 재연결이 처리
+          'transport error': false,         // 전송 오류 - Socket.IO 자동 재연결이 처리
+          'ping timeout': false,            // 핑 타임아웃 - Socket.IO 자동 재연결이 처리
           'server error': false,            // 서버 오류 - 재연결 X
           'forced close': false,            // 강제 종료 - 재연겸 X
         };
         
-        const shouldReconnect = RECONNECT_POLICIES[reason] ?? true; // 기본적으로 재연결 시도
+        const shouldReconnect = RECONNECT_POLICIES[reason] ?? false; // 기본적으로 Socket.IO에 맡김
         
         if (shouldReconnect) {
-          console.log(`🔄 ${namespace} 예상치 못한 연결 해제 (${reason}) - 재연결 시도`);
+          console.log(`🔄 ${namespace} 수동 재연결 필요 (${reason})`);
           
           // 지수 백오프 + 지터로 더 안정적인 재연결
           const currentAttempts = connection.reconnectAttempts;
@@ -399,8 +403,105 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
           
           get().scheduleReconnect(namespace, delay);
         } else {
-          console.log(`🚫 ${namespace} 연결 해제 (${reason}) - 재연결 안함`);
+          console.log(`🤖 ${namespace} Socket.IO 자동 재연결 또는 재연결 불필요 (${reason})`);
         }
+      });
+
+      // 🔥 Socket.IO 자동 재연결 이벤트 처리
+      newSocket.on('reconnect_attempt', (attemptNumber) => {
+        console.log(`🔄 ${namespace} Socket.IO 자동 재연결 시도 #${attemptNumber}`);
+        
+        set((state) => {
+          const updatedConnections = new Map(state.connections);
+          const conn = updatedConnections.get(namespace);
+          if (conn && conn.connectionId === connectionId) {
+            updatedConnections.set(namespace, {
+              ...conn,
+              isConnecting: true,
+              reconnectAttempts: attemptNumber - 1,
+            });
+          }
+          return { connections: updatedConnections };
+        });
+      });
+
+      newSocket.on('reconnect', (attemptNumber) => {
+        console.log(`✅ ${namespace} Socket.IO 자동 재연결 성공! (시도 횟수: ${attemptNumber})`);
+        
+        set((state) => {
+          const updatedConnections = new Map(state.connections);
+          const conn = updatedConnections.get(namespace);
+          if (conn && conn.connectionId === connectionId) {
+            updatedConnections.set(namespace, {
+              ...conn,
+              socket: newSocket,
+              isConnected: true,
+              isConnecting: false,
+              lastConnectionError: null,
+              reconnectAttempts: 0,
+              tokenRefreshAttempts: 0,
+            });
+          }
+          return { connections: updatedConnections };
+        });
+
+        // 🔥 재연결 성공 시 자동 상태 복구
+        if (namespace === '/chat') {
+          setTimeout(() => {
+            import('../stores/chatStore').then(({ useChatStore }) => {
+              const chatStore = useChatStore.getState();
+              chatStore.recoverFromOffline().catch(error => {
+                console.error('❌ 채팅 상태 복구 실패:', error);
+              });
+            });
+          }, 1000);
+        } else if (namespace === '/notification') {
+          setTimeout(() => {
+            import('../stores/notificationStore').then(({ useNotificationStore }) => {
+              const notificationStore = useNotificationStore.getState();
+              notificationStore.recoverFromOffline().catch(error => {
+                console.error('❌ 알림 상태 복구 실패:', error);
+              });
+            });
+          }, 1200);
+        }
+      });
+
+      newSocket.on('reconnect_error', (error) => {
+        console.error(`❌ ${namespace} Socket.IO 자동 재연결 실패:`, error);
+        
+        set((state) => {
+          const updatedConnections = new Map(state.connections);
+          const conn = updatedConnections.get(namespace);
+          if (conn && conn.connectionId === connectionId) {
+            updatedConnections.set(namespace, {
+              ...conn,
+              isConnecting: false,
+              lastConnectionError: `자동 재연결 실패: ${error.message}`,
+            });
+          }
+          return { connections: updatedConnections };
+        });
+      });
+
+      newSocket.on('reconnect_failed', () => {
+        console.error(`💥 ${namespace} Socket.IO 자동 재연결 완전 실패 - 최대 시도 횟수 초과`);
+        
+        set((state) => {
+          const updatedConnections = new Map(state.connections);
+          const conn = updatedConnections.get(namespace);
+          if (conn && conn.connectionId === connectionId) {
+            updatedConnections.set(namespace, {
+              ...conn,
+              isConnecting: false,
+              isConnected: false,
+              lastConnectionError: '자동 재연결 완전 실패 - 수동 재연결 필요',
+            });
+          }
+          return { connections: updatedConnections };
+        });
+
+        Alert.alert('연결 실패', `${namespace} 서버 연결이 복구되지 않았습니다. 앱을 다시 시작해주세요.`);
       });
 
       // Socket 객체를 연결 상태에 즉시 설정
