@@ -161,3 +161,14 @@ export interface ChatRequestsResponse {
 export interface HandleChatRequestRequest {
   action: 'accept' | 'reject';
 }
+
+// 채팅 공지사항 등록 요청
+export interface RegisterNoticeRequest {
+  content: string;
+}
+
+// 채팅 공지사항 등록 응답
+export interface RegisterNoticeResponse {
+  notice_id: number;
+  success: boolean;
+}

@@ -21,7 +21,10 @@ import { StackNavigationProp } from '@react-navigation/stack';
 // Components
 import CommonHeader from '../components/CommonHeader';
 import { SearchIcon, MenuIcon, PlusCircleIcon, SendIcon } from '../components/ChatDetailIcons';
+import { MenuIcon as MenuIcon32, CheckIcon } from '../components/CommonIcons';
+import { NoticeIcon } from '../components/CommonIcons';
 import ChatDetailSidebar from '../components/ChatDetailSidebar';
+import MenuActionSheet from '../components/MenuActionSheet';
 
 // Types
 import { Message } from '../types/chat';
@@ -107,6 +110,8 @@ export default function ChatDetailScreen() {
   // 로컬 상태
   const [inputText, setInputText] = useState('');
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+  const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
 
   // 채팅방 상세 정보 상태
   const [chatRoomDetail, setChatRoomDetail] = useState<ChatRoomDetail | null>(null);
@@ -368,6 +373,15 @@ export default function ChatDetailScreen() {
     await retryAllFailedMessages();
   };
 
+  // 내가 보낸 메시지 long press 핸들러
+  const handleLongPressMessage = (message: Message) => {
+    // 자신이 보낸 메시지인 경우에만 메뉴 열기
+    if (message.sender.id === user?.id) {
+      setSelectedMessage(message);
+      setMenuActionSheetVisible(true);
+    }
+  };
+
   // 같은 발신자의 연속 메시지인지 체크
   const isContinuousMessage = (currentMessage: Message, prevMessage: Message | null) => {
     if (!prevMessage) return false;
@@ -450,7 +464,7 @@ export default function ChatDetailScreen() {
               )}
               
               {/* 메시지 말풍선 */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
                   styles.messageBubble,
                   isMyMessage ? styles.myMessageBubble : styles.otherMessageBubble,
@@ -462,7 +476,8 @@ export default function ChatDetailScreen() {
                     handleRetryMessage(item);
                   }
                 }}
-                disabled={item.status !== 'failed'}
+                onLongPress={() => handleLongPressMessage(item)}
+                // disabled={item.status !== 'failed'}
                 activeOpacity={item.status === 'failed' ? 0.7 : 1}
               >
                 <Text style={[
@@ -506,6 +521,51 @@ export default function ChatDetailScreen() {
   const handleViewNotice = (notice: any) => {
     // TODO: 공지사항 상세 보기 기능 구현
     console.log('공지사항 보기:', notice);
+  };
+
+  // 공지사항 등록 핸들러
+  const handleRegisterNotice = async () => {
+    if (!selectedMessage) {
+      Alert.alert('오류', '선택된 메시지가 없습니다.');
+      setMenuActionSheetVisible(false);
+      return;
+    }
+
+    try {
+      const response = await ChatService.registerNotice(chatRoomId, {
+        content: selectedMessage.content
+      });
+
+      // 성공
+      Alert.alert(
+        '성공',
+        '공지사항이 등록되었습니다.',
+        [{ text: '확인' }]
+      );
+
+      // 채팅방 상세 정보 새로고침 (공지사항 목록 업데이트)
+      await loadChatRoomDetail();
+
+      console.log('공지사항 등록 성공:', response);
+    } catch (error: any) {
+      // 에러 처리
+      console.error('공지사항 등록 실패:', error);
+
+      let errorMessage = '공지사항 등록에 실패했습니다.';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+
+      Alert.alert(
+        '오류',
+        errorMessage,
+        [{ text: '확인' }]
+      );
+    } finally {
+      // 정리
+      setSelectedMessage(null);
+      setMenuActionSheetVisible(false);
+    }
   };
 
   // 헤더 우측 컴포넌트 (검색, 햄버거 메뉴)
@@ -671,6 +731,22 @@ export default function ChatDetailScreen() {
         onViewAllMedia={handleViewAllMedia}
         onViewNotice={handleViewNotice}
         chatRoomDetail={chatRoomDetail}
+      />
+
+      {/* 메뉴 액션 시트 */}
+      <MenuActionSheet
+        visible={menuActionSheetVisible}
+        onClose={() => setMenuActionSheetVisible(false)}
+        title="채팅"
+        actions={[
+          {
+            id: 'register_notice',
+            title: '공지사항 등록',
+            icon: <NoticeIcon size={20} color={colors.PRIMARY} />,
+            color: colors.PRIMARY,
+            onPress: handleRegisterNotice,
+          },
+        ]}
       />
     </View>
   );

@@ -7,7 +7,9 @@ import {
   SingleChatRoomResponse,
   MessagesResponse,
   ChatRoomDetail,
-  ApiResponse
+  ApiResponse,
+  RegisterNoticeRequest,
+  RegisterNoticeResponse
 } from '../types/chat';
 
 /**
@@ -66,6 +68,15 @@ export class ChatService {
   // 채팅방 상세 정보 조회
   static async getChatRoomDetail(chatRoomId: number): Promise<ChatRoomDetail> {
     const response = await apiClient.get<ApiResponse<ChatRoomDetail>>(`/chats/${chatRoomId}`);
+    return response.data; // apiClient가 이미 data를 추출해서 반환
+  }
+
+  // 채팅 공지사항 등록
+  static async registerNotice(chatRoomId: number, request: RegisterNoticeRequest): Promise<RegisterNoticeResponse> {
+    const response = await apiClient.post<ApiResponse<RegisterNoticeResponse>>(
+      `/chats/${chatRoomId}/notices`,
+      request
+    );
     return response.data; // apiClient가 이미 data를 추출해서 반환
   }
 }

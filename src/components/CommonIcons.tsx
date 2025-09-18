@@ -248,4 +248,39 @@ const ReportIcon = ({ size = 24, color = COLORS.ERROR }: IconProps) => (
   </View>
 );
 
-export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, EditIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon };
+// 공지사항 아이콘 (메가폰/알림)
+const NoticeIcon: React.FC<IconProps> = ({ 
+  size = 20, 
+  color = '#666666' 
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    {/* 메가폰 본체 */}
+    <Path 
+      d="M3 11V13C3 13.55 3.45 14 4 14H5L9 18V6L5 10H4C3.45 10 3 10.45 3 11Z" 
+      stroke={color} 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+      fill="none"
+    />
+    {/* 소리 파장 */}
+    <Path 
+      d="M15.54 8.46C16.4709 9.39094 17.0043 10.6484 17.0043 11.96C17.0043 13.2716 16.4709 14.5291 15.54 15.46" 
+      stroke={color} 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <Path 
+      d="M19.07 4.93C20.9447 6.80528 21.9979 9.34836 21.9979 12C21.9979 14.6516 20.9447 17.1947 19.07 19.07" 
+      stroke={color} 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </Svg>
+);
+
+export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, EditIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon, NoticeIcon };
