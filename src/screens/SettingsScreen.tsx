@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
+import { useAuthStore } from '../stores/authStore';
 import CommonHeader from '../components/CommonHeader';
 import SettingItem from '../components/SettingItem';
 
@@ -11,6 +12,7 @@ export default function SettingsScreen() {
 
   // Zustand store 사용
   const { isDark, toggleTheme, colors } = useThemeStore();
+  const { logout, isLoading } = useAuthStore();
 
   // Toggle 상태 관리 (다크 모드를 제외한 나머지)
   const [isNotifications, setIsNotifications] = useState(true);
@@ -56,7 +58,30 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = () => {
-    console.log('로그아웃');
+    Alert.alert(
+      '로그아웃',
+      '정말 로그아웃 하시겠습니까?',
+      [
+        {
+          text: '취소',
+          style: 'cancel',
+        },
+        {
+          text: '로그아웃',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+              console.log('✅ 로그아웃 완료');
+            } catch (error) {
+              console.error('❌ 로그아웃 실패:', error);
+              Alert.alert('오류', '로그아웃 중 오류가 발생했습니다.');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   // 스타일 생성
