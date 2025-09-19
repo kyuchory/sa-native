@@ -17,6 +17,7 @@ import {
   TokenRefreshResult 
 } from '../types/socket';
 import { useAuthStore } from './authStore';
+import { useNotificationStore } from './notificationStore';
 import { apiClient } from '../services/apiClient';
 
 // 소켓 인스턴스 생성 함수
@@ -183,6 +184,13 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
       appStateSubscription = null;
     }
 
+    // NotificationStore 구독 상태 초기화
+    useNotificationStore.setState({
+      isSubscribed: false,
+      notifications: [],
+      unreadCount: 0,
+    });
+
     set({
       chatSocket: {
         socket: null,
@@ -231,12 +239,20 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
       }
 
       console.log('✅ 토큰 갱신 완료');
+
+      // 토큰 갱신 후 알림 구독 보장
+      const { subscribe: subscribeNotifications } = useNotificationStore.getState();
+      subscribeNotifications();
     } catch (error) {
       console.error('❌ 토큰 갱신 실패, 전체 재연결 시도...', error);
       
       // 최적화된 방법이 실패하면 전체 재연결 (백업)
       state.disconnectAllSockets();
       await state.initializeSockets(newToken);
+      
+      // 재연결 후 알림 구독 보장
+      const { subscribe: subscribeNotifications } = useNotificationStore.getState();
+      subscribeNotifications();
     }
   },
 
@@ -266,6 +282,10 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
     await state.initializeSockets(token);
     
     console.log('✅ 모든 소켓 재연결 완료');
+
+    // 알림 구독 보장
+    const { subscribe: subscribeNotifications } = useNotificationStore.getState();
+    subscribeNotifications();
   },
 
   // 연결 상태 확인

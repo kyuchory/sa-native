@@ -17,16 +17,15 @@ export default function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        if (isAuthenticated && tokens?.accessToken && !isInitialized) {
-          console.log('🚀 앱 시작 - 소켓 초기화 중...');
-          
-          // 소켓 초기화
-          await initializeSockets(tokens?.accessToken);
-          
-          // 알림 구독
-          subscribeNotifications();
-          
-          console.log('✅ 앱 초기화 완료');
+        if (isAuthenticated && tokens?.accessToken) {
+          if (!isInitialized) {
+            console.log('🚀 앱 시작 - 소켓 초기화 중...');
+            await initializeSockets(tokens.accessToken);
+            console.log('✅ 앱 초기화 완료');
+            
+            // 초기 앱 실행 시 알림 구독만
+            subscribeNotifications();
+          }
         } else if (!isAuthenticated && isInitialized) {
           console.log('🚪 로그아웃 감지 - 소켓 정리 중...');
           
