@@ -40,8 +40,7 @@ import {
 import { useThemeStore } from '../stores/themeStore';
 
 import { useAuthStore } from '../stores/authStore';
-import { useChatStore } from '../stores/chatStore';
-import { useSocketStore } from '../stores/socketStore';
+// TODO: 소켓 관련 import는 새로 구현할 예정
 
 // Services
 import { ChatService } from '../services/chatService';
@@ -72,39 +71,7 @@ export default function ChatDetailScreen() {
   // Auth store
   const { user } = useAuthStore();
 
-  // Socket store (WebSocket 연결 상태 확인)
-  const socketStore = useSocketStore();
-
-  // Chat store (Zustand)
-  const {
-    currentChatRoomId,
-
-    // 메시지 상태
-    messages,
-    typingUsers,
-    isTyping,
-
-    // 페이지네이션 상태
-    hasNext,
-    nextCursor,
-    isLoadingMore,
-    isInitialLoading,
-
-    // Actions
-    initializeChatEvents,
-    joinChatRoom,
-    leaveChatRoom,
-    sendMessage,
-    retryMessage,
-    retryAllFailedMessages,
-    setMessages,
-    setHasNext,
-    setNextCursor,
-    setIsLoadingMore,
-    setIsInitialLoading,
-    startTyping,
-    stopTyping,
-  } = useChatStore();
+  // TODO: 소켓 관련 상태는 새로 구현할 예정
 
   // 로컬 상태
   const [inputText, setInputText] = useState('');
@@ -115,7 +82,8 @@ export default function ChatDetailScreen() {
 
 
   // WebSocket 연결 상태 (JSX에서 사용하기 위한 별도 변수)
-  const isChatConnected = socketStore.isConnected('/chat');
+  // TODO: 소켓 연결 상태는 새로 구현할 예정
+  const isChatConnected = false;
 
   // 채팅방 참가 및 초기화
   useEffect(() => {
@@ -127,8 +95,8 @@ export default function ChatDetailScreen() {
           return;
         }
 
-        // WebSocket 연결은 글로벌로 관리되므로, 채팅방 참가만 수행
-        joinChatRoom(chatRoomId);
+        // TODO: WebSocket 연결은 글로벌로 관리되므로, 채팅방 참가만 수행 (새로 구현 예정)
+        // joinChatRoom(chatRoomId);
 
         // 채팅 히스토리 로드
         loadChatHistory();
@@ -141,9 +109,9 @@ export default function ChatDetailScreen() {
 
     initChatRoom();
 
-    // 클린업: 채팅방 나가기 (WebSocket은 유지)
+    // TODO: 클린업: 채팅방 나가기 (WebSocket은 유지) (새로 구현 예정)
     return () => {
-      leaveChatRoom();
+      // leaveChatRoom();
 
       // 타이핑 타이머 클린업
       if (typingTimeoutRef.current) {
@@ -152,14 +120,14 @@ export default function ChatDetailScreen() {
     };
   }, [chatRoomId, user?.id, navigation]);
 
-  // 컴포넌트 마운트 시 스크롤을 맨 아래로
-  useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: false });
-      }, 100);
-    }
-  }, [messages.length]);
+  // TODO: 컴포넌트 마운트 시 스크롤을 맨 아래로 (새로 구현 예정)
+  // useEffect(() => {
+  //   if (messages.length > 0) {
+  //     setTimeout(() => {
+  //       flatListRef.current?.scrollToEnd({ animated: false });
+  //     }, 100);
+  //   }
+  // }, [messages.length]);
 
   // 키보드 이벤트 리스너 (플랫폼별 최적화)
   useEffect(() => {
@@ -198,10 +166,10 @@ export default function ChatDetailScreen() {
     };
   }, []);
 
-  // 초기 채팅 히스토리 로드 (서버 메시지 + 로컬 메시지 병합)
+  // TODO: 초기 채팅 히스토리 로드 (서버 메시지 + 로컬 메시지 병합) (새로 구현 예정)
   const loadChatHistory = async () => {
     try {
-      setIsInitialLoading(true);
+      // setIsInitialLoading(true);
       
       // 1. 서버에서 메시지 조회
       const response = await ChatService.getMessages(chatRoomId);
@@ -216,10 +184,10 @@ export default function ChatDetailScreen() {
         localMessages
       );
       
-      // ChatStore에 메시지 설정
-      setMessages(mergedMessages);
-      setHasNext(response.hasNext);
-      setNextCursor(response.nextCursor);
+      // TODO: ChatStore에 메시지 설정 (새로 구현 예정)
+      // setMessages(mergedMessages);
+      // setHasNext(response.hasNext);
+      // setNextCursor(response.nextCursor);
       
       console.log(
         '📨 채팅 히스토리 로드 완료:',
@@ -236,30 +204,30 @@ export default function ChatDetailScreen() {
       console.error('채팅 히스토리 로드 실패:', error);
       Alert.alert('오류', '채팅 내역을 불러오는데 실패했습니다.');
     } finally {
-      setIsInitialLoading(false);
+      // setIsInitialLoading(false);
     }
   };
 
-  // 더 많은 메시지 로드 (무한 스크롤)
+  // TODO: 더 많은 메시지 로드 (무한 스크롤) (새로 구현 예정)
   const loadMoreMessages = async () => {
-    if (!hasNext || !nextCursor || isLoadingMore) return;
+    // if (!hasNext || !nextCursor || isLoadingMore) return;
 
     try {
-      setIsLoadingMore(true);
-      const response = await ChatService.getMessages(chatRoomId, nextCursor);
+      // setIsLoadingMore(true);
+      // const response = await ChatService.getMessages(chatRoomId, nextCursor);
 
-      // 새 메시지를 기존 메시지 앞에 추가 (과거 메시지이므로)
-      const newMessages = [...response.messages, ...messages];
-      setMessages(newMessages);
-      setHasNext(response.hasNext);
-      setNextCursor(response.nextCursor);
+      // TODO: 새 메시지를 기존 메시지 앞에 추가 (과거 메시지이므로)
+      // const newMessages = [...response.messages, ...messages];
+      // setMessages(newMessages);
+      // setHasNext(response.hasNext);
+      // setNextCursor(response.nextCursor);
 
-      console.log('📨 더 많은 메시지 로드 완료:', response.messages.length, '개 메시지');
+      // console.log('📨 더 많은 메시지 로드 완료:', response.messages.length, '개 메시지');
     } catch (error) {
       console.error('더 많은 메시지 로드 실패:', error);
       Alert.alert('오류', '이전 메시지를 불러오는데 실패했습니다.');
     } finally {
-      setIsLoadingMore(false);
+      // setIsLoadingMore(false);
     }
   };
 
@@ -270,9 +238,9 @@ export default function ChatDetailScreen() {
     navigation.goBack();
   };
 
-  // 메시지 전송 핸들러 (ChatStore 사용)
+  // TODO: 메시지 전송 핸들러 (ChatStore 사용) (새로 구현 예정)
   const handleSendMessage = async () => {
-    if (!inputText.trim() || !socketStore.isConnected('/chat') || !user) return;
+    if (!inputText.trim() || !isChatConnected || !user) return;
 
     const messageContent = inputText.trim();
     
@@ -285,8 +253,8 @@ export default function ChatDetailScreen() {
       console.log('멘션 감지:', match[1]);
     }
 
-    // ChatStore의 sendMessage 사용
-    await sendMessage(messageContent, mentionUserIds);
+    // TODO: ChatStore의 sendMessage 사용 (새로 구현 예정)
+    // await sendMessage(messageContent, mentionUserIds);
 
     // 입력창 초기화
     setInputText('');
@@ -297,11 +265,11 @@ export default function ChatDetailScreen() {
     }, 100);
   };
 
-  // 타이핑 시작 핸들러 (ChatStore 사용)
+  // TODO: 타이핑 시작 핸들러 (ChatStore 사용) (새로 구현 예정)
   const handleTypingStart = () => {
-    if (!socketStore.isConnected('/chat') || isTyping) return;
+    // if (!isChatConnected || isTyping) return;
 
-    startTyping();
+    // startTyping();
 
     // 3초 후 자동으로 타이핑 중단
     if (typingTimeoutRef.current) {
@@ -313,11 +281,11 @@ export default function ChatDetailScreen() {
     }, 3000);
   };
 
-  // 타이핑 중단 핸들러 (ChatStore 사용)
+  // TODO: 타이핑 중단 핸들러 (ChatStore 사용) (새로 구현 예정)
   const handleTypingStop = () => {
-    if (!socketStore.isConnected('/chat') || !isTyping) return;
+    // if (!isChatConnected || !isTyping) return;
 
-    stopTyping();
+    // stopTyping();
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
@@ -325,26 +293,26 @@ export default function ChatDetailScreen() {
     }
   };
 
-  // 입력 텍스트 변경 핸들러
+  // TODO: 입력 텍스트 변경 핸들러 (새로 구현 예정)
   const handleInputChange = (text: string) => {
     setInputText(text);
     
-    // 타이핑 상태 시작
-    if (text.trim() && !isTyping) {
-      handleTypingStart();
-    } else if (!text.trim() && isTyping) {
-      handleTypingStop();
-    }
+    // TODO: 타이핑 상태 시작 (새로 구현 예정)
+    // if (text.trim() && !isTyping) {
+    //   handleTypingStart();
+    // } else if (!text.trim() && isTyping) {
+    //   handleTypingStop();
+    // }
   };
 
-  // 실패한 메시지 재전송 (ChatStore 사용)
+  // TODO: 실패한 메시지 재전송 (ChatStore 사용) (새로 구현 예정)
   const handleRetryMessage = async (failedMessage: Message) => {
-    await retryMessage(failedMessage);
+    // await retryMessage(failedMessage);
   };
 
-  // 실패한 메시지들 일괄 재전송 (ChatStore 사용)
+  // TODO: 실패한 메시지들 일괄 재전송 (ChatStore 사용) (새로 구현 예정)
   const handleRetryAllFailedMessages = async () => {
-    await retryAllFailedMessages();
+    // await retryAllFailedMessages();
   };
 
   // 내가 보낸 메시지 long press 핸들러
@@ -380,12 +348,14 @@ export default function ChatDetailScreen() {
   // 메시지 아이템 렌더링
   const renderMessageItem = ({ item, index }: { item: Message; index: number }) => {
     const isMyMessage = item.sender.id === user?.id;
-    const prevMessage = index > 0 ? messages[index - 1] : null;
+    // TODO: 이전 메시지 확인 (새로 구현 예정)
+    const prevMessage = null; // index > 0 ? messages[index - 1] : null;
     const isContinuous = isContinuousMessage(item, prevMessage);
-    const showDateSeparator = shouldShowDateSeparator(
-      item.created_at, 
-      prevMessage?.created_at || null
-    );
+    // TODO: 날짜 구분자 표시 (새로 구현 예정)
+    const showDateSeparator = false; // shouldShowDateSeparator(
+      // item.created_at, 
+      // prevMessage?.created_at || null
+    // );
 
     return (
       <>
@@ -577,7 +547,7 @@ export default function ChatDetailScreen() {
           {/* 채팅 메시지 목록 */}
           <FlatList
             ref={flatListRef}
-            data={messages}
+            data={[]} // TODO: messages (새로 구현 예정)
             renderItem={renderMessageItem}
             keyExtractor={(item) => item.id.toString()}
             style={styles.messagesList}
@@ -590,16 +560,17 @@ export default function ChatDetailScreen() {
             ]}
             showsVerticalScrollIndicator={false}
             onContentSizeChange={() => {
-              if (!isInitialLoading && !isLoadingMore) {
-                flatListRef.current?.scrollToEnd({ animated: true });
-              }
+              // TODO: 로딩 상태 확인 (새로 구현 예정)
+              // if (!isInitialLoading && !isLoadingMore) {
+              //   flatListRef.current?.scrollToEnd({ animated: true });
+              // }
             }}
-            // 무한 스크롤 설정
+            // TODO: 무한 스크롤 설정 (새로 구현 예정)
             onRefresh={loadMoreMessages}
-            refreshing={isLoadingMore}
-            // ListHeaderComponent에 로딩 인디케이터 추가
+            refreshing={false} // isLoadingMore
+            // TODO: ListHeaderComponent에 로딩 인디케이터 추가 (새로 구현 예정)
             ListHeaderComponent={() => 
-              isLoadingMore ? (
+              false ? ( // isLoadingMore
                 <View style={styles.loadingMoreContainer}>
                   <Text style={styles.loadingMoreText}>이전 메시지를 불러오는 중...</Text>
                 </View>
@@ -608,30 +579,31 @@ export default function ChatDetailScreen() {
             ListEmptyComponent={() => (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>
-                  {isInitialLoading ? '메시지를 불러오는 중...' :
+                  {/* TODO: 로딩 상태 확인 (새로 구현 예정) */}
+                  {false ? '메시지를 불러오는 중...' : // isInitialLoading
                    isChatConnected ? '메시지를 입력해 대화를 시작해보세요.' :
                    '서버에 연결 중...'}
                 </Text>
               </View>
             )}
             // 초기 로딩 중이 아닐 때만 자동 스크롤
-            maintainVisibleContentPosition={isLoadingMore ? {
+            maintainVisibleContentPosition={false ? { // isLoadingMore
               minIndexForVisible: 0,
               autoscrollToTopThreshold: 100,
             } : undefined}
           />
 
-          {/* 타이핑 인디케이터 */}
-          {typingUsers.length > 0 && (
+          {/* TODO: 타이핑 인디케이터 (새로 구현 예정) */}
+          {false && ( // typingUsers.length > 0
             <View style={styles.typingContainer}>
               <Text style={styles.typingText}>
-                {typingUsers.map(u => u.nickname).join(', ')}님이 입력 중...
+                {/* typingUsers.map(u => u.nickname).join(', ') */}님이 입력 중...
               </Text>
             </View>
           )}
 
-          {/* 실패한 메시지 재전송 알림 */}
-          {messages.some(msg => msg.status === 'failed') && (
+          {/* TODO: 실패한 메시지 재전송 알림 (새로 구현 예정) */}
+          {false && ( // messages.some(msg => msg.status === 'failed')
             <View style={styles.failedMessagesContainer}>
               <Text style={styles.failedMessagesText}>
                 전송에 실패한 메시지가 있습니다.

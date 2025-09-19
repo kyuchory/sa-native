@@ -25,28 +25,24 @@ export default function NotificationScreen() {
 
   // Notification store
   const {
-    subscribeToNotifications,
-    unsubscribeFromNotifications,
     notifications,
-    loadNotifications,
     markAllAsRead,
     markAsRead,
+    loadNotifications,
     unreadCount
   } = useNotificationStore();
 
   // 로딩 상태
   const [isLoading, setIsLoading] = useState(true);
 
-  // 컴포넌트 마운트 시 알림 구독 및 데이터 로드
+  // 컴포넌트 마운트 시 알림 데이터 로드
   useEffect(() => {
     const initializeNotifications = async () => {
       try {
         setIsLoading(true);
 
-        // 알림 구독 시작
-        subscribeToNotifications();
-
-        // 알림 데이터 로드 (API 호출)
+        // 알림 구독은 App.tsx에서 이미 관리됨
+        // 여기서는 API로 알림 데이터만 로드
         await loadFromAPI();
 
       } catch (error) {
@@ -58,12 +54,7 @@ export default function NotificationScreen() {
     };
 
     initializeNotifications();
-
-    // 클린업: 컴포넌트 언마운트 시 구독 해제
-    return () => {
-      unsubscribeFromNotifications();
-    };
-  }, [subscribeToNotifications, unsubscribeFromNotifications]);
+  }, []);
 
   // API에서 알림 데이터 로드
   const loadFromAPI = async () => {

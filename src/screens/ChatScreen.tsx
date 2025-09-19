@@ -29,8 +29,7 @@ import { CheckIcon, MuteIcon, DeleteIcon, CheckboxEmptyIcon, CheckboxFilledIcon 
 import { ChatService } from '../services/chatService';
 
 // Stores
-import { useChatStore } from '../stores/chatStore';
-import { useSocketStore } from '../stores/socketStore';
+// TODO: 소켓 관련 import는 새로 구현할 예정
 
 type ChatScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Chat'>;
 
@@ -39,11 +38,7 @@ export default function ChatScreen() {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
   
-  // Socket store (WebSocket 연결 관리)
-  const { connect: connectSocket } = useSocketStore();
-
-  // Chat store (채팅 관련 상태 관리)
-  const { initializeChatEvents, setChatRooms, chatRooms } = useChatStore();
+  // TODO: 소켓 관련 코드는 새로 구현할 예정
   
   // 로컬 상태 관리
   const [selectedTab, setSelectedTab] = useState<ChatType>('private');
@@ -72,12 +67,7 @@ export default function ChatScreen() {
     filterChatRooms();
   }, [selectedTab, allChatRooms]);
 
-  // ChatStore의 chatRooms 변경 감지 (실시간 업데이트)
-  useEffect(() => {
-    if (chatRooms.length > 0) {
-      setAllChatRooms(chatRooms);
-    }
-  }, [chatRooms]);
+  // TODO: 실시간 업데이트는 새로 구현할 예정
 
   // 채팅방 목록 로드 (API 호출)
   const loadChatRooms = async () => {
@@ -87,7 +77,8 @@ export default function ChatScreen() {
       
       // 로컬 상태와 ChatStore 모두 업데이트
       setAllChatRooms(loadedChatRooms);
-      setChatRooms(loadedChatRooms);
+      // TODO: ChatStore 업데이트 (새로 구현 예정)
+      // setChatRooms(loadedChatRooms);
       
       console.log('📋 채팅방 목록 로드 완료:', loadedChatRooms.length, '개');
     } catch (error: any) {

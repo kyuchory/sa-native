@@ -9,6 +9,7 @@ import Svg, { Path } from 'react-native-svg';
 import { useThemeStore } from '../stores/themeStore';
 import { useNotificationStore } from '../stores/notificationStore';
 import { useAuthStore } from '../stores/authStore';
+import { NotificationService } from '../services/notificationService';
 
 interface HeaderButton {
   key: string;
@@ -36,29 +37,31 @@ export default function MainHeader({ leftButtons = [], rightButtons = [] }: Main
   const insets = useSafeAreaInsets();
   const { isDark, colors } = useThemeStore();
   const navigation = useNavigation();
-  const { unreadCount, initializeNotificationEvents, subscribeToHeaderNotifications, fetchUnreadCount } = useNotificationStore();
-  const { isAuthenticated, user } = useAuthStore();
+  const { unreadCount, updateUnreadCount } = useNotificationStore();
+  const { isAuthenticated } = useAuthStore();
   const styles = createStyles(colors);
 
-  // MainHeader가 마운트될 때 초기 데이터 로드 및 헤더 알림 구독
+  // 초기 로딩 시 읽지않은 알림 개수 로드
   useEffect(() => {
-    if (!isAuthenticated || !user) {
-      console.log('🔒 인증되지 않은 사용자 - 헤더 알림 초기화 건너뜀');
-      return;
-    }
+    const loadUnreadCount = async () => {
+      if (!isAuthenticated) {
+        return;
+      }
 
-    console.log('🔔 MainHeader 마운트 - 헤더 알림 초기화 시작');
+      try {
+        console.log('🔔 MainHeader: 읽지않은 알림 개수 로드 시작...');
+        const response = await NotificationService.getUnreadCount();
+        
+        if (response.code === 200 && response.data) {
+          updateUnreadCount(response.data.unreadCount);
+        }
+      } catch (error) {
+        console.error('❌ MainHeader: 읽지않은 알림 개수 로드 실패:', error);
+      }
+    };
 
-    // 1. 소켓 이벤트 핸들러 초기화
-    initializeNotificationEvents().then(() => {
-      // 2. API로 초기 알림 개수 가져오기
-      fetchUnreadCount();
-      // 3. 헤더 알림 구독
-      subscribeToHeaderNotifications();
-    }).catch((error) => {
-      console.error('❌ 헤더 알림 초기화 실패:', error);
-    });
-  }, [isAuthenticated, user]);
+    loadUnreadCount();
+  }, [isAuthenticated, updateUnreadCount]);
 
   const handleNotificationPress = () => {
     console.log('알림 버튼 클릭');
