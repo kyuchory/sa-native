@@ -53,15 +53,15 @@ export default function App() {
   }, [isAuthenticated, tokens?.accessToken, isInitialized, initializeSockets, disconnectAllSockets, subscribeNotifications, unsubscribeNotifications, unsubscribeChatGlobal, unsubscribeRoom]);
 
   // 토큰 변경 감지 (토큰 갱신 시)
-  useEffect(() => {
-    if (!isAuthenticated || !isInitialized) return;
-    if (!tokens?.accessToken) return;
+  // useEffect(() => {
+  //   if (!isAuthenticated || !isInitialized) return;
+  //   if (!tokens?.accessToken) return;
   
-    console.log('🔄 토큰 변경 감지 - 소켓 업데이트 중...');
-    useSocketStore.getState().updateToken(tokens.accessToken)
-      .then(() => console.log('✅ 토큰 업데이트 완료'))
-      .catch(err => console.error('❌ 토큰 업데이트 실패:', err));
-  }, [tokens?.accessToken]);
+  //   console.log('🔄 토큰 변경 감지 - 소켓 업데이트 중...');
+  //   useSocketStore.getState().updateToken(tokens.accessToken)
+  //     .then(() => console.log('✅ 토큰 업데이트 완료'))
+  //     .catch(err => console.error('❌ 토큰 업데이트 실패:', err));
+  // }, [tokens?.accessToken]);
 
   return (
     <SafeAreaProvider>

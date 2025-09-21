@@ -62,6 +62,7 @@ export const SOCKET_EVENTS = {
   DISCONNECT: 'disconnect',
   CONNECT_ERROR: 'connect_error',
   RECONNECT: 'reconnect',
+  RECONNECT_ATTEMPT: 'reconnect_attempt',
   RECONNECT_ERROR: 'reconnect_error',
   RECONNECT_FAILED: 'reconnect_failed',
   

@@ -188,8 +188,8 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
     // NotificationStore 구독 상태 초기화
     useNotificationStore.setState({
       isSubscribed: false,
-      notifications: [],
-      unreadCount: 0,
+      //notifications: [],
+      //unreadCount: 0,
     });
 
     // ChatStore 구독 상태 초기화
@@ -197,7 +197,7 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
       isGlobalSubscribed: false,
       isRoomSubscribed: false,
       currentChatRoomId: null,
-      messages: [],
+      //messages: [],
       typingUsers: [],
     });
 
@@ -252,7 +252,7 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
 
       // 토큰 갱신 후 구독 보장
       const { subscribe: subscribeNotifications } = useNotificationStore.getState();
-      const { isGlobalSubscribed, subscribeGlobal: subscribeChatGlobal } = useChatStore.getState();
+      //const { isGlobalSubscribed, subscribeGlobal: subscribeChatGlobal } = useChatStore.getState();
       
       subscribeNotifications();
       
@@ -271,7 +271,7 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
       
       // 재연결 후 구독 보장
       const { subscribe: subscribeNotifications } = useNotificationStore.getState();
-      const { isGlobalSubscribed, subscribeGlobal: subscribeChatGlobal } = useChatStore.getState();
+      //const { isGlobalSubscribed, subscribeGlobal: subscribeChatGlobal } = useChatStore.getState();
       
       subscribeNotifications();
       
@@ -311,7 +311,7 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
 
     // 구독 보장
     const { subscribe: subscribeNotifications } = useNotificationStore.getState();
-    const { isGlobalSubscribed, subscribeGlobal: subscribeChatGlobal } = useChatStore.getState();
+    //const { isGlobalSubscribed, subscribeGlobal: subscribeChatGlobal } = useChatStore.getState();
     
     subscribeNotifications();
     
@@ -394,6 +394,22 @@ const setupSocketEventListeners = (
         state: 'disconnected',
       },
     }));
+
+    // NotificationStore 구독 상태 초기화
+    useNotificationStore.setState({
+      isSubscribed: false,
+      //notifications: [],
+      //unreadCount: 0,
+    });
+
+    // ChatStore 구독 상태 초기화
+    useChatStore.setState({
+      isGlobalSubscribed: false,
+      isRoomSubscribed: false,
+      currentChatRoomId: null,
+      //messages: [],
+      typingUsers: [],
+    });
   });
 
   // 연결 에러
@@ -401,18 +417,34 @@ const setupSocketEventListeners = (
     console.error(`❌ ${type} 소켓 연결 에러:`, error);
     
     const socketError = handleSocketError(error);
+
+    // NotificationStore 구독 상태 초기화
+    useNotificationStore.setState({
+      isSubscribed: false,
+      //notifications: [],
+      //unreadCount: 0,
+    });
+
+    // ChatStore 구독 상태 초기화
+    useChatStore.setState({
+      isGlobalSubscribed: false,
+      isRoomSubscribed: false,
+      currentChatRoomId: null,
+      //messages: [],
+      typingUsers: [],
+    });
     
     // TOKEN_EXPIRED 에러 처리
     if (socketError.type === 'TOKEN_EXPIRED') {
-      console.log('🔄 토큰 만료 감지, 토큰 갱신 시도...');
+      console.log('🔄 토큰 만료 감지(SocketStore), 토큰 갱신 시도...');
       
       const refreshResult = await refreshToken();
       
       if (refreshResult.success && refreshResult.newToken) {
-        console.log('✅ 토큰 갱신 성공, 재연결 시도...');
+        console.log('✅ 토큰 갱신 성공(SocketStore), 재연결 시도...');
         await useSocketStore.getState().updateToken(refreshResult.newToken);
       } else {
-        console.error('❌ 토큰 갱신 실패:', refreshResult.error);
+        console.error('❌ 토큰 갱신 실패(SocketStore):', refreshResult.error);
         
         // 로그아웃 처리
         const authStore = useAuthStore.getState();
@@ -421,9 +453,23 @@ const setupSocketEventListeners = (
     }
   });
 
-  // 재연결 시도
-  socket.on(SOCKET_EVENTS.RECONNECT, (attemptNumber) => {
+  socket.on(SOCKET_EVENTS.RECONNECT_ATTEMPT, (attemptNumber) => {
     console.log(`🔄 ${type} 소켓 재연결 시도 ${attemptNumber}번째`);
+
+    const updateKey = type === 'chat' ? 'chatSocket' : 'notificationSocket';
+    
+    useSocketStore.setState((prev) => ({
+      [updateKey]: {
+        ...prev[updateKey],
+        state: 'reconnecting',
+        reconnectAttempts: attemptNumber,
+      },
+    }));
+  });
+
+  // 재연결 성공
+  socket.on(SOCKET_EVENTS.RECONNECT, (attemptNumber) => {
+    console.log(`✅ 재연결 성공 ${type} 소켓 시도 횟수: ${attemptNumber}`);
     
     const updateKey = type === 'chat' ? 'chatSocket' : 'notificationSocket';
     
@@ -434,6 +480,11 @@ const setupSocketEventListeners = (
         reconnectAttempts: attemptNumber,
       },
     }));
+
+    const { subscribe: subscribeNotifications } = useNotificationStore.getState();
+    //const { isGlobalSubscribed, subscribeGlobal: subscribeChatGlobal } = useChatStore.getState();
+    
+    subscribeNotifications();
   });
 
   // 재연결 에러
