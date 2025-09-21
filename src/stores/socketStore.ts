@@ -18,6 +18,7 @@ import {
 } from '../types/socket';
 import { useAuthStore } from './authStore';
 import { useNotificationStore } from './notificationStore';
+import { useChatStore } from './chatStore';
 import { apiClient } from '../services/apiClient';
 
 // 소켓 인스턴스 생성 함수
@@ -191,6 +192,15 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
       unreadCount: 0,
     });
 
+    // ChatStore 구독 상태 초기화
+    useChatStore.setState({
+      isGlobalSubscribed: false,
+      isRoomSubscribed: false,
+      currentChatRoomId: null,
+      messages: [],
+      typingUsers: [],
+    });
+
     set({
       chatSocket: {
         socket: null,
@@ -240,9 +250,18 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
 
       console.log('✅ 토큰 갱신 완료');
 
-      // 토큰 갱신 후 알림 구독 보장
+      // 토큰 갱신 후 구독 보장
       const { subscribe: subscribeNotifications } = useNotificationStore.getState();
+      const { isGlobalSubscribed, subscribeGlobal: subscribeChatGlobal } = useChatStore.getState();
+      
       subscribeNotifications();
+      
+      // 🔥 ChatScreen에 있는 경우에만 Global 구독 복구
+      if (isGlobalSubscribed) {
+        subscribeChatGlobal();
+      }
+      
+      console.log('✅ 토큰 갱신 후 구독 복구 완료');
     } catch (error) {
       console.error('❌ 토큰 갱신 실패, 전체 재연결 시도...', error);
       
@@ -250,9 +269,16 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
       state.disconnectAllSockets();
       await state.initializeSockets(newToken);
       
-      // 재연결 후 알림 구독 보장
+      // 재연결 후 구독 보장
       const { subscribe: subscribeNotifications } = useNotificationStore.getState();
+      const { isGlobalSubscribed, subscribeGlobal: subscribeChatGlobal } = useChatStore.getState();
+      
       subscribeNotifications();
+      
+      // 🔥 ChatScreen에 있는 경우에만 Global 구독 복구
+      if (isGlobalSubscribed) {
+        subscribeChatGlobal();
+      }
     }
   },
 
@@ -283,9 +309,16 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
     
     console.log('✅ 모든 소켓 재연결 완료');
 
-    // 알림 구독 보장
+    // 구독 보장
     const { subscribe: subscribeNotifications } = useNotificationStore.getState();
+    const { isGlobalSubscribed, subscribeGlobal: subscribeChatGlobal } = useChatStore.getState();
+    
     subscribeNotifications();
+    
+    // 🔥 ChatScreen에 있는 경우에만 Global 구독 복구
+    if (isGlobalSubscribed) {
+      subscribeChatGlobal();
+    }
   },
 
   // 연결 상태 확인
@@ -380,6 +413,7 @@ const setupSocketEventListeners = (
         await useSocketStore.getState().updateToken(refreshResult.newToken);
       } else {
         console.error('❌ 토큰 갱신 실패:', refreshResult.error);
+        
         // 로그아웃 처리
         const authStore = useAuthStore.getState();
         await authStore.logout();

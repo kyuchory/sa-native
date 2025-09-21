@@ -6,12 +6,14 @@ import { useThemeStore } from './src/stores/themeStore';
 import { useAuthStore } from './src/stores/authStore';
 import { useSocketStore } from './src/stores/socketStore';
 import { useNotificationStore } from './src/stores/notificationStore';
+import { useChatStore } from './src/stores/chatStore';
 
 export default function App() {
   const { isDark, colors } = useThemeStore();
   const { isAuthenticated, tokens } = useAuthStore();
   const { initializeSockets, disconnectAllSockets, isInitialized } = useSocketStore();
   const { subscribe: subscribeNotifications, unsubscribe: unsubscribeNotifications } = useNotificationStore();
+  const { unsubscribeGlobal: unsubscribeChatGlobal, unsubscribeRoom } = useChatStore();
 
   // 소켓 초기화 및 정리
   useEffect(() => {
@@ -23,14 +25,19 @@ export default function App() {
             await initializeSockets(tokens.accessToken);
             console.log('✅ 앱 초기화 완료');
             
-            // 초기 앱 실행 시 알림 구독만
+            // 초기 앱 실행 시 구독 시작 (알림만)
             subscribeNotifications();
+            // 채팅 Global 구독은 ChatScreen에서만 수행
           }
         } else if (!isAuthenticated && isInitialized) {
           console.log('🚪 로그아웃 감지 - 소켓 정리 중...');
           
-          // 알림 구독 해제
+          // 구독 해제
           unsubscribeNotifications();
+          unsubscribeChatGlobal();
+          
+          // 로컬 구독도 해제
+          unsubscribeRoom();
           
           // 모든 소켓 연결 해제
           disconnectAllSockets();
@@ -43,7 +50,7 @@ export default function App() {
     };
 
     initializeApp();
-  }, [isAuthenticated, tokens?.accessToken, isInitialized, initializeSockets, disconnectAllSockets, subscribeNotifications, unsubscribeNotifications]);
+  }, [isAuthenticated, tokens?.accessToken, isInitialized, initializeSockets, disconnectAllSockets, subscribeNotifications, unsubscribeNotifications, unsubscribeChatGlobal, unsubscribeRoom]);
 
   // 토큰 변경 감지 (토큰 갱신 시)
   useEffect(() => {

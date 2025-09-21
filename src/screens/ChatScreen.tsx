@@ -29,7 +29,9 @@ import { CheckIcon, MuteIcon, DeleteIcon, CheckboxEmptyIcon, CheckboxFilledIcon 
 import { ChatService } from '../services/chatService';
 
 // Stores
-// TODO: 소켓 관련 import는 새로 구현할 예정
+import { useChatStore } from '../stores/chatStore';
+import { useSocketStore } from '../stores/socketStore';
+import { SOCKET_NAMESPACES } from '../config/socket';
 
 type ChatScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Chat'>;
 
@@ -38,7 +40,11 @@ export default function ChatScreen() {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
   
-  // TODO: 소켓 관련 코드는 새로 구현할 예정
+  // 채팅 스토어 상태
+  const { chatRooms, subscribeGlobal, unsubscribeGlobal, isGlobalSubscribed } = useChatStore();
+  
+  // 소켓 상태
+  const { isConnected } = useSocketStore();
   
   // 로컬 상태 관리
   const [selectedTab, setSelectedTab] = useState<ChatType>('private');
@@ -50,16 +56,22 @@ export default function ChatScreen() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedChatIds, setSelectedChatIds] = useState<Set<number>>(new Set());
 
-  // 컴포넌트 마운트 시 채팅방 데이터 로드
+  // 컴포넌트 마운트 시 채팅방 데이터 로드 및 Global 구독 시작
   useEffect(() => {
     const initializeChatScreen = async () => {
-      // WebSocket 연결은 글로벌로 관리됨, 채팅 이벤트 리스너 등록은 AuthNavigator에서 처리
-
+      // 🔥 채팅방 목록 진입 시 Global 구독 시작
+      subscribeGlobal();
+      
       // 채팅방 목록 로드
       loadChatRooms();
     };
 
     initializeChatScreen();
+    
+    // 컴포넌트 언마운트 시 Global 구독 해제
+    return () => {
+      unsubscribeGlobal();
+    };
   }, []);
 
   // 탭 변경 시 필터링
@@ -67,7 +79,24 @@ export default function ChatScreen() {
     filterChatRooms();
   }, [selectedTab, allChatRooms]);
 
-  // TODO: 실시간 업데이트는 새로 구현할 예정
+  // 🔥 chatStore의 chatRooms 상태 구독 (실시간 업데이트)
+  useEffect(() => {
+    // chatStore의 chatRooms가 업데이트되면 로컬 상태도 동기화
+    if (chatRooms.length > 0) {
+      setAllChatRooms(chatRooms);
+    }
+  }, [chatRooms]);
+
+  // 🔥 소켓 재연결 시 자동 재구독 로직
+  useEffect(() => {
+    const { isConnected: chatSocketConnected } = useSocketStore.getState();
+    console.log('isGlobalSubscribed', isGlobalSubscribed);
+    // 소켓이 연결되고 Global 구독이 필요한 경우 자동 재구독
+    if (chatSocketConnected(SOCKET_NAMESPACES.CHAT) && !isGlobalSubscribed) {
+      console.log('🔄 소켓 재연결 감지 - Global 구독 복구중');
+      subscribeGlobal();
+    }
+  }, [isConnected(SOCKET_NAMESPACES.CHAT), isGlobalSubscribed]);
 
   // 채팅방 목록 로드 (API 호출)
   const loadChatRooms = async () => {
@@ -77,8 +106,7 @@ export default function ChatScreen() {
       
       // 로컬 상태와 ChatStore 모두 업데이트
       setAllChatRooms(loadedChatRooms);
-      // TODO: ChatStore 업데이트 (새로 구현 예정)
-      // setChatRooms(loadedChatRooms);
+      useChatStore.getState().updateChatRooms(loadedChatRooms);
       
       console.log('📋 채팅방 목록 로드 완료:', loadedChatRooms.length, '개');
     } catch (error: any) {

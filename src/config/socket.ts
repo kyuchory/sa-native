@@ -65,17 +65,32 @@ export const SOCKET_EVENTS = {
   RECONNECT_ERROR: 'reconnect_error',
   RECONNECT_FAILED: 'reconnect_failed',
   
-  // 채팅 이벤트
-  CHAT_JOIN_ROOM: 'join_room',
-  CHAT_LEAVE_ROOM: 'leave_room',
-  CHAT_MESSAGE_SEND: 'message:send',
-  CHAT_MESSAGE_RECEIVE: 'message:receive',
-  CHAT_MESSAGE_SENT: 'message:sent',
-  CHAT_TYPING_START: 'typing:start',
-  CHAT_TYPING_STOP: 'typing:stop',
-  CHAT_USER_JOINED: 'user_joined',
-  CHAT_USER_LEFT: 'user_left',
-  CHAT_JOINED_ROOM: 'joined_room',
+  // =========================
+  // 🌐 채팅 전역 이벤트 (Global Events)
+  // =========================
+  CHAT_GLOBAL_SUBSCRIBE_USER_ROOM: 'chat:global:subscribe_user_room',
+  CHAT_GLOBAL_UNSUBSCRIBE_USER_ROOM: 'chat:global:unsubscribe_user_room',
+  CHAT_GLOBAL_SUBSCRIBED_USER_ROOM: 'chat:global:subscribed_user_room',
+  CHAT_GLOBAL_ROOM_LIST_UPDATE: 'chat:global:room_list_update',
+  CHAT_GLOBAL_ROOM_INFO_UPDATE: 'chat:global:room_info_update',
+
+  // =========================
+  // 🏠 채팅 로컬 이벤트 (Local Events)
+  // =========================
+  CHAT_LOCAL_SUBSCRIBE_ROOM: 'chat:local:subscribe_room',
+  CHAT_LOCAL_UNSUBSCRIBE_ROOM: 'chat:local:unsubscribe_room',
+  CHAT_LOCAL_SUBSCRIBED_ROOM: 'chat:local:subscribed_room',
+  CHAT_LOCAL_UNSUBSCRIBED_ROOM: 'chat:local:unsubscribed_room',
+  CHAT_LOCAL_SEND_MESSAGE: 'chat:local:send_message',
+  CHAT_LOCAL_MESSAGE_SENT: 'chat:local:message_sent',
+  CHAT_LOCAL_MESSAGE_RECEIVED: 'chat:local:message_received',
+  CHAT_LOCAL_MESSAGE_FAILED: 'chat:local:message_failed',
+  CHAT_LOCAL_MENTION_RECEIVED: 'chat:local:mention_received',
+  CHAT_LOCAL_TYPING_START: 'chat:local:typing_start',
+  CHAT_LOCAL_TYPING_STOP: 'chat:local:typing_stop',
+  CHAT_LOCAL_TYPING_STATUS: 'chat:local:typing_status',
+  CHAT_LOCAL_USER_JOINED: 'chat:local:user_joined',
+  CHAT_LOCAL_USER_LEFT: 'chat:local:user_left',
   
   // 알림 이벤트
   NOTIFICATION_SUBSCRIBE: 'notification:subscribe',
