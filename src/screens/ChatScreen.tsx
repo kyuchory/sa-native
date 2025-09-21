@@ -41,10 +41,16 @@ export default function ChatScreen() {
   const styles = createStyles(colors);
   
   // 채팅 스토어 상태
-  const { chatRooms, subscribeGlobal, unsubscribeGlobal, isGlobalSubscribed } = useChatStore();
+  // const { chatRooms, subscribeGlobal, unsubscribeGlobal, isGlobalSubscribed } = useChatStore();
+  // ✅ 필요한 상태만 선택적으로 구독
+  const chatRooms = useChatStore(state => state.chatRooms);
+  const isGlobalSubscribed = useChatStore(state => state.isGlobalSubscribed);
+  const subscribeGlobal = useChatStore(state => state.subscribeGlobal);
+  const unsubscribeGlobal = useChatStore(state => state.unsubscribeGlobal);
   
   // 소켓 상태
-  const { isConnected } = useSocketStore();
+  const { chatSocket } = useSocketStore();
+  const isConnected = chatSocket.socket?.connected || false; // 값으로 추출
   
   // 로컬 상태 관리
   const [selectedTab, setSelectedTab] = useState<ChatType>('private');
@@ -89,14 +95,13 @@ export default function ChatScreen() {
 
   // 🔥 소켓 재연결 시 자동 재구독 로직
   useEffect(() => {
-    const { isConnected: chatSocketConnected } = useSocketStore.getState();
     console.log('isGlobalSubscribed', isGlobalSubscribed);
-    // 소켓이 연결되고 Global 구독이 필요한 경우 자동 재구독
-    if (chatSocketConnected(SOCKET_NAMESPACES.CHAT) && !isGlobalSubscribed) {
+    // 소켓이 연결되고 Global 구독이 되어있지 않다면, 재구독
+    if (isConnected && !isGlobalSubscribed) {
       console.log('🔄 소켓 재연결 감지 - Global 구독 복구중');
       subscribeGlobal();
     }
-  }, [isConnected(SOCKET_NAMESPACES.CHAT), isGlobalSubscribed]);
+  }, [isConnected, isGlobalSubscribed]);
 
   // 채팅방 목록 로드 (API 호출)
   const loadChatRooms = async () => {

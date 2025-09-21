@@ -257,9 +257,9 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
       subscribeNotifications();
       
       // 🔥 ChatScreen에 있는 경우에만 Global 구독 복구
-      if (isGlobalSubscribed) {
-        subscribeChatGlobal();
-      }
+      // if (isGlobalSubscribed) {
+      //   subscribeChatGlobal();
+      // }
       
       console.log('✅ 토큰 갱신 후 구독 복구 완료');
     } catch (error) {
@@ -276,9 +276,9 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
       subscribeNotifications();
       
       // 🔥 ChatScreen에 있는 경우에만 Global 구독 복구
-      if (isGlobalSubscribed) {
-        subscribeChatGlobal();
-      }
+      // if (isGlobalSubscribed) {
+      //   subscribeChatGlobal();
+      // }
     }
   },
 
@@ -316,9 +316,9 @@ export const useSocketStore = create<SocketStoreState>((set, get) => ({
     subscribeNotifications();
     
     // 🔥 ChatScreen에 있는 경우에만 Global 구독 복구
-    if (isGlobalSubscribed) {
-      subscribeChatGlobal();
-    }
+    // if (isGlobalSubscribed) {
+    //   subscribeChatGlobal();
+    // }
   },
 
   // 연결 상태 확인
