@@ -27,12 +27,15 @@ interface ChatStoreState {
   
   // Local 구독 (특정 채팅방용)
   subscribeRoom: (chatRoomId: number) => void;
-  unsubscribeRoom: () => void;
+  unsubscribeRoom: (chatRoomId?: number) => void;
   
   // 메시지 관련
-  sendMessage: (content: string, mentionUserIds?: number[]) => Promise<void>;
+  sendMessage: (chatRoomId: number, content: string, mentionUserIds?: number[]) => Promise<void>;
   setCurrentChatRoom: (chatRoomId: number | null) => void;
   clearMessages: () => void;
+  setMessages: (messages: Message[]) => void;
+  retryMessage: (failedMessage: Message) => Promise<void>;
+  retryAllFailedMessages: () => Promise<void>;
   
   // 데이터 업데이트
   updateChatRooms: (rooms: ChatRoom[]) => void;
@@ -40,8 +43,8 @@ interface ChatStoreState {
   updateMessageStatus: (tempId: string, status: 'sending' | 'sent' | 'failed', serverMessage?: Message) => void;
   
   // 타이핑 관리
-  startTyping: () => void;
-  stopTyping: () => void;
+  startTyping: (chatRoomId: number) => void;
+  stopTyping: (chatRoomId: number) => void;
   
   // 이벤트 핸들러들
   handleMessageReceived: (message: Message) => void;
@@ -53,7 +56,7 @@ interface ChatStoreState {
   handleRoomInfoUpdate: (data: { room_info: any }) => void;
 }
 
-export const useChatStore = create<ChatStoreState>((set, get) => ({
+export const useChatStore = create<ChatStoreState>()((set, get) => ({
   // 초기 상태
   isGlobalSubscribed: false,
   isRoomSubscribed: false,
@@ -148,7 +151,7 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
     });
   },
 
-  unsubscribeRoom: () => {
+  unsubscribeRoom: (chatRoomId?: number) => {
     const state = get();
     
     if (!state.isRoomSubscribed) {
@@ -157,12 +160,13 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
     }
 
     const socket = useSocketStore.getState().getSocket(SOCKET_NAMESPACES.CHAT);
+    const targetChatRoomId = chatRoomId || state.currentChatRoomId;
     
-    if (socket && state.currentChatRoomId) {
-      console.log(`🏠 채팅방 ${state.currentChatRoomId} 구독 해제...`);
+    if (socket && targetChatRoomId) {
+      console.log(`🏠 채팅방 ${targetChatRoomId} 구독 해제...`);
       
       // 서버에 구독 해제 요청
-      socket.emit(SOCKET_EVENTS.CHAT_LOCAL_UNSUBSCRIBE_ROOM, { chat_room_id: state.currentChatRoomId });
+      socket.emit(SOCKET_EVENTS.CHAT_LOCAL_UNSUBSCRIBE_ROOM, { chat_room_id: targetChatRoomId });
     }
     
     // 구독 상태 초기화
@@ -177,14 +181,7 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
   // =========================
   // 💬 메시지 관련
   // =========================
-  sendMessage: async (content: string, mentionUserIds: number[] = []) => {
-    const { currentChatRoomId } = get();
-    
-    if (!currentChatRoomId) {
-      Alert.alert('오류', '채팅방이 선택되지 않았습니다.');
-      return;
-    }
-
+  sendMessage: async (chatRoomId: number, content: string, mentionUserIds: number[] = []) => {
     const socket = useSocketStore.getState().getSocket(SOCKET_NAMESPACES.CHAT);
     
     if (!socket) {
@@ -203,7 +200,7 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
     // 로컬 메시지 생성
     const localMessage: Message = {
       id: tempId,
-      chat_room_id: currentChatRoomId,
+      chat_room_id: chatRoomId,
       sender_id: user.id,
       type: 'text',
       content,
@@ -215,6 +212,7 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
       },
       mentions: [],
       status: 'sending',
+      isTemporary: true,
     };
 
     // UI에 즉시 표시
@@ -223,14 +221,14 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
     // 서버로 전송
     socket.emit(SOCKET_EVENTS.CHAT_LOCAL_SEND_MESSAGE, {
       temp_id: tempId,
-      chat_room_id: currentChatRoomId,
+      chat_room_id: chatRoomId,
       type: 'text',
       content,
       mention_user_ids: mentionUserIds,
     });
 
     // 타이핑 상태 중단
-    get().stopTyping();
+    get().stopTyping(chatRoomId);
   },
 
   setCurrentChatRoom: (chatRoomId: number | null) => {
@@ -253,6 +251,41 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
 
   clearMessages: () => {
     set({ messages: [], typingUsers: [] });
+  },
+
+  setMessages: (messages: Message[]) => {
+    set({ messages });
+    console.log(`📨 메시지 목록 설정: ${messages.length}개`);
+  },
+
+  retryMessage: async (failedMessage: Message) => {
+    const { sendMessage } = get();
+    
+    if (!failedMessage.isTemporary || failedMessage.status !== 'failed') {
+      console.log('재전송할 수 없는 메시지입니다.');
+      return;
+    }
+
+    // 실패한 메시지를 다시 전송
+    await sendMessage(failedMessage.chat_room_id, failedMessage.content);
+  },
+
+  retryAllFailedMessages: async () => {
+    const { messages, retryMessage } = get();
+    
+    const failedMessages = messages.filter(msg => 
+      msg.status === 'failed' && msg.isTemporary
+    );
+
+    if (failedMessages.length === 0) {
+      console.log('재전송할 실패한 메시지가 없습니다.');
+      return;
+    }
+
+    // 모든 실패한 메시지를 순차적으로 재전송
+    for (const failedMessage of failedMessages) {
+      await retryMessage(failedMessage);
+    }
   },
 
   // =========================
@@ -285,30 +318,22 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
   // =========================
   // ⌨️ 타이핑 관리
   // =========================
-  startTyping: () => {
-    const { currentChatRoomId } = get();
-    
-    if (!currentChatRoomId) return;
-
+  startTyping: (chatRoomId: number) => {
     const socket = useSocketStore.getState().getSocket(SOCKET_NAMESPACES.CHAT);
     
     if (socket) {
       socket.emit(SOCKET_EVENTS.CHAT_LOCAL_TYPING_START, { 
-        chat_room_id: currentChatRoomId 
+        chat_room_id: chatRoomId 
       });
     }
   },
 
-  stopTyping: () => {
-    const { currentChatRoomId } = get();
-    
-    if (!currentChatRoomId) return;
-
+  stopTyping: (chatRoomId: number) => {
     const socket = useSocketStore.getState().getSocket(SOCKET_NAMESPACES.CHAT);
     
     if (socket) {
       socket.emit(SOCKET_EVENTS.CHAT_LOCAL_TYPING_STOP, { 
-        chat_room_id: currentChatRoomId 
+        chat_room_id: chatRoomId 
       });
     }
   },
@@ -458,10 +483,12 @@ const setupChatEventListeners = (socket: any) => {
 
   // Global 이벤트들
   socket.on(SOCKET_EVENTS.CHAT_GLOBAL_ROOM_LIST_UPDATE, (data: { rooms?: ChatRoom[]; updated_room_id?: number; last_message?: any; unread_count?: number }) => {
+    console.log('🏠 채팅방 목록 업데이트 수신:', data);
     store.handleRoomListUpdate(data);
   });
 
   socket.on(SOCKET_EVENTS.CHAT_GLOBAL_ROOM_INFO_UPDATE, (data: { room_info: any }) => {
+    console.log('🏠 채팅방 정보 업데이트 수신:', data);
     store.handleRoomInfoUpdate(data);
   });
 
