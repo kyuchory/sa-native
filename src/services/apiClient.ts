@@ -25,7 +25,7 @@ class ApiClient {
     );
   }
 
-  // RefreshToken 만료 감지
+  // RefreshToken 만료/무효 감지
   private isRefreshTokenExpiredError(error: ApiError): boolean {
     if (error.status !== 401) return false;
     
@@ -181,6 +181,7 @@ class ApiClient {
           
         } catch (refreshError) {
           console.error('토큰 재발급 실패:', refreshError);
+          await this.forceLogout();
           // 재발급 실패 시 원래 에러를 그대로 throw
           throw error;
         }
