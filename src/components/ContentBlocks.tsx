@@ -281,9 +281,8 @@ export function VideoBlock({
             style={styles.videoPreview}
             resizeMode="cover"
           />
-          <View style={styles.videoOverlay}>
-            <Text style={styles.videoIcon}>▶️</Text>
-            <Text style={styles.videoText}>비디오 미리보기</Text>
+          <View style={styles.videoInfo}>
+            <Text style={styles.videoInfoText}>비디오가 업로드되었습니다</Text>
           </View>
         </View>
       ) : (
@@ -442,25 +441,14 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
 
   // 비디오 관련
   videoContainer: {
-    marginHorizontal: SPACING.MD,
-    marginVertical: SPACING.SM,
     position: 'relative' as const,
   },
   videoPreview: {
     height: 200,
+    marginHorizontal: SPACING.MD,
+    marginVertical: SPACING.SM,
     borderRadius: BORDER_RADIUS.SM,
     backgroundColor: colors.GRAY_100,
-  },
-  videoOverlay: {
-    position: 'absolute' as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: BORDER_RADIUS.SM,
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
   },
   videoPlaceholder: {
     marginHorizontal: SPACING.MD,
@@ -482,6 +470,22 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.SM,
     color: colors.WHITE,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
+  videoInfo: {
+    position: 'absolute' as const,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingVertical: SPACING.XS,
+    paddingHorizontal: SPACING.SM,
+    borderBottomLeftRadius: BORDER_RADIUS.SM,
+    borderBottomRightRadius: BORDER_RADIUS.SM,
+  },
+  videoInfoText: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    color: colors.WHITE,
+    textAlign: 'center' as const,
   },
 
   // 공통 플레이스홀더
