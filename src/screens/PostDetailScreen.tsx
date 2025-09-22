@@ -506,7 +506,9 @@ export default function PostDetailScreen() {
               style={styles.videoPlayer}
               useNativeControls
               resizeMode={ResizeMode.CONTAIN}
-              shouldPlay={false}
+              shouldPlay={true}
+              isLooping={true}
+              isMuted={true}
             />
           </View>
         );
