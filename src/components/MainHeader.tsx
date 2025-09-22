@@ -1,13 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 import { TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
 import { NotificationIcon, WriteIcon } from './HomeHeaderIcons';
 import { CreateFeedIcon } from './CommonIcons';
 import Svg, { Path } from 'react-native-svg';
 import { useThemeStore } from '../stores/themeStore';
-import { useNotificationStore } from '../stores/notificationStore';
 import { useAuthStore } from '../stores/authStore';
 import { NotificationService } from '../services/notificationService';
 
@@ -37,14 +37,17 @@ export default function MainHeader({ leftButtons = [], rightButtons = [] }: Main
   const insets = useSafeAreaInsets();
   const { isDark, colors } = useThemeStore();
   const navigation = useNavigation();
-  const { unreadCount, updateUnreadCount } = useNotificationStore();
   const { isAuthenticated } = useAuthStore();
   const styles = createStyles(colors);
+  
+  // 로컬 상태로 읽지 않은 알림 개수 관리
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // 초기 로딩 시 읽지않은 알림 개수 로드
   useEffect(() => {
     const loadUnreadCount = async () => {
       if (!isAuthenticated) {
+        setUnreadCount(0);
         return;
       }
 
@@ -53,15 +56,37 @@ export default function MainHeader({ leftButtons = [], rightButtons = [] }: Main
         const response = await NotificationService.getUnreadCount();
         
         if (response.code === 200 && response.data) {
-          updateUnreadCount(response.data.unreadCount);
+          setUnreadCount(response.data.unreadCount);
+          console.log(`✅ MainHeader: 읽지않은 알림 개수 로드 완료 - ${response.data.unreadCount}개`);
         }
       } catch (error) {
         console.error('❌ MainHeader: 읽지않은 알림 개수 로드 실패:', error);
+        setUnreadCount(0); // 에러 시 0으로 설정
       }
     };
 
     loadUnreadCount();
-  }, [isAuthenticated, updateUnreadCount]);
+  }, [isAuthenticated]);
+
+  // 화면 포커스 시 알림 개수 새로고침 (알림 화면에서 돌아올 때)
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated) {
+        const refreshUnreadCount = async () => {
+          try {
+            const response = await NotificationService.getUnreadCount();
+            if (response.code === 200 && response.data) {
+              setUnreadCount(response.data.unreadCount);
+            }
+          } catch (error) {
+            console.error('❌ MainHeader: 포커스 시 알림 개수 새로고침 실패:', error);
+          }
+        };
+        
+        refreshUnreadCount();
+      }
+    }, [isAuthenticated])
+  );
 
   const handleNotificationPress = () => {
     console.log('알림 버튼 클릭');

@@ -5,7 +5,6 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
 import { useThemeStore } from '../stores/themeStore';
-import { useNotificationStore } from '../stores/notificationStore';
 
 // 컴포넌트 imports
 import CommonHeader from '../components/CommonHeader';
@@ -22,29 +21,18 @@ export default function NotificationScreen() {
   const navigation = useNavigation<NotificationNavigationProp>();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
-
-  // Notification store
-  const {
-    notifications,
-    markAllAsRead,
-    markAsRead,
-    loadNotifications,
-    unreadCount
-  } = useNotificationStore();
-
-  // 로딩 상태
+  
+  // 로컬 상태 관리
   const [isLoading, setIsLoading] = useState(true);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // 컴포넌트 마운트 시 알림 데이터 로드
   useEffect(() => {
     const initializeNotifications = async () => {
       try {
         setIsLoading(true);
-
-        // 알림 구독은 App.tsx에서 이미 관리됨
-        // 여기서는 API로 알림 데이터만 로드
         await loadFromAPI();
-
       } catch (error) {
         console.error('알림 초기화 실패:', error);
         Alert.alert('오류', '알림을 불러오는데 실패했습니다.');
@@ -65,9 +53,16 @@ export default function NotificationScreen() {
       });
 
       if (response.data) {
-        // Store에 알림 데이터 로드
-        loadNotifications(response.data.notifications);
-        console.log(`📋 알림 목록 로드 완료: ${response.data.notifications.length}개`);
+        // 로컬 상태에 알림 데이터 설정
+        setNotifications(response.data.notifications);
+        
+        // 읽지 않은 알림 개수 계산
+        const unreadNotifications = response.data.notifications.filter(
+          (notification: Notification) => !notification.is_read
+        );
+        setUnreadCount(unreadNotifications.length);
+        
+        console.log(`📋 알림 목록 로드 완료: ${response.data.notifications.length}개 (읽지 않음: ${unreadNotifications.length}개)`);
       }
     } catch (error: any) {
       console.error('알림 API 로드 실패:', error);
@@ -84,8 +79,14 @@ export default function NotificationScreen() {
       if (response.code === 200 && response.data) {
         console.log(`✅ 모든 알림 읽음 처리 완료: ${response.data.affectedRows}개`);
 
-        // 스토어 업데이트로 UI 갱신
-        markAllAsRead();
+        // 로컬 상태 업데이트 - 모든 알림을 읽음으로 표시
+        setNotifications(prevNotifications => 
+          prevNotifications.map(notification => ({
+            ...notification,
+            is_read: true
+          }))
+        );
+        setUnreadCount(0);
       } else {
         throw new Error(response.message || '알림 읽음 처리에 실패했습니다.');
       }
@@ -166,13 +167,29 @@ export default function NotificationScreen() {
         const response = await NotificationService.read([notification.id]);
 
         if (response.code === 200 && response.data) {
-          // 스토어 업데이트로 UI 갱신
-          markAsRead(notification.id);
+          // 로컬 상태 업데이트 - 해당 알림을 읽음으로 표시
+          setNotifications(prevNotifications => 
+            prevNotifications.map(prevNotification => 
+              prevNotification.id === notification.id 
+                ? { ...prevNotification, is_read: true }
+                : prevNotification
+            )
+          );
+          
+          // 읽지 않은 알림 개수 업데이트
+          setUnreadCount(prevCount => Math.max(0, prevCount - 1));
         }
       } catch (readError) {
         console.error('알림 읽음 처리 API 실패:', readError);
         // API 실패 시에도 사용자 경험을 위해 로컬 상태만 업데이트
-        markAsRead(notification.id);
+        setNotifications(prevNotifications => 
+          prevNotifications.map(prevNotification => 
+            prevNotification.id === notification.id 
+              ? { ...prevNotification, is_read: true }
+              : prevNotification
+          )
+        );
+        setUnreadCount(prevCount => Math.max(0, prevCount - 1));
       }
     } catch (error) {
       console.error('알림 클릭 처리 실패:', error);
