@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions, ActivityIndicator } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { FeedListItem, FeedContentBlock } from '../types/feed';
 import { FeedService } from '../services/feedService';
@@ -64,8 +65,8 @@ export default function FeedCard({
     setBookmarkCount(feed.bookmark_count);
   }, [feed.is_bookmarked, feed.bookmark_count]);
 
-  // 이미지 블록만 필터링
-  const imageBlocks = feed.content_blocks.filter(block => block.type === 'image');
+  // 미디어 블록 필터링 (이미지 + 비디오)
+  const mediaBlocks = feed.content_blocks.filter(block => block.type === 'image' || block.type === 'video');
   // 텍스트 블록 찾기
   const textBlock = feed.content_blocks.find(block => block.type === 'text');
 
@@ -203,14 +204,25 @@ export default function FeedCard({
         </View>
       </TouchableOpacity>
 
-      {/* 이미지 영역 */}
-      {imageBlocks.length > 0 && (
+      {/* 미디어 영역 (이미지 + 비디오) */}
+      {mediaBlocks.length > 0 && (
         <TouchableOpacity style={styles.imageContainer} onPress={handleImagePress} activeOpacity={0.9}>
-          <Image
-            source={{ uri: imageBlocks[0].value }}
-            style={styles.mainImage}
-            resizeMode="cover"
-          />
+          {mediaBlocks[0].type === 'video' ? (
+            <Video
+              source={{ uri: mediaBlocks[0].value }}
+              style={styles.mainImage}
+              resizeMode={ResizeMode.CONTAIN}
+              shouldPlay={true}
+              isLooping={true}
+              isMuted={true}
+            />
+          ) : (
+            <Image
+              source={{ uri: mediaBlocks[0].value }}
+              style={styles.mainImage}
+              resizeMode="cover"
+            />
+          )}
           {feed.media_count > 1 && (
             <View style={styles.imageCountBadge}>
               <Text style={styles.imageCountText}>+{feed.media_count - 1}</Text>

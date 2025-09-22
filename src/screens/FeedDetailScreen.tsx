@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions, Image, Pressable, TouchableOpacity, Alert, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SPACING, TYPOGRAPHY } from '../constants/theme';
@@ -77,7 +78,7 @@ export default function FeedDetailScreen() {
   const { setShouldRefreshProfileFeeds } = useProfileStore(); // 프로필 플래그 설정용
 
   // 데이터 필터링 (feed가 null일 수 있음)
-  const imageBlocks = feed ? feed.content_blocks.filter(block => block.type === 'image') : [];
+  const mediaBlocks = feed ? feed.content_blocks.filter(block => block.type === 'image' || block.type === 'video') : [];
   const textBlock = feed ? feed.content_blocks.find(block => block.type === 'text') : null;
 
   // 키보드 이벤트 리스너 (양쪽 플랫폼 모두 키보드 높이 추적)
@@ -538,23 +539,34 @@ export default function FeedDetailScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* 이미지 스크롤 영역 */}
-          {imageBlocks.length > 0 && (
+          {/* 미디어 스크롤 영역 (이미지 + 비디오) */}
+          {mediaBlocks.length > 0 && (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               pagingEnabled
               style={styles.imageScroll}
             >
-              {imageBlocks.map((block: any, index: number) => (
+              {mediaBlocks.map((block: any, index: number) => (
                 <View key={block.sequence} style={styles.imageContainer}>
                   <Text style={styles.imageCounter}>
-                    {index + 1} / {imageBlocks.length}
+                    {index + 1} / {mediaBlocks.length}
                   </Text>
-                  <Image
-                    source={{ uri: block.value }}
-                    style={styles.mainImage}
-                  />
+                  {block.type === 'video' ? (
+                    <Video
+                      source={{ uri: block.value }}
+                      style={styles.mainImage}
+                      resizeMode={ResizeMode.CONTAIN}
+                      shouldPlay={true}
+                      isLooping={true}
+                      isMuted={true}
+                    />
+                  ) : (
+                    <Image
+                      source={{ uri: block.value }}
+                      style={styles.mainImage}
+                    />
+                  )}
                 </View>
               ))}
             </ScrollView>
