@@ -24,6 +24,8 @@ interface ContentBlockProps {
   onMoveDown: (blockId: string) => void;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  showDeleteButton?: boolean;
+  showMoveButtons?: boolean;
 }
 
 // 텍스트 블록 컴포넌트
@@ -34,7 +36,9 @@ export function TextBlock({
   onMoveUp,
   onMoveDown,
   canMoveUp,
-  canMoveDown
+  canMoveDown,
+  showDeleteButton = true,
+  showMoveButtons = true
 }: ContentBlockProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
@@ -49,28 +53,36 @@ export function TextBlock({
             <DragHandleIcon size={16} />
           </View>
         </View>
-        <View style={styles.blockActions}>
-          <TouchableOpacity 
-            style={[styles.actionButton, !canMoveUp && styles.disabledButton]}
-            onPress={() => canMoveUp && onMoveUp(block.id)}
-            disabled={!canMoveUp}
-          >
-            <Text style={[styles.actionText, !canMoveUp && styles.disabledText]}>↑</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionButton, !canMoveDown && styles.disabledButton]}
-            onPress={() => canMoveDown && onMoveDown(block.id)}
-            disabled={!canMoveDown}
-          >
-            <Text style={[styles.actionText, !canMoveDown && styles.disabledText]}>↓</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.deleteButton}
-            onPress={() => onDeleteBlock(block.id)}
-          >
-            <Text style={styles.deleteText}>×</Text>
-          </TouchableOpacity>
-        </View>
+        {showMoveButtons || showDeleteButton ? (
+          <View style={styles.blockActions}>
+            {showMoveButtons && (
+              <>
+                <TouchableOpacity 
+                  style={[styles.actionButton, !canMoveUp && styles.disabledButton]}
+                  onPress={() => canMoveUp && onMoveUp(block.id)}
+                  disabled={!canMoveUp}
+                >
+                  <Text style={[styles.actionText, !canMoveUp && styles.disabledText]}>↑</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.actionButton, !canMoveDown && styles.disabledButton]}
+                  onPress={() => canMoveDown && onMoveDown(block.id)}
+                  disabled={!canMoveDown}
+                >
+                  <Text style={[styles.actionText, !canMoveDown && styles.disabledText]}>↓</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            {showDeleteButton && (
+              <TouchableOpacity 
+                style={styles.deleteButton}
+                onPress={() => onDeleteBlock(block.id)}
+              >
+                <Text style={styles.deleteText}>×</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : null}
       </View>
       
       <TextInput
@@ -96,7 +108,9 @@ export function ImageBlock({
   onMoveUp,
   onMoveDown,
   canMoveUp,
-  canMoveDown
+  canMoveDown,
+  showDeleteButton = true,
+  showMoveButtons = true
 }: ContentBlockProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
@@ -128,28 +142,36 @@ export function ImageBlock({
             <DragHandleIcon size={16} />
           </View>
         </View>
-        <View style={styles.blockActions}>
-          <TouchableOpacity 
-            style={[styles.actionButton, !canMoveUp && styles.disabledButton]}
-            onPress={() => canMoveUp && onMoveUp(block.id)}
-            disabled={!canMoveUp}
-          >
-            <Text style={[styles.actionText, !canMoveUp && styles.disabledText]}>↑</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionButton, !canMoveDown && styles.disabledButton]}
-            onPress={() => canMoveDown && onMoveDown(block.id)}
-            disabled={!canMoveDown}
-          >
-            <Text style={[styles.actionText, !canMoveDown && styles.disabledText]}>↓</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.deleteButton}
-            onPress={() => onDeleteBlock(block.id)}
-          >
-            <Text style={styles.deleteText}>×</Text>
-          </TouchableOpacity>
-        </View>
+        {showMoveButtons || showDeleteButton ? (
+          <View style={styles.blockActions}>
+            {showMoveButtons && (
+              <>
+                <TouchableOpacity 
+                  style={[styles.actionButton, !canMoveUp && styles.disabledButton]}
+                  onPress={() => canMoveUp && onMoveUp(block.id)}
+                  disabled={!canMoveUp}
+                >
+                  <Text style={[styles.actionText, !canMoveUp && styles.disabledText]}>↑</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.actionButton, !canMoveDown && styles.disabledButton]}
+                  onPress={() => canMoveDown && onMoveDown(block.id)}
+                  disabled={!canMoveDown}
+                >
+                  <Text style={[styles.actionText, !canMoveDown && styles.disabledText]}>↓</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            {showDeleteButton && (
+              <TouchableOpacity 
+                style={styles.deleteButton}
+                onPress={() => onDeleteBlock(block.id)}
+              >
+                <Text style={styles.deleteText}>×</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : null}
       </View>
 
       {block.value ? (
@@ -185,7 +207,9 @@ export function VideoBlock({
   onMoveUp,
   onMoveDown,
   canMoveUp,
-  canMoveDown
+  canMoveDown,
+  showDeleteButton = true,
+  showMoveButtons = true
 }: ContentBlockProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
@@ -212,28 +236,36 @@ export function VideoBlock({
             <DragHandleIcon size={16} />
           </View>
         </View>
-        <View style={styles.blockActions}>
-          <TouchableOpacity 
-            style={[styles.actionButton, !canMoveUp && styles.disabledButton]}
-            onPress={() => canMoveUp && onMoveUp(block.id)}
-            disabled={!canMoveUp}
-          >
-            <Text style={[styles.actionText, !canMoveUp && styles.disabledText]}>↑</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionButton, !canMoveDown && styles.disabledButton]}
-            onPress={() => canMoveDown && onMoveDown(block.id)}
-            disabled={!canMoveDown}
-          >
-            <Text style={[styles.actionText, !canMoveDown && styles.disabledText]}>↓</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.deleteButton}
-            onPress={() => onDeleteBlock(block.id)}
-          >
-            <Text style={styles.deleteText}>×</Text>
-          </TouchableOpacity>
-        </View>
+        {showMoveButtons || showDeleteButton ? (
+          <View style={styles.blockActions}>
+            {showMoveButtons && (
+              <>
+                <TouchableOpacity 
+                  style={[styles.actionButton, !canMoveUp && styles.disabledButton]}
+                  onPress={() => canMoveUp && onMoveUp(block.id)}
+                  disabled={!canMoveUp}
+                >
+                  <Text style={[styles.actionText, !canMoveUp && styles.disabledText]}>↑</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.actionButton, !canMoveDown && styles.disabledButton]}
+                  onPress={() => canMoveDown && onMoveDown(block.id)}
+                  disabled={!canMoveDown}
+                >
+                  <Text style={[styles.actionText, !canMoveDown && styles.disabledText]}>↓</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            {showDeleteButton && (
+              <TouchableOpacity 
+                style={styles.deleteButton}
+                onPress={() => onDeleteBlock(block.id)}
+              >
+                <Text style={styles.deleteText}>×</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : null}
       </View>
 
       {block.value ? (
