@@ -9,6 +9,7 @@ import {
   Alert,
   Dimensions
 } from 'react-native';
+// import { Video } from 'expo-av'; // expo-av 패키지 설치 후 사용
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { DragHandleIcon } from './CommonIcons';
@@ -215,6 +216,11 @@ export function VideoBlock({
   const styles = createStyles(colors);
   
   const handleVideoPicker = () => {
+    // 비디오가 이미 선택된 경우에는 아무것도 하지 않음
+    if (block.value) {
+      return;
+    }
+    
     // TODO: 실제 비디오 피커 구현
     Alert.alert(
       '비디오 선택',
@@ -269,12 +275,17 @@ export function VideoBlock({
       </View>
 
       {block.value ? (
-        <TouchableOpacity onPress={handleVideoPicker} activeOpacity={0.8}>
-          <View style={styles.videoPreview}>
-            <Text style={styles.videoIcon}>🎬</Text>
-            <Text style={styles.videoText}>비디오가 선택됨</Text>
+        <View style={styles.videoContainer}>
+          <Image
+            source={{ uri: block.value }}
+            style={styles.videoPreview}
+            resizeMode="cover"
+          />
+          <View style={styles.videoOverlay}>
+            <Text style={styles.videoIcon}>▶️</Text>
+            <Text style={styles.videoText}>비디오 미리보기</Text>
           </View>
-        </TouchableOpacity>
+        </View>
       ) : (
         <TouchableOpacity 
           style={styles.videoPlaceholder}
@@ -430,11 +441,23 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
 
   // 비디오 관련
-  videoPreview: {
+  videoContainer: {
     marginHorizontal: SPACING.MD,
     marginVertical: SPACING.SM,
-    height: 120,
+    position: 'relative' as const,
+  },
+  videoPreview: {
+    height: 200,
+    borderRadius: BORDER_RADIUS.SM,
     backgroundColor: colors.GRAY_100,
+  },
+  videoOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     borderRadius: BORDER_RADIUS.SM,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
@@ -452,12 +475,13 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     alignItems: 'center' as const,
   },
   videoIcon: {
-    fontSize: 24,
+    fontSize: 32,
     marginBottom: SPACING.XS,
   },
   videoText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
+    color: colors.WHITE,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 
   // 공통 플레이스홀더

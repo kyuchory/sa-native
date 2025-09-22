@@ -10,6 +10,7 @@ export interface ContentBlock {
   value: string;
   sequence: number;
   originalValue?: string; // 서버 제출용 원래 value
+  thumbnailPath?: string; // 서버 제출용 썸네일 경로 (비디오 블록용)
 }
 
 // 🚨 BREAKING CHANGE: post_type과 item_snapshots 필드가 API에서 제거됨
@@ -224,6 +225,26 @@ export interface UploadedImage {
 
 export interface ImageUploadResponse {
   files: UploadedImage[];
+}
+
+// 비디오 업로드 관련 타입
+export interface UploadedVideo {
+  filename: string;
+  path: string;
+  url: string;
+  size: number;
+}
+
+export interface UploadedThumbnail {
+  filename: string;
+  path: string;
+  url: string;
+  size: number;
+}
+
+export interface VideoUploadResponse {
+  video: UploadedVideo;
+  thumbnail: UploadedThumbnail | null;
 }
 
 // 게시글 좋아요 토글 응답

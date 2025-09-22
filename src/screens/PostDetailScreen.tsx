@@ -12,6 +12,7 @@ import {
   Platform,
   Keyboard,
 } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -500,10 +501,13 @@ export default function PostDetailScreen() {
       case 'video':
         return (
           <View key={index} style={styles.videoBlock}>
-            <View style={styles.videoPlaceholder}>
-              <Text style={styles.videoPlaceholderText}>🎥 동영상</Text>
-              <Text style={styles.videoUrl}>{block.value}</Text>
-            </View>
+            <Video
+              source={{ uri: block.value || '' }}
+              style={styles.videoPlayer}
+              useNativeControls
+              resizeMode={ResizeMode.CONTAIN}
+              shouldPlay={false}
+            />
           </View>
         );
       default:
@@ -872,6 +876,11 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   videoBlock: {
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
+  },
+  videoPlayer: {
+    width: '100%',
+    height: 250,
+    borderRadius: BORDER_RADIUS.MD,
   },
   videoPlaceholder: {
     backgroundColor: colors.GRAY_100,

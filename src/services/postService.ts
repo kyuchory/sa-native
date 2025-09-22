@@ -10,6 +10,9 @@ import type {
   Comment,
   ImageUploadResponse,
   UploadedImage,
+  VideoUploadResponse,
+  UploadedVideo,
+  UploadedThumbnail,
   PostListResponse,
   PostListItem,
   PostLikeResponse,
@@ -121,20 +124,31 @@ export class PostService {
     return results[0];
   }
 
-  // 비디오 업로드 (임시 - 추후 구현)
-  static async uploadVideo(videoUri: string): Promise<string> {
+  // 비디오 업로드
+  static async uploadVideo(videoUri: string): Promise<{ video: UploadedVideo; thumbnail: UploadedThumbnail | null }> {
     try {
-      // TODO: 실제 비디오 업로드 구현
+      // FormData 생성
       const formData = new FormData();
+      
+      // 파일명 추출 (URI에서 마지막 부분)
+      const fileName = videoUri.split('/').pop() || `video_${Date.now()}.mp4`;
+      
       formData.append('video', {
         uri: videoUri,
-        type: 'video/mp4',
-        name: 'video.mp4',
+        type: 'video/mp4', // 기본값, 실제로는 asset.type 사용 권장
+        name: fileName,
       } as any);
 
-      const response = await apiClient.post<ApiResponse<{ videoUrl: string }>>('/upload/video', formData);
+      // API 호출
+      const response = await apiClient.postFormData<ApiResponse<VideoUploadResponse>>(
+        '/posts/upload/video', 
+        formData
+      );
 
-      return response.data?.videoUrl || '';
+      return {
+        video: response.data.video,
+        thumbnail: response.data.thumbnail
+      };
     } catch (error) {
       console.error('비디오 업로드 실패:', error);
       throw error;
