@@ -26,7 +26,11 @@ import {
   DeleteCommentApiResponse,
   ToggleBookmarkResponse,
   ToggleBookmarkApiResponse,
-  DeleteFeedResponse
+  DeleteFeedResponse,
+  FeedImageUploadResponse,
+  FeedImageUploadApiResponse,
+  FeedVideoUploadResponse,
+  FeedVideoUploadApiResponse
 } from '../types/feed';
 import type { ApiResponse } from '../types/api';
 import type { UploadedImage, ImageUploadResponse } from '../types/post';
@@ -188,6 +192,56 @@ export class FeedService {
       await apiClient.delete<ApiResponse<DeleteFeedResponse>>(`/feeds/${feedId}`);
     } catch (error) {
       console.error('피드 삭제 실패:', error);
+      throw error;
+    }
+  }
+
+  // 피드 이미지 업로드
+  static async uploadImages(imageUris: string[]): Promise<FeedImageUploadResponse> {
+    try {
+      const formData = new FormData();
+      
+      // 이미지 URI들을 FormData에 추가
+      imageUris.forEach((uri, index) => {
+        formData.append('images', {
+          uri,
+          type: 'image/jpeg',
+          name: `image_${Date.now()}_${index}.jpg`,
+        } as any);
+      });
+
+      const response = await apiClient.postFormData<FeedImageUploadApiResponse>(
+        '/feeds/upload/images',
+        formData
+      );
+      
+      return response.data!;
+    } catch (error) {
+      console.error('피드 이미지 업로드 실패:', error);
+      throw error;
+    }
+  }
+
+  // 피드 비디오 업로드
+  static async uploadVideo(videoUri: string): Promise<FeedVideoUploadResponse> {
+    try {
+      const formData = new FormData();
+      
+      // 비디오 URI를 FormData에 추가
+      formData.append('video', {
+        uri: videoUri,
+        type: 'video/mp4',
+        name: `video_${Date.now()}.mp4`,
+      } as any);
+
+      const response = await apiClient.postFormData<FeedVideoUploadApiResponse>(
+        '/feeds/upload/video',
+        formData
+      );
+      
+      return response.data!;
+    } catch (error) {
+      console.error('피드 비디오 업로드 실패:', error);
       throw error;
     }
   }

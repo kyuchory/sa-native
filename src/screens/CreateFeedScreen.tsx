@@ -44,6 +44,7 @@ export default function CreateFeedScreen() {
   const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
 
   // Zustand 스토어
   const { setShouldRefreshFeeds } = useFeedStore();
@@ -174,7 +175,8 @@ export default function CreateFeedScreen() {
         try {
           setIsUploadingImage(true);
           setIsLoading(true);
-          const uploadedImage = await PostService.uploadImage(selectedImage.uri);
+          const uploadResult = await FeedService.uploadImages([selectedImage.uri]);
+          const uploadedImage = uploadResult.files[0];
           
           // 업로드된 이미지로 블록 업데이트 (표시용 url, 제출용 path 저장)
           setContentBlocks(prev =>
@@ -202,9 +204,74 @@ export default function CreateFeedScreen() {
     }
   };
 
-  // 비디오 선택 (추후 구현)
+  // 비디오 선택 및 업로드
   const handleVideoSelection = async () => {
-    Alert.alert('알림', '비디오 기능은 추후 구현 예정입니다.');
+    try {
+      // 권한 요청
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
+        return;
+      }
+
+      // 비디오 선택
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsMultipleSelection: false,
+        allowsEditing: true, // 비디오 편집 기능 활성화
+        quality: 0.8, // 품질 조정
+        videoMaxDuration: 60, // 최대 60초로 제한
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const selectedVideo = result.assets[0];
+        
+        // 비디오 블록 추가
+        const newVideoBlock: ContentBlock = {
+          id: `video_${Date.now()}`,
+          type: 'video',
+          value: selectedVideo.uri, // 임시로 URI 저장
+          sequence: contentBlocks.length,
+        };
+        
+        setContentBlocks(prev => [...prev, newVideoBlock]);
+
+        // 비디오 업로드
+        try {
+          setIsUploadingVideo(true);
+          setIsLoading(true);
+          const uploadResult = await FeedService.uploadVideo(selectedVideo.uri);
+          
+          // 업로드된 비디오로 블록 업데이트
+          // 화면 표시용: 썸네일 URL (있으면), 서버 전송용: 비디오 경로 + 썸네일 경로
+          setContentBlocks(prev =>
+            prev.map(block =>
+              block.id === newVideoBlock.id
+                ? { 
+                    ...block, 
+                    value: uploadResult.thumbnail?.url || uploadResult.video.url, // 화면 표시용 (썸네일 우선, 없으면 비디오)
+                    originalValue: uploadResult.video.path, // 서버 전송용 (비디오)
+                    thumbnailPath: uploadResult.thumbnail?.path // 서버 전송용 (썸네일, 있으면)
+                  }
+                : block
+            )
+          );
+
+        } catch (uploadError) {
+          console.error('비디오 업로드 실패:', uploadError);
+          Alert.alert('오류', '비디오 업로드에 실패했습니다.');
+
+          // 업로드 실패 시 블록 제거
+          setContentBlocks(prev => prev.filter(block => block.id !== newVideoBlock.id));
+        }
+      }
+    } catch (error) {
+      console.error('비디오 선택 실패:', error);
+      Alert.alert('오류', '비디오 선택에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+      setIsUploadingVideo(false);
+    }
   };
 
   // 피드 작성 완료
@@ -235,10 +302,11 @@ export default function CreateFeedScreen() {
       // 서버 전송용 데이터 변환
       const contentBlocksForServer = contentBlocks
         .filter(block => block.value.trim()) // 빈 블록 제외
-        .map(({ id, originalValue, ...block }, index) => ({ 
+        .map(({ id, originalValue, thumbnailPath, ...block }, index) => ({ 
           ...block, 
           value: originalValue || block.value, 
-          sequence: index 
+          sequence: index,
+          ...(thumbnailPath && { thumbnail_path: thumbnailPath }) // 비디오 블록인 경우 썸네일 경로 추가
         }));
 
       const feedData = {
@@ -332,7 +400,7 @@ export default function CreateFeedScreen() {
       {/* 로딩 오버레이 */}
       <LoadingOverlay
         visible={isLoading}
-        message={isUploadingImage ? '이미지를 업로드중입니다...' : undefined}
+        message={isUploadingImage ? '이미지를 업로드중입니다...' : isUploadingVideo ? '비디오를 업로드중입니다...' : undefined}
       />
     </View>
   );

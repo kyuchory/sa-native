@@ -209,3 +209,42 @@ export type ToggleCommentLikeApiResponse = ApiResponse<ToggleCommentLikeResponse
 
 // 피드 삭제 응답 (data는 null)
 export type DeleteFeedResponse = null;
+
+// 피드 이미지 업로드 파일 정보
+export interface FeedUploadedImage {
+  filename: string;
+  path: string;
+  url: string;
+  size: number;
+}
+
+// 피드 이미지 업로드 응답 데이터
+export interface FeedImageUploadResponse {
+  files: FeedUploadedImage[];
+}
+
+// 피드 이미지 업로드 API 응답
+export type FeedImageUploadApiResponse = ApiResponse<FeedImageUploadResponse>;
+
+// 피드 비디오 업로드 파일 정보
+export interface FeedUploadedVideo {
+  filename: string;
+  path: string;
+  url: string;
+  size: number;
+}
+
+// 피드 썸네일 정보
+export interface FeedThumbnail {
+  path: string;
+  url: string;
+}
+
+// 피드 비디오 업로드 응답 데이터
+export interface FeedVideoUploadResponse {
+  video: FeedUploadedVideo;
+  thumbnail?: FeedThumbnail;
+}
+
+// 피드 비디오 업로드 API 응답
+export type FeedVideoUploadApiResponse = ApiResponse<FeedVideoUploadResponse>;
