@@ -138,7 +138,7 @@ export default function SettingsScreen() {
               showToggle={true}
               toggleValue={isDark}
               onToggleChange={toggleTheme}
-              colors={isDark ? {} : colors} // 다크모드에서는 기본 색상 사용
+              colors={colors} // 다크모드에서는 기본 색상 사용
             />
             <SettingItem
               title="알림"
