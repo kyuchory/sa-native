@@ -13,6 +13,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import { useEventListener } from 'expo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -460,17 +461,32 @@ export default function PostDetailScreen() {
 
   // VideoBlock 컴포넌트 추가
   const VideoBlock = ({ videoUri }: { videoUri: string }) => {
+    const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+    
     const player = useVideoPlayer(videoUri, player => {
       player.loop = true;
       player.muted = true;
       player.play();
     });
 
+    // 영상 크기 정보를 받아서 aspect ratio 계산
+    useEventListener(player, 'videoTrackChange', ({ videoTrack }) => {
+      if (videoTrack?.size) {
+        const { width, height } = videoTrack.size;
+        if (width && height) {
+          setAspectRatio(width / height);
+        }
+      }
+    });
+
     return (
       <View style={styles.videoBlock}>
         <VideoView
           player={player}
-          style={styles.videoPlayer}
+          style={[
+            styles.videoPlayer,
+            ...(aspectRatio && aspectRatio > 0 ? [{ aspectRatio }] : [])
+          ]}
           nativeControls
           contentFit="contain"
         />
@@ -892,7 +908,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   videoPlayer: {
     width: '100%',
-    height: 250,
     borderRadius: BORDER_RADIUS.MD,
   },
   videoPlaceholder: {
