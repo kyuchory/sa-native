@@ -18,6 +18,7 @@ import { ReportEyeSlashIcon } from '../components/CommonIcons';
 // 서비스 imports
 import { ProfileService } from '../services/profileService';
 import { FollowService } from '../services/followService';
+import { BlockService } from '../services/blockService';
 
 
 // 스토어 imports
@@ -258,10 +259,21 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
         {
           text: '차단',
           style: 'destructive',
-          onPress: () => {
-            // TODO: 사용자 차단 API 호출
-            console.log('사용자 차단');
-            Alert.alert('차단 완료', '차단이 완료되었습니다.\n설정 > 차단목록에서 차단 관리가 가능합니다.');
+          onPress: async () => {
+            if (!profileData?.id) {
+              Alert.alert('오류', '사용자 정보를 찾을 수 없습니다.');
+              return;
+            }
+
+            try {
+              // 사용자 차단 API 호출
+              await BlockService.blockUser(profileData.id);
+              Alert.alert('차단 완료', '차단이 완료되었습니다.\n설정 > 차단목록에서 차단 관리가 가능합니다.');
+            } catch (error) {
+              console.error('사용자 차단 실패:', error);
+              const errorMessage = error instanceof Error ? error.message : '차단 처리에 실패했습니다.';
+              Alert.alert('오류', errorMessage);
+            }
           },
         },
       ]
