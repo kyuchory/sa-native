@@ -19,6 +19,7 @@ interface FeedCardProps {
 
 // 아이콘 컴포넌트들
 import { HeartIcon, CommentIcon, BookmarkIcon } from './FeedCardIcons';
+import UserAvatar from './UserAvatar';
 
 // 시간 포맷 함수
 const formatTimeAgo = (dateString: string): string => {
@@ -216,7 +217,11 @@ export default function FeedCard({
     <View style={styles.container}>
       {/* 헤더 - 프로필 정보 */}
       <TouchableOpacity style={styles.header} onPress={handleUserPress} activeOpacity={0.7}>
-        <Image source={{ uri: feed.user.profile_img! }} style={styles.profileImage} />
+        <UserAvatar 
+          profileImg={feed.user.profile_img} 
+          nickname={feed.user.nickname}
+          size={40}
+        />
         <View style={styles.userInfo}>
           <Text style={styles.nickname}>{feed.user.nickname}</Text>
         </View>
@@ -307,14 +312,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
   },
-  profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: SPACING.SM,
-  },
   userInfo: {
     flex: 1,
+    marginLeft: SPACING.SM,
   },
   nickname: {
     fontSize: TYPOGRAPHY.SIZE.MD,

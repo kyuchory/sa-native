@@ -4,6 +4,7 @@ import { SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS } from '../constants/theme'
 import { EmptyHeartIcon, CommentIcon } from './PostCardIcons';
 import { useThemeStore } from '../stores/themeStore';
 import type { PostSearchResult } from '../types/search';
+import UserAvatar from './UserAvatar';
 
 export type PostItem = PostSearchResult;
 
@@ -52,15 +53,11 @@ export default function PostTab({ data, onItemPress }: PostTabProps) {
       <View style={styles.header}>
         <View style={styles.authorInfo}>
           <View style={styles.profileImageContainer}>
-            {item.user.profile_img ? (
-              <Image source={{ uri: item.user.profile_img }} style={styles.profileImage} />
-            ) : (
-              <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
-                <Text style={styles.profileImageText}>
-                  {item.user.nickname.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
+            <UserAvatar 
+              profileImg={item.user.profile_img} 
+              nickname={item.user.nickname}
+              size={40}
+            />
           </View>
           <View style={styles.authorDetails}>
             <Text style={styles.authorName}>{item.user.nickname}</Text>
@@ -147,21 +144,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   profileImageContainer: {
     marginRight: SPACING.SM,
-  },
-  profileImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  profileImagePlaceholder: {
-    backgroundColor: colors.GRAY_300,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileImageText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: colors.WHITE,
   },
   authorDetails: {
     flex: 1,

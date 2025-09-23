@@ -17,6 +17,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 // Components
 import CommonHeader from '../components/CommonHeader';
 import { SearchIcon, ClearSearchIcon, UserIcon } from '../components/SearchIcons';
+import UserAvatar from '../components/UserAvatar';
 
 // Services
 import { FollowService } from '../services/followService';
@@ -127,19 +128,6 @@ export default function SelectChatUserScreen() {
     navigation.goBack();
   };
 
-  // 프로필 이미지 렌더링
-  const renderProfileImage = (user: FollowUser) => {
-    if (user.profile_img) {
-      return (
-        <Image source={{ uri: user.profile_img }} style={styles.profileImage} />
-      );
-    }
-    return (
-      <View style={styles.profileImagePlaceholder}>
-        <UserIcon size={32} color={TEXT_COLORS.SECONDARY} />
-      </View>
-    );
-  };
 
   // 사용자 아이템 렌더링
   const renderUserItem = ({ item }: { item: FollowUser }) => (
@@ -150,7 +138,11 @@ export default function SelectChatUserScreen() {
     >
       {/* 프로필 이미지 */}
       <View style={styles.profileContainer}>
-        {renderProfileImage(item)}
+        <UserAvatar 
+          profileImg={item.profile_img} 
+          nickname={item.nickname}
+          size={40}
+        />
       </View>
 
       {/* 사용자 정보 */}
@@ -296,22 +288,9 @@ const styles = StyleSheet.create({
   profileContainer: {
     marginRight: SPACING.MD,
   },
-  profileImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: BG_COLORS.SECONDARY,
-  },
-  profileImagePlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: BG_COLORS.SECONDARY,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   userInfo: {
     flex: 1,
+    marginLeft: SPACING.SM,
   },
   nickname: {
     fontSize: TYPOGRAPHY.SIZE.LG,

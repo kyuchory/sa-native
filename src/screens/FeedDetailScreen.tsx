@@ -13,6 +13,7 @@ import { CommentInput } from '../components/CommentInput';
 import { CommentEditInput } from '../components/CommentEditInput';
 import { ReplyInput } from '../components/ReplyInput';
 import LoadingOverlay from '../components/LoadingOverlay';
+import UserAvatar from '../components/UserAvatar';
 import { CommentItem, FeedDetailResponse } from '../types/feed';
 import { AuthStackParamList } from '../types/navigation';
 import MenuActionSheet from '../components/MenuActionSheet';
@@ -551,7 +552,11 @@ export default function FeedDetailScreen() {
             onPress={() => navigation.navigate('UserProfile', { userId: String(feed.user.id) })}
             activeOpacity={0.7}
           >
-            <Image source={{ uri: feed.user.profile_img ?? undefined }} style={styles.profileImage} />
+            <UserAvatar 
+              profileImg={feed.user.profile_img} 
+              nickname={feed.user.nickname}
+              size={40}
+            />
             <View style={styles.userInfo}>
               <Text style={styles.nickname}>{feed.user.nickname}</Text>
               <Text style={styles.location}>대한민국 서울시 (하드코딩)</Text>
@@ -739,14 +744,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
   },
-  profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: SPACING.SM,
-  },
   userInfo: {
     flex: 1,
+    marginLeft: SPACING.SM,
   },
   nickname: {
     fontSize: TYPOGRAPHY.SIZE.MD,

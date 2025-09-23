@@ -6,6 +6,7 @@ import { SettingsIcon, MenuIcon, FollowIcon, ChatIcon } from './ProfileIcons';
 import { BackIcon } from './CommonIcons';
 import { useThemeStore } from '../stores/themeStore';
 import ProfileButton from './ProfileButton';
+import UserAvatar from './UserAvatar';
 
 // 타입 imports
 import type { Profile } from '../types/profile';
@@ -124,15 +125,11 @@ export default function ProfileHeader({
         <View style={styles.profileSection}>
           {/* 프로필 이미지 */}
           <View style={styles.profileImageContainer}>
-            {user.profile_img ? (
-              <Image source={{ uri: user.profile_img }} style={styles.profileImage} />
-            ) : (
-              <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
-                <Text style={styles.profileImageText}>
-                  {user.nickname.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
+            <UserAvatar 
+              profileImg={user.profile_img} 
+              nickname={user.nickname}
+              size={80}
+            />
           </View>
 
           {/* 통계 정보 */}
@@ -251,21 +248,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   profileImageContainer: {
     marginRight: SPACING.LG,
-  },
-  profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  profileImagePlaceholder: {
-    backgroundColor: colors.GRAY_300,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileImageText: {
-    fontSize: TYPOGRAPHY.SIZE.XXL,
-    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: colors.WHITE,
   },
 
   // 통계 섹션

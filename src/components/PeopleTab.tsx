@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Image, StyleSheet, FlatList } from 'react
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import type { UserSearchResult } from '../types/search';
+import UserAvatar from './UserAvatar';
 
 export type PeopleTabProps = {
   data: UserSearchResult[];
@@ -19,13 +20,11 @@ export default function PeopleTab({ data, onItemPress }: PeopleTabProps) {
       activeOpacity={0.7}
     >
       <View style={styles.personAvatar}>
-        {item.profile_img ? (
-          <Image source={{ uri: item.profile_img }} style={styles.avatarImage} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>{item.nickname[0].toUpperCase()}</Text>
-          </View>
-        )}
+        <UserAvatar 
+          profileImg={item.profile_img} 
+          nickname={item.nickname}
+          size={50}
+        />
       </View>
       <View style={styles.personInfo}>
         <Text style={styles.personNickname}>{item.nickname}</Text>
@@ -66,24 +65,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     width: 48,
     height: 48,
     marginRight: SPACING.MD,
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 24,
-  },
-  avatarPlaceholder: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 24,
-    backgroundColor: colors.GRAY_300,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: TYPOGRAPHY.SIZE.LG,
-    color: colors.WHITE,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
   personInfo: {
     flex: 1,

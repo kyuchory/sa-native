@@ -25,6 +25,7 @@ import { useThemeStore } from '../stores/themeStore';
 // Components
 import CommonHeader from '../components/CommonHeader';
 import LoadingOverlay from '../components/LoadingOverlay';
+import UserAvatar from '../components/UserAvatar';
 
 // Services
 import { PostService } from '../services/postService';
@@ -521,24 +522,6 @@ export default function PostDetailScreen() {
     );
   };
 
-  // 프로필 이미지 렌더링
-  const renderProfileImage = () => {
-    if (post?.user.profile_img) {
-      return (
-        <Image 
-          source={{ uri: post.user.profile_img }} 
-          style={styles.profileImage}
-        />
-      );
-    }
-    return (
-      <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
-        <Text style={styles.profileImageText}>
-          {post?.user.nickname.charAt(0).toUpperCase()}
-        </Text>
-      </View>
-    );
-  };
 
   // 콘텐츠 블록 렌더링
   const renderContentBlock = (block: PostDetailContentBlock, index: number) => {
@@ -630,7 +613,11 @@ export default function PostDetailScreen() {
               onPress={() => navigation.navigate('UserProfile', { userId: String(post.user.id) })}
               activeOpacity={0.7}
             >
-              {renderProfileImage()}
+              <UserAvatar 
+                profileImg={post.user.profile_img} 
+                nickname={post.user.nickname}
+                size={40}
+              />
               <View style={styles.authorDetails}>
                 <Text style={styles.authorName}>{post.user.nickname}</Text>
                 <Text style={styles.postTime}>{formatTime(post.created_at)}</Text>
@@ -845,24 +832,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.SM,
   },
-  profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: SPACING.SM,
-  },
-  profileImagePlaceholder: {
-    backgroundColor: colors.GRAY_300,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileImageText: {
-    fontSize: TYPOGRAPHY.SIZE.MD,
-    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: colors.WHITE,
-  },
   authorDetails: {
     flex: 1,
+    marginLeft: SPACING.SM,
   },
   authorName: {
     fontSize: TYPOGRAPHY.SIZE.MD,

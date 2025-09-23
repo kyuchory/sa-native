@@ -25,6 +25,7 @@ import { MenuIcon as MenuIcon32, CheckIcon } from '../components/CommonIcons';
 import { NoticeIcon } from '../components/CommonIcons';
 import ChatDetailSidebar from '../components/ChatDetailSidebar';
 import MenuActionSheet from '../components/MenuActionSheet';
+import UserAvatar from '../components/UserAvatar';
 
 // Types
 import { Message } from '../types/chat';
@@ -371,7 +372,11 @@ export default function ChatDetailScreen() {
           {!isMyMessage && (
             <View style={styles.profileSection}>
               {!isContinuous ? (
-                <Image source={{ uri: item.sender.profile_img || '' }} style={styles.profileImage} />
+                <UserAvatar 
+                  profileImg={item.sender.profile_img} 
+                  nickname={item.sender.nickname}
+                  size={32}
+                />
               ) : (
                 <View style={styles.profileImagePlaceholder} />
               )}
@@ -750,12 +755,6 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
   profileSection: {
     width: 40,
     marginRight: SPACING.SM,
-  },
-  profileImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.GRAY_100,
   },
   profileImagePlaceholder: {
     width: 32,

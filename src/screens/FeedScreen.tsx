@@ -57,7 +57,6 @@ export default function FeedScreen() {
       setLoading(true);
       const response = await FeedService.getFeeds(undefined, 20);
       setFeeds(response.feeds);
-      console.log('피드 로드 성공:', JSON.stringify(response.feeds));
       setCursor(response.pagination.next_cursor || undefined);
       setHasNext(response.pagination.has_next);
     } catch (error) {

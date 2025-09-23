@@ -4,6 +4,7 @@ import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { StoryUser, getAllStoryUsers } from '../data/storyMockData';
 import { useThemeStore } from '../stores/themeStore';
 import Svg, { Circle } from 'react-native-svg';
+import UserAvatar from './UserAvatar';
 
 interface StorySectionProps {
   onStoryPress?: (user: StoryUser) => void;
@@ -35,7 +36,11 @@ const StoryItem = ({ user, isMyProfile = false, onPress, colors, styles }: {
     <TouchableOpacity style={styles.storyItem} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.storyImageContainer}>
         <View style={[styles.storyImageBorder, { borderColor }]}>
-          <Image source={{ uri: user.profile_img }} style={styles.storyImage} />
+          <UserAvatar 
+            profileImg={user.profile_img} 
+            nickname={user.nickname}
+            size={60}
+          />
         </View>
         {isMyProfile && !user.has_story && (
           <View style={styles.addStoryButton}>
@@ -117,11 +122,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     padding: 2,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  storyImage: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
   },
   addStoryButton: {
     position: 'absolute',

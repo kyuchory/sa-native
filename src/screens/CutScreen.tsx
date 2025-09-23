@@ -25,6 +25,7 @@ import {
 } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
 import { Cut } from '../types/cut';
+import UserAvatar from '../components/UserAvatar';
 
 // Components
 import {
@@ -93,20 +94,6 @@ const CutItem: React.FC<CutItemProps> = ({
     return count.toString();
   };
 
-  const renderProfileImage = () => {
-    if (cut.user.profile_img) {
-      return (
-        <Image source={{ uri: cut.user.profile_img }} style={styles.profileImage} />
-      );
-    }
-    return (
-      <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
-        <Text style={styles.profileImageText}>
-          {cut.user.nickname.charAt(0).toUpperCase()}
-        </Text>
-      </View>
-    );
-  };
 
   return (
     <View style={styles.cutContainer}>
@@ -176,7 +163,11 @@ const CutItem: React.FC<CutItemProps> = ({
 
         {/* 프로필 */}
         <TouchableOpacity style={styles.profileContainer} activeOpacity={0.8}>
-          {renderProfileImage()}
+          <UserAvatar 
+            profileImg={cut.user.profile_img} 
+            nickname={cut.user.nickname}
+            size={60}
+          />
         </TouchableOpacity>
       </View>
 
@@ -425,23 +416,6 @@ const styles = StyleSheet.create({
   },
   profileContainer: {
     marginTop: SPACING.MD,
-  },
-  profileImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: COLORS.WHITE,
-  },
-  profileImagePlaceholder: {
-    backgroundColor: COLORS.GRAY_400,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileImageText: {
-    fontSize: TYPOGRAPHY.SIZE.MD,
-    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: COLORS.WHITE,
   },
 
   // 하단 오버레이
