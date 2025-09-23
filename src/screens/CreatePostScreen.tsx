@@ -253,8 +253,6 @@ export default function CreatePostScreen() {
           setIsUploadingVideo(true); // 비디오 업로드 상태
           setIsLoading(true);
           const uploadedVideo = await PostService.uploadVideo(selectedVideo.uri);
-
-          console.log('uploadedVideo', uploadedVideo);
           
           // 업로드된 비디오로 블록 업데이트
           // 화면 표시용: 썸네일 URL (있으면), 서버 전송용: 비디오 경로 + 썸네일 경로
