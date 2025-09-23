@@ -734,7 +734,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   contentContainer: {
     backgroundColor: colors.WHITE,
-    marginBottom: SPACING.XS,
   },
 
   // 헤더
