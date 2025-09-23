@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import Svg, { Path, Rect, Circle, G } from 'react-native-svg';
+import Svg, { Path, Rect, Circle, G, Line } from 'react-native-svg';
 import { COLORS } from '../constants/theme';
 
 interface IconProps {
@@ -114,24 +114,24 @@ const DragHandleIcon = ({ size = 24, color = COLORS.GRAY_400 }: IconProps) => (
 const CreateFeedIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* 펜 몸체 */}
       <Path
-        d="M19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V5C21 3.89543 20.1046 3 19 3Z"
+        d="M17 3C17.2652 2.73478 17.5196 2.52039 17.7071 2.33289C18.0976 1.94237 18.5858 1.72386 19.0962 1.72386C19.6066 1.72386 20.0948 1.94237 20.4853 2.33289C20.8758 2.72342 21.0943 3.21162 21.0943 3.722C21.0943 4.23238 20.8758 4.72058 20.4853 5.11111L19.4 6.2L17.8 4.6L17 3Z"
+        fill={color}
+      />
+      {/* 펜 끝 */}
+      <Path
+        d="M16.4 5L18 6.6L8.6 16H7V14.4L16.4 5Z"
+        fill={color}
+      />
+      {/* 밑줄 */}
+      <Path
+        d="M19 15V18C19 18.5304 18.7893 19.0391 18.4142 19.4142C18.0391 19.7893 17.5304 20 17 20H5C4.46957 20 3.96086 19.7893 3.58579 19.4142C3.21071 19.0391 3 18.5304 3 18V6C3 5.46957 3.21071 4.96086 3.58579 4.58579C3.96086 4.21071 4.46957 4 5 4H8"
         stroke={color}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-      <Path
-        d="M12 8V16"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <Path
-        d="M8 12H16"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
+        fill="none"
       />
     </Svg>
   </View>
@@ -141,19 +141,24 @@ const CreateFeedIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
 const EditIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* 펜 몸체 */}
       <Path
-        d="M11 4H4a2 2 0 00-2 2v14a4 4 0 004 4h14a4 4 0 004-4v-7"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        d="M17 3C17.2652 2.73478 17.5196 2.52039 17.7071 2.33289C18.0976 1.94237 18.5858 1.72386 19.0962 1.72386C19.6066 1.72386 20.0948 1.94237 20.4853 2.33289C20.8758 2.72342 21.0943 3.21162 21.0943 3.722C21.0943 4.23238 20.8758 4.72058 20.4853 5.11111L19.4 6.2L17.8 4.6L17 3Z"
+        fill={color}
       />
+      {/* 펜 끝 */}
       <Path
-        d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+        d="M16.4 5L18 6.6L8.6 16H7V14.4L16.4 5Z"
+        fill={color}
+      />
+      {/* 밑줄 */}
+      <Path
+        d="M19 15V18C19 18.5304 18.7893 19.0391 18.4142 19.4142C18.0391 19.7893 17.5304 20 17 20H5C4.46957 20 3.96086 19.7893 3.58579 19.4142C3.21071 19.0391 3 18.5304 3 18V6C3 5.46957 3.21071 4.96086 3.58579 4.58579C3.96086 4.21071 4.46957 4 5 4H8"
         stroke={color}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+        fill="none"
       />
     </Svg>
   </View>
@@ -231,19 +236,21 @@ const MenuIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
 const ReportIcon = ({ size = 24, color = COLORS.ERROR }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* 느낌표 세로줄 */}
+      <Circle 
+        cx="12" 
+        cy="12" 
+        r="10" 
+        fill="none" 
+        stroke={color} 
+        strokeWidth="2"
+      />
       <Path
-        d="M12 4V17"
+        d="M12 8V13"
         stroke={color}
         strokeWidth="2.5"
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
-      {/* 느낌표 점 */}
-      <Path
-        d="M12 20.5C12.2761 20.5 12.5 20.2761 12.5 20C12.5 19.7239 12.2761 19.5 12 19.5C11.7239 19.5 11.5 19.7239 11.5 20C11.5 20.2761 11.7239 20.5 12 20.5Z"
-        fill={color}
-      />
+      <Circle cx="12" cy="17" r="1.5" fill={color} />
     </Svg>
   </View>
 );
@@ -281,6 +288,20 @@ const NoticeIcon: React.FC<IconProps> = ({
       fill="none"
     />
   </Svg>
+);
+
+// 차단용 아이콘 (눈 + 슬래쉬)
+const ReportEyeSlashIcon = ({ size = 24, color = COLORS.ERROR }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M2 12C2 12 5 5 12 5C19 5 22 12 22 12C22 12 19 19 12 19C5 19 2 12 2 12Z"
+        fill={color}
+      />
+      <Circle cx="12" cy="12" r="3" fill="white" />
+      <Line x1="4" y1="4" x2="20" y2="20" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    </Svg>
+  </View>
 );
 
 export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, EditIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon, NoticeIcon };

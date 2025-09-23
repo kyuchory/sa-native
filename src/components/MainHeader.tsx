@@ -23,16 +23,6 @@ interface MainHeaderProps {
   rightButtons?: HeaderButton[];
 }
 
-// 채팅 아이콘 (비행기 모양)
-const ChatIconComponent = ({ size = 22, color = '#6B7280', strokeWidth = 2 }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z"
-      fill={color}
-    />
-  </Svg>
-);
-
 export default function MainHeader({ leftButtons = [], rightButtons = [] }: MainHeaderProps) {
   const insets = useSafeAreaInsets();
   const { isDark, colors } = useThemeStore();
@@ -243,5 +233,3 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
   },
 });
-
-export { ChatIconComponent as ChatIcon };
