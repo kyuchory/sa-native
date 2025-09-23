@@ -73,7 +73,6 @@ export default function PostDetailScreen() {
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
-  const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
   const { user } = useAuthStore();
   const currentUserId = user?.id;
   const { setShouldRefreshPosts } = usePostStore(); // 게시물 목록 새로고침 플래그 설정용
@@ -86,20 +85,6 @@ export default function PostDetailScreen() {
     }, [postId])
   );
 
-  // 이미지 비율 로드
-  useEffect(() => {
-    if (post) {
-      post.content_blocks.forEach((block) => {
-        if (block.type === 'image' && block.value && !imageAspectRatios[block.value]) {
-          Image.getSize(block.value, (w, h) => {
-            setImageAspectRatios(prev => ({ ...prev, [block.value as string]: w / h }));
-          }, () => {
-            // On error, do nothing
-          });
-        }
-      });
-    }
-  }, [post, imageAspectRatios]);
 
   // 키보드 이벤트 리스너 (양쪽 플랫폼 모두 키보드 높이 추적)
   useEffect(() => {
@@ -459,6 +444,48 @@ export default function PostDetailScreen() {
     return date.toLocaleDateString('ko-KR');
   };
 
+  // ImageBlock 컴포넌트 추가
+  const ImageBlock = ({ imageUri }: { imageUri: string }) => {
+    const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+      if (imageUri) {
+        setIsLoading(true);
+        Image.getSize(
+          imageUri,
+          (width, height) => {
+            setAspectRatio(width / height);
+            setIsLoading(false);
+          },
+          (error) => {
+            console.error('이미지 크기 로드 실패:', error);
+            setIsLoading(false);
+          }
+        );
+      }
+    }, [imageUri]);
+
+    return (
+      <View style={styles.imageBlock}>
+        {isLoading ? (
+          <View style={styles.imageLoadingContainer}>
+            <ActivityIndicator size="large" color={colors.PRIMARY} />
+          </View>
+        ) : (
+          <Image
+            source={{ uri: imageUri }}
+            style={[
+              styles.contentImage,
+              ...(aspectRatio && aspectRatio > 0 ? [{ aspectRatio }] : [])
+            ]}
+            resizeMode="contain"
+          />
+        )}
+      </View>
+    );
+  };
+
   // VideoBlock 컴포넌트 추가
   const VideoBlock = ({ videoUri }: { videoUri: string }) => {
     const [aspectRatio, setAspectRatio] = useState<number | null>(null);
@@ -524,16 +551,7 @@ export default function PostDetailScreen() {
         );
       case 'image':
         return (
-          <View key={index} style={styles.imageBlock}>
-            <Image
-              source={{ uri: block.value }}
-              style={[
-                styles.contentImage,
-                imageAspectRatios[block.value!] ? {aspectRatio: imageAspectRatios[block.value!]} : {height: 250},
-              ]}
-              resizeMode="contain"
-            />
-          </View>
+          <ImageBlock key={index} imageUri={block.value || ''} />
         );
       case 'video':
         return (
@@ -899,7 +917,14 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   contentImage: {
     width: '100%',
+    borderRadius: BORDER_RADIUS.MD,
+  },
+  imageLoadingContainer: {
+    width: '100%',
     height: 250,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.GRAY_100,
     borderRadius: BORDER_RADIUS.MD,
   },
   videoBlock: {
