@@ -36,6 +36,8 @@ type EditPostNavigationProp = StackNavigationProp<AuthStackParamList, 'EditPost'
 // 게시물 수정용 ContentBlock 확장 타입
 interface EditContentBlock extends ContentBlock {
   path?: string; // 이미지 수정용 경로 저장
+  originalValue?: string; // 서버 전송용 원본 값 (이미지/비디오 경로)
+  thumbnailPath?: string; // 서버 전송용 썸네일 경로 (비디오용)
 }
 
 export default function EditPostScreen() {
@@ -55,6 +57,8 @@ export default function EditPostScreen() {
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number>(0);
   const [contentBlocks, setContentBlocks] = useState<EditContentBlock[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isLoadingPost, setIsLoadingPost] = useState(true);
 
@@ -215,23 +219,19 @@ export default function EditPostScreen() {
 
         // 이미지 업로드
         try {
+          setIsUploadingImage(true);
           setIsLoading(true);
           const uploadedImage = await PostService.uploadImage(selectedImage.uri);
 
-          // 업로드된 이미지로 블록 업데이트
+          // 업로드된 이미지로 블록 업데이트 (표시용 url, 제출용 path 저장)
           setContentBlocks(prev =>
             prev.map(block =>
               block.id === newImageBlock.id
-                ? {
-                    ...block,
-                    value: uploadedImage.url, // 표시용 full URL
-                    path: uploadedImage.path   // 서버 전송용 URL
-                  }
+                ? { ...block, value: uploadedImage.url, originalValue: uploadedImage.path }
                 : block
             )
           );
 
-          Alert.alert('성공', '이미지가 업로드되었습니다.');
         } catch (uploadError) {
           console.error('이미지 업로드 실패:', uploadError);
           Alert.alert('오류', '이미지 업로드에 실패했습니다.');
@@ -245,6 +245,79 @@ export default function EditPostScreen() {
       Alert.alert('오류', '이미지 선택에 실패했습니다.');
     } finally {
       setIsLoading(false);
+      setIsUploadingImage(false);
+    }
+  };
+
+  // 비디오 선택 및 업로드
+  const handleVideoSelection = async () => {
+    try {
+      // 권한 요청
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
+        return;
+      }
+
+      // 비디오 선택
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsMultipleSelection: false,
+        allowsEditing: true, // 비디오 편집 기능 활성화
+        quality: 0.8, // 품질 조정
+        videoMaxDuration: 60, // 최대 60초로 제한
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const selectedVideo = result.assets[0];
+        
+        // 비디오 블록 추가
+        const newVideoBlock: EditContentBlock = {
+          id: `video_${Date.now()}`,
+          type: 'video',
+          value: selectedVideo.uri, // 임시로 URI 저장
+          sequence: contentBlocks.length, // 현재 블록 개수를 sequence로 사용
+        };
+        
+        setContentBlocks(prev => [...prev, newVideoBlock]);
+
+        // 비디오 업로드
+        try {
+          setIsUploadingVideo(true); // 비디오 업로드 상태
+          setIsLoading(true);
+          const uploadedVideo = await PostService.uploadVideo(selectedVideo.uri);
+
+          console.log('uploadedVideo', uploadedVideo);
+          
+          // 업로드된 비디오로 블록 업데이트
+          // 화면 표시용: 썸네일 URL (있으면), 서버 전송용: 비디오 경로 + 썸네일 경로
+          setContentBlocks(prev =>
+            prev.map(block =>
+              block.id === newVideoBlock.id
+                ? { 
+                    ...block, 
+                    value: uploadedVideo.thumbnail?.url || uploadedVideo.video.url, // 화면 표시용 (썸네일 우선, 없으면 비디오)
+                    originalValue: uploadedVideo.video.path, // 서버 전송용 (비디오)
+                    thumbnailPath: uploadedVideo.thumbnail?.path // 서버 전송용 (썸네일, 있으면)
+                  }
+                : block
+            )
+          );
+
+        } catch (uploadError) {
+          console.error('비디오 업로드 실패:', uploadError);
+          Alert.alert('오류', '비디오 업로드에 실패했습니다.');
+
+          // 업로드 실패 시 블록 제거
+          setContentBlocks(prev => prev.filter(block => block.id !== newVideoBlock.id));
+        }
+      }
+    } catch (error) {
+      console.error('비디오 선택 실패:', error);
+      Alert.alert('오류', '비디오 선택에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+      setIsUploadingVideo(false);
     }
   };
 
@@ -283,22 +356,13 @@ export default function EditPostScreen() {
         title: title.trim(),
         sub_category_id: selectedSubcategoryId,
         content_blocks: contentBlocks
-          .filter(block => block.value.trim())
-          .map((block, index) => {
-            if (block.type === 'image') {
-              // 이미지의 경우 path부터 우선 사용, 없으면 value 사용
-              return {
-                type: block.type,
-                value: block.path || block.value, // 서버 전송용 path 또는 URL
-                sequence: index
-              };
-            }
-            return {
-              type: block.type,
-              value: block.value,
-              sequence: index
-            };
-          }),
+          .filter(block => block.value.trim()) // 빈 블록 제외
+          .map(({ id, originalValue, thumbnailPath, ...block }, index) => ({ 
+            ...block, 
+            value: originalValue || block.value, 
+            sequence: index,
+            ...(thumbnailPath && { thumbnail_path: thumbnailPath }) // 비디오 블록인 경우 썸네일 경로 추가
+          })), // id, originalValue, thumbnailPath 제거, 원래 value 사용
         tags: [], // 추후 태그 기능 추가시 사용
       };
 
@@ -440,7 +504,7 @@ export default function EditPostScreen() {
 
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => addBlock('video')}
+          onPress={handleVideoSelection}
           activeOpacity={0.7}
         >
           <AddVideoIcon size={24} color={colors.GRAY_600} />
@@ -449,7 +513,10 @@ export default function EditPostScreen() {
       </View>
 
       {/* 로딩 오버레이 */}
-      <LoadingOverlay visible={isLoading} />
+      <LoadingOverlay
+        visible={isLoading}
+        message={isUploadingImage ? '이미지를 업로드중입니다...' : isUploadingVideo ? '비디오를 업로드중입니다...' : undefined}
+      />
     </View>
   );
 }
