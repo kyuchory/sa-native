@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import Svg, { Circle, Rect, G } from 'react-native-svg';
-import { COLORS, SPACING } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 
 interface ToggleSwitchProps {
   value: boolean;
@@ -16,6 +16,7 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   size = 'medium',
   disabled = false
 }) => {
+  const { colors } = useThemeStore();
   const switchSize = size === 'small' ? 36 : 44;
   const circleSize = size === 'small' ? 20 : 24;
   const circleOffset = value ? switchSize - circleSize - 4 : 4;
@@ -42,7 +43,7 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
             width={switchSize}
             height={switchSize * 0.6}
             rx={switchSize * 0.3}
-            fill={value ? COLORS.PRIMARY : COLORS.GRAY_300}
+            fill={value ? colors.PRIMARY : colors.GRAY_300}
           />
 
           {/* 동그라미 핸들 */}
@@ -50,7 +51,7 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
             cx={circleSize / 2 + circleOffset}
             cy={switchSize * 0.3}
             r={circleSize / 2 - 1}
-            fill="white"
+            fill={colors.WHITE}
           />
         </Svg>
       </View>
