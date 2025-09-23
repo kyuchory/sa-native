@@ -8,10 +8,10 @@ import { useThemeStore } from '../stores/themeStore';
 import useFeedStore from '../stores/feedStore';
 
   // 컴포넌트 imports
-import MainHeader, { ChatIcon } from '../components/MainHeader';
+import MainHeader from '../components/MainHeader';
 import StorySection from '../components/StorySection';
 import FeedCard from '../components/FeedCard';
-import { CreateFeedIcon } from '../components/CommonIcons';
+import { WriteIcon } from '../components/HomeHeaderIcons';
 
 // 데이터 imports
 import { FeedListItem } from '../types/feed';
@@ -98,11 +98,6 @@ export default function FeedScreen() {
   };
 
   // 헤더 액션 핸들러들
-  const handleChatPress = () => {
-    console.log('채팅 버튼 클릭');
-    navigation.navigate('Chat');
-  };
-
   const handleFeedPress = () => {
     console.log('피드 작성 버튼 클릭');
     navigation.navigate('CreateFeed');
@@ -113,12 +108,7 @@ export default function FeedScreen() {
     {
       key: 'feed',
       onPress: handleFeedPress,
-      IconComponent: CreateFeedIcon,
-    },
-    {
-      key: 'chat',
-      onPress: handleChatPress,
-      IconComponent: ChatIcon,
+      IconComponent: WriteIcon,
     },
   ];
 
