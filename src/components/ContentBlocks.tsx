@@ -9,7 +9,7 @@ import {
   Alert,
   Dimensions
 } from 'react-native';
-// import { Video } from 'expo-av'; // expo-av 패키지 설치 후 사용
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { DragHandleIcon } from './CommonIcons';
@@ -233,6 +233,24 @@ export function VideoBlock({
     );
   };
 
+  // VideoPlayer 컴포넌트
+  const VideoPlayer = ({ videoUri }: { videoUri: string }) => {
+    const player = useVideoPlayer(videoUri, player => {
+      player.loop = true;
+      player.muted = true;
+      player.play();
+    });
+
+    return (
+      <VideoView
+        player={player}
+        style={styles.videoPreview}
+        nativeControls
+        contentFit="contain"
+      />
+    );
+  };
+
   return (
     <View style={styles.blockContainer}>
       <View style={styles.blockHeader}>
@@ -275,16 +293,7 @@ export function VideoBlock({
       </View>
 
       {block.value ? (
-        <View style={styles.videoContainer}>
-          <Image
-            source={{ uri: block.value }}
-            style={styles.videoPreview}
-            resizeMode="cover"
-          />
-          <View style={styles.videoInfo}>
-            <Text style={styles.videoInfoText}>비디오가 업로드되었습니다</Text>
-          </View>
-        </View>
+        <VideoPlayer videoUri={block.value} />
       ) : (
         <TouchableOpacity 
           style={styles.videoPlaceholder}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions, Image, Pressable, TouchableOpacity, Alert, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SPACING, TYPOGRAPHY } from '../constants/theme';
@@ -54,6 +54,7 @@ export default function FeedDetailScreen() {
   const navigation = useNavigation<FeedDetailNavigationProp>();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
+
   const feedId = route.params?.feedId || 15;
   const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -433,6 +434,24 @@ export default function FeedDetailScreen() {
       ]
     );
   };
+  
+  // VideoBlock 컴포넌트 추가
+  const VideoBlock = ({ videoUri }: { videoUri: string }) => {
+    const player = useVideoPlayer(videoUri, player => {
+      player.loop = true;
+      player.muted = true;
+      player.play();
+    });
+
+    return (
+      <VideoView
+        player={player}
+        style={styles.mainImage}
+        nativeControls
+        contentFit="contain"
+      />
+    );
+  };
 
   // 텍스트 더보기/접기 처리
   const renderContent = () => {
@@ -553,14 +572,7 @@ export default function FeedDetailScreen() {
                     {index + 1} / {mediaBlocks.length}
                   </Text>
                   {block.type === 'video' ? (
-                    <Video
-                      source={{ uri: block.value }}
-                      style={styles.mainImage}
-                      resizeMode={ResizeMode.CONTAIN}
-                      shouldPlay={true}
-                      isLooping={true}
-                      isMuted={true}
-                    />
+                    <VideoBlock videoUri={block.value} />
                   ) : (
                     <Image
                       source={{ uri: block.value }}

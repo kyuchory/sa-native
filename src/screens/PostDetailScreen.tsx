@@ -12,7 +12,7 @@ import {
   Platform,
   Keyboard,
 } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -54,6 +54,8 @@ export default function PostDetailScreen() {
 
   const { postId } = route.params;
   const { colors } = useThemeStore();
+  const styles = createStyles(colors);
+
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // 상태 관리
@@ -75,7 +77,6 @@ export default function PostDetailScreen() {
   const currentUserId = user?.id;
   const { setShouldRefreshPosts } = usePostStore(); // 게시물 목록 새로고침 플래그 설정용
   const { setShouldRefreshProfilePosts } = useProfileStore(); // 프로필 플래그 설정용
-  const styles = createStyles(colors);
 
   // 게시물 focus 시 데이터 로드 (수정 후 최신 데이터 보장)
   useFocusEffect(
@@ -457,6 +458,26 @@ export default function PostDetailScreen() {
     return date.toLocaleDateString('ko-KR');
   };
 
+  // VideoBlock 컴포넌트 추가
+  const VideoBlock = ({ videoUri }: { videoUri: string }) => {
+    const player = useVideoPlayer(videoUri, player => {
+      player.loop = true;
+      player.muted = true;
+      player.play();
+    });
+
+    return (
+      <View style={styles.videoBlock}>
+        <VideoView
+          player={player}
+          style={styles.videoPlayer}
+          nativeControls
+          contentFit="contain"
+        />
+      </View>
+    );
+  };
+
   // 프로필 이미지 렌더링
   const renderProfileImage = () => {
     if (post?.user.profile_img) {
@@ -500,17 +521,7 @@ export default function PostDetailScreen() {
         );
       case 'video':
         return (
-          <View key={index} style={styles.videoBlock}>
-            <Video
-              source={{ uri: block.value || '' }}
-              style={styles.videoPlayer}
-              useNativeControls
-              resizeMode={ResizeMode.CONTAIN}
-              shouldPlay={true}
-              isLooping={true}
-              isMuted={true}
-            />
-          </View>
+          <VideoBlock key={index} videoUri={block.value || ''} />
         );
       default:
         return null;

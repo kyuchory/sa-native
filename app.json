@@ -25,6 +25,9 @@
     },
     "web": {
       "favicon": "./assets/MomTalk_app_icon.png"
-    }
+    },
+    "plugins": [
+      "expo-video"
+    ]
   }
 }

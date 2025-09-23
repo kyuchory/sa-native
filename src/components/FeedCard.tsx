@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions, ActivityIndicator } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { FeedListItem, FeedContentBlock } from '../types/feed';
 import { FeedService } from '../services/feedService';
@@ -159,6 +159,24 @@ export default function FeedCard({
   const handleImagePress = () => {
     onImagePress?.(feed.id);
   };
+  
+  // VideoBlock 컴포넌트 추가
+  const VideoBlock = ({ videoUri }: { videoUri: string }) => {
+    const player = useVideoPlayer(videoUri, player => {
+      player.loop = true;
+      player.muted = true;
+      player.play();
+    });
+
+    return (
+      <VideoView
+        player={player}
+        style={styles.mainImage}
+        nativeControls
+        contentFit="contain"
+      />
+    );
+  };
 
   // 텍스트 더보기/접기 처리
   const renderContent = () => {
@@ -208,14 +226,7 @@ export default function FeedCard({
       {mediaBlocks.length > 0 && (
         <TouchableOpacity style={styles.imageContainer} onPress={handleImagePress} activeOpacity={0.9}>
           {mediaBlocks[0].type === 'video' ? (
-            <Video
-              source={{ uri: mediaBlocks[0].value }}
-              style={styles.mainImage}
-              resizeMode={ResizeMode.CONTAIN}
-              shouldPlay={true}
-              isLooping={true}
-              isMuted={true}
-            />
+            <VideoBlock videoUri={mediaBlocks[0].value} />
           ) : (
             <Image
               source={{ uri: mediaBlocks[0].value }}
