@@ -111,9 +111,9 @@ const ProfileEditIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
 const MenuIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Circle cx="6" cy="12" r="2" fill={color} />
+      <Circle cx="5" cy="12" r="2" fill={color} />
       <Circle cx="12" cy="12" r="2" fill={color} />
-      <Circle cx="18" cy="12" r="2" fill={color} />
+      <Circle cx="19" cy="12" r="2" fill={color} />
     </Svg>
   </View>
 );

@@ -111,28 +111,7 @@ export default function ProfileHeader({
             ) : !isOwnProfile && onMenuPress ? (
               <TouchableOpacity
                 style={styles.settingsButton}
-                onPress={() => {
-                  RNAlert.alert(
-                    '옵션',
-                    '',
-                    [
-                      {
-                        text: '차단',
-                        onPress: () => console.log('차단'),
-                        style: 'destructive'
-                      },
-                      {
-                        text: '신고',
-                        onPress: () => console.log('신고'),
-                        style: 'destructive'
-                      },
-                      {
-                        text: '취소',
-                        style: 'cancel'
-                      }
-                    ]
-                  );
-                }}
+                onPress={onMenuPress}
                 activeOpacity={0.7}
               >
               <MenuIcon size={24} color={colors.GRAY_600} />

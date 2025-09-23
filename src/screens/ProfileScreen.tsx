@@ -12,6 +12,8 @@ import ProfileHeader from '../components/ProfileHeader';
 import ProfileTabNavigation, { ProfileTabType } from '../components/ProfileTabNavigation';
 import ProfileFeedGrid from '../components/ProfileFeedGrid';
 import ProfilePostsList from '../components/ProfilePostsList';
+import MenuActionSheet from '../components/MenuActionSheet';
+import { ReportEyeSlashIcon } from '../components/CommonIcons';
 
 // 서비스 imports
 import { ProfileService } from '../services/profileService';
@@ -48,6 +50,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
     total: 0,
     has_next: false,
   });
+  const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
 
   // 프로필 스토어 상태
   const { shouldRefreshProfilePosts, shouldRefreshProfileFeeds, setShouldRefreshProfilePosts, setShouldRefreshProfileFeeds } = useProfileStore();
@@ -196,6 +199,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
   };
 
   const handleMenuPress = () => {
+    setMenuActionSheetVisible(true);
   };
 
   const handleFollowPress = async () => {
@@ -240,6 +244,30 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
 
   const handleChatPress = () => {
   };
+
+  // 사용자 차단 핸들러
+  const handleBlockUser = () => {
+    Alert.alert(
+      '사용자 차단',
+      `${profileUser?.nickname || '사용자'}님을 정말 차단하시겠습니까?`,
+      [
+        {
+          text: '취소',
+          style: 'cancel',
+        },
+        {
+          text: '차단',
+          style: 'destructive',
+          onPress: () => {
+            // TODO: 사용자 차단 API 호출
+            console.log('사용자 차단');
+            Alert.alert('차단 완료', '차단이 완료되었습니다.\n설정 > 차단목록에서 차단 관리가 가능합니다.');
+          },
+        },
+      ]
+    );
+  };
+
 
   const handleTabChange = (tab: ProfileTabType) => {
     // 탭 전환 시 API 호출 없이 그냥 상태만 변경 - 초기 로드한 데이터 사용
@@ -326,6 +354,22 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
           />
         )}
       </View>
+
+      {/* 메뉴 액션 시트 */}
+      <MenuActionSheet
+        visible={menuActionSheetVisible}
+        onClose={() => setMenuActionSheetVisible(false)}
+        title={profileUser?.nickname || '사용자'}
+        actions={[
+          {
+            id: 'block',
+            title: '사용자 차단',
+            icon: <ReportEyeSlashIcon size={20} color={colors.ERROR} />,
+            color: colors.ERROR,
+            onPress: handleBlockUser,
+          },
+        ]}
+      />
     </View>
   );
 }
