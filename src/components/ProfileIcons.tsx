@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import Svg, { Path, Circle, Rect, G } from 'react-native-svg';
+import Svg, { Path, Circle, Rect, G, Line} from 'react-native-svg';
 import { COLORS } from '../constants/theme';
 
 interface IconProps {
@@ -12,13 +12,20 @@ interface IconProps {
 const SettingsIcon = ({ size = 24, color = COLORS.GRAY_600 }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* 톱니바퀴 메인 몸체 */}
-      <Path
-        d="M10.5 1.5H13.5V4.5L15.5 5.5L17.5 3.5L19.5 5.5L17.5 7.5L18.5 9.5H21.5V12.5H18.5L17.5 14.5L19.5 16.5L17.5 18.5L15.5 16.5L13.5 17.5V20.5H10.5V17.5L8.5 16.5L6.5 18.5L4.5 16.5L6.5 14.5L5.5 12.5H2.5V9.5H5.5L6.5 7.5L4.5 5.5L6.5 3.5L8.5 5.5L10.5 4.5V1.5Z"
-        fill={color}
-      />
-      {/* 가운데 원형 구멍 */}
-      <Circle cx="12" cy="12" r="4.5" fill="white" />
+      <G transform="translate(12, 12)">
+        {/* 8개의 톱니 */}
+        {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, index) => (
+          <G key={index} transform={`rotate(${angle})`}>
+            <Rect x="-1.5" y="-9" width="3" height="3" rx="1" fill={color} />
+          </G>
+        ))}
+        {/* 메인 원형 몸체 (가운데가 뚫린 도넛 형태) */}
+        <Path
+          d="M 0,-6.5 A 6.5,6.5 0 1,1 0,6.5 A 6.5,6.5 0 1,1 0,-6.5 Z M 0,-3 A 3,3 0 1,0 0,3 A 3,3 0 1,0 0,-3 Z"
+          fill={color}
+          fillRule="evenodd"
+        />
+      </G>
     </Svg>
   </View>
 );
