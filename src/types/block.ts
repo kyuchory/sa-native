@@ -13,3 +13,21 @@ export interface BlockUserResponse {
 
 // 사용자 차단 API 응답
 export type BlockUserApiResponse = ApiResponse<BlockUserResponse>;
+
+// 차단된 사용자 정보
+export interface BlockedUser {
+  id: number;
+  nickname: string;
+  profile_img: string | null;
+  blocked_at: string;
+}
+
+// 차단한 사용자 목록 조회 응답 데이터
+export interface BlockedUsersListResponse {
+  blocked_users: BlockedUser[];
+  total_count: number;
+  has_more: boolean;
+}
+
+// 차단한 사용자 목록 조회 API 응답
+export type BlockedUsersListApiResponse = ApiResponse<BlockedUsersListResponse>;

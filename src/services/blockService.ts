@@ -2,7 +2,9 @@ import { apiClient } from './apiClient';
 import {
   BlockUserRequest,
   BlockUserApiResponse,
-  BlockUserResponse
+  BlockUserResponse,
+  BlockedUsersListResponse,
+  BlockedUsersListApiResponse
 } from '../types/block';
 
 // 사용자 차단 관련 API 서비스
@@ -22,6 +24,27 @@ export class BlockService {
       return response.data!;
     } catch (error) {
       console.error('사용자 차단 실패:', error);
+      throw error;
+    }
+  }
+
+  // 차단한 사용자 목록 조회
+  static async getBlockedUsers(
+    page: number = 1,
+    limit: number = 20
+  ): Promise<BlockedUsersListResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.append('page', page.toString());
+      queryParams.append('limit', limit.toString());
+
+      const response = await apiClient.get<BlockedUsersListApiResponse>(
+        `/api/block?${queryParams.toString()}`
+      );
+      
+      return response.data!;
+    } catch (error) {
+      console.error('차단한 사용자 목록 조회 실패:', error);
       throw error;
     }
   }
