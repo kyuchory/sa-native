@@ -26,12 +26,5 @@ export type AuthStackParamList = {
     chatRoomName: string;
     chatPartnerId?: number;
   };
-};
-
-export type TabParamList = {
-  HomeTab: undefined;
-  FeedTab: undefined;
-  SearchTab: undefined;
-  CutTab: undefined;
-  ProfileTab: { userId?: string };
+  BlockedUsers: undefined;
 };

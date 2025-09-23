@@ -31,3 +31,11 @@ export interface BlockedUsersListResponse {
 
 // 차단한 사용자 목록 조회 API 응답
 export type BlockedUsersListApiResponse = ApiResponse<BlockedUsersListResponse>;
+
+// 사용자 차단 해제 응답 데이터
+export interface UnblockUserResponse {
+  success: boolean;
+}
+
+// 사용자 차단 해제 API 응답
+export type UnblockUserApiResponse = ApiResponse<UnblockUserResponse>;

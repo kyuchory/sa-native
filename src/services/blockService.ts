@@ -4,7 +4,9 @@ import {
   BlockUserApiResponse,
   BlockUserResponse,
   BlockedUsersListResponse,
-  BlockedUsersListApiResponse
+  BlockedUsersListApiResponse,
+  UnblockUserResponse,
+  UnblockUserApiResponse
 } from '../types/block';
 
 // 사용자 차단 관련 API 서비스
@@ -45,6 +47,20 @@ export class BlockService {
       return response.data!;
     } catch (error) {
       console.error('차단한 사용자 목록 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 사용자 차단 해제
+  static async unblockUser(blockedId: number): Promise<UnblockUserResponse> {
+    try {
+      const response = await apiClient.delete<UnblockUserApiResponse>(
+        `/api/block/${blockedId}`
+      );
+      
+      return response.data!;
+    } catch (error) {
+      console.error('사용자 차단 해제 실패:', error);
       throw error;
     }
   }

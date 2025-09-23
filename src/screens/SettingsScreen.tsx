@@ -34,7 +34,7 @@ export default function SettingsScreen() {
   };
 
   const handleBlockedUsers = () => {
-    console.log('차단된 사용자 목록');
+    navigation.navigate('BlockedUsers' as never);
   };
 
   const handlePrivacy = () => {
