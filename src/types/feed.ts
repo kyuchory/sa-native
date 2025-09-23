@@ -243,7 +243,7 @@ export interface FeedThumbnail {
 // 피드 비디오 업로드 응답 데이터
 export interface FeedVideoUploadResponse {
   video: FeedUploadedVideo;
-  thumbnail?: FeedThumbnail;
+  thumbnail: FeedThumbnail | null;
 }
 
 // 피드 비디오 업로드 API 응답

@@ -17,10 +17,13 @@ import * as ImagePicker from 'expo-image-picker';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { AuthStackParamList } from '../types/navigation';
+import type { ContentBlock, ContentBlockType } from '../types/post';
 
 // Components
 import CommonHeader from '../components/CommonHeader';
-import { CreateFeedIcon, DeleteIcon, AddImageIcon, AddVideoIcon } from '../components/CommonIcons';
+import { ContentBlockComponent } from '../components/ContentBlocks';
+import { AddImageIcon, AddVideoIcon } from '../components/CommonIcons';
+import { CreateFeedIcon } from '../components/CommonIcons';
 import LoadingOverlay from '../components/LoadingOverlay';
 
 // Services
@@ -31,20 +34,8 @@ import { FeedService } from '../services/feedService';
 import useFeedStore from '../stores/feedStore';
 import useProfileStore from '../stores/profileStore';
 
-const { width: screenWidth } = Dimensions.get('window');
-const imageSize = (screenWidth - SPACING.MD * 3) / 3; // 3개씩 배치
-
 type EditFeedRouteProp = RouteProp<AuthStackParamList, 'EditFeed'>;
 type EditFeedNavigationProp = StackNavigationProp<AuthStackParamList, 'EditFeed'>;
-
-interface MediaItem {
-  id: string;
-  uri: string;
-  type: 'image' | 'video';
-  uploadedUrl?: string;
-  path?: string; // 서버 경로 저장용
-  sequence: number;
-}
 
 export default function EditFeedScreen() {
   const route = useRoute<EditFeedRouteProp>();
@@ -54,15 +45,16 @@ export default function EditFeedScreen() {
 
   const { feedId } = route.params;
 
-  // Zustand 스토어 상태 및 액션들
+  // 상태 관리
+  const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [isLoadingFeed, setIsLoadingFeed] = useState(true);
+
+  // Zustand 스토어
   const { setShouldRefreshFeeds } = useFeedStore();
   const { setShouldRefreshProfileFeeds } = useProfileStore();
-
-  // 상태 관리
-  const [content, setContent] = useState('');
-  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingFeed, setIsLoadingFeed] = useState(true);
 
   // 기존 피드 데이터 로드
   const loadFeedData = async () => {
@@ -70,24 +62,16 @@ export default function EditFeedScreen() {
       setIsLoadingFeed(true);
       const feedData = await FeedService.getFeed(feedId);
 
-      // 텍스트 블록 찾기
-      const textBlock = feedData.content_blocks.find(block => block.type === 'text');
-      if (textBlock && textBlock.value) {
-        setContent(textBlock.value);
-      }
-
-      // 미디어 블록들 변환
-      const mediaBlocks = feedData.content_blocks.filter(block => block.type === 'image' || block.type === 'video');
-      const convertedMediaItems: MediaItem[] = mediaBlocks.map((block, index) => ({
-        id: `media_${block.id}_${index}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        uri: block.value, // 서버에서 받은 URL
-        type: block.type as 'image' | 'video', // 타입 assertion
-        uploadedUrl: block.value, // 기존 이미지는 이미 업로드된 상태
-        path: block.path, // 서버 경로 저장
-        sequence: index,
+      // 콘텐츠 블록 변환
+      const convertedBlocks: ContentBlock[] = feedData.content_blocks.map((block, index) => ({
+        id: `edit_${block.type}_${block.sequence}_${index}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        type: block.type as ContentBlockType,
+        value: block.value ? String(block.value) : '',
+        sequence: block.type === 'text' ? 0 : index, // 텍스트는 0, 나머지는 순서대로
+        ...(block.path ? { originalValue: String(block.path) } : {})
       }));
 
-      setMediaItems(convertedMediaItems);
+      setContentBlocks(convertedBlocks);
     } catch (error) {
       Alert.alert('오류', '피드를 불러오는데 실패했습니다.');
       console.error('피드 로드 실패:', error);
@@ -101,159 +85,232 @@ export default function EditFeedScreen() {
     loadFeedData();
   }, [feedId]);
 
-  // 이미지 선택
-  const selectImages = async () => {
+  // 블록 추가 (이미지/영상만)
+  const addBlock = (type: 'image' | 'video') => {
+    const newBlock: ContentBlock = {
+      id: `${type}_${Date.now()}`,
+      type,
+      value: '',
+      sequence: contentBlocks.length, // 현재 블록 개수를 sequence로 사용
+    };
+    setContentBlocks(prev => [...prev, newBlock]);
+  };
+
+  // 블록 내용 변경
+  const updateBlockContent = (blockId: string, content: string) => {
+    setContentBlocks(prev => 
+      prev.map(block => 
+        block.id === blockId ? { ...block, value: content } : block
+      )
+    );
+  };
+
+  // 블록 삭제 (텍스트 블록은 삭제 불가)
+  const deleteBlock = (blockId: string) => {
+    const block = contentBlocks.find(b => b.id === blockId);
+    if (block?.type === 'text') {
+      return; // 텍스트 블록은 삭제 불가
+    }
+
+    setContentBlocks(prev => {
+      const filteredBlocks = prev.filter(block => block.id !== blockId);
+      // sequence 재정렬 (텍스트는 0 고정, 나머지는 1부터)
+      return filteredBlocks.map((block, index) => ({
+        ...block,
+        sequence: block.type === 'text' ? 0 : index
+      }));
+    });
+  };
+
+  // 블록 위로 이동
+  const moveBlockUp = (blockId: string) => {
+    setContentBlocks(prev => {
+      const blockIndex = prev.findIndex(block => block.id === blockId);
+      if (blockIndex <= 1) return prev; // 텍스트 블록(0번)은 이동 불가
+      
+      const newBlocks = [...prev];
+      [newBlocks[blockIndex - 1], newBlocks[blockIndex]] = 
+      [newBlocks[blockIndex], newBlocks[blockIndex - 1]];
+      
+      // sequence 재정렬 (텍스트는 0 고정, 나머지는 1부터)
+      return newBlocks.map((block, index) => ({
+        ...block,
+        sequence: block.type === 'text' ? 0 : index
+      }));
+    });
+  };
+
+  // 블록 아래로 이동
+  const moveBlockDown = (blockId: string) => {
+    setContentBlocks(prev => {
+      const blockIndex = prev.findIndex(block => block.id === blockId);
+      if (blockIndex >= prev.length - 1) return prev;
+      
+      const newBlocks = [...prev];
+      [newBlocks[blockIndex], newBlocks[blockIndex + 1]] = 
+      [newBlocks[blockIndex + 1], newBlocks[blockIndex]];
+      
+      // sequence 재정렬 (텍스트는 0 고정, 나머지는 1부터)
+      return newBlocks.map((block, index) => ({
+        ...block,
+        sequence: block.type === 'text' ? 0 : index
+      }));
+    });
+  };
+
+  // 이미지 선택 및 업로드
+  const handleImageSelection = async () => {
     try {
+      // 권한 요청
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
         return;
       }
 
+      // 이미지 선택 (단일 선택)
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsMultipleSelection: true,
-        quality: 1,
-        selectionLimit: 9 - mediaItems.length,
+        allowsMultipleSelection: false,
+        allowsEditing: true, // 이미지 편집 기능 활성화
+        aspect: [1, 1], // 정방형 비율로 편집
+        quality: 0.8, // 품질 조정
       });
 
       if (!result.canceled && result.assets.length > 0) {
-        const newItems: MediaItem[] = result.assets.map((asset, index) => ({
-          id: `media_${Date.now()}_${index}`,
-          uri: asset.uri,
-          type: 'image' as 'image',
-          sequence: mediaItems.length + index,
-        }));
+        const selectedImage = result.assets[0];
+        
+        // 이미지 블록 추가
+        const newImageBlock: ContentBlock = {
+          id: `image_${Date.now()}`,
+          type: 'image',
+          value: selectedImage.uri, // 임시로 URI 저장
+          sequence: contentBlocks.length,
+        };
+        
+        setContentBlocks(prev => [...prev, newImageBlock]);
 
-        setMediaItems(prev => [...prev, ...newItems]);
-        uploadMediaItems(newItems);
+        // 이미지 업로드
+        try {
+          setIsUploadingImage(true);
+          setIsLoading(true);
+          const uploadResult = await FeedService.uploadImages([selectedImage.uri]);
+          const uploadedImage = uploadResult.files[0];
+          
+          // 업로드된 이미지로 블록 업데이트 (표시용 url, 제출용 path 저장)
+          setContentBlocks(prev =>
+            prev.map(block =>
+              block.id === newImageBlock.id
+                ? { ...block, value: uploadedImage.url, originalValue: uploadedImage.path }
+                : block
+            )
+          );
+
+        } catch (uploadError) {
+          console.error('이미지 업로드 실패:', uploadError);
+          Alert.alert('오류', '이미지 업로드에 실패했습니다.');
+
+          // 업로드 실패 시 블록 제거
+          setContentBlocks(prev => prev.filter(block => block.id !== newImageBlock.id));
+        }
       }
     } catch (error) {
       console.error('이미지 선택 실패:', error);
       Alert.alert('오류', '이미지 선택에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+      setIsUploadingImage(false);
     }
   };
 
-  // 비디오 선택
-  const selectVideos = async () => {
+  // 비디오 선택 및 업로드
+  const handleVideoSelection = async () => {
     try {
+      // 권한 요청
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
         return;
       }
 
+      // 비디오 선택
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-        allowsMultipleSelection: true,
-        quality: 1,
-        selectionLimit: 9 - mediaItems.length,
+        allowsMultipleSelection: false,
+        allowsEditing: true, // 비디오 편집 기능 활성화
+        quality: 0.8, // 품질 조정
+        videoMaxDuration: 60, // 최대 60초로 제한
       });
 
       if (!result.canceled && result.assets.length > 0) {
-        const newItems: MediaItem[] = result.assets.map((asset, index) => ({
-          id: `media_${Date.now()}_${index}`,
-          uri: asset.uri,
-          type: 'video' as 'video',
-          sequence: mediaItems.length + index,
-        }));
+        const selectedVideo = result.assets[0];
+        
+        // 비디오 블록 추가
+        const newVideoBlock: ContentBlock = {
+          id: `video_${Date.now()}`,
+          type: 'video',
+          value: selectedVideo.uri, // 임시로 URI 저장
+          sequence: contentBlocks.length,
+        };
+        
+        setContentBlocks(prev => [...prev, newVideoBlock]);
 
-        setMediaItems(prev => [...prev, ...newItems]);
-        uploadMediaItems(newItems);
+        // 비디오 업로드
+        try {
+          setIsUploadingVideo(true);
+          setIsLoading(true);
+          const uploadResult = await FeedService.uploadVideo(selectedVideo.uri);
+          
+          // 업로드된 비디오로 블록 업데이트
+          // 화면 표시용: 썸네일 URL (있으면), 서버 전송용: 비디오 경로 + 썸네일 경로
+          setContentBlocks(prev =>
+            prev.map(block =>
+              block.id === newVideoBlock.id
+                ? { 
+                    ...block, 
+                    value: uploadResult.thumbnail?.url || uploadResult.video.url, // 화면 표시용 (썸네일 우선, 없으면 비디오)
+                    originalValue: uploadResult.video.path, // 서버 전송용 (비디오)
+                    thumbnailPath: uploadResult.thumbnail?.path // 서버 전송용 (썸네일, 있으면)
+                  }
+                : block
+            )
+          );
+
+        } catch (uploadError) {
+          console.error('비디오 업로드 실패:', uploadError);
+          Alert.alert('오류', '비디오 업로드에 실패했습니다.');
+
+          // 업로드 실패 시 블록 제거
+          setContentBlocks(prev => prev.filter(block => block.id !== newVideoBlock.id));
+        }
       }
     } catch (error) {
       console.error('비디오 선택 실패:', error);
       Alert.alert('오류', '비디오 선택에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+      setIsUploadingVideo(false);
     }
-  };
-
-  // 미디어 업로드
-  const uploadMediaItems = async (items: MediaItem[]) => {
-    for (const item of items) {
-      try {
-        let uploadedResult;
-
-        if (item.type === 'image') {
-          uploadedResult = await PostService.uploadImage(item.uri);
-        } else {
-          console.log('영상 업로드는 아직 구현되지 않았습니다.');
-          continue;
-        }
-
-        setMediaItems(prev =>
-          prev.map(media =>
-            media.id === item.id
-              ? {
-                  ...media,
-                  uploadedUrl: uploadedResult.url,
-                  path: uploadedResult.path
-                }
-              : media
-          )
-        );
-      } catch (error) {
-        console.error(`미디어 업로드 실패 (${item.id}):`, error);
-        Alert.alert('업로드 실패', '일부 미디어 업로드에 실패했습니다.');
-      }
-    }
-  };
-
-  // 미디어 삭제
-  const removeMedia = (id: string) => {
-    setMediaItems(prev => {
-      const filtered = prev.filter(item => item.id !== id);
-      return filtered.map((item, index) => ({
-        ...item,
-        sequence: index,
-      }));
-    });
-  };
-
-  // 미디어 위로 이동
-  const moveMediaUp = (index: number) => {
-    if (index === 0) return;
-
-    setMediaItems(prev => {
-      const newItems = [...prev];
-      [newItems[index - 1], newItems[index]] = [newItems[index], newItems[index - 1]];
-
-      return newItems.map((item, idx) => ({
-        ...item,
-        sequence: idx,
-      }));
-    });
-  };
-
-  // 미디어 아래로 이동
-  const moveMediaDown = (index: number) => {
-    if (index === mediaItems.length - 1) return;
-
-    setMediaItems(prev => {
-      const newItems = [...prev];
-      [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
-
-      return newItems.map((item, idx) => ({
-        ...item,
-        sequence: idx,
-      }));
-    });
   };
 
   // 피드 수정 완료
   const handleUpdateFeed = async () => {
-    if (!content.trim()) {
+    // 유효성 검사
+    const textBlock = contentBlocks.find(block => block.type === 'text');
+    if (!textBlock?.value.trim()) {
       Alert.alert('오류', '내용을 입력해주세요.');
       return;
     }
 
-    if (mediaItems.length === 0) {
+    const mediaBlocks = contentBlocks.filter(block => block.type !== 'text');
+    if (mediaBlocks.length === 0) {
       Alert.alert('오류', '이미지 또는 영상을 최소 1개 이상 선택해주세요.');
       return;
     }
 
-    // 업로드 완료 확인 (새로 추가된 미디어만 확인)
-    const unuploadedItems = mediaItems.filter(item => !item.uploadedUrl && !item.uri.includes('http'));
-    if (unuploadedItems.length > 0) {
+    // 업로드 완료 확인
+    const unuploadedBlocks = mediaBlocks.filter(block => !block.originalValue);
+    if (unuploadedBlocks.length > 0) {
       Alert.alert('업로드 중', '미디어 업로드가 완료될 때까지 기다려주세요.');
       return;
     }
@@ -262,21 +319,17 @@ export default function EditFeedScreen() {
       setIsLoading(true);
 
       // 서버 전송용 데이터 변환
-      const contentBlocks = [
-        {
-          type: 'text' as const,
-          value: content.trim(),
-          sequence: 0,
-        },
-        ...mediaItems.map(item => ({
-          type: item.type,
-          value: item.path || item.uploadedUrl || item.uri,
-          sequence: item.sequence + 1,
-        })),
-      ];
+      const contentBlocksForServer = contentBlocks
+        .filter(block => block.value.trim()) // 빈 블록 제외
+        .map(({ id, originalValue, thumbnailPath, ...block }, index) => ({ 
+          ...block, 
+          value: originalValue || block.value, 
+          sequence: index,
+          ...(thumbnailPath && { thumbnail_path: thumbnailPath }) // 비디오 블록인 경우 썸네일 경로 추가
+        }));
 
       const feedData = {
-        content_blocks: contentBlocks,
+        content_blocks: contentBlocksForServer,
       };
 
       await FeedService.updateFeed(feedId, feedData);
@@ -303,56 +356,6 @@ export default function EditFeedScreen() {
     }
   };
 
-  // 미디어 아이템 렌더링
-  const renderMediaItem = (item: MediaItem, index: number) => {
-    return (
-      <View key={item.id} style={styles.mediaItem}>
-        <Image source={{ uri: item.uri }} style={styles.mediaImage} />
-
-        {/* 업로드 상태 표시 (새로 추가된 미디어만) */}
-        {!item.uploadedUrl && !item.uri.includes('http') && (
-          <View style={styles.uploadingOverlay}>
-            <Text style={styles.uploadingText}>업로드 중...</Text>
-          </View>
-        )}
-
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => removeMedia(item.id)}
-          activeOpacity={0.7}
-        >
-          <DeleteIcon size={16} color={colors.WHITE} />
-        </TouchableOpacity>
-
-        <View style={styles.sequenceIndicator}>
-          <Text style={styles.sequenceText}>{index + 1}</Text>
-        </View>
-
-        <View style={styles.reorderButtons}>
-          {index > 0 && (
-            <TouchableOpacity
-              style={styles.reorderButton}
-              onPress={() => moveMediaUp(index)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.reorderButtonText}>↑</Text>
-            </TouchableOpacity>
-          )}
-
-          {index < mediaItems.length - 1 && (
-            <TouchableOpacity
-              style={styles.reorderButton}
-              onPress={() => moveMediaDown(index)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.reorderButtonText}>↓</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    );
-  };
-
   if (isLoadingFeed) {
     return (
       <View style={styles.container}>
@@ -364,6 +367,7 @@ export default function EditFeedScreen() {
 
   return (
     <View style={styles.container}>
+      {/* 헤더 */}
       <CommonHeader
         title="피드 수정"
         rightComponent={
@@ -382,40 +386,36 @@ export default function EditFeedScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.textSection}>
-          <TextInput
-            style={styles.textInput}
-            placeholder="무슨 일이 일어나고 있나요?"
-            placeholderTextColor={colors.GRAY_400}
-            value={content}
-            onChangeText={setContent}
-            multiline
-            maxLength={1000}
-            textAlignVertical="top"
-          />
-          <Text style={styles.characterCount}>{content.length}/1000</Text>
+        {/* 콘텐츠 블록들 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>피드 내용</Text>
+          <View style={styles.contentContainer}>
+            {contentBlocks.map((block, index) => (
+              <ContentBlockComponent
+                key={block.id}
+                block={block}
+                onContentChange={updateBlockContent}
+                onDeleteBlock={deleteBlock}
+                onMoveUp={moveBlockUp}
+                onMoveDown={moveBlockDown}
+                canMoveUp={block.type !== 'text' && index > 1} // 텍스트 블록은 이동 불가
+                canMoveDown={block.type !== 'text' && index < contentBlocks.length - 1}
+                showDeleteButton={block.type !== 'text'} // 텍스트 블록은 삭제 버튼 숨김
+                showMoveButtons={block.type !== 'text'} // 텍스트 블록은 이동 버튼 숨김
+              />
+            ))}
+          </View>
         </View>
 
-        {mediaItems.length > 0 && (
-          <View style={styles.mediaSection}>
-            <Text style={styles.sectionTitle}>선택된 미디어</Text>
-            <View style={styles.mediaGrid}>
-              {mediaItems.map((item, index) => renderMediaItem(item, index))}
-            </View>
-          </View>
-        )}
-
+        {/* 하단 여백 */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
 
+      {/* 하단 액션 버튼들 */}
       <View style={styles.bottomActions}>
         <TouchableOpacity
-          style={[
-            styles.addButton,
-            mediaItems.length >= 9 && styles.addButtonDisabled
-          ]}
-          onPress={selectImages}
-          disabled={mediaItems.length >= 9}
+          style={styles.addButton}
+          onPress={handleImageSelection}
           activeOpacity={0.7}
         >
           <AddImageIcon size={24} color={colors.GRAY_600} />
@@ -423,12 +423,8 @@ export default function EditFeedScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[
-            styles.addButton,
-            mediaItems.length >= 9 && styles.addButtonDisabled
-          ]}
-          onPress={selectVideos}
-          disabled={mediaItems.length >= 9}
+          style={styles.addButton}
+          onPress={handleVideoSelection}
           activeOpacity={0.7}
         >
           <AddVideoIcon size={24} color={colors.GRAY_600} />
@@ -436,7 +432,11 @@ export default function EditFeedScreen() {
         </TouchableOpacity>
       </View>
 
-      <LoadingOverlay visible={isLoading} />
+      {/* 로딩 오버레이 */}
+      <LoadingOverlay
+        visible={isLoading}
+        message={isUploadingImage ? '이미지를 업로드중입니다...' : isUploadingVideo ? '비디오를 업로드중입니다...' : undefined}
+      />
     </View>
   );
 }
@@ -447,127 +447,49 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     backgroundColor: colors.GRAY_100,
   },
 
+  // 헤더 관련
   publishButton: {
     padding: SPACING.SM,
   },
 
+  // 콘텐츠
   content: {
     flex: 1,
   },
 
-  textSection: {
-    backgroundColor: colors.WHITE,
-    margin: SPACING.MD,
-    borderRadius: BORDER_RADIUS.LG,
-    padding: SPACING.MD,
-  },
-  textInput: {
-    fontSize: TYPOGRAPHY.SIZE.MD,
-    color: colors.GRAY_900,
-    minHeight: 120,
-    textAlignVertical: 'top',
-  },
-  characterCount: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_700,
-    textAlign: 'right',
-    marginTop: SPACING.SM,
+  // 공통 섹션 스타일
+  section: {
+    marginHorizontal: SPACING.MD,
+    marginTop: SPACING.MD,
   },
 
-  mediaSection: {
-    backgroundColor: colors.WHITE,
-    margin: SPACING.MD,
-    marginTop: 0,
-    borderRadius: BORDER_RADIUS.LG,
-    padding: SPACING.MD,
-  },
-  sectionTitle: {
+  // 섹션 라벨
+  sectionLabel: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
     color: colors.GRAY_900,
-    marginBottom: SPACING.MD,
-  },
-  mediaGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING.SM,
-  },
-  mediaItem: {
-    position: 'relative',
-    width: imageSize,
-    height: imageSize,
-    borderRadius: BORDER_RADIUS.MD,
-    overflow: 'hidden',
-  },
-  mediaImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  uploadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  uploadingText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.WHITE,
-    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-  },
-  deleteButton: {
-    position: 'absolute',
-    top: SPACING.XS,
-    right: SPACING.XS,
-    backgroundColor: colors.ERROR,
-    borderRadius: BORDER_RADIUS.ROUND,
-    padding: SPACING.XS,
-  },
-  sequenceIndicator: {
-    position: 'absolute',
-    top: SPACING.XS,
-    left: SPACING.XS,
-    backgroundColor: colors.PRIMARY,
-    borderRadius: BORDER_RADIUS.ROUND,
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sequenceText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.WHITE,
-    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-  },
-  reorderButtons: {
-    position: 'absolute',
-    bottom: SPACING.XS,
-    left: SPACING.XS,
-    flexDirection: 'row',
-    gap: SPACING.XS,
-  },
-  reorderButton: {
-    backgroundColor: colors.PRIMARY,
-    borderRadius: BORDER_RADIUS.SM,
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  reorderButtonText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.WHITE,
-    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
+    marginBottom: SPACING.SM,
   },
 
+  // 콘텐츠 컨테이너
+  contentContainer: {
+    backgroundColor: colors.WHITE,
+    borderRadius: BORDER_RADIUS.MD,
+    borderWidth: 1,
+    borderColor: colors.GRAY_200,
+    padding: SPACING.SM,
+  },
+
+  // 하단 여백
+  bottomSpacing: {
+    height: 100, // 하단 버튼들을 위한 여백
+  },
+
+  // 하단 액션 버튼들
   bottomActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-around' as const,
+    alignItems: 'center' as const,
     backgroundColor: colors.WHITE,
     paddingVertical: SPACING.LG,
     paddingHorizontal: SPACING.MD,
@@ -583,8 +505,8 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     shadowRadius: 4,
   },
   addButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
     paddingVertical: SPACING.MD,
     paddingHorizontal: SPACING.LG,
     borderRadius: BORDER_RADIUS.LG,
@@ -593,18 +515,10 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.GRAY_200,
   },
-  addButtonDisabled: {
-    backgroundColor: colors.GRAY_100,
-    borderColor: colors.GRAY_300,
-  },
   addButtonText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     color: colors.GRAY_900,
     marginTop: SPACING.XS,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-  },
-
-  bottomSpacing: {
-    height: SPACING.XXL,
   },
 });
