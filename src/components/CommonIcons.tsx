@@ -294,4 +294,34 @@ const ReportEyeSlashIcon = ({ size = 24, color = COLORS.ERROR }: IconProps) => (
   </View>
 );
 
-export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, EditIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon, NoticeIcon, ReportEyeSlashIcon };
+// 2. 방패 아이콘 (보호/프라이버시)
+const FollowersOnlyIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* 손잡이 - 좀 더 위로 */}
+      <Circle 
+        cx="12" 
+        cy="7" 
+        r="3" 
+        stroke={color} 
+        strokeWidth="2.5" 
+        fill="none" 
+      />
+      {/* 열쇠 몸통 - 훨씬 길게 */}
+      <Rect 
+        x="11" 
+        y="10" 
+        width="2" 
+        height="10" 
+        fill={color}
+        rx="1" 
+      />
+      {/* 톱니 부분 - 간격 조정 */}
+      <Rect x="13" y="13.5" width="2.5" height="1.2" fill={color} rx="0.5" />
+      {/* <Rect x="13" y="16.2" width="3.5" height="1.2" fill={color} rx="0.5" /> */}
+      <Rect x="13" y="17.1" width="2" height="1.2" fill={color} rx="0.5" />
+    </Svg>
+  </View>
+);
+
+export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, EditIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon, NoticeIcon, ReportEyeSlashIcon, FollowersOnlyIcon };

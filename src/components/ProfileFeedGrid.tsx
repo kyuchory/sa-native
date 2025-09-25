@@ -12,9 +12,10 @@ export type ProfileFeedGridProps = {
   loading?: boolean;
   onItemPress?: (item: ProfileFeedItem) => void;
   onEndReached?: () => void;
+  canViewContent?: boolean;
 };
 
-export default function ProfileFeedGrid({ data = [], loading = false, onItemPress, onEndReached }: ProfileFeedGridProps) {
+export default function ProfileFeedGrid({ data = [], loading = false, onItemPress, onEndReached, canViewContent = true }: ProfileFeedGridProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
   const renderItem = ({ item }: { item: ProfileFeedItem }) => (
@@ -36,7 +37,9 @@ export default function ProfileFeedGrid({ data = [], loading = false, onItemPres
   if (!loading && (!data || data.length === 0)) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>등록된 피드가 없습니다.</Text>
+        <Text style={styles.emptyText}>
+          {canViewContent ? '등록된 피드가 없습니다.' : '사용자에 의해 비공개되었습니다.'}
+        </Text>
       </View>
     );
   }

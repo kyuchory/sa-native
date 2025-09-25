@@ -83,6 +83,8 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
             is_following: false,
             is_followed_by: false,
           },
+          profile_visibility: 'public',
+          can_view_content: true,
         });
       } finally {
         if (showLoading) setLoading(false);
@@ -187,6 +189,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
     stats: profileData.stats,
     bio: profileData.bio,
     relation: profileData.relation,
+    profile_visibility: profileData.profile_visibility,
   } : null;
 
   // 핸들러들
@@ -348,6 +351,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
             loading={feedsLoading}
             onItemPress={handleItemPress}
             onEndReached={handleFeedsEndReached}
+            canViewContent={profileData?.can_view_content ?? true}
           />
         )}
         {activeTab === 'posts' && (
@@ -355,6 +359,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
             data={postsData}
             loading={postsLoading}
             onItemPress={handleItemPress}
+            canViewContent={profileData?.can_view_content ?? true}
           />
         )}
         {(activeTab === 'videos' || activeTab === 'character') && (
@@ -363,6 +368,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
             loading={feedsLoading}
             onItemPress={handleItemPress}
             onEndReached={handleFeedsEndReached}
+            canViewContent={profileData?.can_view_content ?? true}
           />
         )}
       </View>

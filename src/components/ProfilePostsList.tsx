@@ -12,9 +12,10 @@ export type ProfilePostsListProps = {
   data: ProfilePostItem[];
   loading?: boolean;
   onItemPress?: (item: ProfilePostItem) => void;
+  canViewContent?: boolean;
 };
 
-export default function ProfilePostsList({ data = [], loading = false, onItemPress }: ProfilePostsListProps) {
+export default function ProfilePostsList({ data = [], loading = false, onItemPress, canViewContent = true }: ProfilePostsListProps) {
   const navigation = useNavigation<StackNavigationProp<AuthStackParamList>>();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
@@ -42,7 +43,9 @@ export default function ProfilePostsList({ data = [], loading = false, onItemPre
   if (!loading && (!data || data.length === 0)) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>등록된 게시글이 없습니다.</Text>
+        <Text style={styles.emptyText}>
+          {canViewContent ? '등록된 게시글이 없습니다.' : '사용자에 의해 비공개되었습니다.'}
+        </Text>
       </View>
     );
   }

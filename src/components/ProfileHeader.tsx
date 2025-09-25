@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Image, Alert as RNAlert } fro
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TYPOGRAPHY, SPACING, SHADOWS, BORDER_RADIUS } from '../constants/theme';
 import { SettingsIcon, MenuIcon, FollowIcon, ChatIcon } from './ProfileIcons';
-import { BackIcon } from './CommonIcons';
+import { BackIcon, FollowersOnlyIcon } from './CommonIcons';
 import { useThemeStore } from '../stores/themeStore';
 import ProfileButton from './ProfileButton';
 import UserAvatar from './UserAvatar';
@@ -12,7 +12,7 @@ import UserAvatar from './UserAvatar';
 import type { Profile } from '../types/profile';
 
 interface ProfileHeaderProps {
-  user: Pick<Profile, 'nickname' | 'profile_img' | 'bio' | 'stats' | 'relation'>;
+  user: Pick<Profile, 'nickname' | 'profile_img' | 'bio' | 'stats' | 'relation' | 'profile_visibility'>;
   isOwnProfile: boolean;
   showBackButton?: boolean;
   onBackPress?: () => void;
@@ -99,6 +99,9 @@ export default function ProfileHeader({
               </TouchableOpacity>
             )}
             <Text style={styles.nickname}>{user.nickname}</Text>
+            {user.profile_visibility === 'followers' && (
+              <FollowersOnlyIcon size={20} color={colors.GRAY_600} />
+            )}
           </View>
           <View style={styles.rightSection}>
             {isOwnProfile && onSettingsPress ? (
