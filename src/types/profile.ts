@@ -13,9 +13,11 @@ export interface Profile {
   nickname: string;
   profile_img: string | null;
   bio: string | null;
+  profile_visibility: 'public' | 'followers';
   created_at: string;
   stats: ProfileStats;
   relation?: ProfileRelation;
+  can_view_content: boolean;
 }
 
 // 프로필 통계 정보
@@ -42,6 +44,20 @@ export interface UpdateProfileResponse {
   updated_at: string;
 }
 
+// 프로필 공개여부 수정 요청 데이터
+export interface UpdateProfileVisibilityRequest {
+  profile_visibility: 'public' | 'followers';
+}
+
+// 프로필 공개여부 수정 응답 데이터
+export interface UpdateProfileVisibilityResponse {
+  id: number;
+  nickname: string;
+  profile_img: string | null;
+  bio: string | null;
+  updated_at: string;
+}
+
 // 프로필 기본 정보 조회 응답
 export interface ProfileResponse {
   code: number;
@@ -54,6 +70,13 @@ export interface UpdateProfileApiResponse {
   code: number;
   message: string;
   data: UpdateProfileResponse;
+}
+
+// 프로필 공개여부 수정 응답
+export interface UpdateProfileVisibilityApiResponse {
+  code: number;
+  message: string;
+  data: UpdateProfileVisibilityResponse;
 }
 
 // 게시글 목록 아이템 (프로필용)

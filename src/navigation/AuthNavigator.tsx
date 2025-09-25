@@ -26,6 +26,7 @@ import SelectChatUserScreen from '../screens/SelectChatUserScreen';
 import ChatDetailScreen from '../screens/ChatDetailScreen';
 import NotificationScreen from '../screens/NotificationScreen';
 import BlockedUsersScreen from '../screens/BlockedUsersScreen';
+import ProfileVisibilityScreen from '../screens/ProfileVisibilityScreen';
 
 // Tab Navigator
 import TabNavigator from './TabNavigator';
@@ -133,6 +134,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="BlockedUsers"
           component={BlockedUsersScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ProfileVisibility"
+          component={ProfileVisibilityScreen}
           options={{ headerShown: false }}
         />
           </>

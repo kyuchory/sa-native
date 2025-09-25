@@ -3,6 +3,8 @@ import {
   ProfileResponse,
   UpdateProfileRequest,
   UpdateProfileApiResponse,
+  UpdateProfileVisibilityRequest,
+  UpdateProfileVisibilityApiResponse,
   ProfilePostsResponse,
   ProfileFeedsResponse,
   ProfileImageUploadResponse,
@@ -20,6 +22,11 @@ export class ProfileService {
   // 프로필 편집
   static async updateProfile(data: UpdateProfileRequest): Promise<UpdateProfileApiResponse> {
     return apiClient.patch<UpdateProfileApiResponse>('/profiles/me', data);
+  }
+
+  // 프로필 공개여부 수정
+  static async updateProfileVisibility(data: UpdateProfileVisibilityRequest): Promise<UpdateProfileVisibilityApiResponse> {
+    return apiClient.patch<UpdateProfileVisibilityApiResponse>('/profiles/me/visibility', data);
   }
 
   // 내가 작성한 게시판 글 목록

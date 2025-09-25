@@ -27,4 +27,5 @@ export type AuthStackParamList = {
     chatPartnerId?: number;
   };
   BlockedUsers: undefined;
+  ProfileVisibility: undefined;
 };

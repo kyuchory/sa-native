@@ -38,7 +38,7 @@ export default function SettingsScreen() {
   };
 
   const handlePrivacy = () => {
-    console.log('개인정보 설정');
+    navigation.navigate('ProfileVisibility' as never);
   };
 
   const handleNotifications = () => {
