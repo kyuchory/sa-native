@@ -30,3 +30,11 @@ export type AuthStackParamList = {
   ProfileVisibility: undefined;
   FollowRequests: undefined;
 };
+
+export type TabParamList = {
+  HomeTab: undefined;
+  FeedTab: undefined;
+  SearchTab: undefined;
+  CutTab: undefined;
+  ProfileTab: undefined;
+};
