@@ -8,16 +8,20 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/authStore';
+import { useThemeStore } from '../stores/themeStore';
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
-import { COLORS, TEXT_COLORS, BG_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
+
   const { loginWithCredentials, isLoading } = useAuthStore();
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -44,14 +48,15 @@ export default function LoginScreen({ navigation }: any) {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView 
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
         <View style={styles.header}>
           <Text style={styles.title}>Mom Talk</Text>
           <Text style={styles.subtitle}>SNS에 오신 것을 환영합니다</Text>
@@ -91,15 +96,20 @@ export default function LoginScreen({ navigation }: any) {
             style={styles.signUpButton}
           />
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.GRAY_50,
+  },
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.SECONDARY,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -113,16 +123,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: TYPOGRAPHY.SIZE.XXXL,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
     marginBottom: SPACING.SM,
   },
   subtitle: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600,
     textAlign: 'center',
   },
   formContainer: {
-    backgroundColor: BG_COLORS.CARD,
+    backgroundColor: colors.WHITE,
     padding: SPACING.XL - SPACING.SM,
     borderRadius: BORDER_RADIUS.XL + SPACING.XS,
     ...SHADOWS.MEDIUM,

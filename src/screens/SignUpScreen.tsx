@@ -8,11 +8,13 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/authStore';
+import { useThemeStore } from '../stores/themeStore';
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
 import DuplicateCheckButton from '../components/DuplicateCheckButton';
-import { COLORS, TEXT_COLORS, BG_COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 
 export default function SignUpScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
@@ -36,6 +38,8 @@ export default function SignUpScreen({ navigation }: any) {
   }>({});
   
   const { signUp, checkEmail, checkNickname, isLoading } = useAuthStore();
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
 
   // 이메일 중복 체크
   const handleEmailCheck = async () => {
@@ -179,14 +183,15 @@ export default function SignUpScreen({ navigation }: any) {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView 
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
         <View style={styles.header}>
           <Text style={styles.title}>회원가입</Text>
           <Text style={styles.subtitle}>Mom Talk SNS에 가입하세요</Text>
@@ -272,15 +277,20 @@ export default function SignUpScreen({ navigation }: any) {
             style={styles.backToLoginButton}
           />
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.GRAY_50,
+  },
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.SECONDARY,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -294,16 +304,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: TYPOGRAPHY.SIZE.XXXL,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
     marginBottom: SPACING.SM,
   },
   subtitle: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600,
     textAlign: 'center',
   },
   formContainer: {
-    backgroundColor: BG_COLORS.CARD,
+    backgroundColor: colors.WHITE,
     padding: SPACING.XL - SPACING.SM,
     borderRadius: BORDER_RADIUS.XL + SPACING.XS,
     ...SHADOWS.MEDIUM,

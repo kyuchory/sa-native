@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 
 interface DuplicateCheckButtonProps {
   onPress: () => void;
@@ -17,6 +18,8 @@ export default function DuplicateCheckButton({
   isAvailable = false,
   size = 'medium',
 }: DuplicateCheckButtonProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
   const getButtonStyle = () => {
     if (isLoading) return styles.loading;
     if (isChecked) {
@@ -48,7 +51,7 @@ export default function DuplicateCheckButton({
       disabled={isLoading || isChecked}
     >
       {isLoading ? (
-        <ActivityIndicator size="small" color={COLORS.WHITE} />
+        <ActivityIndicator size="small" color={colors.WHITE} />
       ) : (
         <Text style={getTextStyle()}>{getButtonText()}</Text>
       )}
@@ -56,14 +59,15 @@ export default function DuplicateCheckButton({
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   button: {
     borderRadius: BORDER_RADIUS.MD,
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 80,
   },
-  
+
   // Sizes
   small: {
     paddingVertical: SPACING.SM,
@@ -75,39 +79,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.MD,
     minWidth: 80,
   },
-  
+
   // States
   default: {
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY,
   },
   loading: {
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY,
   },
   available: {
-    backgroundColor: COLORS.SUCCESS,
+    backgroundColor: colors.SUCCESS,
   },
   unavailable: {
-    backgroundColor: COLORS.ERROR,
+    backgroundColor: colors.ERROR,
   },
-  
+
   // Text styles
   defaultText: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontSize: TYPOGRAPHY.SIZE.XS,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
   loadingText: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontSize: TYPOGRAPHY.SIZE.XS,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
   availableText: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontSize: TYPOGRAPHY.SIZE.XS,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
   unavailableText: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
     fontSize: TYPOGRAPHY.SIZE.XS,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
