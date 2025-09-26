@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 
 interface ProfileButtonProps {
   title: string;
@@ -23,6 +24,9 @@ export default function ProfileButton({
   textStyle,
   icon,
 }: ProfileButtonProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors, disabled);
+
   const buttonStyles = [
     styles.button,
     styles[variant],
@@ -52,7 +56,8 @@ export default function ProfileButton({
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>, disabled?: boolean) => StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -63,15 +68,15 @@ const styles = StyleSheet.create({
 
   // Variants
   primary: {
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY,
   },
   secondary: {
-    backgroundColor: COLORS.GRAY_200,
+    backgroundColor: colors.GRAY_200,
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: COLORS.GRAY_300,
+    borderColor: colors.GRAY_300,
   },
 
   // Sizes
@@ -93,8 +98,8 @@ const styles = StyleSheet.create({
 
   // Disabled state
   disabled: {
-    backgroundColor: COLORS.GRAY_200,
-    borderColor: COLORS.GRAY_200,
+    backgroundColor: colors.GRAY_200,
+    borderColor: colors.GRAY_200,
   },
 
   // Text styles
@@ -105,13 +110,13 @@ const styles = StyleSheet.create({
 
   // Variant text colors
   primaryText: {
-    color: COLORS.WHITE,
+    color: colors.WHITE,
   },
   secondaryText: {
-    color: COLORS.GRAY_700,
+    color: colors.GRAY_700,
   },
   outlineText: {
-    color: COLORS.GRAY_700,
+    color: colors.GRAY_700,
   },
 
   // Size text sizes
@@ -127,6 +132,6 @@ const styles = StyleSheet.create({
 
   // Disabled text
   disabledText: {
-    color: COLORS.GRAY_500,
+    color: colors.GRAY_500,
   },
 });
