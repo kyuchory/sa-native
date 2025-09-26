@@ -28,6 +28,7 @@ export type AuthStackParamList = {
   };
   BlockedUsers: undefined;
   ProfileVisibility: undefined;
+  ThemeModeSettings: undefined;
   FollowRequests: undefined;
 };
 
