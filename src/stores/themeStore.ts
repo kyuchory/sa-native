@@ -12,17 +12,20 @@ interface ThemeStore {
   themeMode: ThemeMode;
   isDark: boolean;
   colors: ThemeColors;
+  systemColorScheme: 'light' | 'dark' | null;
   toggleTheme: () => void;
   setTheme: (isDark: boolean) => void;
   setThemeMode: (mode: ThemeMode) => void;
+  setSystemColorScheme: (scheme: 'light' | 'dark' | null) => void;
 }
 
 export const useThemeStore = create<ThemeStore>()(
   persist(
     (set, get) => ({
-      themeMode: 'light', // 초기값: 라이트 모드
-      isDark: false, // 초기값: 라이트 모드
+      themeMode: 'system', // 초기값: 시스템 모드
+      isDark: false, // 초기값: 라이트 모드 (시스템 설정에 따라 변경됨)
       colors: LIGHT_COLORS,
+      systemColorScheme: null, // 시스템 색상 스키마
 
       toggleTheme: () => {
         try {
@@ -50,9 +53,10 @@ export const useThemeStore = create<ThemeStore>()(
 
           switch (mode) {
             case 'system':
-              // 시스템 모드는 아직 지원하지 않으므로 라이트 모드로 설정
-              isDark = false;
-              colors = LIGHT_COLORS;
+              // 시스템 모드: 실제 기기 설정에 따라 결정
+              const systemScheme = get().systemColorScheme;
+              isDark = systemScheme === 'dark';
+              colors = isDark ? DARK_COLORS : LIGHT_COLORS;
               break;
             case 'light':
               isDark = false;
@@ -72,11 +76,29 @@ export const useThemeStore = create<ThemeStore>()(
           console.warn('테마 모드 설정 중 오류 발생:', error);
         }
       },
+
+      setSystemColorScheme: (scheme: 'light' | 'dark' | null) => {
+        try {
+          set({ systemColorScheme: scheme });
+          
+          // 현재 시스템 모드라면 기기 설정에 따라 테마 업데이트
+          const currentMode = get().themeMode;
+          if (currentMode === 'system') {
+            get().setThemeMode('system');
+          }
+        } catch (error) {
+          console.warn('시스템 색상 스키마 설정 중 오류 발생:', error);
+        }
+      },
     }),
     {
       name: 'theme-storage', // AsyncStorage 키
       storage: createJSONStorage(() => AsyncStorage), // React Native AsyncStorage 명시적 지정
-      partialize: (state) => ({ themeMode: state.themeMode, isDark: state.isDark }), // themeMode와 isDark 저장
+      partialize: (state) => ({ 
+        themeMode: state.themeMode, 
+        isDark: state.isDark,
+        systemColorScheme: state.systemColorScheme 
+      }), // themeMode, isDark, systemColorScheme 저장
       onRehydrateStorage: () => (state) => {
         // 저장된 데이터가 없거나 오류가 있을 때 기본값으로 초기화
         if (!state) {
