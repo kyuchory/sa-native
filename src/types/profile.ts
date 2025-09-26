@@ -5,6 +5,10 @@ export interface ProfileRelation {
   is_me: boolean;
   is_following: boolean;
   is_followed_by: boolean;
+  is_request_sent?: boolean;
+  is_request_received?: boolean;
+  request_status?: 'pending' | 'accepted' | 'rejected';
+  can_send_request?: boolean;
 }
 
 // 프로필 기본 정보

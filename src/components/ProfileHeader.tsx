@@ -21,6 +21,108 @@ interface ProfileHeaderProps {
   onMenuPress?: () => void;
   onFollowPress?: () => void;
   onChatPress?: () => void;
+  onFollowRequestPress?: () => void; // 팔로우 요청 버튼 핸들러 추가
+};
+
+// 팔로우 버튼 상태 결정 헬퍼 함수들
+const getFollowButtonTitle = (user: Pick<Profile, 'relation' | 'profile_visibility'>): string => {
+  // 비공개 계정인 경우 팔로우 요청 시스템 사용
+  if (user.profile_visibility === 'followers') {
+    if (user.relation?.is_following) {
+      return "언팔로우";
+    }
+    
+    if (user.relation?.is_request_sent && user.relation?.request_status === 'pending') {
+      return "요청됨";
+    }
+    
+    if (user.relation?.is_request_sent && user.relation?.request_status === 'rejected') {
+      return user.relation?.can_send_request ? "팔로우 요청" : "요청 거절됨";
+    }
+    
+    if (user.relation?.is_request_received) {
+      return "요청 수락";
+    }
+    
+    return "팔로우 요청";
+  }
+  
+  // 공개 계정인 경우 기존 팔로우 시스템 사용
+  if (user.relation?.is_following) {
+    return "언팔로우";
+  }
+  
+  return "팔로우";
+};
+
+const getFollowButtonVariant = (user: Pick<Profile, 'relation' | 'profile_visibility'>): "primary" | "outline" | "secondary" => {
+  // 비공개 계정인 경우 팔로우 요청 시스템 사용
+  if (user.profile_visibility === 'followers') {
+    if (user.relation?.is_following) {
+      return "outline";
+    }
+    
+    if (user.relation?.is_request_sent && user.relation?.request_status === 'pending') {
+      return "secondary";
+    }
+    
+    if (user.relation?.is_request_sent && user.relation?.request_status === 'rejected') {
+      return user.relation?.can_send_request ? "primary" : "secondary";
+    }
+    
+    return "primary";
+  }
+  
+  // 공개 계정인 경우 기존 팔로우 시스템 사용
+  if (user.relation?.is_following) {
+    return "outline";
+  }
+  
+  return "primary";
+};
+
+const getFollowButtonDisabled = (user: Pick<Profile, 'relation' | 'profile_visibility'>): boolean => {
+  // 비공개 계정인 경우 팔로우 요청 시스템 사용
+  if (user.profile_visibility === 'followers') {
+    if (user.relation?.is_request_sent && user.relation?.request_status === 'pending') {
+      return true;
+    }
+    
+    if (user.relation?.is_request_sent && user.relation?.request_status === 'rejected') {
+      return !user.relation?.can_send_request;
+    }
+    
+    return false;
+  }
+  
+  // 공개 계정인 경우 비활성화 없음
+  return false;
+};
+
+const getFollowButtonIconColor = (user: Pick<Profile, 'relation' | 'profile_visibility'>, colors: Record<string, string>): string => {
+  // 비공개 계정인 경우 팔로우 요청 시스템 사용
+  if (user.profile_visibility === 'followers') {
+    if (user.relation?.is_following) {
+      return colors.PRIMARY;
+    }
+    
+    if (user.relation?.is_request_sent && user.relation?.request_status === 'pending') {
+      return colors.GRAY_600;
+    }
+    
+    if (user.relation?.is_request_sent && user.relation?.request_status === 'rejected') {
+      return user.relation?.can_send_request ? colors.WHITE : colors.GRAY_600;
+    }
+    
+    return colors.WHITE;
+  }
+  
+  // 공개 계정인 경우 기존 팔로우 시스템 사용
+  if (user.relation?.is_following) {
+    return colors.PRIMARY;
+  }
+  
+  return colors.WHITE;
 };
 
 export default function ProfileHeader({
@@ -32,7 +134,8 @@ export default function ProfileHeader({
   onEditProfilePress,
   onMenuPress,
   onFollowPress,
-  onChatPress
+  onChatPress,
+  onFollowRequestPress
 }: ProfileHeaderProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useThemeStore();
@@ -166,29 +269,45 @@ export default function ProfileHeader({
         {/* 버튼 섹션 */}
         <View style={styles.buttonSection}>
           {isOwnProfile && onEditProfilePress ? (
-            <ProfileButton
-              title="프로필 편집"
-              onPress={onEditProfilePress}
-              variant="outline"
-              size="medium"
-              style={styles.button}
-            />
+            // 자기 프로필인 경우
+            <View style={styles.ownProfileButtons}>
+              <ProfileButton
+                title="프로필 편집"
+                onPress={onEditProfilePress}
+                variant="outline"
+                size="medium"
+                style={styles.button}
+              />
+              {/* 비공개 계정일 경우 팔로우 요청 버튼 추가 */}
+              {user.profile_visibility === 'followers' && onFollowRequestPress && (
+                <ProfileButton
+                  title="팔로우 요청"
+                  onPress={onFollowRequestPress}
+                  variant="primary"
+                  size="medium"
+                  icon={<FollowIcon size={16} color={colors.WHITE} />}
+                  style={styles.button}
+                />
+              )}
+            </View>
           ) : !isOwnProfile && onFollowPress && onChatPress ? (
+            // 타인 프로필인 경우
             <>
               <ProfileButton
-                title={user.relation?.is_following ? "언팔로우" : "팔로우"}
+                title={getFollowButtonTitle(user)}
                 onPress={onFollowPress}
-                variant={user.relation?.is_following ? "outline" : "primary"}
+                variant={getFollowButtonVariant(user)}
                 size="medium"
-              icon={<FollowIcon size={16} color={user.relation?.is_following ? colors.PRIMARY : colors.WHITE} />}
-              style={styles.button}
-            />
-            <ProfileButton
-              title="채팅"
-              onPress={onChatPress}
-              variant="outline"
-              size="medium"
-              icon={<ChatIcon size={16} color={colors.PRIMARY} />}
+                disabled={getFollowButtonDisabled(user)}
+                icon={<FollowIcon size={16} color={getFollowButtonIconColor(user, colors)} />}
+                style={styles.button}
+              />
+              <ProfileButton
+                title="채팅"
+                onPress={onChatPress}
+                variant="outline"
+                size="medium"
+                icon={<ChatIcon size={16} color={colors.PRIMARY} />}
                 style={styles.button}
               />
             </>
@@ -278,6 +397,11 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   buttonSection: {
     flexDirection: 'row',
     gap: SPACING.SM,
+  },
+  ownProfileButtons: {
+    flexDirection: 'row',
+    gap: SPACING.SM,
+    flex: 1,
   },
   button: {
     flex: 1,

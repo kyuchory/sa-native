@@ -27,6 +27,7 @@ export interface FollowerListResponse extends ApiResponse<PaginationData<FollowU
 // 팔로우/언팔로우 응답
 export interface FollowActionResponse extends ApiResponse<{
   is_following: boolean;
+  is_request_sent?: boolean; // 팔로우 요청을 보냈는지 여부
   message: string;
 }> {}
 
@@ -41,3 +42,30 @@ export interface PaginationOptions {
   cursor?: number;
   limit?: number;
 }
+
+// 팔로우 요청 정보
+export interface FollowRequest {
+  id: number;
+  requester_id: number;
+  target_id: number;
+  status: 'pending' | 'accepted' | 'rejected';
+  created_at: string;
+  requester: {
+    id: number;
+    nickname: string;
+    profile_img: string | null;
+  };
+}
+
+// 팔로우 요청 목록 응답
+export interface FollowRequestListResponse extends ApiResponse<{
+  requests: FollowRequest[];
+  next_cursor: number | null;
+  has_more: boolean;
+}> {}
+
+// 팔로우 요청 액션 응답
+export interface FollowRequestActionResponse extends ApiResponse<{
+  message: string;
+  status: 'pending' | 'accepted' | 'rejected';
+}> {}

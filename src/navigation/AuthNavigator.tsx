@@ -27,6 +27,7 @@ import ChatDetailScreen from '../screens/ChatDetailScreen';
 import NotificationScreen from '../screens/NotificationScreen';
 import BlockedUsersScreen from '../screens/BlockedUsersScreen';
 import ProfileVisibilityScreen from '../screens/ProfileVisibilityScreen';
+import FollowRequestsScreen from '../screens/FollowRequestsScreen';
 
 // Tab Navigator
 import TabNavigator from './TabNavigator';
@@ -139,6 +140,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="ProfileVisibility"
           component={ProfileVisibilityScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="FollowRequests"
+          component={FollowRequestsScreen}
           options={{ headerShown: false }}
         />
           </>

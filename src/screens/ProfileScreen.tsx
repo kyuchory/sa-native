@@ -5,7 +5,7 @@ import { AuthStackParamList } from '../types/navigation';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { useAuthStore } from '../stores/authStore';
-
+import { handleApiError } from '../services/apiClient';
 // 컴포넌트 imports
 import CommonHeader from '../components/CommonHeader';
 import ProfileHeader from '../components/ProfileHeader';
@@ -211,22 +211,53 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
 
     try {
       const isCurrentlyFollowing = profileData.relation?.is_following;
-
-      // 낙관적 UI 업데이트
-      setProfileData(prev => prev ? {
-        ...prev,
-        relation: {
-          ...prev.relation!,
-          is_following: !isCurrentlyFollowing,
-        }
-      } : null);
+      const isPrivateAccount = profileData.profile_visibility === 'followers';
 
       if (isCurrentlyFollowing) {
         // 언팔로우
         await FollowService.unfollowUser(profileData.id);
+        
+        // 낙관적 UI 업데이트
+        setProfileData(prev => prev ? {
+          ...prev,
+          relation: {
+            ...prev.relation!,
+            is_following: false,
+          }
+        } : null);
+
+          // 비공개 계정인 경우 프로필 데이터 새로고침 플래그 설정
+        if (isPrivateAccount) {
+          useProfileStore.getState().setShouldRefreshProfilePosts(true);
+          useProfileStore.getState().setShouldRefreshProfileFeeds(true);
+        }
       } else {
-        // 팔로우
-        await FollowService.followUser(profileData.id);
+        if (isPrivateAccount) {
+          // 비공개 계정: 팔로우 요청
+          const response = await FollowService.sendFollowRequest(profileData.id);
+          
+          // 낙관적 UI 업데이트
+          setProfileData(prev => prev ? {
+            ...prev,
+            relation: {
+              ...prev.relation!,
+              is_request_sent: response.is_request_sent || false,
+              request_status: 'pending',
+            }
+          } : null);
+        } else {
+          // 공개 계정: 바로 팔로우
+          await FollowService.followUser(profileData.id);
+          
+          // 낙관적 UI 업데이트
+          setProfileData(prev => prev ? {
+            ...prev,
+            relation: {
+              ...prev.relation!,
+              is_following: true,
+            }
+          } : null);
+        }
       }
 
     } catch (error) {
@@ -238,12 +269,20 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
         relation: {
           ...(prev.relation || { is_me: false, is_following: false, is_followed_by: false }),
           is_following: profileData?.relation?.is_following || false,
+          is_request_sent: profileData?.relation?.is_request_sent || false,
+          request_status: profileData?.relation?.request_status,
         }
       } : null);
 
-      // 사용자에게 에러 메시지 표시
-      Alert.alert('오류', '팔로우 처리에 실패했습니다.');
+      // 공통 에러 처리 유틸리티 사용
+      const errorMessage = handleApiError(error);
+      Alert.alert('오류', errorMessage);
     }
+  };
+
+  // 팔로우 요청 핸들러 (자기 프로필에서 비공개 계정일 경우)
+  const handleFollowRequestPress = () => {
+    navigation.navigate('FollowRequests');
   };
 
   const handleChatPress = () => {
@@ -322,6 +361,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
           isOwnProfile={isOwnProfile}
           onSettingsPress={handleSettingsPress}
           onEditProfilePress={handleEditProfilePress}
+          onFollowRequestPress={handleFollowRequestPress}
         />
       ) : (
         // 타인 프로필 (다른 화면에서 userId로 접근):기존 ProfileHeader (메뉴 버튼과 팔로우/채팅 버튼 사용)

@@ -7,6 +7,9 @@ import {
   FollowerListResponse,
   FollowActionResponse,
   FollowStatusResponse,
+  FollowRequest,
+  FollowRequestListResponse,
+  FollowRequestActionResponse,
   PaginationOptions,
   PaginationData
 } from '../types/follow';
@@ -96,5 +99,36 @@ export class FollowService {
   static async getFollowerUsers(options: PaginationOptions = {}): Promise<FollowUser[]> {
     const data = await this.getFollowerList(options);
     return data.followers || [];
+  }
+
+  // 팔로우 요청 보내기
+  static async sendFollowRequest(userId: number): Promise<{ is_following: boolean; is_request_sent?: boolean; message: string }> {
+    const response = await apiClient.post<FollowActionResponse>(`/users/${userId}/follow/request`, {});
+    return response.data;
+  }
+
+  // 팔로우 요청 수락
+  static async acceptFollowRequest(requestId: number): Promise<{ message: string; status: string }> {
+    const response = await apiClient.post<FollowRequestActionResponse>(`/users/follow-requests/${requestId}/accept`, {});
+    return response.data;
+  }
+
+  // 팔로우 요청 거절
+  static async rejectFollowRequest(requestId: number): Promise<{ message: string; status: string }> {
+    const response = await apiClient.post<FollowRequestActionResponse>(`/users/follow-requests/${requestId}/reject`, {});
+    return response.data;
+  }
+
+  // 팔로우 요청 목록 조회
+  static async getFollowRequests(options: PaginationOptions = {}): Promise<{ requests: FollowRequest[]; next_cursor: number | null; has_more: boolean }> {
+    const { cursor, limit = 20 } = options;
+    const queryParams = new URLSearchParams();
+    
+    if (cursor) queryParams.append('cursor', cursor.toString());
+    queryParams.append('limit', limit.toString());
+    
+    const endpoint = `/users/follow-requests?${queryParams.toString()}`;
+    const response = await apiClient.get<FollowRequestListResponse>(endpoint);
+    return response.data;
   }
 }
