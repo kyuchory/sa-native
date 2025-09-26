@@ -41,6 +41,10 @@ export default function SettingsScreen() {
     navigation.navigate('ProfileVisibility' as never);
   };
 
+  const handleThemeSettings = () => {
+    navigation.navigate('ThemeModeSettings' as never);
+  };
+
   const handleNotifications = () => {
     console.log('알림 설정 상세');
   };
@@ -135,10 +139,10 @@ export default function SettingsScreen() {
           <View style={styles.sectionContainer}>
             <SettingItem
               title="다크 모드"
-              showToggle={true}
-              toggleValue={isDark}
-              onToggleChange={toggleTheme}
-              colors={colors} // 다크모드에서는 기본 색상 사용
+              subtitle="테마 설정"
+              showArrow={true}
+              onPress={handleThemeSettings}
+              colors={colors}
             />
             <SettingItem
               title="알림"
