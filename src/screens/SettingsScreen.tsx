@@ -155,8 +155,9 @@ export default function SettingsScreen() {
               toggleValue={isAutoPlay}
               onToggleChange={setIsAutoPlay}
               colors={colors}
+              isLast={true}
             />
-            <SettingItem
+            {/* <SettingItem
               title="HD 품질"
               subtitle="더 높은 화질로 재생"
               showToggle={true}
@@ -170,7 +171,7 @@ export default function SettingsScreen() {
               onPress={handleLanguage}
               colors={colors}
               isLast={true}
-            />
+            /> */}
           </View>
         </View>
 

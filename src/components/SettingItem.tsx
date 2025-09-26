@@ -123,6 +123,8 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: 20,
     color: colors.GRAY_500 || COLORS.GRAY_500,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
+    lineHeight: 20,
+    textAlignVertical: 'center',
   },
 
   separator: {
