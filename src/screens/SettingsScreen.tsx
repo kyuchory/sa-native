@@ -54,7 +54,7 @@ export default function SettingsScreen() {
   };
 
   const handleSupport = () => {
-    console.log('고객센터');
+    navigation.navigate('SupportList' as never);
   };
 
   const handleAppInfo = () => {
