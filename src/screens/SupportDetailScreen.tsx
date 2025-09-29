@@ -100,6 +100,7 @@ const getPriorityColor = (priority: string, colors: Record<string, string>) => {
 import { handleApiError } from '../services/apiClient';
 import { AuthStackParamList } from '../types/navigation';
 import { useAuthStore } from '../stores/authStore';
+import useSupportStore from '../stores/supportStore';
 
 type SupportDetailRouteProp = RouteProp<AuthStackParamList, 'SupportDetail'>;
 
@@ -109,6 +110,9 @@ export default function SupportDetailScreen() {
   const { colors } = useThemeStore();
   const { user } = useAuthStore();
   const styles = createStyles(colors);
+
+  // Zustand 스토어
+  const { setShouldRefreshInquiries } = useSupportStore();
 
   const { inquiryId } = route.params;
 
@@ -129,7 +133,7 @@ export default function SupportDetailScreen() {
   };
 
   // 문의 삭제
-  const handleDeleteInquiry = () => {
+  const handleDeleteInquiry = async () => {
     Alert.alert(
       '문의 삭제',
       '문의를 삭제하시겠습니까? 삭제된 문의는 복구할 수 없습니다.',
@@ -141,8 +145,28 @@ export default function SupportDetailScreen() {
         {
           text: '삭제',
           style: 'destructive',
-          onPress: () => {
-            Alert.alert('알림', '문의 삭제 기능이 구현 준비중입니다.');
+          onPress: async () => {
+            try {
+              await SupportService.deleteInquiry(inquiryId);
+
+              // 목록 새로고침 플래그 설정
+              setShouldRefreshInquiries(true);
+
+              Alert.alert(
+                '삭제 완료',
+                '문의가 삭제되었습니다.',
+                [
+                  {
+                    text: '확인',
+                    onPress: () => navigation.goBack(),
+                  },
+                ]
+              );
+            } catch (error) {
+              console.error('문의 삭제 실패:', error);
+              const errorMessage = handleApiError(error);
+              Alert.alert('오류', errorMessage);
+            }
           },
         },
       ],

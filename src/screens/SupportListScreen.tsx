@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity, Alert, Text } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 import { SPACING, TYPOGRAPHY } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
+import useSupportStore from '../stores/supportStore';
 import CommonHeader from '../components/CommonHeader';
 import Pagination from '../components/Pagination';
 import { Pagination as PaginationData } from '../types/post';
@@ -80,6 +82,9 @@ export default function SupportListScreen() {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
+  // Zustand 스토어
+  const { shouldRefreshInquiries, setShouldRefreshInquiries } = useSupportStore();
+
   // 상태 관리
   const [inquiries, setInquiries] = useState<InquiryListItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -94,10 +99,20 @@ export default function SupportListScreen() {
   const [priorityFilter, setPriorityFilter] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
 
-  // 초기 데이터 로드
+  // 초기 데이터 로드 (컴포넌트 마운트 시)
   useEffect(() => {
     loadInquiries();
   }, [currentPage, statusFilter, priorityFilter, categoryFilter]);
+
+  // 스마트한 포커스 기반 새로고침 (문의 작성/삭제 후 돌아올 때)
+  useFocusEffect(
+    useCallback(() => {
+      if (shouldRefreshInquiries) {
+        loadInquiries();
+        setShouldRefreshInquiries(false); // 플래그 초기화
+      }
+    }, [shouldRefreshInquiries, setShouldRefreshInquiries])
+  );
 
   // 문의 목록 로드
   const loadInquiries = async () => {

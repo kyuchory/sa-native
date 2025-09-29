@@ -15,6 +15,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
+import useSupportStore from '../stores/supportStore';
 import CommonHeader from '../components/CommonHeader';
 import { SupportService } from '../services/supportService';
 import { CreateInquiryRequest } from '../types/support';
@@ -44,6 +45,9 @@ export default function SupportCreateScreen() {
   const navigation = useNavigation<SupportCreateNavigationProp>();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
+
+  // Zustand 스토어
+  const { setShouldRefreshInquiries } = useSupportStore();
 
   // 폼 상태
   const [title, setTitle] = useState('');
@@ -156,6 +160,9 @@ export default function SupportCreateScreen() {
       }
 
       const result = await SupportService.createInquiry(inquiryData, imageFiles);
+
+      // 목록 새로고침 플래그 설정
+      setShouldRefreshInquiries(true);
 
       // 작성된 문의 상세 페이지로 이동
       navigation.replace('SupportDetail', { inquiryId: result.inquiry_id });
