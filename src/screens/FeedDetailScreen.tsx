@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, ScrollView, Dimensions, Image, Pressable, Touch
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { SPACING, TYPOGRAPHY } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CommonHeader from '../components/CommonHeader';
 import CommentList from '../components/CommentList';
@@ -57,7 +57,6 @@ export default function FeedDetailScreen() {
   const styles = createStyles(colors);
 
   const feedId = route.params?.feedId || 15;
-  const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // expand/collapse 상태 관리
@@ -491,39 +490,39 @@ export default function FeedDetailScreen() {
   // 로딩 상태 (PostDetailScreen과 같은 패턴으로 분리)
   if (loading) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <CommonHeader title="피드" showBackButton={true} />
         <LoadingOverlay visible={loading} message="피드 로딩 중..." />
-      </View>
+      </SafeAreaView>
     );
   }
 
   // 에러 상태
   if (error) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <CommonHeader title="피드" showBackButton={true} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   // feed가 로드되지 않은 경우 (언리치에이블)
   if (!feed) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <CommonHeader title="피드" showBackButton={true} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>피드를 찾을 수 없습니다.</Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* 헤더 */}
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
@@ -641,42 +640,29 @@ export default function FeedDetailScreen() {
         />
       </ScrollView>
 
-        {/* 댓글 입력 또는 수정 입력 */}
-        <View
-          style={[
-            {
-              paddingBottom: Platform.OS === 'ios' ? insets.bottom : 0,
-            },
-            // 플랫폼별 키보드 대응
-            Platform.OS === 'android' && keyboardHeight > 0 && {
-              paddingBottom: SPACING.SM
-            },
-            Platform.OS === 'ios' && keyboardHeight > 0 && {
-              paddingBottom: SPACING.SM // iOS에서 키보드 올라올 때 insets 제거
-            }
-          ]}
-        >
-      {editingComment ? (
-        <CommentEditInput
-          initialText={editingComment.content}
-          onSave={onSaveEdit}
-          onCancel={() => setEditingComment(null)}
-          isLoading={isCommentLoading}
-        />
-      ) : replyingTo ? (
-        <ReplyInput
-          onSendReply={onSendReply}
-          onCancel={() => setReplyingTo(null)}
-          replyToUser={replyingTo.userName}
-          isLoading={isCommentLoading}
-        />
-      ) : (
-        <CommentInput
-          onSendComment={onSendComment}
-          placeholder="댓글을 작성해 보세요."
-        />
-      )}
-      </View>
+        {/* 댓글 입력창 */}
+        <View style={styles.commentInputWrapper}>
+          {editingComment ? (
+            <CommentEditInput
+              initialText={editingComment.content}
+              onSave={onSaveEdit}
+              onCancel={() => setEditingComment(null)}
+              isLoading={isCommentLoading}
+            />
+          ) : replyingTo ? (
+            <ReplyInput
+              onSendReply={onSendReply}
+              onCancel={() => setReplyingTo(null)}
+              replyToUser={replyingTo.userName}
+              isLoading={isCommentLoading}
+            />
+          ) : (
+            <CommentInput
+              onSendComment={onSendComment}
+              placeholder="댓글을 작성해 보세요."
+            />
+          )}
+        </View>
 
       {/* 메뉴 액션 시트 */}
       <MenuActionSheet
@@ -716,7 +702,7 @@ export default function FeedDetailScreen() {
         ]}
       />
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -847,6 +833,11 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.MD,
     color: colors.ERROR,
     textAlign: 'center',
+  },
+
+  // 댓글 입력창 wrapper
+  commentInputWrapper: {
+    backgroundColor: colors.WHITE,
   },
 
   // 메뉴 버튼

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useEventListener } from 'expo';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
@@ -52,7 +52,6 @@ type PostDetailNavigationProp = StackNavigationProp<AuthStackParamList, 'PostDet
 export default function PostDetailScreen() {
   const route = useRoute<PostDetailRouteProp>();
   const navigation = useNavigation<PostDetailNavigationProp>();
-  const insets = useSafeAreaInsets();
 
   const { postId } = route.params;
   const { colors } = useThemeStore();
@@ -562,26 +561,26 @@ export default function PostDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <CommonHeader title="게시물" />
         <LoadingOverlay visible={true} message="게시물 로딩 중..."/>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (!post) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
         <CommonHeader title="게시물" />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>게시물을 찾을 수 없습니다.</Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* 헤더 */}
       <CommonHeader
         title="게시물"
@@ -717,40 +716,27 @@ export default function PostDetailScreen() {
         </ScrollView>
 
         {/* 댓글 입력창 */}
-        <View
-          style={[
-            {
-              paddingBottom: Platform.OS === 'ios' ? insets.bottom : 0,
-            },
-            // 플랫폼별 키보드 대응
-            Platform.OS === 'android' && keyboardHeight > 0 && {
-              paddingBottom: SPACING.SM
-            },
-            Platform.OS === 'ios' && keyboardHeight > 0 && {
-              paddingBottom: SPACING.SM // iOS에서 키보드 올라올 때 insets 제거
-            }
-          ]}
-        >
-        {replyingTo ? (
-          <ReplyInput
-            onSendReply={handleSendReply}
-            onCancel={() => setReplyingTo(null)}
-            replyToUser={replyingTo.userName}
-            isLoading={isCommentLoading}
-          />
-        ) : editingComment ? (
-          <CommentEditInput
-            initialText={editingComment.content}
-            onSave={handleSaveEdit}
-            onCancel={() => setEditingComment(null)}
-            isLoading={isCommentLoading}
-          />
-        ) : (
-          <CommentInput
-            onSendComment={handleSendComment}
-            isLoading={isCommentLoading}
-          />
-        )}
+        <View style={styles.commentInputWrapper}>
+          {replyingTo ? (
+            <ReplyInput
+              onSendReply={handleSendReply}
+              onCancel={() => setReplyingTo(null)}
+              replyToUser={replyingTo.userName}
+              isLoading={isCommentLoading}
+            />
+          ) : editingComment ? (
+            <CommentEditInput
+              initialText={editingComment.content}
+              onSave={handleSaveEdit}
+              onCancel={() => setEditingComment(null)}
+              isLoading={isCommentLoading}
+            />
+          ) : (
+            <CommentInput
+              onSendComment={handleSendComment}
+              isLoading={isCommentLoading}
+            />
+          )}
         </View>
 
         {/* 메뉴 액션 시트 */}
@@ -791,7 +777,7 @@ export default function PostDetailScreen() {
           ]}
         />
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -818,6 +804,11 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.MD,
     color: colors.GRAY_600, // TEXT_COLORS.SECONDARY 대신
     textAlign: 'center',
+  },
+
+  // 댓글 입력창 wrapper
+  commentInputWrapper: {
+    backgroundColor: colors.WHITE,
   },
 
   // 작성자 섹션
