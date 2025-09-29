@@ -28,6 +28,9 @@ import NotificationScreen from '../screens/NotificationScreen';
 import BlockedUsersScreen from '../screens/BlockedUsersScreen';
 import ProfileVisibilityScreen from '../screens/ProfileVisibilityScreen';
 import ThemeModeSettingsScreen from '../screens/ThemeModeSettingsScreen';
+import SupportListScreen from '../screens/SupportListScreen';
+import SupportCreateScreen from '../screens/SupportCreateScreen';
+import SupportDetailScreen from '../screens/SupportDetailScreen';
 import FollowRequestsScreen from '../screens/FollowRequestsScreen';
 
 // Tab Navigator
@@ -146,6 +149,21 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="ThemeModeSettings"
           component={ThemeModeSettingsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="SupportList"
+          component={SupportListScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="SupportCreate"
+          component={SupportCreateScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="SupportDetail"
+          component={SupportDetailScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen

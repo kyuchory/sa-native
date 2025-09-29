@@ -29,6 +29,9 @@ export type AuthStackParamList = {
   BlockedUsers: undefined;
   ProfileVisibility: undefined;
   ThemeModeSettings: undefined;
+  SupportList: undefined;
+  SupportCreate: undefined;
+  SupportDetail: { inquiryId: number };
   FollowRequests: undefined;
 };
 
