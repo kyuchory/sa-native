@@ -11,6 +11,7 @@ import {
   Platform
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
@@ -20,6 +21,9 @@ import { CreateInquiryRequest } from '../types/support';
 import { AddImageIcon, DeleteIcon } from '../components/CommonIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { handleApiError } from '../services/apiClient';
+import { AuthStackParamList } from '../types/navigation';
+
+type SupportCreateNavigationProp = StackNavigationProp<AuthStackParamList, 'SupportCreate'>;
 
 const CATEGORIES = [
   { value: 'bug', label: '버그 신고' },
@@ -37,7 +41,7 @@ const PRIORITIES = [
 ];
 
 export default function SupportCreateScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<SupportCreateNavigationProp>();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
@@ -107,6 +111,10 @@ export default function SupportCreateScreen() {
       Alert.alert('알림', '내용을 입력해주세요.');
       return false;
     }
+    if (!category) {
+      Alert.alert('알림', '카테고리를 선택해주세요.');
+      return false;
+    }
     return true;
   };
 
@@ -149,16 +157,8 @@ export default function SupportCreateScreen() {
 
       const result = await SupportService.createInquiry(inquiryData, imageFiles);
 
-      Alert.alert(
-        '성공',
-        '문의가 성공적으로 등록되었습니다.',
-        [
-          {
-            text: '확인',
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
+      // 작성된 문의 상세 페이지로 이동
+      navigation.replace('SupportDetail', { inquiryId: result.inquiry_id });
     } catch (error: any) {
       console.error('문의 작성 실패:', error);
       const errorMessage = handleApiError(error);
