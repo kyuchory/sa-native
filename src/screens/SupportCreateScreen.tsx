@@ -127,7 +127,7 @@ export default function SupportCreateScreen() {
       const inquiryData: CreateInquiryRequest = {
         title: title.trim(),
         content: content.trim(),
-        category: category || undefined,
+        category: category,
         priority: priority as any,
       };
 

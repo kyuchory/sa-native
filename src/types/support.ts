@@ -30,7 +30,7 @@ export interface InquiryUser {
 export interface CreateInquiryRequest {
   title: string;
   content: string;
-  category?: string;
+  category: string;
   priority?: InquiryPriority;
 }
 
