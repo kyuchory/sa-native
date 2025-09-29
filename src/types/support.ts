@@ -69,11 +69,12 @@ export interface InquiryListItem {
   attachment_count: number;
 }
 
-// 문의 목록 페이징 정보
+// 문의 목록 페이징 정보 (게시물과 동일한 형식)
 export interface InquiryPagination {
-  current_page: number;
+  page: number;
+  limit: number;
+  total: number;
   total_pages: number;
-  total_count: number;
   has_next: boolean;
   has_prev: boolean;
 }
