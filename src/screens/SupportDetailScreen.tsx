@@ -16,6 +16,8 @@ import CommonHeader from '../components/CommonHeader';
 import { SupportService } from '../services/supportService';
 import { GetInquiryDetailResponse } from '../types/support';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MenuIcon, EditIcon, DeleteIcon } from '../components/CommonIcons';
+import MenuActionSheet from '../components/MenuActionSheet';
 
 // 유틸리티 함수들 (원래 supportMockData.ts에 있던 함수들)
 const getCategoryText = (category?: string) => {
@@ -97,6 +99,7 @@ const getPriorityColor = (priority: string, colors: Record<string, string>) => {
 
 import { handleApiError } from '../services/apiClient';
 import { AuthStackParamList } from '../types/navigation';
+import { useAuthStore } from '../stores/authStore';
 
 type SupportDetailRouteProp = RouteProp<AuthStackParamList, 'SupportDetail'>;
 
@@ -104,6 +107,7 @@ export default function SupportDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute<SupportDetailRouteProp>();
   const { colors } = useThemeStore();
+  const { user } = useAuthStore();
   const styles = createStyles(colors);
 
   const { inquiryId } = route.params;
@@ -111,11 +115,42 @@ export default function SupportDetailScreen() {
   // 상태 관리
   const [inquiry, setInquiry] = useState<GetInquiryDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
 
   // 문의 상세 정보 로드
   useEffect(() => {
     loadInquiryDetail();
   }, [inquiryId]);
+
+  // 문의 수정 (구현 준비중)
+  const handleEditInquiry = () => {
+    setMenuActionSheetVisible(false);
+    Alert.alert('알림', '문의 수정 기능이 구현 준비중입니다.');
+  };
+
+  // 문의 삭제
+  const handleDeleteInquiry = () => {
+    Alert.alert(
+      '문의 삭제',
+      '문의를 삭제하시겠습니까? 삭제된 문의는 복구할 수 없습니다.',
+      [
+        {
+          text: '취소',
+          style: 'cancel',
+        },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert('알림', '문의 삭제 기능이 구현 준비중입니다.');
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+    setMenuActionSheetVisible(false);
+  };
+
 
   const loadInquiryDetail = async () => {
     try {
@@ -161,7 +196,18 @@ export default function SupportDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <CommonHeader title="문의 상세" />
+      <CommonHeader
+        title="문의 상세"
+        rightComponent={
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => setMenuActionSheetVisible(true)}
+            activeOpacity={0.7}
+          >
+            <MenuIcon size={20} color={colors.GRAY_700} />
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -272,6 +318,32 @@ export default function SupportDetailScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* 메뉴 액션 시트 */}
+      <MenuActionSheet
+        visible={menuActionSheetVisible}
+        onClose={() => setMenuActionSheetVisible(false)}
+        title="문의"
+        actions={[
+          // 작성자의 문의인 경우 수정/삭제 메뉴 추가
+          ...(inquiry?.user.id === user?.id ? [
+            {
+              id: 'edit',
+              title: '문의 수정',
+              icon: <EditIcon size={20} color={colors.GRAY_700} />,
+              color: colors.GRAY_700,
+              onPress: handleEditInquiry,
+            },
+            {
+              id: 'delete',
+              title: '문의 삭제',
+              icon: <DeleteIcon size={20} color={colors.ERROR} />,
+              color: colors.ERROR,
+              onPress: handleDeleteInquiry,
+            },
+          ] : []),
+        ]}
+      />
     </SafeAreaView>
   );
 }
@@ -481,5 +553,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     textAlign: 'right',
     flex: 1,
     marginLeft: SPACING.MD,
+  },
+  // 메뉴 버튼
+  menuButton: {
+    padding: SPACING.SM,
   },
 });
