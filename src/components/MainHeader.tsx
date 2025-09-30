@@ -5,7 +5,7 @@ import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/nativ
 import { useCallback, useRef, useState } from 'react';
 import { TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
 import { NotificationIcon, WriteIcon } from './HomeHeaderIcons';
-import { CreateFeedIcon } from './CommonIcons';
+import { CreateFeedIcon, ChatIcon } from './CommonIcons';
 import Svg, { Path } from 'react-native-svg';
 import { useThemeStore } from '../stores/themeStore';
 import { useAuthStore } from '../stores/authStore';
@@ -60,6 +60,11 @@ export default function MainHeader({ leftButtons = [], rightButtons = [] }: Main
   const handleNotificationPress = () => {
     console.log('알림 버튼 클릭');
     navigation.navigate('Notifications' as never);
+  };
+
+  const handleChatPress = () => {
+    console.log('채팅 버튼 클릭');
+    navigation.navigate('Chat' as never);
   };
 
   const renderButton = (button: HeaderButton) => (
@@ -129,6 +134,15 @@ export default function MainHeader({ leftButtons = [], rightButtons = [] }: Main
               </View>
             </TouchableOpacity>
 
+            {/* 채팅 버튼 (항상 표시) */}
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={handleChatPress}
+              activeOpacity={0.7}
+            >
+              <ChatIcon size={26} color={colors.GRAY_600} />
+            </TouchableOpacity>
+
             {/* 사용자 정의 우측 버튼들 */}
             {rightButtons.map(renderButton)}
           </View>
@@ -183,7 +197,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   rightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.SM,
+    gap: SPACING.XS,
   },
   iconButton: {
     padding: SPACING.SM,
