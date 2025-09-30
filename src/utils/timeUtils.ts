@@ -8,7 +8,7 @@
  * @returns 한국 시간 기준 "오전/오후 시:분" 형식
  */
 export const formatMessageTime = (dateString: string): string => {
-  // 임시 메시지나 Invalid Date 처리
+  // Invalid Date 처리
   if (!dateString) {
     return '전송 중...';
   }
@@ -69,7 +69,7 @@ export const formatMessageDate = (dateString: string): string => {
 export const shouldShowDateSeparator = (currentMessage: string, previousMessage: string | null): boolean => {
   if (!previousMessage) return true; // 첫 번째 메시지는 항상 날짜 표시
   
-  // 임시 메시지나 Invalid Date인 경우 날짜 구분선 표시하지 않음
+  // Invalid Date인 경우 날짜 구분선 표시하지 않음
   if (!currentMessage || !previousMessage) return false;
   
   const currentDate = new Date(currentMessage);

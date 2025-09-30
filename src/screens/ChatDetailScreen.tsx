@@ -45,7 +45,6 @@ import { useAuthStore } from '../stores/authStore';
 
 // Services
 import { ChatService } from '../services/chatService';
-import { LocalMessageService } from '../services/localMessageService';
 
 // Utils
 import { formatMessageTime, isSameDay, formatMessageDate, shouldShowDateSeparator } from '../utils';
@@ -75,6 +74,7 @@ export default function ChatDetailScreen() {
   // TODO: 소켓 관련 상태는 새로 구현할 예정
 
   // 로컬 상태
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
@@ -82,9 +82,6 @@ export default function ChatDetailScreen() {
 
 
 
-  // WebSocket 연결 상태 (JSX에서 사용하기 위한 별도 변수)
-  // TODO: 소켓 연결 상태는 새로 구현할 예정
-  const isChatConnected = false;
 
   // 채팅방 참가 및 초기화
   useEffect(() => {
@@ -167,34 +164,21 @@ export default function ChatDetailScreen() {
     };
   }, []);
 
-  // TODO: 초기 채팅 히스토리 로드 (서버 메시지 + 로컬 메시지 병합) (새로 구현 예정)
+  // 초기 채팅 히스토리 로드 (서버 메시지만)
   const loadChatHistory = async () => {
     try {
-      // setIsInitialLoading(true);
-      
-      // 1. 서버에서 메시지 조회
+      // 서버에서 메시지 조회
       const response = await ChatService.getMessages(chatRoomId);
       console.log('채팅내역 조회 테스트: ', response);
       
-      // 2. 로컬 저장소에서 메시지 조회 (전송 실패한 것들 포함)
-      const localMessages = await LocalMessageService.getLocalMessages(chatRoomId);
-      
-      // 3. 서버 메시지와 로컬 메시지 병합
-      const mergedMessages = LocalMessageService.mergeWithServerMessages(
-        response.messages,
-        localMessages
-      );
-      
-      // TODO: ChatStore에 메시지 설정 (새로 구현 예정)
-      // setMessages(mergedMessages);
-      // setHasNext(response.hasNext);
-      // setNextCursor(response.nextCursor);
+      // 메시지 상태 업데이트
+      setMessages(response.messages);
+      // TODO: setHasNext(response.hasNext);
+      // TODO: setNextCursor(response.nextCursor);
       
       console.log(
         '📨 채팅 히스토리 로드 완료:',
-        `서버 ${response.messages.length}개`,
-        `로컬 ${localMessages.length}개`,
-        `병합 ${mergedMessages.length}개`
+        `서버 ${response.messages.length}개`
       );
       
       // 초기 로드 후 스크롤을 맨 아래로
@@ -241,7 +225,7 @@ export default function ChatDetailScreen() {
 
   // TODO: 메시지 전송 핸들러 (ChatStore 사용) (새로 구현 예정)
   const handleSendMessage = async () => {
-    if (!inputText.trim() || !isChatConnected || !user) return;
+    if (!inputText.trim() || !user) return;
 
     const messageContent = inputText.trim();
     
@@ -268,7 +252,7 @@ export default function ChatDetailScreen() {
 
   // TODO: 타이핑 시작 핸들러 (ChatStore 사용) (새로 구현 예정)
   const handleTypingStart = () => {
-    // if (!isChatConnected || isTyping) return;
+    // if (!isTyping) return;
 
     // startTyping();
 
@@ -284,7 +268,7 @@ export default function ChatDetailScreen() {
 
   // TODO: 타이핑 중단 핸들러 (ChatStore 사용) (새로 구현 예정)
   const handleTypingStop = () => {
-    // if (!isChatConnected || !isTyping) return;
+    // if (!isTyping) return;
 
     // stopTyping();
 
@@ -306,15 +290,6 @@ export default function ChatDetailScreen() {
     // }
   };
 
-  // TODO: 실패한 메시지 재전송 (ChatStore 사용) (새로 구현 예정)
-  const handleRetryMessage = async (failedMessage: Message) => {
-    // await retryMessage(failedMessage);
-  };
-
-  // TODO: 실패한 메시지들 일괄 재전송 (ChatStore 사용) (새로 구현 예정)
-  const handleRetryAllFailedMessages = async () => {
-    // await retryAllFailedMessages();
-  };
 
   // 내가 보낸 메시지 long press 핸들러
   const handleLongPressMessage = (message: Message) => {
@@ -349,14 +324,14 @@ export default function ChatDetailScreen() {
   // 메시지 아이템 렌더링
   const renderMessageItem = ({ item, index }: { item: Message; index: number }) => {
     const isMyMessage = item.sender.id === user?.id;
-    // TODO: 이전 메시지 확인 (새로 구현 예정)
-    const prevMessage = null; // index > 0 ? messages[index - 1] : null;
+    // 이전 메시지 확인
+    const prevMessage = index > 0 ? messages[index - 1] : null;
     const isContinuous = isContinuousMessage(item, prevMessage);
-    // TODO: 날짜 구분자 표시 (새로 구현 예정)
-    const showDateSeparator = false; // shouldShowDateSeparator(
-      // item.created_at, 
-      // prevMessage?.created_at || null
-    // );
+    // 날짜 구분자 표시
+    const showDateSeparator = shouldShowDateSeparator(
+      item.created_at, 
+      prevMessage?.created_at || null
+    );
 
     return (
       <>
@@ -397,17 +372,10 @@ export default function ChatDetailScreen() {
               {/* 내 메시지의 경우 시간이 왼쪽에 */}
               {isMyMessage && (
                 <View style={styles.myMessageTimeContainer}>
-                  {item.status === 'failed' && (
-                    <Text style={styles.messageStatusFailed}>실패</Text>
-                  )}
                   <View style={styles.messageTimeContainer}>
-                    {item.status === 'sending' ? (
-                      <ActivityIndicator size="small" color={colors.PRIMARY} />
-                    ) : (
-                      <Text style={styles.messageTime}>
-                        {formatMessageTime(item.created_at)}
-                      </Text>
-                    )}
+                    <Text style={styles.messageTime}>
+                      {formatMessageTime(item.created_at)}
+                    </Text>
                   </View>
                 </View>
               )}
@@ -416,18 +384,9 @@ export default function ChatDetailScreen() {
               <TouchableOpacity
                 style={[
                   styles.messageBubble,
-                  isMyMessage ? styles.myMessageBubble : styles.otherMessageBubble,
-                  item.status === 'failed' && styles.messageFailedBubble
+                  isMyMessage ? styles.myMessageBubble : styles.otherMessageBubble
                 ]}
-                onPress={() => {
-                  // 실패한 메시지 재전송
-                  if (item.status === 'failed' && item.isTemporary) {
-                    handleRetryMessage(item);
-                  }
-                }}
                 onLongPress={() => handleLongPressMessage(item)}
-                // disabled={item.status !== 'failed'}
-                activeOpacity={item.status === 'failed' ? 0.7 : 1}
               >
                 <Text style={[
                   styles.messageText,
@@ -552,7 +511,7 @@ export default function ChatDetailScreen() {
           {/* 채팅 메시지 목록 */}
           <FlatList
             ref={flatListRef}
-            data={[]} // TODO: messages (새로 구현 예정)
+            data={messages}
             renderItem={renderMessageItem}
             keyExtractor={(item) => item.id.toString()}
             style={styles.messagesList}
@@ -586,8 +545,7 @@ export default function ChatDetailScreen() {
                 <Text style={styles.emptyText}>
                   {/* TODO: 로딩 상태 확인 (새로 구현 예정) */}
                   {false ? '메시지를 불러오는 중...' : // isInitialLoading
-                   isChatConnected ? '메시지를 입력해 대화를 시작해보세요.' :
-                   '서버에 연결 중...'}
+                   '메시지를 입력해 대화를 시작해보세요.'}
                 </Text>
               </View>
             )}
@@ -607,21 +565,6 @@ export default function ChatDetailScreen() {
             </View>
           )}
 
-          {/* TODO: 실패한 메시지 재전송 알림 (새로 구현 예정) */}
-          {false && ( // messages.some(msg => msg.status === 'failed')
-            <View style={styles.failedMessagesContainer}>
-              <Text style={styles.failedMessagesText}>
-                전송에 실패한 메시지가 있습니다.
-              </Text>
-              <TouchableOpacity 
-                style={styles.retryAllButton}
-                onPress={handleRetryAllFailedMessages}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.retryAllButtonText}>모두 재전송</Text>
-              </TouchableOpacity>
-            </View>
-          )}
 
           {/* 메시지 입력 영역 */}
           <View style={[
@@ -641,7 +584,7 @@ export default function ChatDetailScreen() {
             <View style={styles.textInputContainer}>
               <TextInput
                 style={styles.textInput}
-                placeholder={isChatConnected ? "메시지를 입력하세요..." : "연결 중..."}
+                placeholder="메시지를 입력하세요..."
                 placeholderTextColor={colors.GRAY_500}
                 value={inputText}
                 onChangeText={handleInputChange}
@@ -650,22 +593,22 @@ export default function ChatDetailScreen() {
                 returnKeyType="send"
                 onSubmitEditing={handleSendMessage}
                 blurOnSubmit={false}
-                editable={isChatConnected}
+                editable={true}
               />
             </View>
 
             <TouchableOpacity
               style={[
                 styles.sendButton,
-                (inputText.trim() && isChatConnected) ? styles.sendButtonActive : styles.sendButtonInactive
+                inputText.trim() ? styles.sendButtonActive : styles.sendButtonInactive
               ]}
               onPress={handleSendMessage}
               activeOpacity={0.7}
-              disabled={!inputText.trim() || !isChatConnected}
+              disabled={!inputText.trim()}
             >
               <SendIcon
                 size={24}
-                color={(inputText.trim() && isChatConnected) ? colors.WHITE : colors.GRAY_500}
+                color={inputText.trim() ? colors.WHITE : colors.GRAY_500}
               />
             </TouchableOpacity>
           </View>
@@ -803,10 +746,6 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
     borderWidth: 1,
     borderColor: colors.GRAY_200,
   },
-  messageFailedBubble: {
-    opacity: 0.7,
-    borderColor: colors.ERROR || '#FF6B6B',
-  },
 
   // 메시지 텍스트
   messageText: {
@@ -839,12 +778,6 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
     justifyContent: 'flex-end' as const,
   },
 
-  // 메시지 전송 실패 상태
-  messageStatusFailed: {
-    fontSize: TYPOGRAPHY.SIZE.XS,
-    color: colors.ERROR || '#FF6B6B',
-    marginBottom: 2,
-  },
 
   // 입력 영역
   inputContainer: {
@@ -909,33 +842,6 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
     fontStyle: 'italic',
   },
 
-  // 실패한 메시지 알림
-  failedMessagesContainer: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
-    paddingHorizontal: SPACING.MD,
-    paddingVertical: SPACING.SM,
-    backgroundColor: '#FFF3E0',
-    borderTopWidth: 1,
-    borderTopColor: '#FFE0B2',
-  },
-  failedMessagesText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    color: '#F57C00',
-    flex: 1,
-  },
-  retryAllButton: {
-    backgroundColor: '#FF9800',
-    paddingHorizontal: SPACING.MD,
-    paddingVertical: SPACING.XS,
-    borderRadius: BORDER_RADIUS.SM,
-  },
-  retryAllButtonText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.WHITE,
-    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-  },
 
   // 빈 상태
   emptyContainer: {

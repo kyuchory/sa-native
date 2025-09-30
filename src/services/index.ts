@@ -5,7 +5,6 @@ export * from './blockService';
 export * from './chatService';
 export * from './feedService';
 export * from './followService';
-export * from './localMessageService';
 export * from './notificationService';
 export * from './notificationSocketService';
 export * from './postService';

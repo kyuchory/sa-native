@@ -83,7 +83,7 @@ export interface ChatRoom {
 
 // 메시지 인터페이스 (API 응답 형식)
 export interface Message {
-  id: number | string; // 임시 메시지의 경우 string ID 사용
+  id: number;
   chat_room_id: number;
   sender_id: number;
   type: MessageType; // message_type에서 type으로 변경
@@ -92,9 +92,6 @@ export interface Message {
   sender: ChatUser;
   mentions: any[]; // 멘션 배열 (향후 타입 정의 가능)
 
-  // 임시 메시지 관련 필드
-  isTemporary?: boolean; // 임시 메시지 여부
-  status?: 'sending' | 'sent' | 'failed'; // 전송 상태
 }
 
 // API 응답 타입

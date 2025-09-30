@@ -113,7 +113,7 @@ export default function NotificationScreen() {
           // 채팅 상세로 이동
           if (notification.sender.id) {
             navigation.navigate('ChatDetail', {
-              chatRoomId: 0, // API 데이터에서는 임시 ID 사용
+              chatRoomId: 0, // API 데이터에서는 기본값 사용
               chatRoomName: notification.sender.nickname,
               chatPartnerId: notification.sender.id,
             });
