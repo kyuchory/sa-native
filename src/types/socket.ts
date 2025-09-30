@@ -178,11 +178,16 @@ export interface ServerToClientEvents {
     created_at: Date;
   }) => void;
 
-  // 채팅 관련 (나중에 구현)
+  // 채팅방 관련
   'chat:joined_room': (data: { chat_room_id: number; message: string }) => void;
   'chat:left_room': (data: { chat_room_id: number; message: string }) => void;
   'chat:user_joined': (data: { user_id: number; nickname: string; message: string }) => void;
   'chat:user_left': (data: { user_id: number; nickname: string; message: string }) => void;
+  'chat:subscription:restored': (data: {
+    userId: number;
+    restoredRooms: number[];
+    message: string;
+  }) => void;
   'chat:message:sent': (data: any) => void;
   'chat:message:failed': (data: { temp_id: string; error: string }) => void;
   'chat:message:receive': (data: any) => void;

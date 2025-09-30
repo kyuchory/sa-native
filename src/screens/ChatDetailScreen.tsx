@@ -41,7 +41,7 @@ import {
 import { useThemeStore } from '../stores/themeStore';
 
 import { useAuthStore } from '../stores/authStore';
-// TODO: 소켓 관련 import는 새로 구현할 예정
+import { useChatStore } from '../stores/chatStore';
 
 // Services
 import { ChatService } from '../services/chatService';
@@ -71,10 +71,19 @@ export default function ChatDetailScreen() {
   // Auth store
   const { user } = useAuthStore();
 
-  // TODO: 소켓 관련 상태는 새로 구현할 예정
+  // Chat store
+  const {
+    messages,
+    typingUsers,
+    joinChatRoom,
+    leaveChatRoom,
+    sendMessage,
+    startTyping,
+    stopTyping,
+    loadMessages
+  } = useChatStore();
 
-  // 로컬 상태
-  const [messages, setMessages] = useState<Message[]>([]);
+  // 로컬 상태 (UI 관련)
   const [inputText, setInputText] = useState('');
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
@@ -93,11 +102,8 @@ export default function ChatDetailScreen() {
           return;
         }
 
-        // TODO: WebSocket 연결은 글로벌로 관리되므로, 채팅방 참가만 수행 (새로 구현 예정)
-        // joinChatRoom(chatRoomId);
-
-        // 채팅 히스토리 로드
-        loadChatHistory();
+        // ChatStore를 통해 채팅방 참가 (히스토리 로드 포함)
+        await joinChatRoom(chatRoomId);
 
       } catch (error) {
         console.error('채팅방 초기화 실패:', error);
@@ -107,16 +113,16 @@ export default function ChatDetailScreen() {
 
     initChatRoom();
 
-    // TODO: 클린업: 채팅방 나가기 (WebSocket은 유지) (새로 구현 예정)
+    // 클린업: 채팅방 퇴장
     return () => {
-      // leaveChatRoom();
+      leaveChatRoom();
 
       // 타이핑 타이머 클린업
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
     };
-  }, [chatRoomId, user?.id, navigation]);
+  }, [chatRoomId, user?.id, navigation, joinChatRoom, leaveChatRoom]);
 
   // TODO: 컴포넌트 마운트 시 스크롤을 맨 아래로 (새로 구현 예정)
   // useEffect(() => {
@@ -164,34 +170,6 @@ export default function ChatDetailScreen() {
     };
   }, []);
 
-  // 초기 채팅 히스토리 로드 (서버 메시지만)
-  const loadChatHistory = async () => {
-    try {
-      // 서버에서 메시지 조회
-      const response = await ChatService.getMessages(chatRoomId);
-      console.log('채팅내역 조회 테스트: ', response);
-      
-      // 메시지 상태 업데이트
-      setMessages(response.messages);
-      // TODO: setHasNext(response.hasNext);
-      // TODO: setNextCursor(response.nextCursor);
-      
-      console.log(
-        '📨 채팅 히스토리 로드 완료:',
-        `서버 ${response.messages.length}개`
-      );
-      
-      // 초기 로드 후 스크롤을 맨 아래로
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: false });
-      }, 100);
-    } catch (error) {
-      console.error('채팅 히스토리 로드 실패:', error);
-      Alert.alert('오류', '채팅 내역을 불러오는데 실패했습니다.');
-    } finally {
-      // setIsInitialLoading(false);
-    }
-  };
 
   // TODO: 더 많은 메시지 로드 (무한 스크롤) (새로 구현 예정)
   const loadMoreMessages = async () => {
@@ -223,38 +201,48 @@ export default function ChatDetailScreen() {
     navigation.goBack();
   };
 
-  // TODO: 메시지 전송 핸들러 (ChatStore 사용) (새로 구현 예정)
+  // 메시지 전송 핸들러 (ChatStore 사용)
   const handleSendMessage = async () => {
     if (!inputText.trim() || !user) return;
 
     const messageContent = inputText.trim();
-    
+
     // @멘션 파싱
     const mentionRegex = /@(\w+)/g;
     const mentionUserIds: number[] = [];
     let match;
-    
+
     while ((match = mentionRegex.exec(messageContent)) !== null) {
       console.log('멘션 감지:', match[1]);
+      // TODO: 실제 멘션 유저 ID로 변환하는 로직 추가 필요
     }
 
-    // TODO: ChatStore의 sendMessage 사용 (새로 구현 예정)
-    // await sendMessage(messageContent, mentionUserIds);
+    try {
+      // ChatStore의 sendMessage 사용
+      await sendMessage({
+        chatRoomId,
+        tempId: `temp_${Date.now()}_${Math.random()}`,
+        type: 'text',
+        content: messageContent,
+        mentionUserIds
+      });
 
-    // 입력창 초기화
-    setInputText('');
+      // 입력창 초기화
+      setInputText('');
 
-    // 스크롤 맨 아래로 이동
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+      // 스크롤 맨 아래로 이동
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    } catch (error) {
+      console.error('메시지 전송 실패:', error);
+      Alert.alert('오류', '메시지를 전송하는데 실패했습니다.');
+    }
   };
 
-  // TODO: 타이핑 시작 핸들러 (ChatStore 사용) (새로 구현 예정)
+  // 타이핑 시작 핸들러 (ChatStore 사용)
   const handleTypingStart = () => {
-    // if (!isTyping) return;
-
-    // startTyping();
+    startTyping();
 
     // 3초 후 자동으로 타이핑 중단
     if (typingTimeoutRef.current) {
@@ -266,11 +254,9 @@ export default function ChatDetailScreen() {
     }, 3000);
   };
 
-  // TODO: 타이핑 중단 핸들러 (ChatStore 사용) (새로 구현 예정)
+  // 타이핑 중단 핸들러 (ChatStore 사용)
   const handleTypingStop = () => {
-    // if (!isTyping) return;
-
-    // stopTyping();
+    stopTyping();
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
@@ -278,16 +264,16 @@ export default function ChatDetailScreen() {
     }
   };
 
-  // TODO: 입력 텍스트 변경 핸들러 (새로 구현 예정)
+  // 입력 텍스트 변경 핸들러
   const handleInputChange = (text: string) => {
     setInputText(text);
-    
-    // TODO: 타이핑 상태 시작 (새로 구현 예정)
-    // if (text.trim() && !isTyping) {
-    //   handleTypingStart();
-    // } else if (!text.trim() && isTyping) {
-    //   handleTypingStop();
-    // }
+
+    // 타이핑 상태 관리
+    if (text.trim()) {
+      handleTypingStart();
+    } else {
+      handleTypingStop();
+    }
   };
 
 
@@ -556,11 +542,11 @@ export default function ChatDetailScreen() {
             } : undefined}
           />
 
-          {/* TODO: 타이핑 인디케이터 (새로 구현 예정) */}
-          {false && ( // typingUsers.length > 0
+          {/* 타이핑 인디케이터 */}
+          {typingUsers.length > 0 && (
             <View style={styles.typingContainer}>
               <Text style={styles.typingText}>
-                {/* typingUsers.map(u => u.nickname).join(', ') */}님이 입력 중...
+                {typingUsers.map(u => u.nickname).join(', ')}님이 입력 중...
               </Text>
             </View>
           )}

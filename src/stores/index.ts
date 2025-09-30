@@ -1,5 +1,6 @@
 // 스토어 파일들 export
 export * from './authStore';
+export * from './chatStore';
 export * from './feedStore';
 export * from './notificationStore';
 export * from './postStore';

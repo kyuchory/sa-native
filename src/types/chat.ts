@@ -89,9 +89,10 @@ export interface Message {
   type: MessageType; // message_type에서 type으로 변경
   content: string;
   created_at: string;
+  updated_at: string;
   sender: ChatUser;
   mentions: any[]; // 멘션 배열 (향후 타입 정의 가능)
-
+  mention_user_ids: number[]; // 서버에서 전송하는 멘션 사용자 ID 배열
 }
 
 // API 응답 타입
