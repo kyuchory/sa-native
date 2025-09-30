@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
+import { useCallback, useRef, useState } from 'react';
 import { TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
 import { NotificationIcon, WriteIcon } from './HomeHeaderIcons';
 import { CreateFeedIcon } from './CommonIcons';
 import Svg, { Path } from 'react-native-svg';
 import { useThemeStore } from '../stores/themeStore';
 import { useAuthStore } from '../stores/authStore';
-import { NotificationService } from '../services/notificationService';
+import { useNotificationStore } from '../stores/notificationStore';
 
 interface HeaderButton {
   key: string;
@@ -28,54 +28,33 @@ export default function MainHeader({ leftButtons = [], rightButtons = [] }: Main
   const { isDark, colors } = useThemeStore();
   const navigation = useNavigation();
   const { isAuthenticated } = useAuthStore();
+  const { unreadCount, loadUnreadCount, lastUpdated } = useNotificationStore();
+  const route = useRoute();
   const styles = createStyles(colors);
-  
-  // 로컬 상태로 읽지 않은 알림 개수 관리
-  const [unreadCount, setUnreadCount] = useState(0);
+
+  // 이전 화면 추적을 위한 state
+  const [previousRoute, setPreviousRoute] = useState<string | null>(null);
 
   // 초기 로딩 시 읽지않은 알림 개수 로드
   useEffect(() => {
-    const loadUnreadCount = async () => {
-      if (!isAuthenticated) {
-        setUnreadCount(0);
-        return;
-      }
+    if (isAuthenticated) {
+      loadUnreadCount();
+    }
+  }, [isAuthenticated, loadUnreadCount]);
 
-      try {
-        console.log('🔔 MainHeader: 읽지않은 알림 개수 로드 시작...');
-        const response = await NotificationService.getUnreadCount();
-        
-        if (response.code === 200 && response.data) {
-          setUnreadCount(response.data.unreadCount);
-          console.log(`✅ MainHeader: 읽지않은 알림 개수 로드 완료 - ${response.data.unreadCount}개`);
-        }
-      } catch (error) {
-        console.error('❌ MainHeader: 읽지않은 알림 개수 로드 실패:', error);
-        setUnreadCount(0); // 에러 시 0으로 설정
-      }
-    };
-
-    loadUnreadCount();
-  }, [isAuthenticated]);
-
-  // 화면 포커스 시 알림 개수 새로고침 (알림 화면에서 돌아올 때)
+  // 화면 포커스 시 알림 개수 새로고침 (알림 화면에서 돌아오는 경우에만)
   useFocusEffect(
     useCallback(() => {
-      if (isAuthenticated) {
-        const refreshUnreadCount = async () => {
-          try {
-            const response = await NotificationService.getUnreadCount();
-            if (response.code === 200 && response.data) {
-              setUnreadCount(response.data.unreadCount);
-            }
-          } catch (error) {
-            console.error('❌ MainHeader: 포커스 시 알림 개수 새로고침 실패:', error);
-          }
-        };
-        
-        refreshUnreadCount();
+      const currentRouteName = route.name;
+
+      // 알림 화면에서 돌아오는 경우 (알림을 읽었을 가능성이 높음)
+      if (isAuthenticated && previousRoute === 'Notifications') {
+        loadUnreadCount();
       }
-    }, [isAuthenticated])
+
+      // 현재 화면을 이전 화면으로 저장
+      setPreviousRoute(currentRouteName);
+    }, [isAuthenticated, route.name, previousRoute, loadUnreadCount])
   );
 
   const handleNotificationPress = () => {

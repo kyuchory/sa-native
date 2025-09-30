@@ -77,7 +77,7 @@ export type HeaderSubscribeApiResponse = ApiResponse<HeaderSubscribeResponse>;
 
 // 읽지 않은 알림 개수 조회 응답 타입
 export interface UnreadCountResponse {
-  unreadCount: number;
+  unread_count: number;
 }
 
 // 읽지 않은 알림 개수 조회 API 응답 타입

@@ -5,6 +5,11 @@ import { useAuthStore } from '../stores/authStore';
 import { AuthStackParamList } from '../types/navigation';
 // 🔧 개선된 소켓 초기화 로직으로 더 안정적인 연결 관리
 
+// 소켓 서비스 초기화
+import { initializeSocketServices } from '../utils/socketInitializer';
+// 앱 상태 감지 훅
+import { useSocketAppState } from '../hooks/useAppState';
+
 // Screens
 import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
@@ -39,7 +44,24 @@ import TabNavigator from './TabNavigator';
 const Stack = createStackNavigator<AuthStackParamList>();
 
 export default function AuthNavigator() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, tokens } = useAuthStore();
+
+  // 앱 상태 감지 및 소켓 재연결 자동 관리
+  useSocketAppState();
+
+  // 소켓 서비스 초기화 (로그인 상태 확인 후)
+  useEffect(() => {
+    if (isAuthenticated && tokens?.accessToken) {
+      console.log('🔗 로그인 확인됨, 소켓 서비스 초기화 시작...');
+
+      // 소켓 서비스 초기화 (비동기로 실행)
+      initializeSocketServices().catch(error => {
+        console.error('❌ 소켓 서비스 초기화 실패:', error);
+      });
+    } else {
+      console.log('🔐 로그인되지 않음 또는 토큰 없음 - 소켓 초기화 스킵');
+    }
+  }, [isAuthenticated, tokens?.accessToken]);
 
   return (
     <NavigationContainer>

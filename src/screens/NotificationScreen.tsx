@@ -14,6 +14,8 @@ import { CheckIcon } from '../components/CommonIcons';
 // 서비스 imports
 import { NotificationService } from '../services/notificationService';
 import { Notification } from '../types/notification';
+// 알림 store
+import { useNotificationStore, loadNotifications, markAllNotificationsAsRead, markNotificationAsRead } from '../stores/notificationStore';
 
 type NotificationNavigationProp = StackNavigationProp<AuthStackParamList, 'Notifications'>;
 
@@ -21,54 +23,24 @@ export default function NotificationScreen() {
   const navigation = useNavigation<NotificationNavigationProp>();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
-  
-  // 로컬 상태 관리
-  const [isLoading, setIsLoading] = useState(true);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+
+  // 알림 store 사용
+  const { notifications, unreadCount, isLoading, loadNotifications, markAllNotificationsAsRead, markNotificationAsRead } = useNotificationStore();
 
   // 컴포넌트 마운트 시 알림 데이터 로드
   useEffect(() => {
     const initializeNotifications = async () => {
       try {
-        setIsLoading(true);
-        await loadFromAPI();
+        await loadNotifications();
       } catch (error) {
         console.error('알림 초기화 실패:', error);
         Alert.alert('오류', '알림을 불러오는데 실패했습니다.');
-      } finally {
-        setIsLoading(false);
       }
     };
 
     initializeNotifications();
-  }, []);
+  }, [loadNotifications]);
 
-  // API에서 알림 데이터 로드
-  const loadFromAPI = async () => {
-    try {
-      const response = await NotificationService.getNotifications({
-        limit: 50,
-        offset: 0
-      });
-
-      if (response.data) {
-        // 로컬 상태에 알림 데이터 설정
-        setNotifications(response.data.notifications);
-        
-        // 읽지 않은 알림 개수 계산
-        const unreadNotifications = response.data.notifications.filter(
-          (notification: Notification) => !notification.is_read
-        );
-        setUnreadCount(unreadNotifications.length);
-        
-        console.log(`📋 알림 목록 로드 완료: ${response.data.notifications.length}개 (읽지 않음: ${unreadNotifications.length}개)`);
-      }
-    } catch (error: any) {
-      console.error('알림 API 로드 실패:', error);
-      throw error;
-    }
-  };
 
   // 모두 읽음 처리
   const handleMarkAllAsRead = async () => {
@@ -79,14 +51,8 @@ export default function NotificationScreen() {
       if (response.code === 200 && response.data) {
         console.log(`✅ 모든 알림 읽음 처리 완료: ${response.data.affectedRows}개`);
 
-        // 로컬 상태 업데이트 - 모든 알림을 읽음으로 표시
-        setNotifications(prevNotifications => 
-          prevNotifications.map(notification => ({
-            ...notification,
-            is_read: true
-          }))
-        );
-        setUnreadCount(0);
+        // Store를 통해 상태 업데이트
+        markAllNotificationsAsRead();
       } else {
         throw new Error(response.message || '알림 읽음 처리에 실패했습니다.');
       }
@@ -167,29 +133,13 @@ export default function NotificationScreen() {
         const response = await NotificationService.read([notification.id]);
 
         if (response.code === 200 && response.data) {
-          // 로컬 상태 업데이트 - 해당 알림을 읽음으로 표시
-          setNotifications(prevNotifications => 
-            prevNotifications.map(prevNotification => 
-              prevNotification.id === notification.id 
-                ? { ...prevNotification, is_read: true }
-                : prevNotification
-            )
-          );
-          
-          // 읽지 않은 알림 개수 업데이트
-          setUnreadCount(prevCount => Math.max(0, prevCount - 1));
+          // Store를 통해 상태 업데이트
+          markNotificationAsRead(notification.id);
         }
       } catch (readError) {
         console.error('알림 읽음 처리 API 실패:', readError);
         // API 실패 시에도 사용자 경험을 위해 로컬 상태만 업데이트
-        setNotifications(prevNotifications => 
-          prevNotifications.map(prevNotification => 
-            prevNotification.id === notification.id 
-              ? { ...prevNotification, is_read: true }
-              : prevNotification
-          )
-        );
-        setUnreadCount(prevCount => Math.max(0, prevCount - 1));
+        markNotificationAsRead(notification.id);
       }
     } catch (error) {
       console.error('알림 클릭 처리 실패:', error);
