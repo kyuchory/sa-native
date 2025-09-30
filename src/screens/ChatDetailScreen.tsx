@@ -637,7 +637,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   messagesList: {
     flex: 1,
     backgroundColor: colors.GRAY_50,
-    paddingHorizontal: SPACING.SM,
+    paddingHorizontal: SPACING.MD,
   },
   messagesContent: {
     paddingVertical: SPACING.MD,
@@ -660,7 +660,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   // 프로필 섹션
   profileSection: {
     width: 40,
-    marginRight: SPACING.SM,
+    marginRight: SPACING.XS,
   },
   profileImagePlaceholder: {
     width: 32,
