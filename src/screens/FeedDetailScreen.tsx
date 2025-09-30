@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, Image, Pressable, TouchableOpacity, Alert, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, Image, Pressable, TouchableOpacity, Alert, Platform, KeyboardAvoidingView, Keyboard, ActivityIndicator } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -74,6 +74,10 @@ export default function FeedDetailScreen() {
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
 
+  // 좋아요/북마크 로딩 상태
+  const [isFeedLikeLoading, setIsFeedLikeLoading] = useState(false);
+  const [isFeedBookmarkLoading, setIsFeedBookmarkLoading] = useState(false);
+
   //Zustand
   const { setShouldRefreshFeeds } = useFeedStore(); // 피드 목록 새로고침 플래그 설정용
   const { setShouldRefreshProfileFeeds } = useProfileStore(); // 프로필 플래그 설정용
@@ -127,75 +131,89 @@ export default function FeedDetailScreen() {
 
   // 피드 좋아요 토글
   const onFeedLikePress = async () => {
-    if (feed) {
-      // 낙관적 UI 업데이트
-      const originalIsLiked = feed.is_liked;
-      const originalLikeCount = feed.like_count;
+    if (isFeedLikeLoading || !feed) return; // 이미 요청 중이거나 피드가 없으면 무시
 
+    // 낙관적 UI: 즉시 상태 업데이트
+    const originalIsLiked = feed.is_liked;
+    const originalLikeCount = feed.like_count;
+    const newLikeState = !feed.is_liked;
+
+    setFeed(prev => prev ? {
+      ...prev,
+      is_liked: newLikeState,
+      like_count: newLikeState ? prev.like_count + 1 : Math.max(0, prev.like_count - 1)
+    } : null);
+    setIsFeedLikeLoading(true);
+
+    try {
+      // API 호출
+      const response = await FeedService.toggleLike(feedId);
+
+      // 서버 응답으로 최종 상태 동기화
       setFeed(prev => prev ? {
         ...prev,
-        is_liked: !prev.is_liked,
-        like_count: prev.is_liked ? prev.like_count - 1 : prev.like_count + 1
+        is_liked: response.is_liked,
+        like_count: response.like_count
       } : null);
 
-      try {
-        const response = await FeedService.toggleLike(feedId);
-        // API 응답으로 최종 상태 동기화
-        setFeed(prev => prev ? {
-          ...prev,
-          is_liked: response.is_liked,
-          like_count: response.like_count
-        } : null);
+      // 피드 목록 새로고침 플래그 설정 (좋아요 변경 반영)
+      setShouldRefreshFeeds(true);
 
-        // 피드 목록 새로고침 플래그 설정 (좋아요 변경 반영)
-        setShouldRefreshFeeds(true);
+    } catch (error) {
+      console.error('피드 좋아요 토글 실패:', error);
 
-      } catch (error) {
-        console.error('피드 좋아요 토글 실패:', error);
-        // 실패 시 원래 상태로 롤백
-        setFeed(prev => prev ? {
-          ...prev,
-          is_liked: originalIsLiked,
-          like_count: originalLikeCount
-        } : null);
-      }
+      // 실패 시 원래 상태로 롤백
+      setFeed(prev => prev ? {
+        ...prev,
+        is_liked: originalIsLiked,
+        like_count: originalLikeCount
+      } : null);
+    } finally {
+      setIsFeedLikeLoading(false);
     }
   };
 
   // 피드 북마크 토글 (좋아요 토글과 동일한 패턴)
   const onFeedBookmarkToggle = async () => {
-    if (feed) {
-      // 낙관적 UI 업데이트
-      const originalIsBookmarked = feed.is_bookmarked;
-      const originalBookmarkCount = feed.bookmark_count;
+    if (isFeedBookmarkLoading || !feed) return; // 이미 요청 중이거나 피드가 없으면 무시
 
+    // 낙관적 UI: 즉시 상태 업데이트
+    const originalIsBookmarked = feed.is_bookmarked;
+    const originalBookmarkCount = feed.bookmark_count;
+    const newBookmarkState = !feed.is_bookmarked;
+
+    setFeed(prev => prev ? {
+      ...prev,
+      is_bookmarked: newBookmarkState,
+      bookmark_count: newBookmarkState ? prev.bookmark_count + 1 : Math.max(0, prev.bookmark_count - 1)
+    } : null);
+    setIsFeedBookmarkLoading(true);
+
+    try {
+      // API 호출
+      const response = await FeedService.toggleBookmark(feedId);
+
+      // 서버 응답으로 최종 상태 동기화
       setFeed(prev => prev ? {
         ...prev,
-        is_bookmarked: !prev.is_bookmarked,
-        bookmark_count: prev.is_bookmarked ? prev.bookmark_count - 1 : prev.bookmark_count + 1
+        is_bookmarked: response.is_bookmarked,
+        bookmark_count: response.bookmark_count
       } : null);
 
-      try {
-        const response = await FeedService.toggleBookmark(feedId);
-        // API 응답으로 최종 상태 동기화
-        setFeed(prev => prev ? {
-          ...prev,
-          is_bookmarked: response.is_bookmarked,
-          bookmark_count: response.bookmark_count
-        } : null);
+      // 피드 목록 새로고침 플래그 설정 (북마크 변경 반영)
+      setShouldRefreshFeeds(true);
 
-        // 피드 목록 새로고침 플래그 설정 (북마크 변경 반영)
-        setShouldRefreshFeeds(true);
+    } catch (error) {
+      console.error('피드 북마크 토글 실패:', error);
 
-      } catch (error) {
-        console.error('피드 북마크 토글 실패:', error);
-        // 실패 시 원래 상태로 롤백
-        setFeed(prev => prev ? {
-          ...prev,
-          is_bookmarked: originalIsBookmarked,
-          bookmark_count: originalBookmarkCount
-        } : null);
-      }
+      // 실패 시 원래 상태로 롤백
+      setFeed(prev => prev ? {
+        ...prev,
+        is_bookmarked: originalIsBookmarked,
+        bookmark_count: originalBookmarkCount
+      } : null);
+    } finally {
+      setIsFeedBookmarkLoading(false);
     }
   };
 
@@ -591,10 +609,26 @@ export default function FeedDetailScreen() {
           {/* 액션 버튼들 */}
           <View style={styles.actionsContainer}>
             <View style={styles.leftActions}>
-              <Pressable style={styles.actionButton} onPress={onFeedLikePress}>
-                <HeartIcon filled={feed.is_liked} size={20} color={feed.is_liked ? colors.ERROR : colors.GRAY_600} />
+              <Pressable
+                style={styles.actionButton}
+                onPress={onFeedLikePress}
+                disabled={isFeedLikeLoading}
+              >
+                {isFeedLikeLoading ? (
+                  <ActivityIndicator size="small" color={colors.ERROR} />
+                ) : (
+                  <HeartIcon
+                    filled={feed.is_liked}
+                    size={20}
+                    color={feed.is_liked ? colors.ERROR : colors.GRAY_600}
+                  />
+                )}
               </Pressable>
-              <Text style={[styles.actionCount, feed.is_liked && { color: colors.ERROR }]}>
+              <Text style={[
+                styles.actionCount,
+                feed.is_liked && { color: colors.ERROR },
+                isFeedLikeLoading && styles.loadingText
+              ]}>
                 {feed.like_count}
               </Text>
 
@@ -606,14 +640,26 @@ export default function FeedDetailScreen() {
             </View>
 
             <View style={styles.rightActions}>
-              <TouchableOpacity style={styles.actionButton} onPress={onFeedBookmarkToggle}>
-                <BookmarkIcon
-                  filled={feed.is_bookmarked}
-                  size={20}
-                  color={feed.is_bookmarked ? colors.PRIMARY : colors.GRAY_600}
-                />
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={onFeedBookmarkToggle}
+                disabled={isFeedBookmarkLoading}
+              >
+                {isFeedBookmarkLoading ? (
+                  <ActivityIndicator size="small" color={colors.PRIMARY} />
+                ) : (
+                  <BookmarkIcon
+                    filled={feed.is_bookmarked}
+                    size={20}
+                    color={feed.is_bookmarked ? colors.PRIMARY : colors.GRAY_600}
+                  />
+                )}
               </TouchableOpacity>
-              <Text style={[styles.actionCount, feed.is_bookmarked && { color: colors.PRIMARY }]}>
+              <Text style={[
+                styles.actionCount,
+                feed.is_bookmarked && { color: colors.PRIMARY },
+                isFeedBookmarkLoading && styles.loadingText
+              ]}>
                 {feed.bookmark_count}
               </Text>
             </View>
@@ -795,6 +841,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     marginRight: SPACING.MD,
+  },
+  loadingText: {
+    opacity: 0.6,
   },
 
   // 콘텐츠 텍스트

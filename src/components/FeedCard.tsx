@@ -250,14 +250,22 @@ export default function FeedCard({
       {/* 액션 버튼들 */}
       <View style={styles.actionsContainer}>
         <View style={styles.leftActions}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleLikePress}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleLikePress}
+            disabled={isLikeLoading}
+          >
             {isLikeLoading ? (
               <ActivityIndicator size="small" color={colors.ERROR} />
             ) : (
               <HeartIcon filled={isLiked} size={20} color={isLiked ? colors.ERROR : colors.GRAY_600} />
             )}
           </TouchableOpacity>
-          <Text style={[styles.actionCount, isLiked && { color: colors.ERROR }]}>
+          <Text style={[
+            styles.actionCount,
+            isLiked && { color: colors.ERROR },
+            isLikeLoading && styles.loadingText
+          ]}>
             {likeCount}
           </Text>
 
@@ -268,7 +276,11 @@ export default function FeedCard({
         </View>
 
         <View style={styles.rightActions}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleBookmarkPress}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleBookmarkPress}
+            disabled={isBookmarkLoading}
+          >
             {isBookmarkLoading ? (
               <ActivityIndicator size="small" color={colors.PRIMARY} />
             ) : (
@@ -279,7 +291,11 @@ export default function FeedCard({
               />
             )}
           </TouchableOpacity>
-          <Text style={[styles.actionCount, isBookmarked && { color: colors.PRIMARY }]}>
+          <Text style={[
+            styles.actionCount,
+            isBookmarked && { color: colors.PRIMARY },
+            isBookmarkLoading && styles.loadingText
+          ]}>
             {bookmarkCount}
           </Text>
         </View>
@@ -374,6 +390,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     marginRight: SPACING.MD,
+  },
+  loadingText: {
+    opacity: 0.6,
   },
 
   // 콘텐츠
