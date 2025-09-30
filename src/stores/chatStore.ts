@@ -230,17 +230,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const { messages, hasMoreMessages, nextCursor } = get();
 
       if (cursor) {
-        // 이전 메시지 로드 (무한 스크롤)
+        // 이전 메시지 로드 (무한 스크롤) - inverted에서는 과거 메시지를 뒤에 추가
         set({
-          messages: [...response.messages, ...messages],
+          messages: [...messages, ...response.messages],
           hasMoreMessages: response.hasNext,
           nextCursor: response.nextCursor,
           isLoadingMessages: false
         });
       } else {
-        // 초기 로드 - 서버에서 DESC로 받았으므로 순서를 뒤집어서 저장
+        // 초기 로드 - FlatList의 inverted 속성으로 인해 순서 뒤집기 불필요
         set({
-          messages: response.messages.reverse(),
+          messages: response.messages,
           hasMoreMessages: response.hasNext,
           nextCursor: response.nextCursor,
           isLoadingMessages: false

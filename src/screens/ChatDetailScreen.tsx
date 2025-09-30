@@ -14,7 +14,7 @@ import {
   Keyboard,
   Dimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
@@ -56,9 +56,8 @@ const { height: screenHeight } = Dimensions.get('window');
 
 export default function ChatDetailScreen() {
   const { colors } = useThemeStore();
-  const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const styles = createStyles(colors, insets.bottom, keyboardHeight);
+  const styles = createStyles(colors);
 
   const navigation = useNavigation<ChatDetailScreenNavigationProp>();
   const route = useRoute<ChatDetailScreenRouteProp>();
@@ -74,6 +73,9 @@ export default function ChatDetailScreen() {
   // Chat store
   const {
     messages,
+    hasMoreMessages,
+    isLoadingMessages,
+    nextCursor,
     typingUsers,
     joinChatRoom,
     leaveChatRoom,
@@ -88,6 +90,7 @@ export default function ChatDetailScreen() {
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
 
 
@@ -102,12 +105,15 @@ export default function ChatDetailScreen() {
           return;
         }
 
+        setIsInitialLoading(true);
         // ChatStore를 통해 채팅방 참가 (히스토리 로드 포함)
         await joinChatRoom(chatRoomId);
+        setIsInitialLoading(false);
 
       } catch (error) {
         console.error('채팅방 초기화 실패:', error);
         Alert.alert('오류', '채팅방에 접속할 수 없습니다.');
+        setIsInitialLoading(false);
       }
     };
 
@@ -171,26 +177,17 @@ export default function ChatDetailScreen() {
   }, []);
 
 
-  // TODO: 더 많은 메시지 로드 (무한 스크롤) (새로 구현 예정)
+  // 더 많은 메시지 로드 (무한 스크롤)
   const loadMoreMessages = async () => {
-    // if (!hasNext || !nextCursor || isLoadingMore) return;
+    if (!hasMoreMessages || !nextCursor || isLoadingMessages) return;
 
     try {
-      // setIsLoadingMore(true);
-      // const response = await ChatService.getMessages(chatRoomId, nextCursor);
-
-      // TODO: 새 메시지를 기존 메시지 앞에 추가 (과거 메시지이므로)
-      // const newMessages = [...response.messages, ...messages];
-      // setMessages(newMessages);
-      // setHasNext(response.hasNext);
-      // setNextCursor(response.nextCursor);
-
-      // console.log('📨 더 많은 메시지 로드 완료:', response.messages.length, '개 메시지');
+      console.log('📨 이전 메시지 로드 시작...');
+      await loadMessages(chatRoomId, nextCursor);
+      console.log('📨 이전 메시지 로드 완료');
     } catch (error) {
       console.error('더 많은 메시지 로드 실패:', error);
       Alert.alert('오류', '이전 메시지를 불러오는데 실패했습니다.');
-    } finally {
-      // setIsLoadingMore(false);
     }
   };
 
@@ -310,13 +307,13 @@ export default function ChatDetailScreen() {
   // 메시지 아이템 렌더링
   const renderMessageItem = ({ item, index }: { item: Message; index: number }) => {
     const isMyMessage = item.sender.id === user?.id;
-    // 이전 메시지 확인
-    const prevMessage = index > 0 ? messages[index - 1] : null;
-    const isContinuous = isContinuousMessage(item, prevMessage);
-    // 날짜 구분자 표시
+    // inverted에서는 다음 메시지(화면상 아래쪽)를 확인해서 날짜 구분선 표시
+    const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
+    const isContinuous = isContinuousMessage(item, nextMessage);
+    // 날짜 구분자 표시 (inverted에서는 다음 메시지와 비교)
     const showDateSeparator = shouldShowDateSeparator(
-      item.created_at, 
-      prevMessage?.created_at || null
+      item.created_at,
+      nextMessage?.created_at || null
     );
 
     return (
@@ -478,7 +475,7 @@ export default function ChatDetailScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* 헤더 */}
       <CommonHeader
         title={chatRoomName}
@@ -496,50 +493,29 @@ export default function ChatDetailScreen() {
         <View style={styles.contentContainer}>
           {/* 채팅 메시지 목록 */}
           <FlatList
-            ref={flatListRef}
+            // ref={flatListRef}
             data={messages}
             renderItem={renderMessageItem}
             keyExtractor={(item) => item.id.toString()}
             style={styles.messagesList}
-            contentContainerStyle={[
-              styles.messagesContent,
-              // Android에서 키보드 높이만큼 bottom padding 추가
-              Platform.OS === 'android' && keyboardHeight > 0 && {
-                paddingBottom: keyboardHeight + SPACING.MD
-              }
-            ]}
             showsVerticalScrollIndicator={false}
+            inverted
             onContentSizeChange={() => {
-              // TODO: 로딩 상태 확인 (새로 구현 예정)
-              // if (!isInitialLoading && !isLoadingMore) {
-              //   flatListRef.current?.scrollToEnd({ animated: true });
-              // }
+              // inverted 속성으로 인해 자동으로 최신 메시지 위치로 스크롤됨
             }}
-            // TODO: 무한 스크롤 설정 (새로 구현 예정)
-            onRefresh={loadMoreMessages}
-            refreshing={false} // isLoadingMore
-            // TODO: ListHeaderComponent에 로딩 인디케이터 추가 (새로 구현 예정)
-            ListHeaderComponent={() => 
-              false ? ( // isLoadingMore
-                <View style={styles.loadingMoreContainer}>
-                  <Text style={styles.loadingMoreText}>이전 메시지를 불러오는 중...</Text>
-                </View>
-              ) : null
-            }
+            // 무한 스크롤: 스크롤을 아래로 내리면 과거 메시지 로드
+            onEndReached={loadMoreMessages}
+            onEndReachedThreshold={0.1}
+            // 로딩 인디케이터 제거 - 깔끔한 UX를 위해
             ListEmptyComponent={() => (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>
-                  {/* TODO: 로딩 상태 확인 (새로 구현 예정) */}
-                  {false ? '메시지를 불러오는 중...' : // isInitialLoading
+                  {isInitialLoading ? '메시지를 불러오는 중...' :
                    '메시지를 입력해 대화를 시작해보세요.'}
                 </Text>
               </View>
             )}
-            // 초기 로딩 중이 아닐 때만 자동 스크롤
-            maintainVisibleContentPosition={false ? { // isLoadingMore
-              minIndexForVisible: 0,
-              autoscrollToTopThreshold: 100,
-            } : undefined}
+            // inverted에서는 maintainVisibleContentPosition 불필요
           />
 
           {/* 타이핑 인디케이터 */}
@@ -627,11 +603,11 @@ export default function ChatDetailScreen() {
           },
         ]}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
-const createStyles = (colors: Record<string, string>, bottomInset: number, keyboardHeight: number) => StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.GRAY_50,
@@ -661,6 +637,7 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
   messagesList: {
     flex: 1,
     backgroundColor: colors.GRAY_50,
+    paddingHorizontal: SPACING.SM,
   },
   messagesContent: {
     paddingVertical: SPACING.MD,
@@ -771,8 +748,6 @@ const createStyles = (colors: Record<string, string>, bottomInset: number, keybo
     alignItems: 'center' as const,
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
-    // 기본 상태에서는 bottomInset 적용, 키보드 올라올 때는 동적으로 변경
-    paddingBottom: keyboardHeight > 0 ? SPACING.SM : bottomInset + SPACING.SM,
     backgroundColor: colors.WHITE,
     borderTopWidth: 1,
     borderTopColor: colors.GRAY_200,
