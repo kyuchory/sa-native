@@ -489,7 +489,7 @@ export default function ChatDetailScreen() {
 
 
           {/* 메시지 입력 영역 - 일시적으로 제거됨 */}
-          {/* <View style={[
+          <View style={[
             styles.inputContainer
           ]}>
             <TouchableOpacity style={styles.attachButton} activeOpacity={0.7}>
@@ -506,7 +506,7 @@ export default function ChatDetailScreen() {
                 multiline={true}
                 maxLength={1000}
                 returnKeyType="send"
-                onSubmitEditing={handleSendMessage}
+                // onSubmitEditing={handleSendMessage}
                 blurOnSubmit={false}
                 editable={true}
               />
@@ -517,7 +517,7 @@ export default function ChatDetailScreen() {
                 styles.sendButton,
                 inputText.trim() ? styles.sendButtonActive : styles.sendButtonInactive
               ]}
-              onPress={handleSendMessage}
+              // onPress={handleSendMessage}
               activeOpacity={0.7}
               disabled={!inputText.trim()}
             >
@@ -526,7 +526,7 @@ export default function ChatDetailScreen() {
                 color={inputText.trim() ? colors.WHITE : colors.GRAY_500}
               />
             </TouchableOpacity>
-          </View> */}
+          </View>
         </View>
       </KeyboardAvoidingView>
 
