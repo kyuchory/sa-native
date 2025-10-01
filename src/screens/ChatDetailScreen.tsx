@@ -451,14 +451,36 @@ export default function ChatDetailScreen() {
     }
   };
 
-  // 같은 발신자의 연속 메시지인지 체크
+  // 같은 발신자의 연속 메시지인지 체크 (inverted FlatList용)
   const isContinuousMessage = (currentMessage: Message, prevMessage: Message | null) => {
     if (!prevMessage) return false;
-    
+
     const isSameSender = currentMessage.sender.id === prevMessage.sender.id;
-    const isWithinTimeLimit = new Date(currentMessage.created_at).getTime() - new Date(prevMessage.created_at).getTime() < 60000; // 1분
-    
+    // inverted에서는 prevMessage가 더 최근 메시지이므로 prevMessage - currentMessage 시간 차이를 계산
+    const timeDiff = new Date(prevMessage.created_at).getTime() - new Date(currentMessage.created_at).getTime();
+    const isWithinTimeLimit = timeDiff < 60000; // 1분
+
     return isSameSender && isWithinTimeLimit && isSameDay(currentMessage.created_at, prevMessage.created_at);
+  };
+
+  // 메시지 시간 표시 여부 결정 (카카오톡 스타일, inverted FlatList용)
+  const shouldShowMessageTime = (currentMessage: Message, prevMessage: Message | null) => {
+    // 이전 메시지가 없으면 (가장 최근 메시지) 시간 표시
+    if (!prevMessage) return true;
+
+    // 이전 메시지가 다른 발신자면 시간 표시
+    if (currentMessage.sender.id !== prevMessage.sender.id) return true;
+
+    // 이전 메시지가 다른 날짜면 시간 표시
+    if (!isSameDay(currentMessage.created_at, prevMessage.created_at)) return true;
+
+    // 이전 메시지가 다른 시간대(분)면 시간 표시
+    const currentTime = new Date(currentMessage.created_at);
+    const prevTime = new Date(prevMessage.created_at);
+    const currentMinute = currentTime.getHours() * 60 + currentTime.getMinutes();
+    const prevMinute = prevTime.getHours() * 60 + prevTime.getMinutes();
+
+    return currentMinute !== prevMinute;
   };
 
   // 날짜 구분선 렌더링
@@ -477,12 +499,16 @@ export default function ChatDetailScreen() {
     const isMyMessage = item.sender.id === user?.id;
     // inverted에서는 다음 메시지(화면상 아래쪽)를 확인해서 날짜 구분선 표시
     const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
-    const isContinuous = isContinuousMessage(item, nextMessage);
+    // inverted에서는 이전 메시지(화면상 위쪽, 더 최근)를 확인해서 연속 메시지/시간 표시 판별
+    const prevMessage = index > 0 ? messages[index - 1] : null;
+    const isContinuous = isContinuousMessage(item, prevMessage);
     // 날짜 구분자 표시 (inverted에서는 다음 메시지와 비교)
     const showDateSeparator = shouldShowDateSeparator(
       item.created_at,
       nextMessage?.created_at || null
     );
+    // 시간 표시 여부 결정 (카카오톡 스타일, inverted에서는 이전 메시지와 비교)
+    const showTime = shouldShowMessageTime(item, prevMessage);
 
     return (
       <>
@@ -521,7 +547,7 @@ export default function ChatDetailScreen() {
             
             <View style={styles.messageRow}>
               {/* 내 메시지의 경우 시간이 왼쪽에 */}
-              {isMyMessage && (
+              {isMyMessage && showTime && (
                 <View style={styles.myMessageTimeContainer}>
                   <View style={styles.messageTimeContainer}>
                     <Text style={styles.messageTime}>
@@ -530,7 +556,7 @@ export default function ChatDetailScreen() {
                   </View>
                 </View>
               )}
-              
+
               {/* 메시지 말풍선 */}
               <TouchableOpacity
                 style={[
@@ -546,9 +572,9 @@ export default function ChatDetailScreen() {
                   {item.content}
                 </Text>
               </TouchableOpacity>
-              
+
               {/* 상대방 메시지의 경우 시간이 오른쪽에 */}
-              {!isMyMessage && (
+              {!isMyMessage && showTime && (
                 <Text style={styles.messageTime}>{formatMessageTime(item.created_at)}</Text>
               )}
             </View>
