@@ -256,22 +256,42 @@ export default function ChatDetailScreen() {
   // 백그라운드 복귀 처리
   useAppState({
     onForeground: async () => {
-      console.log('🚀 앱 포그라운드 복귀 (ChatDetailScreen) - 채팅 구독 복원');
+      console.log('🚀 앱 포그라운드 복귀 (ChatDetailScreen) - 채팅 구독 복원 및 메시지 동기화');
 
-      // 소켓 연결이 완료될 때까지 기다렸다가 구독 복원
-      const restoreSubscription = async () => {
+      // 소켓 연결이 완료될 때까지 기다렸다가 구독 복원 및 메시지 동기화
+      const restoreSubscriptionAndSyncMessages = async () => {
         if (socketService.isConnected && chatRoomId) {
-          console.log('🔄 포그라운드 복귀 - 채팅 구독 복원 시도');
+          console.log('🔄 포그라운드 복귀 - 채팅 구독 복원 및 메시지 동기화 시작');
+
+          // 1. 먼저 구독 복원
           await chatSocketService.subscribeToChat(chatRoomId);
+
+          // 2. 백그라운드에 있는 동안 도착한 메시지들을 동기화 (전체 재로드)
+          try {
+            console.log('📥 포그라운드 복귀 - 백그라운드 메시지 동기화 시작');
+            setIsInitialLoading(true);
+
+            const response = await ChatService.getMessages(chatRoomId);
+            setMessages(response.messages);
+            setHasMoreMessages(response.hasNext);
+            setNextCursor(response.nextCursor);
+
+            setIsInitialLoading(false);
+            console.log(`📥 백그라운드 메시지 동기화 완료: ${response.messages.length}개 메시지 로드`);
+          } catch (error) {
+            console.error('백그라운드 메시지 동기화 실패:', error);
+            setIsInitialLoading(false);
+            // 동기화 실패해도 구독은 유지됨
+          }
         } else if (!socketService.isConnected) {
           console.log('⏳ 포그라운드 복귀 - 소켓 연결 대기 중, 500ms 후 재시도');
           // 소켓 연결이 아직 안 되었으면 500ms 후 재시도
-          setTimeout(restoreSubscription, 500);
+          setTimeout(restoreSubscriptionAndSyncMessages, 500);
         }
       };
 
       // 즉시 실행 (연결되어 있으면 바로 진행)
-      restoreSubscription();
+      restoreSubscriptionAndSyncMessages();
     },
     onBackground: () => {
       console.log('😴 앱 백그라운드 진입 (ChatDetailScreen) - 채팅 구독 해제');
