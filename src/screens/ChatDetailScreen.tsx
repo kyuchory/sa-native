@@ -45,7 +45,14 @@ import { useAuthStore } from '../stores/authStore';
 // Services
 import { ChatService } from '../services/chatService';
 import { socketService } from '../services/socketService';
-import { chatSocketService } from '../services/chatSocketService';
+import {
+  chatSocketService,
+  sendMessage,
+  startTyping,
+  stopTyping,
+  onMessageEvent,
+  onTypingEvent
+} from '../services/chatSocketService';
 
 // Hooks
 import { useAppState } from '../hooks/useAppState';
@@ -84,6 +91,9 @@ export default function ChatDetailScreen() {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
+  // 타이핑 상태
+  const [typingUsers, setTypingUsers] = useState<Array<{ user_id: number; nickname: string; timestamp: number }>>([]);
+
   // 채팅 구독 상태 (chatSocketService에서 관리)
   const [subscriptionStatus, setSubscriptionStatus] = useState<{
     isSubscribed: boolean;
@@ -109,6 +119,87 @@ export default function ChatDetailScreen() {
     });
 
     return unsubscribe;
+  }, []);
+
+  // 메시지 이벤트 리스너 설정
+  useEffect(() => {
+    const unsubscribeMessage = onMessageEvent((type, data) => {
+      if (type === 'receive' && data.chat_room_id === chatRoomId) {
+        // 상대방 메시지 수신
+        const newMessage: Message = {
+          id: data.id,
+          chat_room_id: data.chat_room_id,
+          sender_id: data.sender_id,
+          content: data.content,
+          type: data.type,
+          sender: data.sender,
+          created_at: data.created_at,
+          updated_at: data.created_at,
+          mentions: data.mentions || [],
+          mention_user_ids: data.mentions?.map((m: any) => m.mentionedUserId) || []
+        };
+
+        setMessages(prev => {
+          // 중복 메시지 방지: 이미 같은 ID의 메시지가 있는지 확인
+          const existingMessageIndex = prev.findIndex(msg => msg.id === newMessage.id);
+          if (existingMessageIndex >= 0) {
+            console.warn(`중복 메시지 감지: ID ${newMessage.id} - 추가하지 않음`);
+            return prev; // 중복이면 추가하지 않음
+          }
+          return [newMessage, ...prev];
+        });
+      } else if (type === 'failed') {
+        // 메시지 전송 실패 처리
+        console.error('메시지 전송 실패:', data.error);
+        // TODO: 실패한 메시지 UI 업데이트
+      }
+    });
+
+    return unsubscribeMessage;
+  }, [chatRoomId]);
+
+  // 타이핑 이벤트 리스너 설정
+  useEffect(() => {
+    const unsubscribeTyping = onTypingEvent((data) => {
+      if (data.chat_room_id === chatRoomId && data.user_id !== user?.id) {
+        // 상대방 타이핑 상태 업데이트
+        setTypingUsers(prev => {
+          const now = Date.now();
+          if (data.is_typing) {
+            // 타이핑 시작
+            const existingIndex = prev.findIndex(u => u.user_id === data.user_id);
+            if (existingIndex >= 0) {
+              // 이미 있는 경우 timestamp만 업데이트
+              const updated = [...prev];
+              updated[existingIndex].timestamp = now;
+              return updated;
+            } else {
+              // 새로 추가
+              return [...prev, {
+                user_id: data.user_id,
+                nickname: data.nickname,
+                timestamp: now
+              }];
+            }
+          } else {
+            // 타이핑 중단
+            return prev.filter(u => u.user_id !== data.user_id);
+          }
+        });
+      }
+    });
+
+    return unsubscribeTyping;
+  }, [chatRoomId, user?.id]);
+
+  // 타이핑 상태 자동 정리 (3초 후 만료)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setTypingUsers(prev => prev.filter(u => now - u.timestamp < 3000));
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // 채팅방 초기화 - API로 메시지 로드
@@ -233,12 +324,12 @@ export default function ChatDetailScreen() {
     navigation.goBack();
   };
 
-  // 메시지 전송 핸들러 - 낙관적 UI 적용
+  // 메시지 전송 핸들러 - 실시간 소켓 전송
   const handleSendMessage = async () => {
     if (!inputText.trim() || !user) return;
 
     const messageContent = inputText.trim();
-    const tempMessageId = -Date.now() - Math.floor(Math.random() * 1000); // 음수로 임시 ID 생성
+    const tempMessageId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; // 고유 임시 ID 생성
 
     // @멘션 파싱
     const mentionRegex = /@(\w+)/g;
@@ -252,7 +343,7 @@ export default function ChatDetailScreen() {
 
     // 낙관적 UI: 임시 메시지 생성
     const optimisticMessage: Message = {
-      id: tempMessageId,
+      id: -Date.now() - Math.floor(Math.random() * 1000), // 음수 ID로 임시 표시
       chat_room_id: chatRoomId,
       sender_id: user.id,
       content: messageContent,
@@ -279,15 +370,17 @@ export default function ChatDetailScreen() {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
     }, 50);
 
-    // 실제 API 호출 없이 그냥 UI에 표시만 함
-    console.log('메시지 UI 표시:', messageContent);
+    // 실제 소켓으로 메시지 전송
+    sendMessage(tempMessageId, chatRoomId, 'text', messageContent, mentionUserIds);
+
+    // 타이핑 중단 (메시지 전송했으므로)
+    stopTyping(chatRoomId);
   };
 
-  // 타이핑 핸들러 - 일시적으로 제거됨
-  /*
   // 타이핑 시작 핸들러
   const handleTypingStart = () => {
     // 소켓으로 타이핑 시작 알림
+    startTyping(chatRoomId);
 
     // 3초 후 자동으로 타이핑 중단
     if (typingTimeoutRef.current) {
@@ -302,18 +395,30 @@ export default function ChatDetailScreen() {
   // 타이핑 중단 핸들러
   const handleTypingStop = () => {
     // 소켓으로 타이핑 중단 알림
+    stopTyping(chatRoomId);
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
     }
   };
-  */
 
-  // 입력 텍스트 변경 핸들러 - 타이핑 로직 제거됨
+  // 입력 텍스트 변경 핸들러 - 타이핑 로직 포함
   const handleInputChange = (text: string) => {
+    const hadText = inputText.length > 0;
+    const hasText = text.length > 0;
+
     setInputText(text);
-    // 타이핑 상태 관리는 제거됨
+
+    // 타이핑 상태 관리
+    if (!hadText && hasText) {
+      // 텍스트 입력 시작
+      handleTypingStart();
+    } else if (hadText && !hasText) {
+      // 텍스트 모두 삭제
+      handleTypingStop();
+    }
+    // 텍스트가 있을 때는 타이핑 상태 유지 (타이머가 알아서 처리)
   };
 
 
@@ -579,14 +684,14 @@ export default function ChatDetailScreen() {
             </View>
           )}
 
-          {/* 타이핑 인디케이터 - 일시적으로 제거됨 */}
-          {/* {typingUsers.length > 0 && (
+          {/* 타이핑 인디케이터 */}
+          {typingUsers.length > 0 && (
             <View style={styles.typingContainer}>
               <Text style={styles.typingText}>
                 {typingUsers.map(u => u.nickname).join(', ')}님이 입력 중...
               </Text>
             </View>
-          )} */}
+          )}
 
 
           {/* 메시지 입력 영역 */}

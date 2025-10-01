@@ -10,9 +10,16 @@ class ChatSocketService {
   private isSubscribing = false;
   private currentChatRoomId: number | null = null;
   private error: string | null = null;
+  private eventListenersSetup = false; // 이벤트 리스너 중복 설정 방지
 
   // 구독 상태 변경 콜백들
   private subscriptionCallbacks: Array<(status: { isSubscribed: boolean; error: string | null; chatRoomId: number | null }) => void> = [];
+
+  // 메시지 이벤트 콜백들
+  public messageCallbacks: Array<(type: 'sent' | 'receive' | 'failed', data: any) => void> = [];
+
+  // 타이핑 이벤트 콜백들
+  public typingCallbacks: Array<(data: { chat_room_id: number; user_id: number; nickname: string; is_typing: boolean }) => void> = [];
 
   constructor() {
     this.setupSocketConnectionListener();
@@ -51,12 +58,22 @@ class ChatSocketService {
 
   // 채팅 구독 이벤트 리스너 설정
   private setupSocketEventListeners() {
-    // 기존 리스너 제거
+    // 이벤트 리스너가 이미 설정되어 있는지 확인
+    if (this.eventListenersSetup) {
+      console.log('🎧 ChatSocketService: 이벤트 리스너 이미 설정됨 - 중복 설정 방지');
+      return;
+    }
+
+    console.log('🎧 ChatSocketService: 채팅 이벤트 리스너 설정 시작');
+
+    // 기존 리스너 제거 (안전하게)
     socketService.off('chat:subscribed');
     socketService.off('chat:unsubscribed');
     socketService.off('chat:subscription:status');
-
-    console.log('🎧 ChatSocketService: 채팅 이벤트 리스너 설정됨');
+    socketService.off('chat:message:sent');
+    socketService.off('chat:message:receive');
+    socketService.off('chat:message:failed');
+    socketService.off('chat:typing:status');
 
     // 구독 성공
     socketService.on('chat:subscribed', (data: { chat_room_id: number; message: string }) => {
@@ -104,6 +121,69 @@ class ChatSocketService {
         console.log(`🔍 구독 상태 확인: ${data.is_subscribed ? '구독중' : '구독안함'}`);
       }
     });
+
+    // 메시지 이벤트 리스너들
+    socketService.on('chat:message:sent', (data: {
+      temp_id: string;
+      message: {
+        id: number;
+        chat_room_id: number;
+        sender_id: number;
+        type: 'text' | 'image' | 'video';
+        content: string;
+        created_at: string;
+        sender: {
+          id: number;
+          nickname: string;
+          profile_img: string | null;
+        };
+        mentions: any[];
+      }
+    }) => {
+      console.log(`✅ 메시지 전송 성공 확인: ${data.temp_id}`);
+      this.notifyMessageCallbacks('sent', data);
+    });
+
+    socketService.on('chat:message:receive', (data: {
+      id: number;
+      chat_room_id: number;
+      sender_id: number;
+      type: 'text' | 'image' | 'video';
+      content: string;
+      created_at: string;
+      sender: {
+        id: number;
+        nickname: string;
+        profile_img: string | null;
+      };
+      mentions: any[];
+    }) => {
+      console.log(`📨 새 메시지 수신: ${data.sender.nickname} - ${data.content} (ID: ${data.id})`);
+      this.notifyMessageCallbacks('receive', data);
+    });
+
+    socketService.on('chat:message:failed', (data: {
+      temp_id: string;
+      error: string;
+    }) => {
+      console.log(`❌ 메시지 전송 실패: ${data.temp_id} - ${data.error}`);
+      this.notifyMessageCallbacks('failed', data);
+    });
+
+    // 타이핑 이벤트 리스너들
+    socketService.on('chat:typing:status', (data: {
+      chat_room_id: number;
+      user_id: number;
+      nickname: string;
+      is_typing: boolean;
+    }) => {
+      console.log(`⌨️ 타이핑 상태: ${data.nickname} - ${data.is_typing ? '입력중' : '중단'}`);
+      this.notifyTypingCallbacks(data);
+    });
+
+    // 이벤트 리스너 설정 완료 표시
+    this.eventListenersSetup = true;
+    console.log('🎧 ChatSocketService: 채팅 이벤트 리스너 설정 완료');
   }
 
 
@@ -244,6 +324,28 @@ class ChatSocketService {
     });
   }
 
+  // 메시지 콜백 알림
+  private notifyMessageCallbacks(type: 'sent' | 'receive' | 'failed', data: any) {
+    this.messageCallbacks.forEach(callback => {
+      try {
+        callback(type, data);
+      } catch (error) {
+        console.error('메시지 콜백 실행 중 에러:', error);
+      }
+    });
+  }
+
+  // 타이핑 콜백 알림
+  private notifyTypingCallbacks(data: { chat_room_id: number; user_id: number; nickname: string; is_typing: boolean }) {
+    this.typingCallbacks.forEach(callback => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error('타이핑 콜백 실행 중 에러:', error);
+      }
+    });
+  }
+
   // 특정 채팅방 구독 상태 초기화
   resetChatRoom(chatRoomId: number) {
     if (this.currentChatRoomId === chatRoomId) {
@@ -261,7 +363,10 @@ class ChatSocketService {
     this.isSubscribing = false;
     this.currentChatRoomId = null;
     this.error = null;
+    this.eventListenersSetup = false; // 이벤트 리스너 재설정 가능
     this.subscriptionCallbacks = [];
+    this.messageCallbacks = [];
+    this.typingCallbacks = [];
   }
 
   // 정리
@@ -269,6 +374,65 @@ class ChatSocketService {
     this.reset();
   }
 }
+
+// 메시지 전송
+export const sendMessage = (tempId: string, chatRoomId: number, type: 'text' | 'image' | 'video', content?: string, mentionUserIds?: number[]) => {
+  if (!socketService.isConnected) {
+    console.error('메시지 전송 실패: 소켓 연결되지 않음');
+    return;
+  }
+
+  const messageData = {
+    temp_id: tempId,
+    chat_room_id: chatRoomId,
+    type,
+    content,
+    mention_user_ids: mentionUserIds
+  };
+
+  console.log(`📤 메시지 전송: ${tempId} - ${content}`);
+  socketService.emit('chat:message:send', messageData);
+};
+
+// 타이핑 시작
+export const startTyping = (chatRoomId: number) => {
+  if (!socketService.isConnected) return;
+
+  socketService.emit('chat:typing:start', { chat_room_id: chatRoomId });
+};
+
+// 타이핑 중단
+export const stopTyping = (chatRoomId: number) => {
+  if (!socketService.isConnected) return;
+
+  socketService.emit('chat:typing:stop', { chat_room_id: chatRoomId });
+};
+
+// 메시지 이벤트 콜백 등록
+export const onMessageEvent = (callback: (type: 'sent' | 'receive' | 'failed', data: any) => void) => {
+  chatSocketService.messageCallbacks.push(callback);
+
+  // 정리 함수 반환
+  return () => {
+    const index = chatSocketService.messageCallbacks.indexOf(callback);
+    if (index > -1) {
+      chatSocketService.messageCallbacks.splice(index, 1);
+    }
+  };
+};
+
+// 타이핑 이벤트 콜백 등록
+export const onTypingEvent = (callback: (data: { chat_room_id: number; user_id: number; nickname: string; is_typing: boolean }) => void) => {
+  chatSocketService.typingCallbacks.push(callback);
+
+  // 정리 함수 반환
+  return () => {
+    const index = chatSocketService.typingCallbacks.indexOf(callback);
+    if (index > -1) {
+      chatSocketService.typingCallbacks.splice(index, 1);
+    }
+  };
+};
 
 // 싱글톤 인스턴스
 export const chatSocketService = new ChatSocketService();
