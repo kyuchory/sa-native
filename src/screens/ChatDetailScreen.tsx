@@ -161,12 +161,12 @@ export default function ChatDetailScreen() {
     navigation.goBack();
   };
 
-  // 메시지 전송 핸들러 - 일시적으로 제거됨
-  /*
+  // 메시지 전송 핸들러 - 낙관적 UI 적용
   const handleSendMessage = async () => {
     if (!inputText.trim() || !user) return;
 
     const messageContent = inputText.trim();
+    const tempMessageId = -Date.now() - Math.floor(Math.random() * 1000); // 음수로 임시 ID 생성
 
     // @멘션 파싱
     const mentionRegex = /@(\w+)/g;
@@ -178,27 +178,38 @@ export default function ChatDetailScreen() {
       // TODO: 실제 멘션 유저 ID로 변환하는 로직 추가 필요
     }
 
-    try {
-      // API로 메시지 전송
-      await ChatService.sendMessage(chatRoomId, {
-        type: 'text',
-        content: messageContent,
-        mentionUserIds
-      });
+    // 낙관적 UI: 임시 메시지 생성
+    const optimisticMessage: Message = {
+      id: tempMessageId,
+      chat_room_id: chatRoomId,
+      sender_id: user.id,
+      content: messageContent,
+      type: 'text' as const,
+      sender: {
+        id: user.id,
+        nickname: user.nickname || '',
+        profile_img: user.profile_img || null,
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      mentions: [], // 빈 멘션 배열
+      mention_user_ids: mentionUserIds,
+    };
 
-      // 입력창 초기화
-      setInputText('');
+    // 입력창 즉시 초기화
+    setInputText('');
 
-      // 스크롤 맨 아래로 이동
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    } catch (error) {
-      console.error('메시지 전송 실패:', error);
-      Alert.alert('오류', '메시지를 전송하는데 실패했습니다.');
-    }
+    // 낙관적 업데이트: 메시지 목록에 메시지 추가 (inverted이므로 맨 앞에 추가)
+    setMessages(prevMessages => [optimisticMessage, ...prevMessages]);
+
+    // 스크롤 맨 아래로 즉시 이동 (inverted이므로 맨 위로)
+    setTimeout(() => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    }, 50);
+
+    // 실제 API 호출 없이 그냥 UI에 표시만 함
+    console.log('메시지 UI 표시:', messageContent);
   };
-  */
 
   // 타이핑 핸들러 - 일시적으로 제거됨
   /*
@@ -453,7 +464,7 @@ export default function ChatDetailScreen() {
         <View style={styles.contentContainer}>
           {/* 채팅 메시지 목록 */}
           <FlatList
-            // ref={flatListRef}
+            ref={flatListRef}
             data={messages}
             renderItem={renderMessageItem}
             keyExtractor={(item) => item.id.toString()}
@@ -488,7 +499,7 @@ export default function ChatDetailScreen() {
           )} */}
 
 
-          {/* 메시지 입력 영역 - 일시적으로 제거됨 */}
+          {/* 메시지 입력 영역 */}
           <View style={[
             styles.inputContainer
           ]}>
@@ -506,7 +517,7 @@ export default function ChatDetailScreen() {
                 multiline={true}
                 maxLength={1000}
                 returnKeyType="send"
-                // onSubmitEditing={handleSendMessage}
+                onSubmitEditing={handleSendMessage}
                 blurOnSubmit={false}
                 editable={true}
               />
@@ -517,7 +528,7 @@ export default function ChatDetailScreen() {
                 styles.sendButton,
                 inputText.trim() ? styles.sendButtonActive : styles.sendButtonInactive
               ]}
-              // onPress={handleSendMessage}
+              onPress={handleSendMessage}
               activeOpacity={0.7}
               disabled={!inputText.trim()}
             >
