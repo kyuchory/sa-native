@@ -57,8 +57,6 @@ export default function PostDetailScreen() {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-
   // 상태 관리
   const [post, setPost] = useState<PostDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,23 +82,6 @@ export default function PostDetailScreen() {
       loadPostDetail();
     }, [postId])
   );
-
-
-  // 키보드 이벤트 리스너 (양쪽 플랫폼 모두 키보드 높이 추적)
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
-      setKeyboardHeight(e.endCoordinates.height);
-    });
-
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardHeight(0);
-    });
-
-    return () => {
-      keyboardDidShowListener?.remove();
-      keyboardDidHideListener?.remove();
-    };
-  }, []);
 
   // 게시물 상세 정보 로드
   const loadPostDetail = async () => {

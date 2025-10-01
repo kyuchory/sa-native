@@ -41,7 +41,6 @@ import {
 import { useThemeStore } from '../stores/themeStore';
 
 import { useAuthStore } from '../stores/authStore';
-import { useChatStore } from '../stores/chatStore';
 
 // Services
 import { ChatService } from '../services/chatService';
@@ -56,7 +55,6 @@ const { height: screenHeight } = Dimensions.get('window');
 
 export default function ChatDetailScreen() {
   const { colors } = useThemeStore();
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const styles = createStyles(colors);
 
   const navigation = useNavigation<ChatDetailScreenNavigationProp>();
@@ -70,22 +68,11 @@ export default function ChatDetailScreen() {
   // Auth store
   const { user } = useAuthStore();
 
-  // Chat store
-  const {
-    messages,
-    hasMoreMessages,
-    isLoadingMessages,
-    nextCursor,
-    typingUsers,
-    joinChatRoom,
-    leaveChatRoom,
-    sendMessage,
-    startTyping,
-    stopTyping,
-    loadMessages
-  } = useChatStore();
-
-  // 로컬 상태 (UI 관련)
+  // 로컬 상태
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [nextCursor, setNextCursor] = useState<number | null>(null);
   const [inputText, setInputText] = useState('');
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
@@ -95,7 +82,7 @@ export default function ChatDetailScreen() {
 
 
 
-  // 채팅방 참가 및 초기화
+  // 채팅방 초기화 - API로 메시지 로드
   useEffect(() => {
     const initChatRoom = async () => {
       try {
@@ -106,9 +93,15 @@ export default function ChatDetailScreen() {
         }
 
         setIsInitialLoading(true);
-        // ChatStore를 통해 채팅방 참가 (히스토리 로드 포함)
-        await joinChatRoom(chatRoomId);
+
+        // API로 초기 메시지 로드
+        const response = await ChatService.getMessages(chatRoomId);
+        setMessages(response.messages);
+        setHasMoreMessages(response.hasNext);
+        setNextCursor(response.nextCursor);
+
         setIsInitialLoading(false);
+        console.log(`📨 초기 메시지 로드 완료: ${response.messages.length}개`);
 
       } catch (error) {
         console.error('채팅방 초기화 실패:', error);
@@ -119,16 +112,13 @@ export default function ChatDetailScreen() {
 
     initChatRoom();
 
-    // 클린업: 채팅방 퇴장
+    // 타이핑 타이머 클린업
     return () => {
-      leaveChatRoom();
-
-      // 타이핑 타이머 클린업
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
     };
-  }, [chatRoomId, user?.id, navigation, joinChatRoom, leaveChatRoom]);
+  }, [chatRoomId, user?.id, navigation]);
 
   // TODO: 컴포넌트 마운트 시 스크롤을 맨 아래로 (새로 구현 예정)
   // useEffect(() => {
@@ -139,54 +129,27 @@ export default function ChatDetailScreen() {
   //   }
   // }, [messages.length]);
 
-  // 키보드 이벤트 리스너 (플랫폼별 최적화)
-  useEffect(() => {
-    let keyboardDidShowListener: any;
-    let keyboardDidHideListener: any;
-
-    if (Platform.OS === 'android') {
-      keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
-        setKeyboardHeight(e.endCoordinates.height);
-        // 키보드가 올라왔을 때 스크롤을 맨 아래로
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
-      });
-
-      keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-        setKeyboardHeight(0);
-      });
-    } else {
-      // iOS는 KeyboardAvoidingView가 처리하므로 키보드 높이 추적
-      keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
-        setKeyboardHeight(e.endCoordinates.height);
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
-      });
-
-      keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-        setKeyboardHeight(0);
-      });
-    }
-
-    return () => {
-      keyboardDidShowListener?.remove();
-      keyboardDidHideListener?.remove();
-    };
-  }, []);
-
 
   // 더 많은 메시지 로드 (무한 스크롤)
   const loadMoreMessages = async () => {
     if (!hasMoreMessages || !nextCursor || isLoadingMessages) return;
 
     try {
+      setIsLoadingMessages(true);
       console.log('📨 이전 메시지 로드 시작...');
-      await loadMessages(chatRoomId, nextCursor);
-      console.log('📨 이전 메시지 로드 완료');
+
+      const response = await ChatService.getMessages(chatRoomId, nextCursor);
+
+      // 기존 메시지에 이전 메시지 추가
+      setMessages(prevMessages => [...prevMessages, ...response.messages]);
+      setHasMoreMessages(response.hasNext);
+      setNextCursor(response.nextCursor);
+      setIsLoadingMessages(false);
+
+      console.log(`📨 이전 메시지 로드 완료: ${response.messages.length}개`);
     } catch (error) {
       console.error('더 많은 메시지 로드 실패:', error);
+      setIsLoadingMessages(false);
       Alert.alert('오류', '이전 메시지를 불러오는데 실패했습니다.');
     }
   };
@@ -198,7 +161,8 @@ export default function ChatDetailScreen() {
     navigation.goBack();
   };
 
-  // 메시지 전송 핸들러 (ChatStore 사용)
+  // 메시지 전송 핸들러 - 일시적으로 제거됨
+  /*
   const handleSendMessage = async () => {
     if (!inputText.trim() || !user) return;
 
@@ -215,10 +179,8 @@ export default function ChatDetailScreen() {
     }
 
     try {
-      // ChatStore의 sendMessage 사용
-      await sendMessage({
-        chatRoomId,
-        tempId: `temp_${Date.now()}_${Math.random()}`,
+      // API로 메시지 전송
+      await ChatService.sendMessage(chatRoomId, {
         type: 'text',
         content: messageContent,
         mentionUserIds
@@ -236,10 +198,13 @@ export default function ChatDetailScreen() {
       Alert.alert('오류', '메시지를 전송하는데 실패했습니다.');
     }
   };
+  */
 
-  // 타이핑 시작 핸들러 (ChatStore 사용)
+  // 타이핑 핸들러 - 일시적으로 제거됨
+  /*
+  // 타이핑 시작 핸들러
   const handleTypingStart = () => {
-    startTyping();
+    // 소켓으로 타이핑 시작 알림
 
     // 3초 후 자동으로 타이핑 중단
     if (typingTimeoutRef.current) {
@@ -251,26 +216,21 @@ export default function ChatDetailScreen() {
     }, 3000);
   };
 
-  // 타이핑 중단 핸들러 (ChatStore 사용)
+  // 타이핑 중단 핸들러
   const handleTypingStop = () => {
-    stopTyping();
+    // 소켓으로 타이핑 중단 알림
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
     }
   };
+  */
 
-  // 입력 텍스트 변경 핸들러
+  // 입력 텍스트 변경 핸들러 - 타이핑 로직 제거됨
   const handleInputChange = (text: string) => {
     setInputText(text);
-
-    // 타이핑 상태 관리
-    if (text.trim()) {
-      handleTypingStart();
-    } else {
-      handleTypingStop();
-    }
+    // 타이핑 상태 관리는 제거됨
   };
 
 
@@ -518,26 +478,19 @@ export default function ChatDetailScreen() {
             // inverted에서는 maintainVisibleContentPosition 불필요
           />
 
-          {/* 타이핑 인디케이터 */}
-          {typingUsers.length > 0 && (
+          {/* 타이핑 인디케이터 - 일시적으로 제거됨 */}
+          {/* {typingUsers.length > 0 && (
             <View style={styles.typingContainer}>
               <Text style={styles.typingText}>
                 {typingUsers.map(u => u.nickname).join(', ')}님이 입력 중...
               </Text>
             </View>
-          )}
+          )} */}
 
 
-          {/* 메시지 입력 영역 */}
-          <View style={[
-            styles.inputContainer,
-            // 플랫폼별 키보드 대응
-            Platform.OS === 'android' && keyboardHeight > 0 && {
-              paddingBottom: SPACING.SM
-            },
-            Platform.OS === 'ios' && keyboardHeight > 0 && {
-              paddingBottom: SPACING.SM // iOS에서 키보드 올라올 때 insets 제거
-            }
+          {/* 메시지 입력 영역 - 일시적으로 제거됨 */}
+          {/* <View style={[
+            styles.inputContainer
           ]}>
             <TouchableOpacity style={styles.attachButton} activeOpacity={0.7}>
               <PlusCircleIcon size={24} color={colors.GRAY_700} />
@@ -573,7 +526,7 @@ export default function ChatDetailScreen() {
                 color={inputText.trim() ? colors.WHITE : colors.GRAY_500}
               />
             </TouchableOpacity>
-          </View>
+          </View> */}
         </View>
       </KeyboardAvoidingView>
 
