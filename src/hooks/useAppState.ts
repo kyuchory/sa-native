@@ -28,7 +28,7 @@ export const useAppState = (options: UseAppStateOptions = {}) => {
 
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
-      console.log(`📱 앱 상태 변경: ${appState.current} → ${nextAppState}`);
+      console.log(`📱 앱 상태 변경(chatdetailscreen): ${appState.current} → ${nextAppState}`);
 
       if (appState.current === 'background' && nextAppState === 'active') {
         // 백그라운드 → 포그라운드 (앱 활성화)
@@ -72,7 +72,7 @@ export const useAppState = (options: UseAppStateOptions = {}) => {
     try {
       // 소켓 연결 상태 확인
       if (!isConnected) {
-        console.log('🔄 포그라운드 진입 - 소켓 연결이 끊어져 있음, 재연결 시도');
+        console.log('🔄 포그라운드 진입(chatdetailscreen) - 소켓 연결이 끊어져 있음, 재연결 시도');
 
         // 소켓 재연결 시도
         await connect();

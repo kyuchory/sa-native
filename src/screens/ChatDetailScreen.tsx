@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
 // Components
@@ -44,6 +44,11 @@ import { useAuthStore } from '../stores/authStore';
 
 // Services
 import { ChatService } from '../services/chatService';
+import { socketService } from '../services/socketService';
+import { chatSocketService } from '../services/chatSocketService';
+
+// Hooks
+import { useAppState } from '../hooks/useAppState';
 
 // Utils
 import { formatMessageTime, isSameDay, formatMessageDate, shouldShowDateSeparator } from '../utils';
@@ -79,8 +84,32 @@ export default function ChatDetailScreen() {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
+  // 채팅 구독 상태 (chatSocketService에서 관리)
+  const [subscriptionStatus, setSubscriptionStatus] = useState<{
+    isSubscribed: boolean;
+    error: string | null;
+    chatRoomId: number | null;
+  }>({
+    isSubscribed: false,
+    error: null,
+    chatRoomId: null
+  });
 
 
+
+
+  // 구독 상태 변경 콜백 설정 (chatSocketService에서 관리)
+  useEffect(() => {
+    const unsubscribe = chatSocketService.onSubscriptionChange((status) => {
+      setSubscriptionStatus({
+        isSubscribed: status.isSubscribed,
+        error: status.error,
+        chatRoomId: status.chatRoomId
+      });
+    });
+
+    return unsubscribe;
+  }, []);
 
   // 채팅방 초기화 - API로 메시지 로드
   useEffect(() => {
@@ -119,6 +148,49 @@ export default function ChatDetailScreen() {
       }
     };
   }, [chatRoomId, user?.id, navigation]);
+
+  // 화면 진입/이탈 처리 (useFocusEffect)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('📍 ChatDetailScreen 포커스됨 - 채팅방 구독 시작');
+      chatSocketService.subscribeToChat(chatRoomId);
+
+      return () => {
+        console.log('📍 ChatDetailScreen 포커스 해제됨 - 채팅방 구독 해제');
+        chatSocketService.unsubscribeFromChat(chatRoomId);
+      };
+    }, [chatRoomId])
+  );
+
+  // 백그라운드 복귀 처리
+  useAppState({
+    onForeground: async () => {
+      console.log('🚀 앱 포그라운드 복귀 (ChatDetailScreen) - 채팅 구독 복원');
+
+      // 소켓 연결이 완료될 때까지 기다렸다가 구독 복원
+      const restoreSubscription = async () => {
+        if (socketService.isConnected && chatRoomId) {
+          console.log('🔄 포그라운드 복귀 - 채팅 구독 복원 시도');
+          await chatSocketService.subscribeToChat(chatRoomId);
+        } else if (!socketService.isConnected) {
+          console.log('⏳ 포그라운드 복귀 - 소켓 연결 대기 중, 500ms 후 재시도');
+          // 소켓 연결이 아직 안 되었으면 500ms 후 재시도
+          setTimeout(restoreSubscription, 500);
+        }
+      };
+
+      // 즉시 실행 (연결되어 있으면 바로 진행)
+      restoreSubscription();
+    },
+    onBackground: () => {
+      console.log('😴 앱 백그라운드 진입 (ChatDetailScreen) - 채팅 구독 해제');
+      // 백그라운드 진입 시 구독 해제
+      if (chatRoomId) {
+        chatSocketService.unsubscribeFromChat(chatRoomId);
+      }
+    },
+    enableSocketReconnection: false
+  });
 
   // TODO: 컴포넌트 마운트 시 스크롤을 맨 아래로 (새로 구현 예정)
   // useEffect(() => {
@@ -489,6 +561,24 @@ export default function ChatDetailScreen() {
             // inverted에서는 maintainVisibleContentPosition 불필요
           />
 
+          {/* 구독 상태 표시 */}
+          {subscriptionStatus.error && (
+            <View style={styles.subscriptionErrorContainer}>
+              <Text style={styles.subscriptionErrorText}>
+                {subscriptionStatus.error}
+              </Text>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={() => chatSocketService.subscribeToChat(chatRoomId)}
+                disabled={chatSocketService.subscriptionStatus.isSubscribing}
+              >
+                <Text style={styles.retryButtonText}>
+                  {chatSocketService.subscriptionStatus.isSubscribing ? '구독중...' : '재시도'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* 타이핑 인디케이터 - 일시적으로 제거됨 */}
           {/* {typingUsers.length > 0 && (
             <View style={styles.typingContainer}>
@@ -753,6 +843,35 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   sendButtonInactive: {
     backgroundColor: colors.GRAY_100,
+  },
+
+  // 구독 상태 에러 표시
+  subscriptionErrorContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.SM,
+    backgroundColor: colors.GRAY_100,
+    borderTopWidth: 1,
+    borderTopColor: colors.ERROR,
+  },
+  subscriptionErrorText: {
+    flex: 1,
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.ERROR,
+    marginRight: SPACING.SM,
+  },
+  retryButton: {
+    paddingHorizontal: SPACING.SM,
+    paddingVertical: SPACING.XS,
+    backgroundColor: colors.ERROR,
+    borderRadius: BORDER_RADIUS.SM,
+  },
+  retryButtonText: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    color: colors.WHITE,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 
   // 타이핑 인디케이터

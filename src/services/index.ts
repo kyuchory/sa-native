@@ -3,6 +3,7 @@ export * from './apiClient';
 export * from './authService';
 export * from './blockService';
 export * from './chatService';
+export * from './chatSocketService';
 export * from './feedService';
 export * from './followService';
 export * from './notificationService';
