@@ -71,14 +71,12 @@ export interface ChatRoom {
   avatar_url: string | null;
   created_at: string;
   memberCount: number;
+  unread_count: number; // 읽지 않은 메시지 개수 (API에서 제공)
   lastMessage: LastMessage | null; // null일 수 있음
 
   // 타입별 멤버 정보 (API에서 제공)
   other_user?: ChatUser; // 1:1 채팅일 때만 존재
   other_users?: ChatUser[]; // 그룹 채팅일 때만 존재 (나를 제외한 모든 멤버)
-
-  // 클라이언트 계산 필드
-  unread_count?: number; // 별도 API로 조회하거나 계산
 }
 
 // 메시지 인터페이스 (API 응답 형식)
