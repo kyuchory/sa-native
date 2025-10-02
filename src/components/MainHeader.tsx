@@ -10,6 +10,7 @@ import Svg, { Path } from 'react-native-svg';
 import { useThemeStore } from '../stores/themeStore';
 import { useAuthStore } from '../stores/authStore';
 import { useNotificationStore } from '../stores/notificationStore';
+import { useChatStore } from '../stores/chatStore';
 
 interface HeaderButton {
   key: string;
@@ -29,32 +30,41 @@ export default function MainHeader({ leftButtons = [], rightButtons = [] }: Main
   const navigation = useNavigation();
   const { isAuthenticated } = useAuthStore();
   const { unreadCount, loadUnreadCount, lastUpdated } = useNotificationStore();
+  const { unreadCount: chatUnreadCount, loadUnreadCount: loadChatUnreadCount } = useChatStore();
   const route = useRoute();
   const styles = createStyles(colors);
 
   // 이전 화면 추적을 위한 state
   const [previousRoute, setPreviousRoute] = useState<string | null>(null);
 
-  // 초기 로딩 시 읽지않은 알림 개수 로드
+  // 초기 로딩 시 읽지않은 알림 개수 및 채팅방 개수 로드
   useEffect(() => {
     if (isAuthenticated) {
       loadUnreadCount();
+      loadChatUnreadCount();
     }
-  }, [isAuthenticated, loadUnreadCount]);
+  }, [isAuthenticated, loadUnreadCount, loadChatUnreadCount]);
 
-  // 화면 포커스 시 알림 개수 새로고침 (알림 화면에서 돌아오는 경우에만)
+  // 화면 포커스 시 알림 개수 및 채팅방 개수 새로고침
   useFocusEffect(
     useCallback(() => {
       const currentRouteName = route.name;
 
-      // 알림 화면에서 돌아오는 경우 (알림을 읽었을 가능성이 높음)
-      if (isAuthenticated && previousRoute === 'Notifications') {
-        loadUnreadCount();
+      if (isAuthenticated) {
+        // 알림 화면에서 돌아오는 경우 (알림을 읽었을 가능성이 높음)
+        if (previousRoute === 'Notifications') {
+          loadUnreadCount();
+        }
+
+        // 채팅 화면에서 돌아오는 경우 (채팅을 읽었을 가능성이 높음)
+        if (previousRoute === 'Chat') {
+          loadChatUnreadCount();
+        }
       }
 
       // 현재 화면을 이전 화면으로 저장
       setPreviousRoute(currentRouteName);
-    }, [isAuthenticated, route.name, previousRoute, loadUnreadCount])
+    }, [isAuthenticated, route.name, previousRoute, loadUnreadCount, loadChatUnreadCount])
   );
 
   const handleNotificationPress = () => {
@@ -140,7 +150,17 @@ export default function MainHeader({ leftButtons = [], rightButtons = [] }: Main
               onPress={handleChatPress}
               activeOpacity={0.7}
             >
-              <ChatIcon size={26} color={colors.GRAY_600} />
+              <View style={styles.notificationContainer}>
+                <ChatIcon size={26} color={colors.GRAY_600} />
+                {/* 채팅 unread count 표시 */}
+                {chatUnreadCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
 
             {/* 사용자 정의 우측 버튼들 */}

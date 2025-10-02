@@ -168,3 +168,8 @@ export interface RegisterNoticeResponse {
   notice_id: number;
   success: boolean;
 }
+
+// 읽지 않은 채팅방 개수 응답
+export interface UnreadChatCountResponse extends ApiResponse<{
+  unread_count: number;
+}> {}

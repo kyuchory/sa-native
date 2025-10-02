@@ -9,7 +9,8 @@ import {
   ChatRoomDetail,
   ApiResponse,
   RegisterNoticeRequest,
-  RegisterNoticeResponse
+  RegisterNoticeResponse,
+  UnreadChatCountResponse
 } from '../types/chat';
 
 /**
@@ -78,5 +79,11 @@ export class ChatService {
       request
     );
     return response.data; // apiClient가 이미 data를 추출해서 반환
+  }
+
+  // 읽지 않은 채팅방 개수 조회
+  static async getUnreadChatCount(): Promise<{ unread_count: number }> {
+    const response = await apiClient.get<UnreadChatCountResponse>('/chats/unread-count');
+    return response.data; // { unread_count: number }
   }
 }
