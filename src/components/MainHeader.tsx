@@ -227,6 +227,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   // 알림 배지
   notificationContainer: {
     position: 'relative',
+    height: 26, // 아이콘 최대 크기(26px)를 기준으로 통일
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   badge: {
     position: 'absolute',
