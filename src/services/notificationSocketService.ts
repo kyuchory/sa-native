@@ -4,38 +4,27 @@ import { useNotificationStore } from '../stores/notificationStore';
 import { Notification } from '../types/notification';
 
 // 알림 서비스 클래스
+// 서버에서 자동으로 알림 구독을 처리하므로 클라이언트에서는 상태 추적 불필요
 class NotificationSocketService {
-  private isSubscribed = false;
-  private isSubscribing = false;
-  private restoredRooms: string[] = [];
-  private subscriptionCallbacks: Array<(subscribed: boolean) => void> = [];
   private notificationCallbacks: { [event: string]: Array<(...args: any[]) => void> } = {};
 
   constructor() {
     this.setupNotificationListeners();
   }
 
-  // 게터들
-  get isNotificationSubscribed(): boolean {
-    return this.isSubscribed;
+  // 게터들 (서버 자동 구독이므로 상태 추적 불필요)
+
+  // 알림 리스너 설정 (외부에서 호출 가능하도록 public)
+  public setupListeners() {
+    this.setupNotificationListeners();
   }
 
-  get isSubscribingToNotifications(): boolean {
-    return this.isSubscribing;
-  }
-
-  get notificationRestoredRooms(): string[] {
-    return [...this.restoredRooms];
-  }
-
-  // 알림 리스너 설정 (구독 시점에 매번 재설정)
+  // 알림 리스너 설정 (서버 자동 구독이므로 재연결시 재설정만)
   private setupNotificationListeners() {
-    // 기존 리스너 제거
-    socketService.off('notification:subscribed');
+
+    // 기존 리스너 제거 (알림 수신용만 유지)
     socketService.off('notification:unread_count');
     socketService.off('notification:message_badge');
-    socketService.off('notification:unsubscribed');
-    socketService.off('notification:subscription:restored');
     socketService.off('notification:post_liked');
     socketService.off('notification:feed_liked');
     socketService.off('notification:followed');
@@ -44,35 +33,6 @@ class NotificationSocketService {
     socketService.off('notification:feed_created');
     socketService.off('notification:post_created');
     socketService.off('notification:message');
-
-    // 구독 응답 (새로 설정)
-    socketService.on('notification:subscribed', (data) => {
-      console.log('✅ 알림 구독 성공');
-      this.isSubscribed = true;
-      this.isSubscribing = false;
-      this.notifySubscriptionCallbacks(true);
-    });
-
-    // 구독 해제 응답
-    socketService.on('notification:unsubscribed', (data) => {
-      console.log('🔔 알림 구독 해제:', data);
-      this.isSubscribed = false;
-      this.isSubscribing = false;
-      this.restoredRooms = [];
-      this.notifySubscriptionCallbacks(false);
-    });
-
-    // 구독 복원 응답 (재연결시)
-    socketService.on('notification:subscription:restored', (data) => {
-      console.log('🔄 알림 구독 복원:', data);
-      this.isSubscribed = true;
-      this.isSubscribing = false;
-      this.restoredRooms = data.restoredRooms;
-      this.notifySubscriptionCallbacks(true);
-
-      // 구독 복원 로그 추가
-      console.log(`✅ 알림 구독 복원 완료 - ${data.restoredRooms.length}개 룸 복원됨`);
-    });
 
     // 포스트 좋아요 알림 수신
     socketService.on('notification:post_liked', (data) => {
@@ -214,23 +174,6 @@ class NotificationSocketService {
       console.log('📢 메시지 알림 처리 완료');
     });
 
-    // 연결 해제시 상태 초기화
-    socketService.on('disconnect', () => {
-      this.isSubscribed = false;
-      this.isSubscribing = false;
-      this.restoredRooms = [];
-      this.notifySubscriptionCallbacks(false);
-    });
-
-    // 인증 에러시 상태 초기화
-    socketService.onError((error) => {
-      if (error.includes('인증') || error.includes('로그인')) {
-        this.isSubscribed = false;
-        this.isSubscribing = false;
-        this.restoredRooms = [];
-        this.notifySubscriptionCallbacks(false);
-      }
-    });
   }
 
   // 실시간 알림 처리 메서드
@@ -280,119 +223,7 @@ class NotificationSocketService {
     }
   }
 
-  // 알림 구독 요청 (단순화된 버전)
-  async subscribeToNotifications(): Promise<void> {
-    if (this.isSubscribed || this.isSubscribing) {
-      console.log('이미 알림을 구독중이거나 구독되어 있습니다.');
-      return;
-    }
 
-    // 소켓 연결 상태 확인 (서버 응답을 받았으므로 연결됨으로 간주)
-    console.log('🔍 소켓 연결 상태 확인: 서버 응답 완료됨');
-    this.isSubscribing = true;
-
-    try {
-      console.log('📨 알림 구독 요청 중...');
-
-      // 이미 구독중인지 확인
-      if (this.isSubscribed) {
-        console.log('✅ 이미 알림이 구독되어 있음');
-        return;
-      }
-
-      // 구독 요청 전에 이벤트 리스너 재설정
-      this.setupNotificationListeners();
-
-      console.log(`📤 알림 구독 이벤트 전송 (연결됨: ${socketService.isConnected})`);
-      socketService.emit('notification:subscribe');
-
-      // 타임아웃 설정 (3초로 더 단축)
-      await this.waitForSubscriptionResponse();
-
-      console.log('✅ 알림 구독 완료');
-
-    } catch (error) {
-      this.isSubscribing = false;
-      console.error('❌ 알림 구독 실패:', error);
-      throw error;
-    }
-  }
-
-  // 알림 구독 해제
-  async unsubscribeFromNotifications(): Promise<void> {
-    if (!this.isSubscribed) {
-      console.log('알림이 구독되어 있지 않습니다.');
-      return;
-    }
-
-    this.isSubscribing = true;
-
-    try {
-      console.log('🔔 알림 구독 해제 요청 중...');
-      socketService.emit('notification:unsubscribe');
-
-      // 응답 대기 (짧은 타임아웃)
-      await this.waitForUnsubscriptionResponse();
-
-    } catch (error) {
-      this.isSubscribing = false;
-      console.error('❌ 알림 구독 해제 실패:', error);
-      throw error;
-    }
-  }
-
-  // 구독 응답 대기 (단순화된 타임아웃 로직)
-  private waitForSubscriptionResponse(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      console.log('⏳ 알림 구독 응답 대기 시작...');
-
-      const timeout = setTimeout(() => {
-        console.log('⏰ 알림 구독 응답 타임아웃 발생');
-        this.isSubscribing = false;
-        reject(new Error('알림 구독 응답 타임아웃'));
-      }, 3000); // 3초로 더 단축
-
-      const checkSubscription = () => {
-        if (this.isSubscribed && !this.isSubscribing) {
-          console.log('✅ 알림 구독 상태 확인 완료');
-          clearTimeout(timeout);
-          resolve();
-        } else if (!this.isSubscribing && !this.isSubscribed) {
-          console.log('❌ 알림 구독 거부 상태 확인');
-          clearTimeout(timeout);
-          reject(new Error('알림 구독이 거부되었습니다.'));
-        } else {
-          setTimeout(checkSubscription, 100);
-        }
-      };
-
-      checkSubscription();
-    });
-  }
-
-  // 구독 해제 응답 대기
-  private waitForUnsubscriptionResponse(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        this.isSubscribing = false;
-        reject(new Error('알림 구독 해제 응답 타임아웃'));
-      }, 5000);
-
-      const checkUnsubscription = () => {
-        if (!this.isSubscribed && !this.isSubscribing) {
-          clearTimeout(timeout);
-          resolve();
-        } else if (this.isSubscribing) {
-          setTimeout(checkUnsubscription, 100);
-        } else {
-          clearTimeout(timeout);
-          reject(new Error('알림 구독 해제에 실패했습니다.'));
-        }
-      };
-
-      checkUnsubscription();
-    });
-  }
 
   // 알림 이벤트 리스너 등록
   onNotification<K extends keyof ServerToClientEvents>(
@@ -447,58 +278,18 @@ class NotificationSocketService {
     }
   }
 
-  // 구독 상태 변경 콜백 등록
-  onSubscriptionChange(callback: (subscribed: boolean) => void): () => void {
-    this.subscriptionCallbacks.push(callback);
-
-    // 현재 상태 즉시 전달
-    callback(this.isSubscribed);
-
-    // 정리 함수 반환
-    return () => {
-      const index = this.subscriptionCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.subscriptionCallbacks.splice(index, 1);
-      }
-    };
-  }
-
-  // 콜백 알림 함수들
-  private notifySubscriptionCallbacks(subscribed: boolean): void {
-    this.subscriptionCallbacks.forEach(callback => {
-      try {
-        callback(subscribed);
-      } catch (error) {
-        console.error('구독 상태 콜백 실행 중 에러:', error);
-      }
-    });
-  }
-
-  // 상태 초기화
-  reset(): void {
-    this.isSubscribed = false;
-    this.isSubscribing = false;
-    this.restoredRooms = [];
-    this.removeAllNotificationListeners();
-    this.subscriptionCallbacks = [];
-  }
 
   // 정리
   destroy(): void {
-    this.reset();
+    this.removeAllNotificationListeners();
   }
-}
-
-// 싱글톤 인스턴스 생성
+}// 싱글톤 인스턴스 생성
 export const notificationSocketService = new NotificationSocketService();
 
 // 편의 함수들
-export const subscribeToNotifications = () => notificationSocketService.subscribeToNotifications();
-export const unsubscribeFromNotifications = () => notificationSocketService.unsubscribeFromNotifications();
-export const isNotificationSubscribed = () => notificationSocketService.isNotificationSubscribed;
-export const onNotificationSubscriptionChange = (callback: (subscribed: boolean) => void) =>
-  notificationSocketService.onSubscriptionChange(callback);
 export const onNotification = <K extends keyof ServerToClientEvents>(
   event: K,
   callback: ServerToClientEvents[K]
 ) => notificationSocketService.onNotification(event, callback);
+
+

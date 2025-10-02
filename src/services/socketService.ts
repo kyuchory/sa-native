@@ -15,6 +15,7 @@ class SocketService {
   // 연결 상태 콜백들
   private connectionCallbacks: Array<(connected: boolean) => void> = [];
   private errorCallbacks: Array<(error: string) => void> = [];
+  private reconnectCallbacks: Array<() => void> = [];
 
   // 게터들
   get isConnected(): boolean {
@@ -133,6 +134,7 @@ class SocketService {
       this._isConnecting = false;
       this.reconnectAttempts = 0;
       this.notifyConnectionCallbacks(true);
+      this.notifyReconnectCallbacks(); // 이벤트 리스너 재설정
     });
 
     // 재연결 실패
@@ -292,6 +294,18 @@ class SocketService {
     };
   }
 
+  // 재연결 콜백 등록
+  onReconnect(callback: () => void): () => void {
+    this.reconnectCallbacks.push(callback);
+
+    return () => {
+      const index = this.reconnectCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.reconnectCallbacks.splice(index, 1);
+      }
+    };
+  }
+
   // 콜백 알림 함수들
   private notifyConnectionCallbacks(connected: boolean): void {
     this.connectionCallbacks.forEach(callback => {
@@ -309,6 +323,16 @@ class SocketService {
         callback(error);
       } catch (error) {
         console.error('에러 콜백 실행 중 에러:', error);
+      }
+    });
+  }
+
+  private notifyReconnectCallbacks(): void {
+    this.reconnectCallbacks.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('재연결 콜백 실행 중 에러:', error);
       }
     });
   }

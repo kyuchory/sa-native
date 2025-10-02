@@ -229,24 +229,14 @@ export interface SocketConnectionState {
   reconnectAttempts: number;
 }
 
-export interface NotificationSubscriptionState {
-  isSubscribed: boolean;
-  isSubscribing: boolean;
-  restoredRooms: string[];
-  lastSubscribedAt: Date | null;
-  subscriptionError: string | null;
-}
-
-// 전체 소켓 상태
-export interface SocketState extends SocketConnectionState, NotificationSubscriptionState {
+// 전체 소켓 상태 (알림 구독은 서버에서 자동 처리하므로 관련 상태 제거)
+export interface SocketState extends SocketConnectionState {
   // 소켓 인스턴스
   socket: any; // Socket 타입은 나중에 import
 
   // 액션들
   connect: () => Promise<void>;
   disconnect: () => void;
-  subscribeToNotifications: () => Promise<void>;
-  unsubscribeFromNotifications: () => void;
 
   // 토큰 재발급 관련
   handleAuthError: () => Promise<boolean>; // true면 재연결 성공, false면 실패
