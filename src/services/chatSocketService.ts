@@ -2,15 +2,21 @@ import { socketService } from './socketService';
 
 /**
  * 채팅 소켓 서비스
- * ChatDetailScreen의 채팅 구독/해제 로직을 별도 서비스로 분리
- * notificationSocketService.ts와 유사한 패턴으로 구현
+ * 싱글톤 패턴으로 구현하여 이벤트 리스너 충돌 방지
+ * 재연결 시 자동 복원 및 안전한 구독 관리
  */
 class ChatSocketService {
+  // 싱글톤 인스턴스
+  private static instance: ChatSocketService | null = null;
+
   private isSubscribed = false;
   private isSubscribing = false;
   private currentChatRoomId: number | null = null;
   private error: string | null = null;
-  private eventListenersSetup = false; // 이벤트 리스너 중복 설정 방지
+  private eventListenersSetup = false;
+
+  // 명시적 핸들러 참조로 안전한 리스너 관리
+  private eventHandlers: { [key: string]: (...args: any[]) => void } = {};
 
   // 구독 상태 변경 콜백들
   private subscriptionCallbacks: Array<(status: { isSubscribed: boolean; error: string | null; chatRoomId: number | null }) => void> = [];
@@ -21,8 +27,35 @@ class ChatSocketService {
   // 타이핑 이벤트 콜백들
   public typingCallbacks: Array<(data: { chat_room_id: number; user_id: number; nickname: string; is_typing: boolean }) => void> = [];
 
-  constructor() {
+  private constructor() {
     this.setupSocketConnectionListener();
+    this.setupReconnectHandlers();
+  }
+
+  // 싱글톤 인스턴스 획득
+  static getInstance(): ChatSocketService {
+    if (!ChatSocketService.instance) {
+      ChatSocketService.instance = new ChatSocketService();
+    }
+    return ChatSocketService.instance;
+  }
+
+  // 재연결 핸들러 설정
+  private setupReconnectHandlers() {
+    socketService.onReconnect(() => {
+      console.log('🔄 ChatSocketService: 소켓 재연결 감지');
+      // 재연결 시 이벤트 리스너 재설정 및 구독 복원
+      this.eventListenersSetup = false; // 플래그 리셋
+      this.setupSocketEventListeners();
+
+      // 현재 채팅방이 있었다면 자동 재구독
+      if (this.currentChatRoomId) {
+        console.log(`🔄 재연결 후 채팅방 ${this.currentChatRoomId} 자동 재구독 시도`);
+        setTimeout(() => {
+          this.subscribeToChat(this.currentChatRoomId!);
+        }, 500); // 약간의 지연으로 안정화
+      }
+    });
   }
 
   // 현재 구독 상태
@@ -35,48 +68,58 @@ class ChatSocketService {
     };
   }
 
-  // 소켓 연결 상태 리스너 설정
+  // 소켓 연결 상태 리스너 설정 - 연결별 안전한 관리
   private setupSocketConnectionListener() {
-    // 소켓 연결 상태 변경 감지
+    // 소켓 연결 상태 변경 감지 (연결별로 정리된 리스너 관리)
     socketService.onConnectionChange((connected: boolean) => {
       if (connected) {
-        console.log('🔌 ChatSocketService: 소켓 연결됨, 채팅 이벤트 리스너 설정');
-        this.setupSocketEventListeners();
+        console.log('🔌 ChatSocketService: 소켓 연결됨, 채팅 이벤트 리스너 재설정');
+
+        // 🔧 새 연결 시 기존 리스너 완전 정리 후 재설정
+        this.clearAllEventListeners();
+        setTimeout(() => {
+          this.setupSocketEventListeners();
+        }, 100); // 연결 안정화 대기
+
+        // 재연결 시에만 자동 복원 수행
+        socketService.onReconnect(() => {
+          // 재연결 핸들러에서 이미 처리됨
+        });
+
       } else {
         console.log('🔌 ChatSocketService: 소켓 연결 해제됨');
-        // 연결 해제 시 상태 초기화
-        this.reset();
+        // 연결 해제 시 이벤트 리스너 정리 및 구독 상태 초기화
+        this.clearAllEventListeners();
+        this.isSubscribed = false; // 연결이 끊어지면 구독도 무효화
+        this.isSubscribing = false;
+        this.error = null;
+        this.notifySubscriptionCallbacks();
       }
     });
 
-    // 이미 연결되어 있다면 바로 이벤트 리스너 설정
+    // 초기 연결 상태에 따라 설정
     if (socketService.isConnected) {
-      console.log('🔌 ChatSocketService: 이미 소켓 연결됨, 채팅 이벤트 리스너 설정');
-      this.setupSocketEventListeners();
+      console.log('🔌 ChatSocketService: 초기 소켓 연결됨, 채팅 이벤트 리스너 설정');
+      setTimeout(() => {
+        this.setupSocketEventListeners();
+      }, 100);
     }
   }
 
-  // 채팅 구독 이벤트 리스너 설정
+  // 채팅 구독 이벤트 리스너 설정 - 명시적 핸들러 참조 사용
   private setupSocketEventListeners() {
-    // 이벤트 리스너가 이미 설정되어 있는지 확인
-    if (this.eventListenersSetup) {
-      console.log('🎧 ChatSocketService: 이벤트 리스너 이미 설정됨 - 중복 설정 방지');
-      return;
-    }
-
+    // 재연결 시에도 리스너 재설정 가능하도록 플래그 체크 하지 않음
     console.log('🎧 ChatSocketService: 채팅 이벤트 리스너 설정 시작');
 
-    // 기존 리스너 제거 (안전하게)
-    socketService.off('chat:subscribed');
-    socketService.off('chat:unsubscribed');
-    socketService.off('chat:subscription:status');
-    socketService.off('chat:message:sent');
-    socketService.off('chat:message:receive');
-    socketService.off('chat:message:failed');
-    socketService.off('chat:typing:status');
+    // 기존 핸들러 제거 (명시적 참조로 안전하게)
+    Object.keys(this.eventHandlers).forEach(eventName => {
+      const handler = this.eventHandlers[eventName];
+      socketService.off(eventName, handler);
+    });
+    this.eventHandlers = {}; // 핸들러 맵 초기화
 
-    // 구독 성공
-    socketService.on('chat:subscribed', (data: { chat_room_id: number; message: string }) => {
+    // 구독 성공 핸들러
+    this.eventHandlers['chat:subscribed'] = (data: { chat_room_id: number; message: string }) => {
       console.log(`🔍 chat:subscribed 이벤트 수신: chat_room_id=${data.chat_room_id}, currentChatRoomId=${this.currentChatRoomId}`);
       if (data.chat_room_id === this.currentChatRoomId) {
         this.isSubscribed = true;
@@ -87,10 +130,11 @@ class ChatSocketService {
       } else {
         console.log('⚠️ chat:subscribed 이벤트 무시: 채팅방 ID 불일치');
       }
-    });
+    };
+    socketService.on('chat:subscribed', this.eventHandlers['chat:subscribed']);
 
-    // 구독 해제 성공
-    socketService.on('chat:unsubscribed', (data: { chat_room_id: number; message: string }) => {
+    // 구독 해제 성공 핸들러
+    this.eventHandlers['chat:unsubscribed'] = (data: { chat_room_id: number; message: string }) => {
       console.log(`🔍 chat:unsubscribed 이벤트 수신: chat_room_id=${data.chat_room_id}, currentChatRoomId=${this.currentChatRoomId}`);
       if (data.chat_room_id === this.currentChatRoomId) {
         this.isSubscribed = false;
@@ -99,10 +143,11 @@ class ChatSocketService {
         this.notifySubscriptionCallbacks();
         console.log('✅ 채팅방 구독 해제 성공:', data.message);
       }
-    });
+    };
+    socketService.on('chat:unsubscribed', this.eventHandlers['chat:unsubscribed']);
 
-    // 구독 상태 확인 응답
-    socketService.on('chat:subscription:status', (data: {
+    // 구독 상태 확인 응답 핸들러
+    this.eventHandlers['chat:subscription:status'] = (data: {
       chat_room_id: number;
       is_subscribed: boolean;
       user_id: number
@@ -120,10 +165,11 @@ class ChatSocketService {
         this.notifySubscriptionCallbacks();
         console.log(`🔍 구독 상태 확인: ${data.is_subscribed ? '구독중' : '구독안함'}`);
       }
-    });
+    };
+    socketService.on('chat:subscription:status', this.eventHandlers['chat:subscription:status']);
 
-    // 메시지 이벤트 리스너들
-    socketService.on('chat:message:sent', (data: {
+    // 메시지 이벤트 핸들러들
+    this.eventHandlers['chat:message:sent'] = (data: {
       temp_id: string;
       message: {
         id: number;
@@ -142,9 +188,10 @@ class ChatSocketService {
     }) => {
       console.log(`✅ 메시지 전송 성공 확인: ${data.temp_id}`);
       this.notifyMessageCallbacks('sent', data);
-    });
+    };
+    socketService.on('chat:message:sent', this.eventHandlers['chat:message:sent']);
 
-    socketService.on('chat:message:receive', (data: {
+    this.eventHandlers['chat:message:receive'] = (data: {
       id: number;
       chat_room_id: number;
       sender_id: number;
@@ -160,18 +207,20 @@ class ChatSocketService {
     }) => {
       console.log(`📨 새 메시지 수신: ${data.sender.nickname} - ${data.content} (ID: ${data.id})`);
       this.notifyMessageCallbacks('receive', data);
-    });
+    };
+    socketService.on('chat:message:receive', this.eventHandlers['chat:message:receive']);
 
-    socketService.on('chat:message:failed', (data: {
+    this.eventHandlers['chat:message:failed'] = (data: {
       temp_id: string;
       error: string;
     }) => {
       console.log(`❌ 메시지 전송 실패: ${data.temp_id} - ${data.error}`);
       this.notifyMessageCallbacks('failed', data);
-    });
+    };
+    socketService.on('chat:message:failed', this.eventHandlers['chat:message:failed']);
 
-    // 타이핑 이벤트 리스너들
-    socketService.on('chat:typing:status', (data: {
+    // 타이핑 이벤트 핸들러
+    this.eventHandlers['chat:typing:status'] = (data: {
       chat_room_id: number;
       user_id: number;
       nickname: string;
@@ -179,7 +228,8 @@ class ChatSocketService {
     }) => {
       console.log(`⌨️ 타이핑 상태: ${data.nickname} - ${data.is_typing ? '입력중' : '중단'}`);
       this.notifyTypingCallbacks(data);
-    });
+    };
+    socketService.on('chat:typing:status', this.eventHandlers['chat:typing:status']);
 
     // 이벤트 리스너 설정 완료 표시
     this.eventListenersSetup = true;
@@ -187,46 +237,69 @@ class ChatSocketService {
   }
 
 
-  // 채팅 구독
+  // Promise 기반 채팅 구독 - 서버 상태를 신뢰하지 않고 항상 강제 구독
   async subscribeToChat(chatRoomId: number): Promise<void> {
-    if (this.isSubscribed && this.currentChatRoomId === chatRoomId) {
-      console.log('✅ 이미 해당 채팅방 구독중');
-      return;
-    }
+    return new Promise((resolve, reject) => {
+      // 🚨 키 포인트: 클라이언트 캐시 상태를 무시하고 항상 서버에 구독 시도
+      console.log(`📍 채팅방 ${chatRoomId} 서버로 구독 요청 (캐시 무시)`);
 
-    if (!socketService.isConnected) {
-      this.error = '소켓이 연결되지 않았습니다.';
+      // 소켓 연결 확인
+      if (!socketService.isConnected) {
+        const error = '소켓이 연결되지 않았습니다.';
+        this.error = error;
+        this.notifySubscriptionCallbacks();
+        console.warn('⚠️ 소켓이 연결되지 않아 구독을 시도할 수 없음');
+        reject(new Error(error));
+        return;
+      }
+
+      // 구독 중복 방지 (실제 진행 중인 구독만 체크)
+      if (this.isSubscribing) {
+        const error = '이미 구독 진행 중입니다.';
+        this.error = error;
+        reject(new Error(error));
+        return;
+      }
+
+      this.isSubscribing = true;
+      this.currentChatRoomId = chatRoomId;
+      this.error = null;
       this.notifySubscriptionCallbacks();
-      console.warn('⚠️ 소켓이 연결되지 않아 구독을 시도할 수 없음');
-      return;
-    }
 
-    this.isSubscribing = true;
-    this.currentChatRoomId = chatRoomId;
-    this.error = null;
-    this.notifySubscriptionCallbacks();
-
-    try {
-      console.log(`📍 채팅방 ${chatRoomId} 구독 시도`);
-
-      socketService.emit('chat:subscribe', { chat_room_id: chatRoomId });
-
-      // 타임아웃 처리
-      setTimeout(() => {
+      // 타임아웃 설정
+      const timeout = setTimeout(() => {
         if (this.isSubscribing) {
           this.isSubscribing = false;
-          this.error = '구독 응답 타임아웃 - 재시도해주세요';
+          this.error = '구독 응답 타임아웃';
           this.notifySubscriptionCallbacks();
           console.warn('⏰ 채팅방 구독 타임아웃');
+          reject(new Error('구독 응답 타임아웃'));
         }
       }, 5000);
 
-    } catch (error) {
-      this.isSubscribing = false;
-      this.error = '채팅방 구독에 실패했습니다.';
-      this.notifySubscriptionCallbacks();
-      console.error('❌ 채팅방 구독 실패:', error);
-    }
+      // 일회성 이벤트 핸들러 설정 - 구독 성공 대기
+      const subscriptionHandler = (data: { chat_room_id: number; message: string }) => {
+        if (data.chat_room_id === this.currentChatRoomId) {
+          clearTimeout(timeout);
+
+          // 이벤트 핸들러 제거 (일회성)
+          socketService.off('chat:subscribed', subscriptionHandler);
+
+          this.isSubscribed = true;
+          this.isSubscribing = false;
+          this.error = null;
+          this.notifySubscriptionCallbacks();
+
+          console.log(`✅ 서버에서 채팅방 ${chatRoomId} 구독 응답 수신`);
+          resolve(); // 구독 성공 시 resolve
+        }
+      };
+
+      socketService.on('chat:subscribed', subscriptionHandler);
+
+      // 🛠️ 항상 서버로 구독 요청 전송 (캐시 무시)
+      socketService.emit('chat:subscribe', { chat_room_id: chatRoomId });
+    });
   }
 
   // 채팅 구독 해제
@@ -357,13 +430,24 @@ class ChatSocketService {
     }
   }
 
+  // 모든 이벤트 리스너 제거 (연결별 정리용)
+  private clearAllEventListeners() {
+    console.log('🧹 ChatSocketService: 모든 이벤트 리스너 정리');
+    Object.keys(this.eventHandlers).forEach(eventName => {
+      const handler = this.eventHandlers[eventName];
+      socketService.off(eventName, handler);
+    });
+    this.eventHandlers = {};
+    this.eventListenersSetup = false; // 재설정 가능하도록 플래그 초기화
+  }
+
   // 전체 초기화
   reset() {
+    this.clearAllEventListeners(); // 이벤트 리스너도 함께 정리
     this.isSubscribed = false;
     this.isSubscribing = false;
     this.currentChatRoomId = null;
     this.error = null;
-    this.eventListenersSetup = false; // 이벤트 리스너 재설정 가능
     this.subscriptionCallbacks = [];
     this.messageCallbacks = [];
     this.typingCallbacks = [];
@@ -435,7 +519,7 @@ export const onTypingEvent = (callback: (data: { chat_room_id: number; user_id: 
 };
 
 // 싱글톤 인스턴스
-export const chatSocketService = new ChatSocketService();
+export const chatSocketService = ChatSocketService.getInstance();
 
 // 편의 함수들
 export const subscribeToChat = (chatRoomId: number) => chatSocketService.subscribeToChat(chatRoomId);
