@@ -81,6 +81,12 @@ export class ChatService {
     return response.data; // apiClient가 이미 data를 추출해서 반환
   }
 
+  // 채팅방 읽음 처리
+  static async markAsRead(chatRoomId: number): Promise<{ success: boolean }> {
+    const response = await apiClient.patch<ApiResponse<{ success: boolean }>>(`/chats/${chatRoomId}/read`, {});
+    return response.data; // { success: boolean }
+  }
+
   // 읽지 않은 채팅방 개수 조회
   static async getUnreadChatCount(): Promise<{ unread_count: number }> {
     const response = await apiClient.get<UnreadChatCountResponse>('/chats/unread-count');

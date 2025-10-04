@@ -223,18 +223,39 @@ export default function ChatScreen() {
   };
 
   // 채팅방 읽음 처리
-  const handleMarkAsRead = () => {
+  const handleMarkAsRead = async () => {
     if (!selectedChatRoom) return;
-    
-        setAllChatRooms(prev => 
-      prev.map(room => 
-        room.id === selectedChatRoom.id
-          ? { ...room, unread_count: 0 }
-          : room
-      )
-    );
-    console.log('읽음 처리:', selectedChatRoom.id);
-    // TODO: API 호출
+
+    // 지역 변수로 저장 (액션 시트 닫기 전에)
+    const currentSelectedChatRoom = selectedChatRoom;
+
+    try {
+      // 먼저 액션 시트 닫기 (리렌더링 방지)
+      setActionSheetVisible(false);
+      setSelectedChatRoom(null);
+
+      // API 호출로 읽음 처리
+      await ChatService.markAsRead(currentSelectedChatRoom.id);
+
+      // 로컬 상태 업데이트 (unread_count를 0으로)
+      setAllChatRooms(prev =>
+        prev.map(room =>
+          room.id === currentSelectedChatRoom.id
+            ? { ...room, unread_count: 0 }
+            : room
+        )
+      );
+
+      console.log('읽음 처리 성공:', currentSelectedChatRoom.id);
+    } catch (error: any) {
+      console.error('읽음 처리 실패:', error);
+
+      // 에러 시 액션 시트를 다시 열어서 사용자에게 알리기
+      setActionSheetVisible(true);
+      setSelectedChatRoom(currentSelectedChatRoom); // 다시 선택된 채팅방으로 설정
+
+      Alert.alert('오류', error.message || '읽음 처리에 실패했습니다.');
+    }
   };
 
   // 채팅방 음소거
@@ -467,7 +488,11 @@ export default function ChatScreen() {
             {item.unread_count && item.unread_count > 0 && !isEditMode && (
               <View style={styles.unreadBadge}>
                 <Text style={styles.unreadText}>
-                  {item.unread_count > 99 ? '99+' : item.unread_count}
+                  {(() => {
+                    const count = item.unread_count > 99 ? '99+' : String(item.unread_count);
+                    console.log(`📍 unread count for chat ${item.id}:`, count, typeof count);
+                    return count;
+                  })()}
                 </Text>
               </View>
             )}
