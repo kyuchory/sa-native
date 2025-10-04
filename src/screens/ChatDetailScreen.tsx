@@ -125,19 +125,11 @@ export default function ChatDetailScreen() {
     return unsubscribe;
   }, []);
 
-  // 메시지 이벤트 리스너 설정 - 구독 상태 검증 강화
+  // 메시지 이벤트 리스너 설정
   useEffect(() => {
     const unsubscribeMessage = onMessageEvent((type, data) => {
-      // 🔍 구독 상태 검증: 현재 구독 중인 채팅방의 메시지만 처리
+      // 상대방 메시지 수신
       if (type === 'receive' && data.chat_room_id === chatRoomId) {
-        // 구독 상태 추가 검증
-        if (!subscriptionStatus.isSubscribed ||
-            subscriptionStatus.chatRoomId !== chatRoomId) {
-          console.log(`🚫 메시지 무시: 구독 상태 불일치 (구독중: ${subscriptionStatus.isSubscribed}, 채팅방: ${subscriptionStatus.chatRoomId})`);
-          return;
-        }
-
-        // 상대방 메시지 수신
         const newMessage: Message = {
           id: data.id,
           chat_room_id: data.chat_room_id,
@@ -163,14 +155,15 @@ export default function ChatDetailScreen() {
           return [newMessage, ...prev];
         });
       } else if (type === 'failed') {
-        // 메시지 전송 실패 처리
+        // 메시지 전송 실패 처리 - UI 알림 위주
         console.error('메시지 전송 실패:', data.error);
-        // TODO: 실패한 메시지 UI 업데이트
+        Alert.alert('전송 실패', '메시지를 전송할 수 없습니다. 다시 시도해주세요.');
+        // TODO: 실패한 임시 메시지 UI에서 제거
       }
     });
 
     return unsubscribeMessage;
-  }, [chatRoomId, subscriptionStatus.isSubscribed, subscriptionStatus.chatRoomId]);
+  }, [chatRoomId]);
 
   // 타이핑 이벤트 리스너 설정
   useEffect(() => {
@@ -400,67 +393,21 @@ export default function ChatDetailScreen() {
     navigation.goBack();
   };
 
-  // 메시지 전송 핸들러 - 구독 상태 강제 검증 후 실시간 소켓 전송
+  // 메시지 전송 핸들러
   const handleSendMessage = async () => {
     if (!inputText.trim() || !user) return;
 
     const messageContent = inputText.trim();
     const tempMessageId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; // 고유 임시 ID 생성
 
-    // @멘션 파싱
+    // @멘션 파싱 (TODO: 실제 멘션 유저 ID로 변환)
     const mentionRegex = /@(\w+)/g;
     const mentionUserIds: number[] = [];
     let match;
 
     while ((match = mentionRegex.exec(messageContent)) !== null) {
       console.log('멘션 감지:', match[1]);
-      // TODO: 실제 멘션 유저 ID로 변환하는 로직 추가 필요
-    }
-
-    // 🛡️ 실시간 구독 상태 강제 검증 및 복구
-    console.log('🔍 메시지 전송 전 구독 상태 검증...');
-
-    try {
-      // 1. 서버에 직접 구독 상태 확인 (클라이언트 상태 신뢰하지 않음)
-      let subscriptionConfirmed = false;
-
-      // 2. 구독 상태가 확실하지 않으면 재시도
-      for (let attempt = 1; attempt <= 2; attempt++) {
-        console.log(`🔄 구독 확인 시도 ${attempt}/2`);
-
-        try {
-          // 구독 시도 (이미 구독되어있어도 Promise 안정적)
-          await chatSocketService.subscribeToChat(chatRoomId);
-          console.log('✅ 구독 상태 확인됨');
-          subscriptionConfirmed = true;
-          break;
-
-        } catch (error) {
-          console.warn(`⚠️ 구독 시도 ${attempt} 실패:`, error);
-
-          if (attempt === 2) {
-            console.error('❌ 모든 구독 시도 실패');
-            Alert.alert('오류', '채팅방에 연결할 수 없습니다. 잠시후 다시 시도해주세요.');
-            return; // 메시지 전송 취소
-          }
-
-          // 잠깐 대기 후 재시도
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-
-      if (!subscriptionConfirmed) {
-        console.error('❌ 구독 확인 실패로 메시지 전송 취소');
-        Alert.alert('오류', '메시지를 전송할 수 없습니다.');
-        return;
-      }
-
-      console.log('🎯 구독 상태 확정됨, 메시지 전송 시작');
-
-    } catch (error) {
-      console.error('❌ 구독 검증 프로세스 실패:', error);
-      Alert.alert('오류', '네트워크 문제를 확인하고 다시 시도해주세요.');
-      return;
+      // TODO: 실제 멘션 유저 ID 변환 로직 추가
     }
 
     // 낙관적 UI: 임시 메시지 생성
@@ -492,8 +439,8 @@ export default function ChatDetailScreen() {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
     }, 50);
 
-    // 실제 소켓으로 메시지 전송
-    console.log('📤 메시지 전송 실행');
+    // 실제 소켓으로 메시지 전송 (서버에서 검증)
+    console.log('📤 메시지 전송:', messageContent);
     sendMessage(tempMessageId, chatRoomId, 'text', messageContent, mentionUserIds);
 
     // 타이핑 중단 (메시지 전송했으므로)
