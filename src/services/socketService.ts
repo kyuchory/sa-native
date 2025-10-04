@@ -149,7 +149,6 @@ class SocketService {
     this.socket.on('connected', (data: any) => {
       console.log(`🎉 서버 연결 완료: ${data.nickname}`);
       this.serverConnected = true;
-      this.notifyConnectionCallbacks(true);
     });
 
     // 에러 처리
