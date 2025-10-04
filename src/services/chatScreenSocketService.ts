@@ -1,0 +1,205 @@
+import { socketService } from './socketService';
+
+/**
+ * ChatScreen 채팅 목록 소켓 서비스
+ * ChatDetailScreen 패턴과 동일하게 useFocusEffect + useAppState 사용
+ * 요약된 채팅 메시지 수신하여 채팅 목록 실시간 업데이트
+ */
+class ChatScreenSocketService {
+  // 싱글톤 인스턴스
+  private static instance: ChatScreenSocketService | null = null;
+
+  private isSubscribed = false;
+  private isSubscribing = false;
+  private error: string | null = null;
+
+  // 이벤트 리스너 설정 완료 플래그
+  private eventListenersSetup = false;
+
+  // 명시적 핸들러 참조로 안전한 리스너 관리
+  private eventHandlers: { [key: string]: (...args: any[]) => void } = {};
+
+  // 요약 메시지 콜백들
+  public summaryMessageCallbacks: Array<(data: {
+    chat_room_id: number;
+    last_message: {
+      id: number;
+      content: string;
+      type: 'text' | 'image' | 'video';
+      sender_id: number;
+      sender_nickname: string;
+      created_at: string;
+    };
+  }) => void> = [];
+
+  private constructor() {
+    this.setupSocketConnectionListener();
+  }
+
+  // 싱글톤 인스턴스 획득
+  static getInstance(): ChatScreenSocketService {
+    if (!ChatScreenSocketService.instance) {
+      ChatScreenSocketService.instance = new ChatScreenSocketService();
+    }
+    return ChatScreenSocketService.instance;
+  }
+
+  // 소켓 연결 상태 리스너 설정
+  private setupSocketConnectionListener() {
+    socketService.onConnectionChange((connected: boolean) => {
+      if (connected) {
+        console.log('🔌 ChatScreenSocketService: 소켓 연결됨, 요약 메시지 이벤트 리스너 설정');
+        this.setupSummaryEventListeners();
+      } else {
+        console.log('🔌 ChatScreenSocketService: 소켓 연결 해제됨');
+        this.clearAllEventListeners();
+        this.isSubscribed = false;
+        this.isSubscribing = false;
+        this.error = null;
+      }
+    });
+
+    // 초기 연결 상태에 따라 설정
+    if (socketService.isConnected) {
+      console.log('🔌 ChatScreenSocketService: 초기 소켓 연결됨, 요약 메시지 이벤트 리스너 설정');
+      this.setupSummaryEventListeners();
+    }
+  }
+
+  // 요약 채팅 메시지 이벤트 리스너 설정
+  private setupSummaryEventListeners() {
+    if (this.eventListenersSetup) return;
+
+    console.log('🎧 ChatScreenSocketService: 요약 메시지 이벤트 리스너 설정 시작');
+
+    // 기존 핸들러 제거 (명시적 참조로 안전하게)
+    Object.keys(this.eventHandlers).forEach(eventName => {
+      const handler = this.eventHandlers[eventName];
+      socketService.off(eventName, handler);
+    });
+    this.eventHandlers = {};
+
+    // 요약 메시지 이벤트 핸들러
+    this.eventHandlers['chat:summary:receive'] = (data: {
+      chat_room_id: number;
+      last_message: {
+        id: number;
+        content: string;
+        type: 'text' | 'image' | 'video';
+        sender_id: number;
+        sender_nickname: string;
+        created_at: string;
+      };
+    }) => {
+      console.log(`📨 요약 메시지 수신: 채팅방 ${data.chat_room_id} - ${data.last_message.sender_nickname} - ${data.last_message.content}`);
+      this.notifySummaryMessageCallbacks(data);
+    };
+    socketService.on('chat:summary:receive', this.eventHandlers['chat:summary:receive']);
+
+    this.eventListenersSetup = true;
+    console.log('🎧 ChatScreenSocketService: 요약 메시지 이벤트 리스너 설정 완료');
+  }
+
+  // 요약 메시지 콜백 알림
+  private notifySummaryMessageCallbacks(data: {
+    chat_room_id: number;
+    last_message: {
+      id: number;
+      content: string;
+      type: 'text' | 'image' | 'video';
+      sender_id: number;
+      sender_nickname: string;
+      created_at: string;
+    };
+  }) {
+    this.summaryMessageCallbacks.forEach(callback => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error('요약 메시지 콜백 실행 중 에러:', error);
+      }
+    });
+  }
+
+  // ChatScreen에서 사용될 구독/해제 메소드들
+  // 실제로는 서버에 구독 요청을 하지 않고, 이벤트 수신만 함
+  async subscribeToChatList(): Promise<void> {
+    // ChatScreen은 특정 채팅방을 구독하지 않고 모든 요약 메시지를 수신함
+    // 따라서 별도 구독 로직 없이 이벤트 리스너만 활성화
+    console.log('📍 ChatScreen 요약 메시지 수신 활성화');
+    this.isSubscribed = true;
+    this.error = null;
+  }
+
+  async unsubscribeFromChatList(): Promise<void> {
+    console.log('📍 ChatScreen 요약 메시지 수신 비활성화');
+    this.isSubscribed = false;
+    this.error = null;
+  }
+
+  // 요약 메시지 이벤트 콜백 등록
+  onSummaryMessage(callback: (data: {
+    chat_room_id: number;
+    last_message: {
+      id: number;
+      content: string;
+      type: 'text' | 'image' | 'video';
+      sender_id: number;
+      sender_nickname: string;
+      created_at: string;
+    };
+  }) => void): () => void {
+    this.summaryMessageCallbacks.push(callback);
+
+    // 정리 함수 반환
+    return () => {
+      const index = this.summaryMessageCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.summaryMessageCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  // 모든 이벤트 리스너 제거 (연결별 정리용)
+  private clearAllEventListeners() {
+    console.log('🧹 ChatScreenSocketService: 모든 이벤트 리스너 정리');
+    Object.keys(this.eventHandlers).forEach(eventName => {
+      const handler = this.eventHandlers[eventName];
+      socketService.off(eventName, handler);
+    });
+    this.eventHandlers = {};
+    this.eventListenersSetup = false;
+  }
+
+  // 현재 구독 상태
+  get subscriptionStatus() {
+    return {
+      isSubscribed: this.isSubscribed,
+      isSubscribing: this.isSubscribing,
+      error: this.error
+    };
+  }
+}
+
+// 요약 메시지 이벤트 콜백 등록 함수
+export const onChatSummaryMessage = (callback: (data: {
+  chat_room_id: number;
+  last_message: {
+    id: number;
+    content: string;
+    type: 'text' | 'image' | 'video';
+    sender_id: number;
+    sender_nickname: string;
+    created_at: string;
+  };
+}) => void) => {
+  const service = ChatScreenSocketService.getInstance();
+  return service.onSummaryMessage(callback);
+};
+
+// ChatScreen 구독 함수들
+export const subscribeToChatList = () => ChatScreenSocketService.getInstance().subscribeToChatList();
+export const unsubscribeFromChatList = () => ChatScreenSocketService.getInstance().unsubscribeFromChatList();
+
+// 싱글톤 인스턴스
+export const chatScreenSocketService = ChatScreenSocketService.getInstance();

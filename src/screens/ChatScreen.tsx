@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
@@ -27,9 +27,10 @@ import { CheckIcon, MuteIcon, DeleteIcon, CheckboxEmptyIcon, CheckboxFilledIcon 
 
 // Services
 import { ChatService } from '../services/chatService';
+import { chatScreenSocketService, onChatSummaryMessage } from '../services/chatScreenSocketService';
 
-// Stores
-// TODO: 소켓 관련 import는 새로 구현할 예정
+// Hooks
+import { useAppState } from '../hooks/useAppState';
 
 type ChatScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Chat'>;
 
@@ -67,7 +68,72 @@ export default function ChatScreen() {
     filterChatRooms();
   }, [selectedTab, allChatRooms]);
 
-  // TODO: 실시간 업데이트는 새로 구현할 예정
+  // 요약 메시지 이벤트 리스너 설정 - 실시간 채팅 목록 업데이트
+  useEffect(() => {
+    const unsubscribeSummaryMessage = onChatSummaryMessage((data) => {
+      const { chat_room_id, last_message } = data;
+
+      setAllChatRooms(prevRooms => {
+        return prevRooms.map(room => {
+          if (room.id === chat_room_id) {
+            // 현재 보고 있는 채팅방이 아니면 unread_count 증가 (나중에 currentChatRoomId로 비교)
+            const shouldIncreaseUnread = true; // TODO: 현재 보고 있는 채팅방 ID 비교 로직 추가 가능
+
+            return {
+              ...room,
+              lastMessage: {
+                id: last_message.id,
+                content: last_message.content,
+                type: last_message.type,
+                sender_id: last_message.sender_id,
+                created_at: last_message.created_at,
+              },
+              unread_count: shouldIncreaseUnread ? (room.unread_count || 0) + 1 : room.unread_count
+            };
+          }
+          return room;
+        });
+      });
+
+      console.log(`📨 ChatScreen 요약 메시지 처리: 채팅방 ${chat_room_id} - ${last_message.sender_nickname} - ${last_message.content}`);
+    });
+
+    return unsubscribeSummaryMessage;
+  }, []);
+
+  // 화면 진입/이탈 시 채팅 목록 구독 관리 (ChatDetailScreen과 동일한 패턴)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('📍 ChatScreen 포커스됨 - 채팅 목록 요약 메시지 수신 활성화');
+
+      // 요약 메시지 수신 활성화 (chatScreenSocketService에서 관리)
+      chatScreenSocketService.subscribeToChatList();
+
+      return () => {
+        console.log('📍 ChatScreen 포커스 해제됨 - 채팅 목록 요약 메시지 수신 비활성화');
+        chatScreenSocketService.unsubscribeFromChatList();
+      };
+    }, [])
+  );
+
+  // 백그라운드↔포그라운드 시 구독 복원 (ChatDetailScreen과 동일한 패턴)
+  useAppState({
+    onForeground: async () => {
+      console.log('🚀 ChatScreen 앱 포그라운드 - 채팅 목록 리프레시');
+
+      // 채팅 목록 다시 로드 (최신 상태 반영)
+      await loadChatRooms();
+
+      // 요약 메시지 수신 활성화
+      chatScreenSocketService.subscribeToChatList();
+    },
+    onBackground: () => {
+      console.log('😴 ChatScreen 앱 백그라운드');
+      // 백그라운드에서는 요약 메시지 수신 비활성화
+      chatScreenSocketService.unsubscribeFromChatList();
+    },
+    enableSocketReconnection: true
+  });
 
   // 채팅방 목록 로드 (API 호출)
   const loadChatRooms = async () => {
