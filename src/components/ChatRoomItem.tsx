@@ -141,8 +141,8 @@ export default function ChatRoomItem({
               chatRoom.type === 'private' ? '채팅을 시작해 보세요!' : '메시지가 없습니다.'
             )}
           </Text>
-
-          {chatRoom.unread_count && chatRoom.unread_count > 0 && !isEditMode && (
+          
+          {!isEditMode && chatRoom.unread_count > 0 && (
             <View style={styles.unreadBadge}>
               <Text style={styles.unreadText}>
                 {chatRoom.unread_count > 99 ? '99+' : chatRoom.unread_count}
