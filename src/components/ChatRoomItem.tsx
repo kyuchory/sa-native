@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { ChatRoom, ChatType } from '../types/chat';
 import { useThemeStore } from '../stores/themeStore';
+import { CheckboxEmptyIcon, CheckboxFilledIcon } from './ChatActionIcons';
 
 interface ChatRoomItemProps {
   chatRoom: ChatRoom;
@@ -105,9 +106,11 @@ export default function ChatRoomItem({
           onPress={() => onSelect?.(chatRoom.id)}
           activeOpacity={0.7}
         >
-          <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-            {isSelected && <View style={styles.checkboxInner} />}
-          </View>
+          {isSelected ? (
+            <CheckboxFilledIcon size={20} color={colors.PRIMARY} />
+          ) : (
+            <CheckboxEmptyIcon size={20} color={colors.GRAY_300} />
+          )}
         </TouchableOpacity>
       )}
 
@@ -168,25 +171,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
 
   checkboxContainer: {
     marginRight: SPACING.MD,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: colors.GRAY_300,
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-  },
-  checkboxSelected: {
-    backgroundColor: colors.PRIMARY,
-    borderColor: colors.PRIMARY,
-  },
-  checkboxInner: {
-    width: 8,
-    height: 8,
-    backgroundColor: colors.WHITE,
-    borderRadius: 2,
   },
 
   profileContainer: {

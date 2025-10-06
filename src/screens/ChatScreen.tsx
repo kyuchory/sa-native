@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  Image,
   Alert,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -261,7 +260,7 @@ export default function ChatScreen() {
   // 채팅방 음소거
   const handleMuteChat = () => {
     if (!selectedChatRoom) return;
-    
+
     Alert.alert(
       '알림 끄기',
       `"${getChatDisplayName(selectedChatRoom)}" 채팅방의 알림을 끄시겠습니까?`,
@@ -288,6 +287,8 @@ export default function ChatScreen() {
       return chatRoom.name || '그룹 채팅';
     }
   };
+
+
 
   // 편집 모드 토글
   const handleEditModeToggle = () => {
@@ -353,154 +354,9 @@ export default function ChatScreen() {
     );
   };
 
-  // 시간 포맷팅
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return '방금';
-    if (diffInMinutes < 60) return `${diffInMinutes}분 전`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}시간 전`;
-    if (diffInMinutes < 2880) return '어제';
-    return date.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
-  };
 
-  // 프로필 이미지 렌더링
-  const renderProfileImage = (chatRoom: ChatRoom) => {
-    if (chatRoom.type === 'private') {
-      // 1:1 채팅의 경우 - other_user 정보 활용
-      if (chatRoom.other_user?.avatar_url) {
-        return (
-          <Image 
-            source={{ uri: chatRoom.other_user.avatar_url }} 
-            style={styles.profileImage}
-          />
-        );
-      }
-      
-      // other_user 닉네임의 첫 글자 사용
-      const firstChar = chatRoom.other_user?.nickname?.charAt(0).toUpperCase() || '?';
-      return (
-        <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
-          <Text style={styles.profileImageText}>
-            {firstChar}
-          </Text>
-        </View>
-      );
-    } else {
-      // 그룹 채팅의 경우 그룹 프로필 이미지
-      if (chatRoom.avatar_url) {
-        return (
-          <Image 
-            source={{ uri: chatRoom.avatar_url }} 
-            style={styles.profileImage}
-          />
-        );
-      }
-      return (
-        <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
-          <Text style={styles.profileImageText}>
-            {chatRoom.name?.charAt(0).toUpperCase() || 'G'}
-          </Text>
-        </View>
-      );
-    }
-  };
 
-  // 채팅방 아이템 렌더링
-  const renderChatRoomItem = ({ item }: { item: ChatRoom }) => {
-    const displayName = getChatDisplayName(item);
-    const isSelected = selectedChatIds.has(item.id);
 
-    const handlePress = () => {
-      if (isEditMode) {
-        handleChatSelect(item.id);
-      } else {
-        handleChatRoomPress(item);
-      }
-    };
-
-    const handleLongPress = () => {
-      if (!isEditMode) {
-        handleChatRoomLongPress(item);
-      }
-    };
-
-    return (
-      <TouchableOpacity 
-        style={[
-          styles.chatRoomItem,
-          isEditMode && styles.chatRoomItemEditMode,
-          isSelected && styles.chatRoomItemSelected
-        ]}
-        onPress={handlePress}
-        onLongPress={handleLongPress}
-        activeOpacity={0.7}
-        delayLongPress={500}
-      >
-        {/* 체크박스 (편집 모드일 때만) */}
-        {isEditMode && (
-          <TouchableOpacity 
-            style={styles.checkboxContainer}
-            onPress={() => handleChatSelect(item.id)}
-            activeOpacity={0.7}
-          >
-            {isSelected ? (
-              <CheckboxFilledIcon size={20} color={colors.PRIMARY} />
-            ) : (
-              <CheckboxEmptyIcon size={20} color={colors.GRAY_400} />
-            )}
-          </TouchableOpacity>
-        )}
-
-        {/* 프로필 이미지 */}
-        <View style={styles.profileContainer}>
-          {renderProfileImage(item)}
-        </View>
-
-        {/* 채팅방 정보 */}
-        <View style={styles.chatInfo}>
-          <View style={styles.chatHeader}>
-            <Text style={styles.chatName} numberOfLines={1}>
-              {displayName}
-            </Text>
-            <Text style={styles.timeText}>
-              {item.lastMessage ? formatTime(item.lastMessage.created_at) : ''}
-            </Text>
-          </View>
-          
-          <View style={styles.chatFooter}>
-            <Text style={styles.lastMessage} numberOfLines={1}>
-              {item.lastMessage ? (
-                // 그룹 채팅의 경우 발신자 이름 포함 (sender_id로 other_users에서 찾기)
-                item.type === 'group' && item.other_users ? (
-                  (() => {
-                    const sender = item.other_users.find(user => user.id === item.lastMessage!.sender_id);
-                    return sender ? `${sender.nickname}: ${item.lastMessage.content}` : item.lastMessage.content;
-                  })()
-                ) : item.lastMessage.content
-              ) : (
-                // lastMessage가 null일 때
-                item.type === 'private' ? '채팅을 시작해 보세요!' : '메시지가 없습니다.'
-              )}
-            </Text>
-            {item.unread_count && item.unread_count > 0 && !isEditMode && (
-              <View style={styles.unreadBadge}>
-                <Text style={styles.unreadText}>
-                  {(() => {
-                    const count = item.unread_count > 99 ? '99+' : String(item.unread_count);
-                    console.log(`📍 unread count for chat ${item.id}:`, count, typeof count);
-                    return count;
-                  })()}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
 
   // 탭 렌더링
   const renderTabButton = (tabType: ChatType, label: string) => {
@@ -686,79 +542,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     marginLeft: 72, // 프로필 이미지 + 여백 너비만큼
   },
 
-  // 채팅방 아이템 관련
-  chatRoomItem: {
-    flexDirection: 'row',
-    paddingVertical: SPACING.MD,
-    alignItems: 'center',
-  },
-  profileContainer: {
-    marginRight: SPACING.MD,
-  },
-  profileImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  profileImagePlaceholder: {
-    backgroundColor: colors.GRAY_300,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileImageText: {
-    fontSize: TYPOGRAPHY.SIZE.LG,
-    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: colors.WHITE,
-  },
 
-  // 채팅 정보 관련
-  chatInfo: {
-    flex: 1,
-  },
-  chatHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.XS,
-  },
-  chatName: {
-    flex: 1,
-    fontSize: TYPOGRAPHY.SIZE.LG,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
-    marginRight: SPACING.SM,
-  },
-  timeText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
-  },
-  chatFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  lastMessage: {
-    flex: 1,
-    fontSize: TYPOGRAPHY.SIZE.MD,
-    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
-    marginRight: SPACING.SM,
-  },
-
-  // 읽지 않은 메시지 배지
-  unreadBadge: {
-    backgroundColor: colors.PRIMARY,
-    borderRadius: BORDER_RADIUS.ROUND,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.XS,
-  },
-  unreadText: {
-    fontSize: TYPOGRAPHY.SIZE.XS,
-    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: colors.WHITE,
-  },
 
   // 빈 상태
   emptyContainer: {
