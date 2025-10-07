@@ -448,7 +448,7 @@ export default function ChatScreen() {
           style={styles.chatList}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.chatListContent}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+
           ListEmptyComponent={<ChatScreenEmptyState />}
           refreshing={isLoading}
           onRefresh={loadChatRooms}
@@ -508,19 +508,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     backgroundColor: colors.GRAY_50, // BG_COLORS.PRIMARY
   },
 
-  // 로딩
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: SPACING.XL,
-  },
-  loadingText: {
-    fontSize: TYPOGRAPHY.SIZE.MD,
-    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
-    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-  },
-
  // 채팅 목록 관련
   chatList: {
     flex: 1,
@@ -528,26 +515,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   chatListContent: {
     padding: SPACING.MD,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: colors.GRAY_200,
-    marginLeft: 72, // 프로필 이미지 + 여백 너비만큼
-  },
-
-
-
-  // 빈 상태
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: SPACING.XXL,
-  },
-  emptyText: {
-    fontSize: TYPOGRAPHY.SIZE.MD,
-    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
-    textAlign: 'center',
   },
 
   // 편집 버튼

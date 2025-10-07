@@ -177,9 +177,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     marginRight: SPACING.MD,
   },
   profileImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   profileImagePlaceholder: {
     backgroundColor: colors.GRAY_300,
@@ -187,7 +187,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     alignItems: 'center' as const,
   },
   profileImageText: {
-    fontSize: TYPOGRAPHY.SIZE.LG,
+    fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
     color: colors.WHITE,
   },
