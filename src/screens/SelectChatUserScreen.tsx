@@ -19,6 +19,7 @@ import CommonHeader from '../components/CommonHeader';
 import { SearchIcon, ClearSearchIcon, UserIcon } from '../components/SearchIcons';
 import UserAvatar from '../components/UserAvatar';
 import { PlusCircleIcon } from '../components/ChatDetailIcons';
+import GroupChatNameInputModal from '../components/GroupChatNameInputModal';
 
 // Services
 import { FollowService } from '../services/followService';
@@ -49,6 +50,7 @@ export default function SelectChatUserScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUsers, setSelectedUsers] = useState<Set<FollowUser>>(new Set());
   const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
+  const [showGroupChatModal, setShowGroupChatModal] = useState(false);
 
   // 선택된 사용자 리스트 (메모이제이션)
   const selectedUserList = useMemo(() =>
@@ -115,7 +117,7 @@ export default function SelectChatUserScreen() {
   };
 
   // 채팅방 생성 핸들러 (선택된 사용자들로)
-  const handleCreateChatWithSelected = () => {
+  const handleCreateChatWithSelected = async () => {
     if (selectedUserList.length === 0) return;
 
     if (selectedUserList.length === 1) {
@@ -134,23 +136,36 @@ export default function SelectChatUserScreen() {
         ]
       );
     } else {
-      // 그룹 채팅
-      const firstUser = selectedUserList[0];
-      const remainingCount = selectedUserList.length - 1;
-      Alert.alert(
-        '채팅방 생성',
-        `${firstUser.nickname}님 외 ${remainingCount}명의 그룹 채팅방을 생성하시겠습니까?`,
-        [
-          { text: '취소', style: 'cancel' },
-          {
-            text: '생성',
-            onPress: () => {
-              Alert.alert('알림', '그룹 채팅은 아직 준비중입니다.');
-            },
-            style: 'default'
-          }
-        ]
-      );
+      // 그룹 채팅 모달 표시
+      setShowGroupChatModal(true);
+    }
+  };
+
+  // 그룹 채팅방 생성
+  const createGroupChat = async (name: string, users: FollowUser[]) => {
+    try {
+      setIsLoading(true);
+      const memberIds = users.map(user => user.id);
+      const response = await ChatService.createGroupChat(name, memberIds);
+
+      console.log('그룹 채팅방 생성 API:', response);
+
+      const { chatRoomId } = response;
+
+      // 항상 새로운 채팅방이므로 바로 이동
+      console.log('새 그룹 채팅방 생성됨:', chatRoomId);
+
+      // 채팅방으로 이동 (네비게이션 스택에서 현재 화면 교체)
+      navigation.replace('ChatDetail', {
+        chatRoomId: chatRoomId,
+        chatRoomName: name,
+        chatPartnerId: undefined, // 그룹 채팅이므로 partnerId 없음
+      });
+    } catch (error: any) {
+      console.error('그룹 채팅방 생성 실패:', error);
+      Alert.alert('오류', '그룹 채팅방 생성에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -188,6 +203,17 @@ export default function SelectChatUserScreen() {
   // 뒤로 가기 핸들러
   const handleBack = () => {
     navigation.goBack();
+  };
+
+  // 그룹 채팅 모달 닫기
+  const handleGroupChatModalClose = () => {
+    setShowGroupChatModal(false);
+  };
+
+  // 그룹 채팅 모달에서 생성
+  const handleGroupChatModalSubmit = async (chatRoomName: string) => {
+    setShowGroupChatModal(false);
+    await createGroupChat(chatRoomName, selectedUserList);
   };
 
 
@@ -300,6 +326,15 @@ export default function SelectChatUserScreen() {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
+
+      {/* 그룹 채팅 이름 입력 모달 */}
+      <GroupChatNameInputModal
+        visible={showGroupChatModal}
+        onClose={handleGroupChatModalClose}
+        onSubmit={handleGroupChatModalSubmit}
+        selectedUsersCount={selectedUserList.length}
+        firstUserName={selectedUserList.length > 0 ? selectedUserList[0].nickname : ''}
+      />
     </View>
   );
 }
