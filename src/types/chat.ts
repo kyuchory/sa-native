@@ -131,6 +131,12 @@ export interface CreateChatRoomRequest {
   profile_img?: string; // 그룹 채팅방 프로필 이미지 (옵션)
 }
 
+// 1:1 채팅방 생성 응답 (새 API 명세)
+export interface CreatePrivateChatResponse extends ApiResponse<{
+  chatRoomId: number;
+  isNewlyCreated: boolean;
+}> {}
+
 // 채팅 요청 상태
 export type ChatRequestStatus = 'pending' | 'accepted' | 'rejected';
 

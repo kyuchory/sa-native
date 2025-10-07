@@ -10,7 +10,8 @@ import {
   ApiResponse,
   RegisterNoticeRequest,
   RegisterNoticeResponse,
-  UnreadChatCountResponse
+  UnreadChatCountResponse,
+  CreatePrivateChatResponse
 } from '../types/chat';
 
 /**
@@ -25,9 +26,9 @@ export class ChatService {
   }
 
   // 1:1 채팅방 생성
-  static async createPrivateChat(userId: number): Promise<ChatRoom> {
-    const response = await apiClient.post<SingleChatRoomResponse>('/chats/private', { userId });
-    return response.data; // apiClient가 이미 data를 추출해서 반환
+  static async createPrivateChat(userId: number): Promise<{ chatRoomId: number; isNewlyCreated: boolean }> {
+    const response = await apiClient.post<CreatePrivateChatResponse>('/chats/private', { userId });
+    return response.data; // { chatRoomId, isNewlyCreated }
   }
 
   // 그룹 채팅방 생성
