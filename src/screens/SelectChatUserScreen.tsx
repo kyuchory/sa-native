@@ -29,18 +29,18 @@ import { AuthStackParamList } from '../types/navigation';
 
 // Constants
 import {
-  COLORS,
-  TEXT_COLORS,
-  BG_COLORS,
   TYPOGRAPHY,
   SPACING,
   BORDER_RADIUS,
 } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 
 type SelectChatUserScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'SelectChatUser'>;
 
 export default function SelectChatUserScreen() {
   const navigation = useNavigation<SelectChatUserScreenNavigationProp>();
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
 
   // 상태 관리
   const [followingList, setFollowingList] = useState<FollowUser[]>([]);
@@ -178,13 +178,13 @@ export default function SelectChatUserScreen() {
   // 빈 상태 렌더링
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <UserIcon size={64} color={TEXT_COLORS.DISABLED} />
+      <UserIcon size={64} color={colors.GRAY_400} />
       <Text style={styles.emptyTitle}>
         {searchQuery ? '검색 결과가 없습니다' : '팔로우 목록이 없습니다'}
       </Text>
       <Text style={styles.emptyDescription}>
-        {searchQuery 
-          ? '다른 검색어를 시도해보세요' 
+        {searchQuery
+          ? '다른 검색어를 시도해보세요'
           : '다른 사용자를 팔로우하고 채팅을 시작해보세요'
         }
       </Text>
@@ -203,11 +203,11 @@ export default function SelectChatUserScreen() {
       {/* 검색바 */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
-          <SearchIcon size={20} color={TEXT_COLORS.SECONDARY} />
+          <SearchIcon size={20} color={colors.GRAY_500} />
           <TextInput
             style={styles.searchInput}
             placeholder="팔로우 목록에서 검색"
-            placeholderTextColor={TEXT_COLORS.DISABLED}
+            placeholderTextColor={colors.GRAY_400}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoCapitalize="none"
@@ -215,7 +215,7 @@ export default function SelectChatUserScreen() {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
-              <ClearSearchIcon size={20} color={TEXT_COLORS.SECONDARY} />
+              <ClearSearchIcon size={20} color={colors.GRAY_500} />
             </TouchableOpacity>
           )}
         </View>
@@ -242,24 +242,25 @@ export default function SelectChatUserScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_COLORS.PRIMARY,
+    backgroundColor: colors.GRAY_50,
   },
 
   // 검색바
   searchContainer: {
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY_200,
+    borderBottomColor: colors.GRAY_200,
   },
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_100,
     borderRadius: BORDER_RADIUS.MD,
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
@@ -267,7 +268,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900,
     marginLeft: SPACING.SM,
     paddingVertical: 0,
   },
@@ -278,14 +279,14 @@ const styles = StyleSheet.create({
   // 사용자 목록
   userList: {
     flex: 1,
-    backgroundColor: COLORS.WHITE,
+    backgroundColor: colors.WHITE,
   },
   userListContent: {
     padding: SPACING.MD,
   },
   separator: {
     height: 1,
-    backgroundColor: COLORS.GRAY_200,
+    backgroundColor: colors.GRAY_200,
     marginLeft: 72, // 프로필 이미지 + 여백
   },
 
@@ -306,12 +307,12 @@ const styles = StyleSheet.create({
   nickname: {
     fontSize: TYPOGRAPHY.SIZE.LG,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900,
     marginBottom: SPACING.XS,
   },
   followerCount: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600,
   },
 
   // 선택 표시
@@ -325,7 +326,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: colors.PRIMARY,
   },
 
   // 빈 상태
@@ -338,13 +339,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: TYPOGRAPHY.SIZE.LG,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: TEXT_COLORS.PRIMARY,
+    color: colors.GRAY_900,
     marginTop: SPACING.MD,
     marginBottom: SPACING.SM,
   },
   emptyDescription: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -358,7 +359,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: TEXT_COLORS.SECONDARY,
+    color: colors.GRAY_600,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 });
