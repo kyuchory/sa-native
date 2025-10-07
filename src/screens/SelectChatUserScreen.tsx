@@ -18,6 +18,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import CommonHeader from '../components/CommonHeader';
 import { SearchIcon, ClearSearchIcon, UserIcon } from '../components/SearchIcons';
 import UserAvatar from '../components/UserAvatar';
+import { PlusCircleIcon } from '../components/ChatDetailIcons';
 
 // Services
 import { FollowService } from '../services/followService';
@@ -46,7 +47,14 @@ export default function SelectChatUserScreen() {
   const [followingList, setFollowingList] = useState<FollowUser[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<FollowUser | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<Set<FollowUser>>(new Set());
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
+
+  // 선택된 사용자 리스트 (메모이제이션)
+  const selectedUserList = useMemo(() =>
+    Array.from(selectedUsers),
+    [selectedUsers]
+  );
 
   // 컴포넌트 마운트 시 팔로우 목록 로드
   useEffect(() => {
@@ -85,25 +93,69 @@ export default function SelectChatUserScreen() {
     setSearchQuery('');
   };
 
-  // 사용자 선택 핸들러
+  // 사용자 선택/해제 핸들러 (다중 선택)
   const handleUserSelect = (user: FollowUser) => {
-    setSelectedUser(user);
-    Alert.alert(
-      '채팅방 생성',
-      `${user.nickname}님과 1:1 채팅방을 생성하시겠습니까?`,
-      [
-        { text: '취소', style: 'cancel', onPress: () => setSelectedUser(null) },
-        { 
-          text: '생성', 
-          onPress: () => handleCreateChat(user),
-          style: 'default'
-        }
-      ]
-    );
+    setSelectedUsers(prev => {
+      const newSet = new Set(prev);
+      const newIdsSet = new Set(selectedUserIds);
+
+      if (selectedUserIds.has(user.id)) {
+        // 선택 해제
+        newSet.delete(user);
+        newIdsSet.delete(user.id);
+      } else {
+        // 선택 추가
+        newSet.add(user);
+        newIdsSet.add(user.id);
+      }
+
+      setSelectedUserIds(newIdsSet);
+      return newSet;
+    });
   };
 
-  // 채팅방 생성 핸들러
-  const handleCreateChat = async (user: FollowUser) => {
+  // 채팅방 생성 핸들러 (선택된 사용자들로)
+  const handleCreateChatWithSelected = () => {
+    if (selectedUserList.length === 0) return;
+
+    if (selectedUserList.length === 1) {
+      // 1:1 채팅
+      const user = selectedUserList[0];
+      Alert.alert(
+        '채팅방 생성',
+        `${user.nickname}님과 1:1 채팅방을 생성하시겠습니까?`,
+        [
+          { text: '취소', style: 'cancel' },
+          {
+            text: '생성',
+            onPress: () => createPrivateChat(user),
+            style: 'default'
+          }
+        ]
+      );
+    } else {
+      // 그룹 채팅
+      const firstUser = selectedUserList[0];
+      const remainingCount = selectedUserList.length - 1;
+      Alert.alert(
+        '채팅방 생성',
+        `${firstUser.nickname}님 외 ${remainingCount}명의 그룹 채팅방을 생성하시겠습니까?`,
+        [
+          { text: '취소', style: 'cancel' },
+          {
+            text: '생성',
+            onPress: () => {
+              Alert.alert('알림', '그룹 채팅은 아직 준비중입니다.');
+            },
+            style: 'default'
+          }
+        ]
+      );
+    }
+  };
+
+  // 1:1 채팅방 생성
+  const createPrivateChat = async (user: FollowUser) => {
     try {
       setIsLoading(true);
       const response = await ChatService.createPrivateChat(user.id);
@@ -130,7 +182,6 @@ export default function SelectChatUserScreen() {
       Alert.alert('오류', '채팅방 생성에 실패했습니다.');
     } finally {
       setIsLoading(false);
-      setSelectedUser(null);
     }
   };
 
@@ -149,8 +200,8 @@ export default function SelectChatUserScreen() {
     >
       {/* 프로필 이미지 */}
       <View style={styles.profileContainer}>
-        <UserAvatar 
-          profileImg={item.profile_img} 
+        <UserAvatar
+          profileImg={item.profile_img}
           nickname={item.nickname}
           size={40}
         />
@@ -166,8 +217,8 @@ export default function SelectChatUserScreen() {
         </Text>
       </View>
 
-      {/* 선택 표시 */}
-      {selectedUser?.id === item.id && (
+      {/* 선택 표시 (다중 선택) */}
+      {selectedUserIds.has(item.id) && (
         <View style={styles.selectedIndicator}>
           <View style={styles.selectedDot} />
         </View>
@@ -198,6 +249,17 @@ export default function SelectChatUserScreen() {
         title="채팅 상대 선택"
         onBackPress={handleBack}
         showBackButton={true}
+        rightComponent={
+          selectedUserList.length > 0 ? (
+            <TouchableOpacity
+              style={styles.createButton}
+              onPress={handleCreateChatWithSelected}
+              activeOpacity={0.7}
+            >
+              <PlusCircleIcon size={18} color={colors.PRIMARY} />
+            </TouchableOpacity>
+          ) : null
+        }
       />
 
       {/* 검색바 */}
@@ -361,5 +423,17 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.MD,
     color: colors.GRAY_600,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
+
+  // 채팅 생성 버튼 (헤더에 사용)
+  createButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 20,
+    backgroundColor: colors.WHITE,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.GRAY_200,
   },
 });
