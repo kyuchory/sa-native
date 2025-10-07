@@ -73,28 +73,36 @@ export default function ChatScreen() {
       const { chat_room_id, last_message } = data;
 
       setAllChatRooms(prevRooms => {
-        return prevRooms.map(room => {
-          if (room.id === chat_room_id) {
-            // 현재 보고 있는 채팅방이 아니면 unread_count 증가 (나중에 currentChatRoomId로 비교)
-            const shouldIncreaseUnread = true; // TODO: 현재 보고 있는 채팅방 ID 비교 로직 추가 가능
+        // 업데이트할 방 찾기
+        const targetRoomIndex = prevRooms.findIndex(room => room.id === chat_room_id);
 
-            return {
-              ...room,
-              lastMessage: {
-                id: last_message.id,
-                content: last_message.content,
-                type: last_message.type,
-                sender_id: last_message.sender_id,
-                created_at: last_message.created_at,
-              },
-              unread_count: shouldIncreaseUnread ? (room.unread_count || 0) + 1 : room.unread_count
-            };
-          }
-          return room;
-        });
+        if (targetRoomIndex === -1) {
+          console.warn(`⚠️ 요약 메시지 대상 채팅방을 찾을 수 없음: ${chat_room_id}`);
+          return prevRooms;
+        }
+
+        const targetRoom = prevRooms[targetRoomIndex];
+
+        // 나머지 방들 (업데이트할 방 제외)
+        const otherRooms = prevRooms.filter(room => room.id !== chat_room_id);
+
+        // 업데이트된 방을 맨 위로 이동
+        const updatedRoom = {
+          ...targetRoom,
+          lastMessage: {
+            id: last_message.id,
+            content: last_message.content,
+            type: last_message.type,
+            sender_id: last_message.sender_id,
+            created_at: last_message.created_at,
+          },
+          unread_count: (targetRoom.unread_count || 0) + 1 // TODO: 현재 보고 있는 채팅방일 때는 증가하지 않도록 수정
+        };
+
+        return [updatedRoom, ...otherRooms];
       });
 
-      console.log(`📨 ChatScreen 요약 메시지 처리: 채팅방 ${chat_room_id} - ${last_message.sender_nickname} - ${last_message.content}`);
+      console.log(`📨 ChatScreen 요약 메시지 처리 + 재정렬: 채팅방 ${chat_room_id} → 맨 위 이동 - ${last_message.sender_nickname}`);
     });
 
     return unsubscribeSummaryMessage;
