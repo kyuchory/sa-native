@@ -11,7 +11,8 @@ import {
   RegisterNoticeRequest,
   RegisterNoticeResponse,
   UnreadChatCountResponse,
-  CreatePrivateChatResponse
+  CreatePrivateChatResponse,
+  CreateGroupChatResponse
 } from '../types/chat';
 
 /**
@@ -32,10 +33,10 @@ export class ChatService {
   }
 
   // 그룹 채팅방 생성
-  static async createGroupChat(name: string, userIds: number[], avatarUrl?: string): Promise<ChatRoom> {
-    const requestData = { name, userIds, ...(avatarUrl && { avatarUrl }) };
-    const response = await apiClient.post<SingleChatRoomResponse>('/chats/group', requestData);
-    return response.data; // apiClient가 이미 data를 추출해서 반환
+  static async createGroupChat(name: string, memberIds: number[]): Promise<{ chatRoomId: number }> {
+    const requestData = { name, memberIds };
+    const response = await apiClient.post<CreateGroupChatResponse>('/chats/group', requestData);
+    return response.data; // { chatRoomId }
   }
 
   // 채팅방 나가기

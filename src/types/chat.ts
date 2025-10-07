@@ -131,10 +131,24 @@ export interface CreateChatRoomRequest {
   profile_img?: string; // 그룹 채팅방 프로필 이미지 (옵션)
 }
 
-// 1:1 채팅방 생성 응답 (새 API 명세)
-export interface CreatePrivateChatResponse extends ApiResponse<{
+// 채팅방 생성 요청 (그룹 채팅)
+export interface CreateGroupChatRequest {
+  name: string;
+  memberIds: number[];
+}
+
+// 채팅방 생성 응답 (공통)
+export interface CreateChatResponse extends ApiResponse<{
   chatRoomId: number;
   isNewlyCreated: boolean;
+}> {}
+
+// 1:1 채팅방 생성 응답 (새 API 명세)
+export interface CreatePrivateChatResponse extends CreateChatResponse {}
+
+// 그룹 채팅방 생성 응답 (새로운 채팅방만 생성하므로 isNewlyCreated 불필요)
+export interface CreateGroupChatResponse extends ApiResponse<{
+  chatRoomId: number;
 }> {}
 
 // 채팅 요청 상태
