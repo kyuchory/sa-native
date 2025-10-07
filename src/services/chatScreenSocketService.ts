@@ -32,6 +32,19 @@ class ChatScreenSocketService {
     };
   }) => void> = [];
 
+  // 채팅방 업데이트 콜백들
+  public roomUpdatedCallbacks: Array<(data: {
+    event: 'updated';
+    room_info: any;
+    reason: string;
+  }) => void> = [];
+
+  // 채팅방 생성 콜백들
+  public roomCreatedCallbacks: Array<(data: {
+    event: 'created';
+    room_info: any;
+  }) => void> = [];
+
   private constructor() {
     this.setupSocketConnectionListener();
   }
@@ -95,6 +108,27 @@ class ChatScreenSocketService {
       this.notifySummaryMessageCallbacks(data);
     };
     socketService.on('chat:summary:receive', this.eventHandlers['chat:summary:receive']);
+
+    // 채팅방 업데이트 이벤트 핸들러
+    this.eventHandlers['chat:room:updated'] = (data: {
+      event: 'updated';
+      room_info: any;
+      reason: string;
+    }) => {
+      console.log(`🔄 채팅방 업데이트 수신 (${data.reason}): 채팅방 ${data.room_info.id} - ${data.room_info.name || data.room_info.other_user?.nickname}`);
+      this.notifyRoomUpdatedCallbacks(data);
+    };
+    socketService.on('chat:room:updated', this.eventHandlers['chat:room:updated']);
+
+    // 채팅방 생성 이벤트 핸들러
+    this.eventHandlers['chat:room:created'] = (data: {
+      event: 'created';
+      room_info: any;
+    }) => {
+      console.log(`🆕 채팅방 생성 수신: 채팅방 ${data.room_info.id} - ${data.room_info.name || data.room_info.other_user?.nickname}`);
+      this.notifyRoomCreatedCallbacks(data);
+    };
+    socketService.on('chat:room:created', this.eventHandlers['chat:room:created']);
 
     this.eventListenersSetup = true;
     console.log('🎧 ChatScreenSocketService: 요약 메시지 이벤트 리스너 설정 완료');
@@ -160,6 +194,68 @@ class ChatScreenSocketService {
     };
   }
 
+  // 채팅방 업데이트 이벤트 콜백 등록
+  onRoomUpdated(callback: (data: {
+    event: 'updated';
+    room_info: any;
+    reason: string;
+  }) => void): () => void {
+    this.roomUpdatedCallbacks.push(callback);
+
+    // 정리 함수 반환
+    return () => {
+      const index = this.roomUpdatedCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.roomUpdatedCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  // 채팅방 생성 이벤트 콜백 등록
+  onRoomCreated(callback: (data: {
+    event: 'created';
+    room_info: any;
+  }) => void): () => void {
+    this.roomCreatedCallbacks.push(callback);
+
+    // 정리 함수 반환
+    return () => {
+      const index = this.roomCreatedCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.roomCreatedCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  // 채팅방 업데이트 콜백 알림
+  private notifyRoomUpdatedCallbacks(data: {
+    event: 'updated';
+    room_info: any;
+    reason: string;
+  }) {
+    this.roomUpdatedCallbacks.forEach(callback => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error('채팅방 업데이트 콜백 실행 중 에러:', error);
+      }
+    });
+  }
+
+  // 채팅방 생성 콜백 알림
+  private notifyRoomCreatedCallbacks(data: {
+    event: 'created';
+    room_info: any;
+  }) {
+    this.roomCreatedCallbacks.forEach(callback => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error('채팅방 생성 콜백 실행 중 에러:', error);
+      }
+    });
+  }
+
   // 모든 이벤트 리스너 제거 (연결별 정리용)
   private clearAllEventListeners() {
     console.log('🧹 ChatScreenSocketService: 모든 이벤트 리스너 정리');
@@ -195,6 +291,25 @@ export const onChatSummaryMessage = (callback: (data: {
 }) => void) => {
   const service = ChatScreenSocketService.getInstance();
   return service.onSummaryMessage(callback);
+};
+
+// 채팅방 업데이트 이벤트 콜백 등록 함수
+export const onChatRoomUpdated = (callback: (data: {
+  event: 'updated';
+  room_info: any;
+  reason: string;
+}) => void) => {
+  const service = ChatScreenSocketService.getInstance();
+  return service.onRoomUpdated(callback);
+};
+
+// 채팅방 생성 이벤트 콜백 등록 함수
+export const onChatRoomCreated = (callback: (data: {
+  event: 'created';
+  room_info: any;
+}) => void) => {
+  const service = ChatScreenSocketService.getInstance();
+  return service.onRoomCreated(callback);
 };
 
 // ChatScreen 구독 함수들

@@ -26,7 +26,7 @@ import { CheckIcon, MuteIcon, DeleteIcon, CheckboxEmptyIcon, CheckboxFilledIcon 
 
 // Services
 import { ChatService } from '../services/chatService';
-import { chatScreenSocketService, onChatSummaryMessage } from '../services/chatScreenSocketService';
+import { chatScreenSocketService, onChatSummaryMessage, onChatRoomUpdated, onChatRoomCreated } from '../services/chatScreenSocketService';
 
 // Hooks
 import { useAppState } from '../hooks/useAppState';
@@ -98,6 +98,60 @@ export default function ChatScreen() {
     });
 
     return unsubscribeSummaryMessage;
+  }, []);
+
+  // 채팅방 업데이트 이벤트 리스너 설정 - 사라진 채팅방 재등장 처리
+  useEffect(() => {
+    const unsubscribeRoomUpdated = onChatRoomUpdated((data) => {
+      const { event, room_info, reason } = data;
+
+      setAllChatRooms(prevRooms => {
+        const existingRoomIndex = prevRooms.findIndex(room => room.id === room_info.id);
+
+        if (existingRoomIndex === -1) {
+          // 목록에 없는 채팅방 -> 맨 위에 추가
+          const newRooms = [room_info, ...prevRooms];
+          console.log(`🆕 채팅방 추가 (${reason}): ${room_info.name || room_info.other_user?.nickname} - ID: ${room_info.id}`);
+          return newRooms;
+        } else {
+          // 이미 있는 채팅방 -> 정보 업데이트 (읽음 처리 등으로 방 정보가 변경될 수 있음)
+          const updatedRooms = [...prevRooms];
+          updatedRooms[existingRoomIndex] = room_info;
+          console.log(`🔄 채팅방 업데이트 (${reason}): ${room_info.name || room_info.other_user?.nickname} - ID: ${room_info.id}`);
+          return updatedRooms;
+        }
+      });
+
+      console.log(`📪 ChatScreen 채팅방 업데이트 처리 (${reason}): ${room_info.name || room_info.other_user?.nickname}`);
+    });
+
+    return unsubscribeRoomUpdated;
+  }, []);
+
+  // 채팅방 생성 이벤트 리스너 설정 - 새 채팅방 또는 초대된 채팅방 처리
+  useEffect(() => {
+    const unsubscribeRoomCreated = onChatRoomCreated((data) => {
+      const { event, room_info } = data;
+
+      setAllChatRooms(prevRooms => {
+        const existingRoomIndex = prevRooms.findIndex(room => room.id === room_info.id);
+
+        if (existingRoomIndex === -1) {
+          // 목록에 없는 채팅방 -> 맨 위에 추가
+          const newRooms = [room_info, ...prevRooms];
+          console.log(`🎉 채팅방 생성: ${room_info.name || room_info.other_user?.nickname} - ID: ${room_info.id}`);
+          return newRooms;
+        } else {
+          // 이미 있는 채팅방 -> 무시 (중복 방지)
+          console.log(`⚠️ 이미 존재하는 채팅방 생성 이벤트 무시: ${room_info.name || room_info.other_user?.nickname} - ID: ${room_info.id}`);
+          return prevRooms;
+        }
+      });
+
+      console.log(`📬 ChatScreen 채팅방 생성 처리: ${room_info.name || room_info.other_user?.nickname}`);
+    });
+
+    return unsubscribeRoomCreated;
   }, []);
 
   // 화면 진입/이탈 시 채팅 목록 구독 관리 (ChatDetailScreen과 동일한 패턴)
