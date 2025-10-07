@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import CommonHeader from './CommonHeader';
@@ -14,31 +14,15 @@ interface ChatHeaderProps {
 export default function ChatHeader({ onCreateChat }: ChatHeaderProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
-  const handleCreateChatPress = () => {
-    Alert.alert(
-      '채팅방 생성',
-      '새로운 채팅방을 생성하시겠습니까?',
-      [
-        {
-          text: '취소',
-          style: 'cancel',
-        },
-        {
-          text: '생성',
-          onPress: onCreateChat,
-        },
-      ]
-    );
-  };
 
   return (
     <View style={styles.container}>
-      <CommonHeader 
-        title="채팅" 
+      <CommonHeader
+        title="채팅"
         rightComponent={
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.createButton}
-            onPress={handleCreateChatPress}
+            onPress={onCreateChat}
             activeOpacity={0.7}
           >
             <PlusCircleIcon size={18} color={colors.PRIMARY} />
