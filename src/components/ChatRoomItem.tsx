@@ -163,7 +163,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     backgroundColor: 'transparent',
   },
   editMode: {
-    paddingLeft: SPACING.LG,
+    paddingLeft: SPACING.SM,
   },
   selected: {
     backgroundColor: colors.GRAY_50,
