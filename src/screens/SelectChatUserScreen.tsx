@@ -106,11 +106,22 @@ export default function SelectChatUserScreen() {
   const handleCreateChat = async (user: FollowUser) => {
     try {
       setIsLoading(true);
-      const chatRoom = await ChatService.createPrivateChat(user.id);
-      
-      // 채팅방 생성 성공 시 바로 채팅방으로 이동
-      navigation.navigate('ChatDetail', {
-        chatRoomId: chatRoom.id,
+      const response = await ChatService.createPrivateChat(user.id);
+
+      console.log('채팅방 생성 API:', response);
+
+      const { chatRoomId, isNewlyCreated } = response;
+
+      // 기존 채팅방이면 알림 표시, 새 채팅방이면 조용히 이동
+      if (!isNewlyCreated) {
+        console.log('기존 채팅방으로 이동:', chatRoomId);
+      } else {
+        console.log('새 채팅방 생성됨:', chatRoomId);
+      }
+
+      // 채팅방으로 이동 (네비게이션 스택에서 현재 화면 교체)
+      navigation.replace('ChatDetail', {
+        chatRoomId: chatRoomId,
         chatRoomName: user.nickname,
         chatPartnerId: user.id,
       });
