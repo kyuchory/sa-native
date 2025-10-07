@@ -12,12 +12,11 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { AuthStackParamList } from '../types/navigation';
-import { ChatRoom, ChatType } from '../types/chat';
+import { ChatRoom } from '../types/chat';
 
 // Components
 import ChatHeader from '../components/ChatHeader';
 import ChatRoomItem from '../components/ChatRoomItem';
-import ChatScreenTab from '../components/ChatScreenTab';
 import ChatScreenEmptyState from '../components/ChatScreenEmptyState';
 import ChatScreenLoading from '../components/ChatScreenLoading';
 import ChatEditActionBar from '../components/ChatEditActionBar';
@@ -41,9 +40,7 @@ export default function ChatScreen() {
   // TODO: 소켓 관련 코드는 새로 구현할 예정
   
   // 로컬 상태 관리
-  const [selectedTab, setSelectedTab] = useState<ChatType>('private');
   const [allChatRooms, setAllChatRooms] = useState<ChatRoom[]>([]);
-  const [filteredChatRooms, setFilteredChatRooms] = useState<ChatRoom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [selectedChatRoom, setSelectedChatRoom] = useState<ChatRoom | null>(null);
@@ -62,10 +59,7 @@ export default function ChatScreen() {
     initializeChatScreen();
   }, []);
 
-  // 탭 변경 시 필터링
-  useEffect(() => {
-    filterChatRooms();
-  }, [selectedTab, allChatRooms]);
+
 
   // 요약 메시지 이벤트 리스너 설정 - 실시간 채팅 목록 업데이트
   useEffect(() => {
@@ -216,23 +210,9 @@ export default function ChatScreen() {
     }
   };
 
-  // 채팅방 필터링 (탭에 따라)
-  const filterChatRooms = () => {
-    const filtered = allChatRooms.filter(room => room.type === selectedTab);
-    setFilteredChatRooms(filtered);
-  };
-
   // 채팅방 생성 핸들러
   const handleCreateChat = () => {
-    if (selectedTab === 'private') {
-      navigation.navigate('SelectChatUser');
-    } else {
-      Alert.alert(
-        '그룹 채팅방 생성',
-        '그룹 채팅방 생성 기능은 준비 중입니다.',
-        [{ text: '확인' }]
-      );
-    }
+    navigation.navigate('SelectChatUser');
   };
 
   // 채팅방 선택 핸들러
@@ -373,10 +353,10 @@ export default function ChatScreen() {
 
   // 전체 선택/해제
   const handleSelectAll = () => {
-    if (selectedChatIds.size === filteredChatRooms.length) {
+    if (selectedChatIds.size === allChatRooms.length) {
       setSelectedChatIds(new Set());
     } else {
-      setSelectedChatIds(new Set(filteredChatRooms.map(room => room.id)));
+      setSelectedChatIds(new Set(allChatRooms.map(room => room.id)));
     }
   };
 
@@ -420,32 +400,10 @@ export default function ChatScreen() {
 
 
 
-  // 탭 렌더링
-  const renderTabButton = (tabType: ChatType, label: string) => {
-    const isSelected = selectedTab === tabType;
-    return (
-      <TouchableOpacity
-        style={[styles.tabButton, isSelected && styles.tabButtonActive]}
-        onPress={() => setSelectedTab(tabType)}
-        activeOpacity={0.7}
-      >
-        <Text style={[styles.tabText, isSelected && styles.tabTextActive]}>
-          {label}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
   return (
     <View style={styles.container}>
       {/* 헤더 */}
       <ChatHeader onCreateChat={handleCreateChat} />
-
-      {/* 탭 버튼 */}
-      <ChatScreenTab
-        selectedTab={selectedTab}
-        onTabChange={setSelectedTab}
-      />
 
       {/* 편집 버튼 */}
       <View style={styles.editButtonContainer}>
@@ -465,7 +423,7 @@ export default function ChatScreen() {
         <ChatScreenLoading />
       ) : (
         <FlatList
-          data={filteredChatRooms}
+          data={allChatRooms}
           renderItem={({ item }) => (
             <ChatRoomItem
               chatRoom={item}
@@ -491,7 +449,7 @@ export default function ChatScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.chatListContent}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          ListEmptyComponent={<ChatScreenEmptyState selectedTab={selectedTab} />}
+          ListEmptyComponent={<ChatScreenEmptyState />}
           refreshing={isLoading}
           onRefresh={loadChatRooms}
         />
@@ -534,7 +492,7 @@ export default function ChatScreen() {
       {isEditMode && (
         <ChatEditActionBar
           selectedCount={selectedChatIds.size}
-          totalCount={filteredChatRooms.length}
+          totalCount={allChatRooms.length}
           onSelectAll={handleSelectAll}
           onDelete={handleBulkDelete}
         />
@@ -563,34 +521,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 
-  // 탭 관련
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.WHITE,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.GRAY_200,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: SPACING.MD,
-    alignItems: 'center',
-    backgroundColor: colors.WHITE,
-  },
-  tabButtonActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: colors.PRIMARY,
-  },
-  tabText: {
-    fontSize: TYPOGRAPHY.SIZE.MD,
-    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
-  },
-  tabTextActive: {
-    color: colors.PRIMARY,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-  },
-
-  // 채팅 목록 관련
+ // 채팅 목록 관련
   chatList: {
     flex: 1,
     backgroundColor: colors.WHITE,
