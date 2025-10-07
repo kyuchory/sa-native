@@ -74,6 +74,9 @@ export default function ChatDetailScreen() {
   const flatListRef = useRef<FlatList<Message>>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 발신자 정보 캐시 (실시간 메시지의 프로필 이미지가 없으므로 캐시에서 보강)
+  const senderCache = useRef<Map<number, { nickname: string; profile_img: string | null }>>(new Map());
+
   // Route params
   const { chatRoomId, chatRoomName, chatPartnerId } = route.params;
 
@@ -130,13 +133,21 @@ export default function ChatDetailScreen() {
     const unsubscribeMessage = onMessageEvent((type, data) => {
       // 상대방 메시지 수신
       if (type === 'receive' && data.chat_room_id === chatRoomId) {
+        // 실시간 메시지의 프로필 이미지가 부족하므로 캐시에서 보강
+        const cachedSender = senderCache.current.get(data.sender_id);
+        const enrichedSender = cachedSender ? {
+          id: data.sender.id,
+          nickname: data.sender.nickname,
+          profile_img: cachedSender.profile_img
+        } : data.sender;
+
         const newMessage: Message = {
           id: data.id,
           chat_room_id: data.chat_room_id,
           sender_id: data.sender_id,
           content: data.content,
           type: data.type,
-          sender: data.sender,
+          sender: enrichedSender,
           created_at: data.created_at,
           updated_at: data.created_at,
           mentions: data.mentions || [],
@@ -208,6 +219,19 @@ export default function ChatDetailScreen() {
 
     return () => clearInterval(interval);
   }, []);
+
+  // 메시지 로드 시 발신자 정보 캐시 업데이트
+  useEffect(() => {
+    // 메시지가 로드될 때마다 캐시 업데이트
+    messages.forEach(message => {
+      if (!senderCache.current.has(message.sender_id)) {
+        senderCache.current.set(message.sender_id, {
+          nickname: message.sender.nickname,
+          profile_img: message.sender.profile_img || null
+        });
+      }
+    });
+  }, [messages]);
 
   // 채팅방 초기화 - API로 메시지 로드
   useEffect(() => {
