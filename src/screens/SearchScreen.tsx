@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '../stores/themeStore';
-import { SearchIcon } from '../components/SearchIcons';
+import { SearchInput, SearchInputRef } from '../components';
 import PeopleTab from '../components/PeopleTab';
 import FeedTab, { FeedItem } from '../components/FeedTab';
 import PostTab from '../components/PostTab';
@@ -14,22 +14,7 @@ import { AuthStackParamList } from '../types/navigation';
 
 type SearchTabType = 'people' | 'posts' | 'feeds';
 
-// Debounce hook 구현 (lodash 없이)
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-}
+// useDebounce는 SearchInput 컴포넌트에서 이미 구현되어 있음
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
@@ -44,10 +29,9 @@ export default function SearchScreen() {
   const [feedSearchResults, setFeedSearchResults] = useState<FeedSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<SearchInputRef>(null);
 
-  // Debounce 적용 (300ms)
-  const debouncedSearchText = useDebounce(searchText, 300);
+  // SearchInput 컴포넌트에서 이미 debouncedValue를 처리하므로 직접 사용하지 않음
 
   // 실시간 검색 API 호출
   const performSearch = useCallback(async (query: string, tab?: SearchTabType) => {
@@ -93,16 +77,14 @@ export default function SearchScreen() {
     }
   }, [activeTab]);
 
-  // Debounced 검색 실행
-  useEffect(() => {
-    if (debouncedSearchText) {
-      performSearch(debouncedSearchText);
-    } else {
-      setSearchResults([]);
-      setPostSearchResults([]);
-      setFeedSearchResults([]);
-    }
-  }, [debouncedSearchText, performSearch]);
+  // 검색 결과 초기화 (SearchInput 컴포넌트에서 debounce 처리하므로)
+  const clearSearchResults = () => {
+    setSearchResults([]);
+    setPostSearchResults([]);
+    setFeedSearchResults([]);
+  };
+
+  // onDebounce 콜백에서 검색 수행
 
   const handleSearch = () => {
     if (searchText.trim()) {
@@ -159,34 +141,20 @@ export default function SearchScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 검색 Input */}
-      <View style={styles.searchContainer}>
-        <View style={[styles.searchInputContainer, isSearchActive && styles.searchInputActive]}>
-          <View style={styles.searchIcon}>
-            <SearchIcon size={20} color={colors.GRAY_500} />
-          </View>
-          <TextInput
-            ref={inputRef}
-            style={styles.searchInput}
-            placeholder="검색"
-            placeholderTextColor={colors.GRAY_500}
-            value={searchText}
-            onChangeText={setSearchText}
-            onSubmitEditing={handleSearch}
-            onFocus={handleInputFocus}
-            onBlur={handleInputBlur}
-            maxLength={100}
-          />
-          {isSearchActive && (
-            <TouchableOpacity
-              style={styles.clearButton}
-              onPress={handleClearSearch}
-            >
-              <Text style={styles.clearButtonText}>취소</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+      {/* SearchInput 컴포넌트 */}
+      <SearchInput
+        ref={inputRef}
+        value={searchText}
+        onChangeText={setSearchText}
+        placeholder="검색"
+        onSubmitEditing={handleSearch}
+        onDebounce={performSearch}
+        onFocus={handleInputFocus}
+        onBlur={handleInputBlur}
+        onClear={handleClearSearch}
+        debounceDelay={300}
+        maxLength={100}
+      />
 
       {!isSearchActive ? (
         <View style={styles.noSearchContainer}>
