@@ -5,7 +5,7 @@ import { useThemeStore } from '../stores/themeStore';
 import UserAvatar from './UserAvatar';
 import ProfileButton from './ProfileButton';
 import { FollowIcon } from './ProfileIcons';
-import { formatDateYYYYMMDD } from '../utils/timeUtils';
+import { formatMessageDate } from '../utils/timeUtils';
 import type { FollowUser } from '../types/follow';
 
 interface FollowUserItemProps {
@@ -24,7 +24,7 @@ export default function FollowUserItem({
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
-  const formattedDate = formatDateYYYYMMDD(user.created_at);
+  const formattedDate = formatMessageDate(user.created_at);
 
   return (
     <TouchableOpacity
