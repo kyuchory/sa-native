@@ -299,27 +299,73 @@ const FollowersOnlyIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) =>
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       {/* 손잡이 - 좀 더 위로 */}
-      <Circle 
-        cx="12" 
-        cy="7" 
-        r="3" 
-        stroke={color} 
-        strokeWidth="2.5" 
-        fill="none" 
+      <Circle
+        cx="12"
+        cy="7"
+        r="3"
+        stroke={color}
+        strokeWidth="2.5"
+        fill="none"
       />
       {/* 열쇠 몸통 - 훨씬 길게 */}
-      <Rect 
-        x="11" 
-        y="10" 
-        width="2" 
-        height="10" 
+      <Rect
+        x="11"
+        y="10"
+        width="2"
+        height="10"
         fill={color}
-        rx="1" 
+        rx="1"
       />
       {/* 톱니 부분 - 간격 조정 */}
       <Rect x="13" y="13.5" width="2.5" height="1.2" fill={color} rx="0.5" />
       {/* <Rect x="13" y="16.2" width="3.5" height="1.2" fill={color} rx="0.5" /> */}
       <Rect x="13" y="17.1" width="2" height="1.2" fill={color} rx="0.5" />
+    </Svg>
+  </View>
+);
+
+// 카메라 아이콘 (채팅 첨부파일용)
+const CameraIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* 카메라 본체 */}
+      <Rect
+        x="3"
+        y="6"
+        width="18"
+        height="12"
+        rx="2"
+        stroke={color}
+        strokeWidth="2"
+        fill="none"
+      />
+      {/* 렌즈 */}
+      <Circle
+        cx="12"
+        cy="12"
+        r="3"
+        stroke={color}
+        strokeWidth="2"
+        fill="none"
+      />
+      {/* 카메라 렌즈 내부 */}
+      <Circle
+        cx="12"
+        cy="12"
+        r="1"
+        fill={color}
+      />
+      {/* 플래시 */}
+      <Rect
+        x="3"
+        y="4"
+        width="4"
+        height="2"
+        rx="1"
+        stroke={color}
+        strokeWidth="2"
+        fill="none"
+      />
     </Svg>
   </View>
 );
@@ -338,4 +384,4 @@ const ChatIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
   </View>
 );
 
-export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, EditIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon, NoticeIcon, ReportEyeSlashIcon, FollowersOnlyIcon, ChatIcon };
+export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, EditIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon, NoticeIcon, ReportEyeSlashIcon, FollowersOnlyIcon, CameraIcon, ChatIcon };
