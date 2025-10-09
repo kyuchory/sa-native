@@ -12,7 +12,8 @@ import {
   RegisterNoticeResponse,
   UnreadChatCountResponse,
   CreatePrivateChatResponse,
-  CreateGroupChatResponse
+  CreateGroupChatResponse,
+  ChatImageUploadResponse
 } from '../types/chat';
 
 /**
@@ -93,5 +94,25 @@ export class ChatService {
   static async getUnreadChatCount(): Promise<{ unread_count: number }> {
     const response = await apiClient.get<UnreadChatCountResponse>('/chats/unread-count');
     return response.data; // { unread_count: number }
+  }
+
+  // 채팅 이미지 업로드
+  static async uploadChatImage(imageUri: string): Promise<ChatImageUploadResponse> {
+    // React Native의 ImagePicker에서 얻은 URI를 FormData로 변환
+    const formData = new FormData();
+
+    // URI에서 파일 확장자 추출
+    const uriParts = imageUri.split('.');
+    const fileType = uriParts[uriParts.length - 1].toLowerCase();
+
+    formData.append('image', {
+      uri: imageUri,
+      type: `image/${fileType}`,
+      name: `chat_image_${Date.now()}.${fileType}`,
+    } as any);
+
+    const response = await apiClient.postFormData<ApiResponse<ChatImageUploadResponse>>('/chats/image-upload', formData);
+
+    return response.data; // { image_path, url, filename, size }
   }
 }

@@ -193,3 +193,11 @@ export interface RegisterNoticeResponse {
 export interface UnreadChatCountResponse extends ApiResponse<{
   unread_count: number;
 }> {}
+
+// 채팅 이미지 업로드 응답 타입
+export interface ChatImageUploadResponse {
+  image_path: string;
+  url: string;
+  filename: string;
+  size: number;
+}
