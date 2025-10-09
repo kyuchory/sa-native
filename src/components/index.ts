@@ -1,4 +1,5 @@
 // Chat-related components
+export { default as ChatDetailSidebar } from './ChatDetailSidebar';
 export { default as ChatHeader } from './ChatHeader';
 export { default as ChatRoomItem } from './ChatRoomItem';
 export { default as ChatScreenTab } from './ChatScreenTab';
