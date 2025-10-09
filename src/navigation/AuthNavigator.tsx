@@ -37,6 +37,7 @@ import SupportListScreen from '../screens/SupportListScreen';
 import SupportCreateScreen from '../screens/SupportCreateScreen';
 import SupportDetailScreen from '../screens/SupportDetailScreen';
 import FollowRequestsScreen from '../screens/FollowRequestsScreen';
+import FollowListScreen from '../screens/FollowListScreen';
 
 // Tab Navigator
 import TabNavigator from './TabNavigator';
@@ -191,6 +192,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="FollowRequests"
           component={FollowRequestsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="FollowList"
+          component={FollowListScreen}
           options={{ headerShown: false }}
         />
           </>

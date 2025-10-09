@@ -33,6 +33,7 @@ export type AuthStackParamList = {
   SupportCreate: undefined;
   SupportDetail: { inquiryId: number };
   FollowRequests: undefined;
+  FollowList: { userId: number; initialTab: 'followers' | 'following' };
 };
 
 export type TabParamList = {

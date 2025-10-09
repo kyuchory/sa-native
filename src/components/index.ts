@@ -12,9 +12,15 @@ export { default as CategoryPicker } from './CategoryPicker';
 export { default as CategorySelector } from './CategorySelector';
 export * from './ChatActionIcons';
 export { default as ChatActionSheet } from './MenuActionSheet';
-export * from './ChatDetailIcons';
+export { MenuIcon, PlusCircleIcon, SendIcon } from './ChatDetailIcons';
 export { default as NotificationListItem } from './NotificationListItem';
 export { default as NotificationList } from './NotificationListItem';
+
+// Search components
+export * from './SearchIcons';
+export { default as SearchInput, SearchInputRef } from './SearchInput';
+export { default as FollowUserItem } from './FollowUserItem';
+export { default as FollowTabNavigation } from './FollowTabNavigation';
 
 // Add more exports as needed...
 // Other existing exports remain unchanged
