@@ -184,6 +184,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
 
   // ProfileHeader에 전달할 데이터 - API 응답 구조 그대로 사용
   const profileUser = profileData ? {
+    id: profileData.id,
     nickname: profileData.nickname,
     profile_img: profileData.profile_img,
     stats: profileData.stats,
@@ -362,6 +363,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
           onSettingsPress={handleSettingsPress}
           onEditProfilePress={handleEditProfilePress}
           onFollowRequestPress={handleFollowRequestPress}
+          navigation={navigation}
         />
       ) : (
         // 타인 프로필 (다른 화면에서 userId로 접근):기존 ProfileHeader (메뉴 버튼과 팔로우/채팅 버튼 사용)
@@ -374,6 +376,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
             onFollowPress={handleFollowPress}
             onChatPress={handleChatPress}
             showBackButton={true}
+            navigation={navigation}
           />
       )}
 

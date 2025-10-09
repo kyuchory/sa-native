@@ -12,7 +12,7 @@ import UserAvatar from './UserAvatar';
 import type { Profile } from '../types/profile';
 
 interface ProfileHeaderProps {
-  user: Pick<Profile, 'nickname' | 'profile_img' | 'bio' | 'stats' | 'relation' | 'profile_visibility'>;
+  user: Pick<Profile, 'id' | 'nickname' | 'profile_img' | 'bio' | 'stats' | 'relation' | 'profile_visibility'>;
   isOwnProfile: boolean;
   showBackButton?: boolean;
   onBackPress?: () => void;
@@ -22,6 +22,7 @@ interface ProfileHeaderProps {
   onFollowPress?: () => void;
   onChatPress?: () => void;
   onFollowRequestPress?: () => void; // 팔로우 요청 버튼 핸들러 추가
+  navigation?: any; // 팔로워/팔로잉 터치를 위한 네비게이션
 };
 
 // 팔로우 버튼 상태 결정 헬퍼 함수들
@@ -135,7 +136,8 @@ export default function ProfileHeader({
   onMenuPress,
   onFollowPress,
   onChatPress,
-  onFollowRequestPress
+  onFollowRequestPress,
+  navigation
 }: ProfileHeaderProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useThemeStore();
@@ -248,14 +250,36 @@ export default function ProfileHeader({
               <Text style={styles.statNumber}>{formatNumber(user.stats.feed_count)}</Text>
               <Text style={styles.statLabel}>피드</Text>
             </View>
-            <View style={styles.statItem}>
+            <TouchableOpacity
+              style={styles.statItem}
+              onPress={() => {
+                if (navigation && user.id) {
+                  navigation.navigate('FollowList', {
+                    userId: user.id,
+                    initialTab: 'followers'
+                  });
+                }
+              }}
+              activeOpacity={0.7}
+            >
               <Text style={styles.statNumber}>{formatNumber(user.stats.follower_count)}</Text>
               <Text style={styles.statLabel}>팔로워</Text>
-            </View>
-            <View style={styles.statItem}>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.statItem}
+              onPress={() => {
+                if (navigation && user.id) {
+                  navigation.navigate('FollowList', {
+                    userId: user.id,
+                    initialTab: 'following'
+                  });
+                }
+              }}
+              activeOpacity={0.7}
+            >
               <Text style={styles.statNumber}>{formatNumber(user.stats.following_count)}</Text>
               <Text style={styles.statLabel}>팔로잉</Text>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
 
