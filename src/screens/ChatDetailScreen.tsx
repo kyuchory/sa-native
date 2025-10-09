@@ -15,14 +15,15 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
+import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
 // Components
 import CommonHeader from '../components/CommonHeader';
 import { SearchIcon, MenuIcon, PlusCircleIcon, SendIcon } from '../components/ChatDetailIcons';
-import { MenuIcon as MenuIcon32, CheckIcon } from '../components/CommonIcons';
-import { NoticeIcon } from '../components/CommonIcons';
+import { MenuIcon as MenuIcon32, CheckIcon, AddImageIcon, NoticeIcon, CameraIcon } from '../components/CommonIcons';
 import ChatDetailSidebar from '../components/ChatDetailSidebar';
 import MenuActionSheet from '../components/MenuActionSheet';
 import UserAvatar from '../components/UserAvatar';
@@ -91,6 +92,7 @@ export default function ChatDetailScreen() {
   const [inputText, setInputText] = useState('');
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
+  const [attachmentActionSheetVisible, setAttachmentActionSheetVisible] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
@@ -162,7 +164,7 @@ export default function ChatDetailScreen() {
             return prev; // 중복이면 추가하지 않음
           }
 
-          console.log(`📨 상대방 메시지 정상 수신: ${newMessage.sender.nickname} - ${newMessage.content}`);
+          console.log(`📨 상대방 메시지 정상 수신:`, newMessage);
           return [newMessage, ...prev];
         });
       } else if (type === 'failed') {
@@ -639,12 +641,20 @@ export default function ChatDetailScreen() {
                 ]}
                 onLongPress={() => handleLongPressMessage(item)}
               >
-                <Text style={[
-                  styles.messageText,
-                  isMyMessage ? styles.myMessageText : styles.otherMessageText
-                ]}>
-                  {item.content}
-                </Text>
+                {item.type === 'image' ? (
+                  <Image
+                    source={{ uri: item.content }}
+                    style={styles.messageImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text style={[
+                    styles.messageText,
+                    isMyMessage ? styles.myMessageText : styles.otherMessageText
+                  ]}>
+                    {item.content}
+                  </Text>
+                )}
               </TouchableOpacity>
 
               {/* 상대방 메시지의 경우 시간이 오른쪽에 */}
@@ -723,6 +733,90 @@ export default function ChatDetailScreen() {
       // 정리
       setSelectedMessage(null);
       setMenuActionSheetVisible(false);
+    }
+  };
+
+  // 카메라 사진 촬영 핸들러
+  const handleSelectCamera = async () => {
+    try {
+      // 권한 요청
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+
+      if (permissionResult.granted === false) {
+        Alert.alert('권한 필요', '카메라 권한이 필요합니다.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false, // 채팅에서는 편집 없이 바로 전송
+        quality: 0.8, // 적절한 품질로 압축
+        exif: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        await handleSendImageMessage(result.assets[0]);
+      }
+    } catch (error) {
+      console.error('카메라 촬영 실패:', error);
+      Alert.alert('오류', '사진 촬영에 실패했습니다.');
+    }
+    setAttachmentActionSheetVisible(false);
+  };
+
+  // 갤러리 사진 선택 핸들러
+  const handleSelectGallery = async () => {
+    try {
+      // 권한 요청 (일부 플랫폼에서는 필요)
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (permissionResult.granted === false) {
+        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false, // 채팅에서는 편집 없이 바로 선택
+        quality: 0.8, // 적절한 품질로 압축
+        exif: false,
+        allowsMultipleSelection: false, // 한 장씩만 선택
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        await handleSendImageMessage(result.assets[0]);
+      }
+    } catch (error) {
+      console.error('갤러리 선택 실패:', error);
+      Alert.alert('오류', '사진 선택에 실패했습니다.');
+    }
+    setAttachmentActionSheetVisible(false);
+  };
+
+  // 이미지 메시지 전송 핸들러
+  const handleSendImageMessage = async (asset: ImagePicker.ImagePickerAsset) => {
+    if (!user) return;
+
+    const tempMessageId = `temp_img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    try {
+      // 1. 이미지 업로드 API 호출 (서버에 파일 저장)
+      console.log('📤 이미지 업로드 시작...');
+      const uploadResponse = await ChatService.uploadChatImage(asset.uri);
+      console.log('✅ 이미지 업로드 완료:', uploadResponse);
+
+      // 2. 서버에서 받은 image_path를 사용하여 소켓 메시지 전송
+      const imagePath = uploadResponse.image_path;
+
+      // 3. DB에 메시지 저장될 소켓 메시지 전송 (type: 'image', content: image_path)
+      sendMessage(tempMessageId, chatRoomId, 'image', imagePath, []);
+
+    } catch (error) {
+      console.error('📷 이미지 메시지 전송 실패:', error);
+      Alert.alert('전송 실패', '이미지를 전송할 수 없습니다. 다시 시도해주세요.');
+
+      // ActionSheet 닫기
+      setAttachmentActionSheetVisible(false);
     }
   };
 
@@ -818,7 +912,11 @@ export default function ChatDetailScreen() {
           <View style={[
             styles.inputContainer
           ]}>
-            <TouchableOpacity style={styles.attachButton} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.attachButton}
+              activeOpacity={0.7}
+              onPress={() => setAttachmentActionSheetVisible(true)}
+            >
               <PlusCircleIcon size={24} color={colors.GRAY_700} />
             </TouchableOpacity>
 
@@ -879,6 +977,29 @@ export default function ChatDetailScreen() {
             icon: <NoticeIcon size={20} color={colors.PRIMARY} />,
             color: colors.PRIMARY,
             onPress: handleRegisterNotice,
+          },
+        ]}
+      />
+
+      {/* 첨부파일 액션 시트 */}
+      <MenuActionSheet
+        visible={attachmentActionSheetVisible}
+        onClose={() => setAttachmentActionSheetVisible(false)}
+        title="첨부파일"
+        actions={[
+          {
+            id: 'camera',
+            title: '사진 촬영',
+            icon: <CameraIcon size={24} color={colors.PRIMARY} />,
+            color: colors.PRIMARY,
+            onPress: handleSelectCamera,
+          },
+          {
+            id: 'gallery',
+            title: '갤러리에서 선택',
+            icon: <AddImageIcon size={24} color={colors.PRIMARY} />,
+            color: colors.PRIMARY,
+            onPress: handleSelectGallery,
           },
         ]}
       />
@@ -1134,6 +1255,13 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.SM,
     color: colors.GRAY_700,
     fontStyle: 'italic',
+  },
+
+  // 메시지 이미지
+  messageImage: {
+    width: 200,
+    height: 200,
+    borderRadius: BORDER_RADIUS.MD,
   },
 
   // 날짜 구분선
