@@ -144,7 +144,6 @@ export default function FollowListScreen() {
 
       setLoading(true);
       await fetchCurrentTabData();
-      console.log('Initial data loaded for tab:', activeTab);
 
       // 로드 완료 플래그 설정
       if (isFollowersTab) {
