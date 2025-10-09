@@ -41,6 +41,7 @@ export interface FollowStatusResponse extends ApiResponse<{
 export interface PaginationOptions {
   cursor?: number;
   limit?: number;
+  search?: string;
 }
 
 // 팔로우 요청 정보

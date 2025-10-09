@@ -47,12 +47,13 @@ export class FollowService {
 
   // 특정 사용자의 팔로잉 목록 조회
   static async getUserFollowingList(userId: number, options: PaginationOptions = {}): Promise<PaginationData<FollowUser>> {
-    const { cursor, limit = 20 } = options;
+    const { cursor, limit = 20, search } = options;
     const queryParams = new URLSearchParams();
-    
+
     if (cursor) queryParams.append('cursor', cursor.toString());
     queryParams.append('limit', limit.toString());
-    
+    if (search) queryParams.append('search', search);
+
     const endpoint = `/users/${userId}/following?${queryParams.toString()}`;
     const response = await apiClient.get<FollowingListResponse>(endpoint);
     return response.data;
@@ -60,12 +61,13 @@ export class FollowService {
 
   // 특정 사용자의 팔로워 목록 조회
   static async getUserFollowerList(userId: number, options: PaginationOptions = {}): Promise<PaginationData<FollowUser>> {
-    const { cursor, limit = 20 } = options;
+    const { cursor, limit = 20, search } = options;
     const queryParams = new URLSearchParams();
-    
+
     if (cursor) queryParams.append('cursor', cursor.toString());
     queryParams.append('limit', limit.toString());
-    
+    if (search) queryParams.append('search', search);
+
     const endpoint = `/users/${userId}/followers?${queryParams.toString()}`;
     const response = await apiClient.get<FollowerListResponse>(endpoint);
     return response.data;
