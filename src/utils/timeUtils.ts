@@ -107,30 +107,3 @@ export const formatRelativeTime = (dateString: string): string => {
     return formatMessageDate(dateString);
   }
 };
-
-/**
- * 날짜를 YYYY-MM-DD 형식으로 포맷팅
- * @param dateString - ISO 8601 형식의 날짜 문자열
- * @returns YYYY-MM-DD 형식의 날짜 문자열
- */
-export const formatDateYYYYMMDD = (dateString: string): string => {
-  // Invalid Date 처리
-  if (!dateString) {
-    return '';
-  }
-
-  const date = new Date(dateString);
-
-  // Invalid Date 체크
-  if (isNaN(date.getTime())) {
-    return '';
-  }
-
-  // 한국 시간대 기준으로 년, 월, 일 추출
-  const koreanDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
-  const year = koreanDate.getFullYear();
-  const month = String(koreanDate.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작
-  const day = String(koreanDate.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-};
