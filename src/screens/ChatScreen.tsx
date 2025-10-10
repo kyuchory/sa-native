@@ -220,11 +220,12 @@ export default function ChatScreen() {
   const handleChatRoomPress = (chatRoom: ChatRoom) => {
     const chatRoomName = getChatDisplayName(chatRoom);
     const chatPartnerId = chatRoom.type === 'private' ? chatRoom.other_user?.id : undefined;
-    
+
     navigation.navigate('ChatDetail', {
       chatRoomId: chatRoom.id,
       chatRoomName,
       chatPartnerId,
+      unreadCount: chatRoom.unread_count,
     });
   };
 

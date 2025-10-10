@@ -79,7 +79,7 @@ export default function ChatDetailScreen() {
   const senderCache = useRef<Map<number, { nickname: string; profile_img: string | null }>>(new Map());
 
   // Route params
-  const { chatRoomId, chatRoomName, chatPartnerId } = route.params;
+  const { chatRoomId, chatRoomName, chatPartnerId, unreadCount } = route.params;
 
   // Auth store
   const { user } = useAuthStore();
@@ -234,6 +234,18 @@ export default function ChatDetailScreen() {
       }
     });
   }, [messages]);
+
+  // 읽음 처리: 메시지 로딩 완료 후 읽지 않은 메시지가 있으면 처리
+  useEffect(() => {
+    if (!isInitialLoading && unreadCount > 0 && user) {
+      console.log(`✅ 읽음 처리 시작: 채팅방 ${chatRoomId}, 읽지 않은 수: ${unreadCount}`);
+
+      ChatService.markAsRead(chatRoomId).catch(error => {
+        console.error('❌ 읽음 처리 실패:', error);
+        // 읽음 처리 실패해도 사용자 경험에 큰 지장 없으므로 경고만 로그
+      });
+    }
+  }, [isInitialLoading, unreadCount, chatRoomId, user]);
 
   // 채팅방 초기화 - API로 메시지 로드
   useEffect(() => {

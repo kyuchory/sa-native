@@ -25,6 +25,7 @@ export type AuthStackParamList = {
     chatRoomId: number;
     chatRoomName: string;
     chatPartnerId?: number;
+    unreadCount: number;
   };
   BlockedUsers: undefined;
   ProfileVisibility: undefined;
