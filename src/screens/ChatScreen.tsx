@@ -7,6 +7,7 @@ import {
   FlatList,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
@@ -401,7 +402,7 @@ export default function ChatScreen() {
 
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* 헤더 */}
       <ChatHeader onCreateChat={handleCreateChat} />
 
@@ -497,7 +498,7 @@ export default function ChatScreen() {
           onDelete={handleBulkDelete}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
