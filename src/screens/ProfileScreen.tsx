@@ -142,43 +142,20 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
   };
 
   useEffect(() => {
-    fetchProfile();
+    fetchProfile(true);
     // 초기 로드 시 피드와 포스트 데이터 모두 한번에 불러오기
     fetchFeeds(true);
     fetchPosts();
   }, [targetUserId]);
 
-  // 화면에 다시 포커스될 때 프로필과 피드 데이터 리프레시
+  // 화면에 다시 포커스될 때 프로필 데이터 리프레시
   useFocusEffect(
     useCallback(() => {
       // 프로필 데이터를 로딩 없이 다시 가져와서 최신 상태로 유지
-      fetchProfile(false);
-
-      // 자신의 프로필일 때만 플래그 기반으로 데이터 로드
-      if (isOwnProfile) {
-        if (shouldRefreshProfilePosts && activeTab === 'posts') {
-          fetchPosts();
-          setShouldRefreshProfilePosts(false); // 플래그 초기화
-        }
-        if (shouldRefreshProfileFeeds && activeTab === 'feed') {
-          fetchFeeds(true);
-          setShouldRefreshProfileFeeds(false); // 플래그 초기화
-        }
-      } else {
-        // 타인 프로필인 경우 기존 방식으로 로드
-        if (activeTab === 'feed') {
-          fetchFeeds(true);
-        }
-      }
+        fetchProfile(false);
       return () => {};
     }, [
-      activeTab,
-      targetUserId,
-      isOwnProfile,
-      shouldRefreshProfilePosts,
-      shouldRefreshProfileFeeds,
-      setShouldRefreshProfilePosts,
-      setShouldRefreshProfileFeeds
+      targetUserId
     ])
   );
 
@@ -325,8 +302,21 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
 
 
   const handleTabChange = (tab: ProfileTabType) => {
-    // 탭 전환 시 API 호출 없이 그냥 상태만 변경 - 초기 로드한 데이터 사용
     setActiveTab(tab);
+
+    // 자신의 프로필일 때만 탭 전환 시 플래그 기반으로 데이터 로드
+    if (isOwnProfile) {
+      if (shouldRefreshProfilePosts && tab === 'posts') {
+        console.log("자신 게시물 플래그 감지 - 게시물 데이터 리프레시")
+        fetchPosts();
+        setShouldRefreshProfilePosts(false); // 플래그 초기화
+      }
+      if (shouldRefreshProfileFeeds && tab === 'feed') {
+        console.log("자신 피드 플래그 감지 - 피드 데이터 리프레시")
+        fetchFeeds(true);
+        setShouldRefreshProfileFeeds(false); // 플래그 초기화
+      }
+    }
   };
 
   const handleItemPress = (item: any) => {
