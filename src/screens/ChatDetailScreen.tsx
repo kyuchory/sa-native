@@ -853,32 +853,32 @@ export default function ChatDetailScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <View style={styles.contentContainer}>
-          {/* 채팅 메시지 목록 */}
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            renderItem={renderMessageItem}
-            keyExtractor={(item) => item.id.toString()}
-            style={styles.messagesList}
-            showsVerticalScrollIndicator={false}
-            inverted
-            onContentSizeChange={() => {
-              // inverted 속성으로 인해 자동으로 최신 메시지 위치로 스크롤됨
-            }}
-            // 무한 스크롤: 스크롤을 아래로 내리면 과거 메시지 로드
-            onEndReached={loadMoreMessages}
-            onEndReachedThreshold={0.1}
-            // 로딩 인디케이터 제거 - 깔끔한 UX를 위해
-            ListEmptyComponent={() => (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>
-                  {isInitialLoading ? '메시지를 불러오는 중...' :
-                   '메시지를 입력해 대화를 시작해보세요.'}
-                </Text>
-              </View>
-            )}
-            // inverted에서는 maintainVisibleContentPosition 불필요
-          />
+          {/* 채팅 메시지 목록 또는 빈 상태 */}
+          {messages.length > 0 ? (
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              renderItem={renderMessageItem}
+              keyExtractor={(item) => item.id.toString()}
+              style={styles.messagesList}
+              showsVerticalScrollIndicator={false}
+              inverted
+              onContentSizeChange={() => {
+                // inverted 속성으로 인해 자동으로 최신 메시지 위치로 스크롤됨
+              }}
+              // 무한 스크롤: 스크롤을 아래로 내리면 과거 메시지 로드
+              onEndReached={loadMoreMessages}
+              onEndReachedThreshold={0.1}
+              // 로딩 인디케이터 제거 - 깔끔한 UX를 위해
+            />
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {isInitialLoading ? '메시지를 불러오는 중...' :
+                 '메시지를 입력해 대화를 시작해보세요.'}
+              </Text>
+            </View>
+          )}
 
           {/* 구독 상태 표시 */}
           {subscriptionStatus.error && (
