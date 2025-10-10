@@ -43,6 +43,9 @@ export default function ChatScreen() {
   // 로컬 상태 관리
   const [allChatRooms, setAllChatRooms] = useState<ChatRoom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreRooms, setHasMoreRooms] = useState(true);
+  const [nextCursor, setNextCursor] = useState<number | null>(null);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [selectedChatRoom, setSelectedChatRoom] = useState<ChatRoom | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -195,19 +198,44 @@ export default function ChatScreen() {
   const loadChatRooms = async () => {
     try {
       setIsLoading(true);
-      const loadedChatRooms = await ChatService.getChatRooms();
-      
-      // 로컬 상태와 ChatStore 모두 업데이트
-      setAllChatRooms(loadedChatRooms);
+      const data = await ChatService.getChatRooms();
+
+      // 로컬 상태 업데이트 (페이징 정보 포함)
+      setAllChatRooms(data.chat_rooms);
+      setHasMoreRooms(data.hasNext);
+      setNextCursor(data.nextCursor);
+
       // TODO: ChatStore 업데이트 (새로 구현 예정)
-      // setChatRooms(loadedChatRooms);
-      
-      console.log('📋 채팅방 목록 로드 완료:', loadedChatRooms.length, '개');
+      // setChatRooms(data.chat_rooms);
+
+      console.log('📋 채팅방 목록 로드 완료:', data.chat_rooms.length, '개');
     } catch (error: any) {
       console.error('채팅방 목록 로드 실패:', error);
       Alert.alert('오류', error.message || '채팅방 목록을 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 더 많은 채팅방 로드 (무한스크롤)
+  const loadMoreChatRooms = async () => {
+    if (!hasMoreRooms || isLoadingMore || !nextCursor) return;
+
+    try {
+      setIsLoadingMore(true);
+      const data = await ChatService.getChatRooms(nextCursor);
+
+      // 기존 목록에 추가
+      setAllChatRooms(prev => [...prev, ...data.chat_rooms]);
+      setHasMoreRooms(data.hasNext);
+      setNextCursor(data.nextCursor);
+
+      console.log('📋 추가 채팅방 로드 완료:', data.chat_rooms.length, '개');
+    } catch (error: any) {
+      console.error('추가 채팅방 로드 실패:', error);
+      Alert.alert('오류', '추가 채팅방을 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -454,6 +482,10 @@ export default function ChatScreen() {
           ListEmptyComponent={<ChatScreenEmptyState />}
           refreshing={isLoading}
           onRefresh={loadChatRooms}
+
+          // 무한스크롤
+          onEndReached={loadMoreChatRooms}
+          onEndReachedThreshold={0.2}
         />
       )}
 

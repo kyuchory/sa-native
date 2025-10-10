@@ -21,10 +21,21 @@ import {
  * Socket.io를 사용한 실시간 채팅과 REST API를 제공
  */
 export class ChatService {
-  // 채팅방 목록 조회
-  static async getChatRooms(): Promise<ChatRoom[]> {
-    const response = await apiClient.get<ChatRoomsResponse>('/chats');
-    return response.data; // apiClient가 이미 data를 추출해서 반환
+  // 채팅방 목록 조회 (페이징)
+  static async getChatRooms(cursor?: number, limit: number = 15): Promise<{
+    chat_rooms: ChatRoom[];
+    hasNext: boolean;
+    nextCursor: number | null;
+  }> {
+    const params = new URLSearchParams();
+    if (cursor) params.append('cursor', cursor.toString());
+    params.append('limit', limit.toString());
+
+    const queryString = params.toString();
+    const url = `/chats${queryString ? `?${queryString}` : ''}`;
+
+    const response = await apiClient.get<ChatRoomsResponse>(url);
+    return response.data;
   }
 
   // 1:1 채팅방 생성

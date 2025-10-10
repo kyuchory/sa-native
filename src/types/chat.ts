@@ -101,7 +101,11 @@ export interface ApiResponse<T> {
 }
 
 // 채팅방 목록 조회 응답
-export interface ChatRoomsResponse extends ApiResponse<ChatRoom[]> {}
+export interface ChatRoomsResponse extends ApiResponse<{
+  chat_rooms: ChatRoom[];
+  hasNext: boolean;
+  nextCursor: number | null;
+}> {}
 
 // 단일 채팅방 응답
 export interface SingleChatRoomResponse extends ApiResponse<ChatRoom> {}
