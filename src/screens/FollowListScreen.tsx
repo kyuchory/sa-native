@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import useFeedStore from '../stores/feedStore';
 import { View, Text, StyleSheet, FlatList, Alert } from 'react-native';
 import { useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navigation/native';
 import { SPACING, TYPOGRAPHY } from '../constants/theme';
@@ -190,6 +191,8 @@ export default function FollowListScreen() {
         await FollowService.followUser(user.id);
       }
 
+      // 피드 새로고침 플래그 설정 - 팔로우/언팔로우 성공 시 피드 업데이트
+      useFeedStore.getState().setShouldRefreshFeeds(true);
       // 낙관적 UI 업데이트
       const updateUserData = (data: FollowUser[]) =>
         data.map(u => u.id === user.id ? { ...u, is_following: !u.is_following } : u);

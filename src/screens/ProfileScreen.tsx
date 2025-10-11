@@ -23,6 +23,7 @@ import { BlockService } from '../services/blockService';
 
 // 스토어 imports
 import useProfileStore from '../stores/profileStore';
+import useFeedStore from '../stores/feedStore';
 
 // 타입 imports
 import type { Profile, ProfileFeedItem, ProfilePostItem, ProfilePagination } from '../types/profile';
@@ -194,7 +195,10 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
       if (isCurrentlyFollowing) {
         // 언팔로우
         await FollowService.unfollowUser(profileData.id);
-        
+
+        // 언팔로우 성공 시 피드 새로고침 플래그 설정
+        useFeedStore.getState().setShouldRefreshFeeds(true);
+
         // 낙관적 UI 업데이트
         setProfileData(prev => prev ? {
           ...prev,
@@ -211,9 +215,9 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
         }
       } else {
         if (isPrivateAccount) {
-          // 비공개 계정: 팔로우 요청
+          // 비공개 계정: 팔로우 요청 (피드에 영향 없음)
           const response = await FollowService.sendFollowRequest(profileData.id);
-          
+
           // 낙관적 UI 업데이트
           setProfileData(prev => prev ? {
             ...prev,
@@ -226,7 +230,10 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
         } else {
           // 공개 계정: 바로 팔로우
           await FollowService.followUser(profileData.id);
-          
+
+          // 팔로우 성공 시 피드 새로고침 플래그 설정
+          useFeedStore.getState().setShouldRefreshFeeds(true);
+
           // 낙관적 UI 업데이트
           setProfileData(prev => prev ? {
             ...prev,
@@ -237,7 +244,6 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
           } : null);
         }
       }
-
     } catch (error) {
       console.error('팔로우/언팔로우 실패:', error);
 
