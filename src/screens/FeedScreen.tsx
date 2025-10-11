@@ -118,8 +118,8 @@ export default function FeedScreen() {
   };
 
   const handleAddStoryPress = () => {
-    console.log('스토리 추가');
-    // TODO: 스토리 추가 화면으로 이동
+    console.log('데일리 컷 추가');
+    navigation.navigate('DailyCutAdd');
   };
 
   // 피드 액션 핸들러들
