@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl, Alert, ActivityIndicator, Text } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -24,7 +24,10 @@ export default function HomeScreen() {
   const navigation = useNavigation<HomeNavigationProp>();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
-  
+
+  // FlatList ref
+  const flatListRef = useRef<FlatList>(null);
+
   // 상태 관리
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0);
@@ -111,6 +114,8 @@ export default function HomeScreen() {
   // 페이지 변경
   const handlePageChange = (page: number) => {
     setPagination(prev => ({ ...prev, page }));
+    // 페이지 변경 시 FlatList 최상단으로 스크롤 (애니메이션 없음)
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
   };
 
   // 카테고리 선택 핸들러
@@ -188,6 +193,7 @@ export default function HomeScreen() {
 
       {/* 게시물 목록 */}
       <FlatList
+        ref={flatListRef}
         data={posts}
         renderItem={renderPost}
         keyExtractor={(item) => item.id.toString()}
