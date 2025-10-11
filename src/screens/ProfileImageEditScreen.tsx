@@ -40,7 +40,7 @@ export default function ProfileImageEditScreen() {
   const requestMediaLibraryPermission = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('권한 필요', '사진 라이브러리에 대한 접근 권한이 필요합니다.');
+      Alert.alert('권한 필요', '사진 라이브러리에 대한 접근 권한이 필요합니다. 설정에서 허용해주세요.');
       return false;
     }
     return true;
@@ -50,7 +50,7 @@ export default function ProfileImageEditScreen() {
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('권한 필요', '카메라에 대한 접근 권한이 필요합니다.');
+      Alert.alert('권한 필요', '카메라에 대한 접근 권한이 필요합니다. 설정에서 허용해주세요.');
       return false;
     }
     return true;
