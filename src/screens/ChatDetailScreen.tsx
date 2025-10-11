@@ -755,7 +755,7 @@ export default function ChatDetailScreen() {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
       if (permissionResult.granted === false) {
-        Alert.alert('권한 필요', '카메라 권한이 필요합니다.');
+        Alert.alert('권한 필요', '카메라 권한이 필요합니다. 설정에서 허용해주세요.');
         return;
       }
 
@@ -783,7 +783,7 @@ export default function ChatDetailScreen() {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (permissionResult.granted === false) {
-        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
+        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.');
         return;
       }
 
