@@ -305,7 +305,7 @@ export default function ProfileHeader({
               {/* 비공개 계정일 경우 팔로우 요청 버튼 추가 */}
               {user.profile_visibility === 'followers' && onFollowRequestPress && (
                 <ProfileButton
-                  title="팔로우 요청"
+                  title="팔로우 요청 목록"
                   onPress={onFollowRequestPress}
                   variant="primary"
                   size="medium"
