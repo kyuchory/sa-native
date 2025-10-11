@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -37,9 +37,12 @@ export default function ChatScreen() {
   const navigation = useNavigation<ChatScreenNavigationProp>();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
-  
+
   // TODO: 소켓 관련 코드는 새로 구현할 예정
-  
+
+  // 초기 로드 플래그
+  const hasInitialLoad = useRef(false);
+
   // 로컬 상태 관리
   const [allChatRooms, setAllChatRooms] = useState<ChatRoom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,17 +54,7 @@ export default function ChatScreen() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedChatIds, setSelectedChatIds] = useState<Set<number>>(new Set());
 
-  // 컴포넌트 마운트 시 채팅방 데이터 로드
-  useEffect(() => {
-    const initializeChatScreen = async () => {
-      // WebSocket 연결은 글로벌로 관리됨, 채팅 이벤트 리스너 등록은 AuthNavigator에서 처리
-
-      // 채팅방 목록 로드
-      loadChatRooms();
-    };
-
-    initializeChatScreen();
-  }, []);
+  // NOTE: 초기 로드 로직은 useFocusEffect에서 처리
 
 
 
@@ -160,11 +153,19 @@ export default function ChatScreen() {
     return unsubscribeRoomCreated;
   }, []);
 
-  // 화면 진입/이탈 시 채팅 목록 구독 관리 (ChatDetailScreen과 동일한 패턴)
+  // 화면 진입/이탈 시 채팅 목록 구독 관리 및 데이터 로드 (초기 로드 포함)
   useFocusEffect(
     useCallback(() => {
-      console.log('📍 ChatScreen 포커스됨 - 채팅 목록 요약 메시지 수신 활성화');
+      if (!hasInitialLoad.current) {
+        // 첫 화면 진입 (초기 로드)
+        hasInitialLoad.current = true;
+        loadChatRooms(true); // 로딩 표시와 함께
+      } else {
+        // 재진입 (ChatDetailScreen -> ChatScreen 등)
+        loadChatRooms(false); // 로딩 없이 데이터만 적용
+      }
 
+      console.log('📍 ChatScreen 포커스됨 - 채팅 목록 요약 메시지 수신 활성화');
       // 요약 메시지 수신 활성화 (chatScreenSocketService에서 관리)
       chatScreenSocketService.subscribeToChatList();
 
@@ -180,8 +181,8 @@ export default function ChatScreen() {
     onForeground: async () => {
       console.log('🚀 ChatScreen 앱 포그라운드 - 채팅 목록 리프레시');
 
-      // 채팅 목록 다시 로드 (최신 상태 반영)
-      await loadChatRooms();
+      // 채팅 목록 다시 로드 (최신 상태 반영) - 로딩 없이 데이터만 적용
+      await loadChatRooms(false);
 
       // 요약 메시지 수신 활성화
       chatScreenSocketService.subscribeToChatList();
@@ -195,9 +196,9 @@ export default function ChatScreen() {
   });
 
   // 채팅방 목록 로드 (API 호출)
-  const loadChatRooms = async () => {
+  const loadChatRooms = async (showLoading = true) => {
     try {
-      setIsLoading(true);
+      if (showLoading) setIsLoading(true);
       const data = await ChatService.getChatRooms();
 
       // 로컬 상태 업데이트 (페이징 정보 포함)
@@ -213,7 +214,7 @@ export default function ChatScreen() {
       console.error('채팅방 목록 로드 실패:', error);
       Alert.alert('오류', error.message || '채팅방 목록을 불러오는데 실패했습니다.');
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   };
 
