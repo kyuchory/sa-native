@@ -24,3 +24,27 @@ export interface Story {
   created_at: string;
   expires_at?: string; // 24시간 제한 적용 시간 (옵션)
 }
+
+// 스토리 사용자 정보
+export interface StoryUser {
+  id: number;
+  nickname: string;
+  profile_img: string | null;
+}
+
+// 스토리 목록 아이템 (각 사용자의 최신 스토리 1개씩)
+export interface StoryListItem {
+  id: number;
+  created_at: string;
+  user: StoryUser;
+  has_unseen_story: boolean; // 안 본 스토리가 있는지 여부
+  story_count: number; // 작성자의 총 활성 스토리 개수
+}
+
+// 스토리 목록 조회 응답 데이터
+export interface StoryListResponse {
+  stories: Record<string, StoryListItem[]>; // 사용자 ID를 키로 하는 객체 (각각 1개씩)
+}
+
+// 스토리 목록 조회 API 응답
+export type StoryListApiResponse = ApiResponse<StoryListResponse>;
