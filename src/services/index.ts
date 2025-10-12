@@ -12,4 +12,5 @@ export * from './postService';
 export * from './profileService';
 export * from './searchService';
 export * from './socketService';
+export * from './storyService';
 export * from './supportService';
