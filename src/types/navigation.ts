@@ -36,6 +36,7 @@ export type AuthStackParamList = {
   FollowRequests: undefined;
   FollowList: { userId: number; initialTab: 'followers' | 'following' };
   DailyCutAdd: undefined;
+  DailyCutTestAdd: undefined;
 };
 
 export type TabParamList = {
