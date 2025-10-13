@@ -8,11 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		358ADDD39FB8CD939FAF37AA /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 55639DC4F1E615B8A77C4B75 /* PrivacyInfo.xcprivacy */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		97261375F934DF07DE869E8B /* libPods-MomTalk.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2476F22C823CB6A11CE1D9EE /* libPods-MomTalk.a */; };
-		BA1AB9DDE50F79FE50593EDD /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9C5FDF3D68FF5E9A9DFA963 /* ExpoModulesProvider.swift */; };
+		657BFB6A6C09934EC008A4F8 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A443546A51B82CFAA855BDE2 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
+		D3C10D7344543AA18DB2EB22 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5D5610B85C97C9179BF2022B /* PrivacyInfo.xcprivacy */; };
+		D76EEDA346B6CCAB452F38CD /* libPods-MomTalk.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AE5A6A1BC25C1A096DD681E8 /* libPods-MomTalk.a */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
@@ -20,13 +20,13 @@
 		13B07F961A680F5B00A75B9A /* MomTalk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MomTalk.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = MomTalk/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = MomTalk/Info.plist; sourceTree = "<group>"; };
-		2476F22C823CB6A11CE1D9EE /* libPods-MomTalk.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MomTalk.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		55639DC4F1E615B8A77C4B75 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = MomTalk/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		61E1F1B9FEFB475F68AFF2DE /* Pods-MomTalk.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MomTalk.debug.xcconfig"; path = "Target Support Files/Pods-MomTalk/Pods-MomTalk.debug.xcconfig"; sourceTree = "<group>"; };
+		5D5610B85C97C9179BF2022B /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = MomTalk/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		8129A308B6EFB12F7D120734 /* Pods-MomTalk.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MomTalk.release.xcconfig"; path = "Target Support Files/Pods-MomTalk/Pods-MomTalk.release.xcconfig"; sourceTree = "<group>"; };
+		A443546A51B82CFAA855BDE2 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-MomTalk/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = MomTalk/SplashScreen.storyboard; sourceTree = "<group>"; };
-		BAA724CA1E6590EEC4FC57CC /* Pods-MomTalk.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MomTalk.release.xcconfig"; path = "Target Support Files/Pods-MomTalk/Pods-MomTalk.release.xcconfig"; sourceTree = "<group>"; };
+		AE5A6A1BC25C1A096DD681E8 /* libPods-MomTalk.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MomTalk.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B23625DFE0F3E307D695ACC8 /* Pods-MomTalk.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MomTalk.debug.xcconfig"; path = "Target Support Files/Pods-MomTalk/Pods-MomTalk.debug.xcconfig"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		C9C5FDF3D68FF5E9A9DFA963 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-MomTalk/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = MomTalk/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* MomTalk-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "MomTalk-Bridging-Header.h"; path = "MomTalk/MomTalk-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				97261375F934DF07DE869E8B /* libPods-MomTalk.a in Frameworks */,
+				D76EEDA346B6CCAB452F38CD /* libPods-MomTalk.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,7 +53,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				55639DC4F1E615B8A77C4B75 /* PrivacyInfo.xcprivacy */,
+				5D5610B85C97C9179BF2022B /* PrivacyInfo.xcprivacy */,
 			);
 			name = MomTalk;
 			sourceTree = "<group>";
@@ -62,17 +62,26 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				2476F22C823CB6A11CE1D9EE /* libPods-MomTalk.a */,
+				AE5A6A1BC25C1A096DD681E8 /* libPods-MomTalk.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		69F1AD1540864D7BF273735A /* Pods */ = {
+		2D22476CA4AF01D24A85A87C /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				61E1F1B9FEFB475F68AFF2DE /* Pods-MomTalk.debug.xcconfig */,
-				BAA724CA1E6590EEC4FC57CC /* Pods-MomTalk.release.xcconfig */,
+				86BEB285F0179698FE88ACB0 /* MomTalk */,
 			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
+		52EDD3D3675C736EB097B3FA /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				B23625DFE0F3E307D695ACC8 /* Pods-MomTalk.debug.xcconfig */,
+				8129A308B6EFB12F7D120734 /* Pods-MomTalk.release.xcconfig */,
+			);
+			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -90,8 +99,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				69F1AD1540864D7BF273735A /* Pods */,
-				A295AFCF658BDF01E2B0546F /* ExpoModulesProviders */,
+				52EDD3D3675C736EB097B3FA /* Pods */,
+				2D22476CA4AF01D24A85A87C /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -106,12 +115,12 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A295AFCF658BDF01E2B0546F /* ExpoModulesProviders */ = {
+		86BEB285F0179698FE88ACB0 /* MomTalk */ = {
 			isa = PBXGroup;
 			children = (
-				F63557D4542C1695CEDD780B /* MomTalk */,
+				A443546A51B82CFAA855BDE2 /* ExpoModulesProvider.swift */,
 			);
-			name = ExpoModulesProviders;
+			name = MomTalk;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -123,14 +132,6 @@
 			path = MomTalk/Supporting;
 			sourceTree = "<group>";
 		};
-		F63557D4542C1695CEDD780B /* MomTalk */ = {
-			isa = PBXGroup;
-			children = (
-				C9C5FDF3D68FF5E9A9DFA963 /* ExpoModulesProvider.swift */,
-			);
-			name = MomTalk;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -139,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "MomTalk" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				AA946D610DB4B7293F3F4FF5 /* [Expo] Configure project */,
+				32EFFED7CD2E7D8C3CD7B3A6 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				21072D98627CD91693F6E1D9 /* [CP] Embed Pods Frameworks */,
+				75681B0208037A868459A81A /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -195,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				358ADDD39FB8CD939FAF37AA /* PrivacyInfo.xcprivacy in Resources */,
+				D3C10D7344543AA18DB2EB22 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -241,7 +242,31 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		21072D98627CD91693F6E1D9 /* [CP] Embed Pods Frameworks */ = {
+		32EFFED7CD2E7D8C3CD7B3A6 /* [Expo] Configure project */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/.xcode.env",
+				"$(SRCROOT)/.xcode.env.local",
+				"$(SRCROOT)/MomTalk/MomTalk.entitlements",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-MomTalk/expo-configure-project.sh",
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Pods/Target Support Files/Pods-MomTalk/ExpoModulesProvider.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-MomTalk/expo-configure-project.sh\"\n";
+		};
+		75681B0208037A868459A81A /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -273,51 +298,31 @@
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoMediaLibrary/ExpoMediaLibrary_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoSystemUI/ExpoSystemUI_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/RNCAsyncStorage/RNCAsyncStorage_resources.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/RNSVG/RNSVGFilters.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/React-Core/React-Core_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/React-cxxreact/React-cxxreact_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/SDWebImage/SDWebImage.bundle",
 			);
 			name = "[CP] Copy Pods Resources";
 			outputPaths = (
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXConstants.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoConstants_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoFileSystem_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoMediaLibrary_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoSystemUI_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNCAsyncStorage_resources.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNSVGFilters.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-Core_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-cxxreact_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/SDWebImage.bundle",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MomTalk/Pods-MomTalk-resources.sh\"\n";
 			showEnvVarsInLog = 0;
-		};
-		AA946D610DB4B7293F3F4FF5 /* [Expo] Configure project */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/.xcode.env",
-				"$(SRCROOT)/.xcode.env.local",
-				"$(SRCROOT)/MomTalk/MomTalk.entitlements",
-				"$(SRCROOT)/Pods/Target Support Files/Pods-MomTalk/expo-configure-project.sh",
-			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(SRCROOT)/Pods/Target Support Files/Pods-MomTalk/ExpoModulesProvider.swift",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-MomTalk/expo-configure-project.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -327,7 +332,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				BA1AB9DDE50F79FE50593EDD /* ExpoModulesProvider.swift in Sources */,
+				657BFB6A6C09934EC008A4F8 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -336,13 +341,12 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 61E1F1B9FEFB475F68AFF2DE /* Pods-MomTalk.debug.xcconfig */;
+			baseConfigurationReference = B23625DFE0F3E307D695ACC8 /* Pods-MomTalk.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = MomTalk/MomTalk.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = PRM89PRR8V;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -373,13 +377,12 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = BAA724CA1E6590EEC4FC57CC /* Pods-MomTalk.release.xcconfig */;
+			baseConfigurationReference = 8129A308B6EFB12F7D120734 /* Pods-MomTalk.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = MomTalk/MomTalk.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = PRM89PRR8V;
 				INFOPLIST_FILE = MomTalk/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
