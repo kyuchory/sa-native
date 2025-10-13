@@ -67,32 +67,32 @@ export interface StoryDetail {
 // 스토리 상세 조회 - 사용자 스토리 리스트 아이템
 export interface UserStoryItem {
   id: number;
-  userId: number;
+  user_id: number;
   username: string;
-  profileImg: string;
+  profile_img: string;
   type: 'image' | 'video';
-  contentUrl: string;
-  thumbnailUrl?: string | null;
+  content_url: string;
+  thumbnail_url?: string | null;
   duration?: number | null;
-  isViewed: boolean;
-  createdAt: string;
+  is_viewed: boolean;
+  created_at: string;
 }
 
 // 스토리 상세 조회 - 내비게이션 정보
 export interface NavigationInfo {
-  nextUserId: number | null;
-  prevUserId: number | null;
-  hasNext: boolean;
-  hasPrev: boolean;
+  next_user_id?: number | null;
+  prev_user_id?: number | null;
+  has_next: boolean;
+  has_prev: boolean;
 }
 
 // 스토리 상세 조회 응답 데이터
 export interface StoryDetailResponse {
   current_story: StoryDetail;
-  currentUserStories: UserStoryItem[];
-  nextUserStories: UserStoryItem[] | null;
-  prevUserStories: UserStoryItem[] | null;
-  navigationInfo: NavigationInfo;
+  current_user_stories: UserStoryItem[];
+  next_user_stories?: UserStoryItem[] | null;
+  prev_user_stories?: UserStoryItem[] | null;
+  navigation_info: NavigationInfo;
 }
 
 // 스토리 상세 조회 API 응답
