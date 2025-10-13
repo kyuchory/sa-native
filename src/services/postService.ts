@@ -23,7 +23,6 @@ import type {
   UpdatePostResponse
 } from '../types/post';
 import type { ApiResponse } from '../types/api';
-import { MOCK_POST_DETAIL, MOCK_ITEM_POST_DETAIL } from '../data/postDetailMockData';
 
 export class PostService {
   // 카테고리 목록 조회
