@@ -254,7 +254,7 @@ export default function ChatScreen() {
       chatRoomId: chatRoom.id,
       chatRoomName,
       chatPartnerId,
-      unreadCount: chatRoom.unread_count,
+      unreadCount: chatRoom.unread_count || 0,
     });
   };
 

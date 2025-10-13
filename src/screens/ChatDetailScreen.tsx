@@ -237,7 +237,8 @@ export default function ChatDetailScreen() {
 
   // 읽음 처리: 메시지 로딩 완료 후 읽지 않은 메시지가 있으면 처리
   useEffect(() => {
-    if (!isInitialLoading && unreadCount > 0 && user) {
+    // unreadCount가 존재하고 0보다 크면 읽음 처리
+    if (!isInitialLoading && unreadCount && unreadCount > 0 && user) {
       console.log(`✅ 읽음 처리 시작: 채팅방 ${chatRoomId}, 읽지 않은 수: ${unreadCount}`);
 
       ChatService.markAsRead(chatRoomId).catch(error => {
