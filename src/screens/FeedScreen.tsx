@@ -6,6 +6,7 @@ import { SPACING } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
 import { useThemeStore } from '../stores/themeStore';
 import useFeedStore from '../stores/feedStore';
+import useStoryStore from '../stores/storyStore';
 
   // 컴포넌트 imports
 import MainHeader from '../components/MainHeader';
@@ -16,7 +17,6 @@ import { WriteIcon } from '../components/HomeHeaderIcons';
 // 데이터 imports
 import { FeedListItem } from '../types/feed';
 import { FeedService } from '../services/feedService';
-import { StoryUser } from '../data/storyMockData';
 
 type FeedScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'MainApp'>;
 
@@ -24,7 +24,7 @@ export default function FeedScreen() {
   const navigation = useNavigation<FeedScreenNavigationProp>();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
-  
+
   // 상태 관리
   const [feeds, setFeeds] = useState<FeedListItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -35,10 +35,12 @@ export default function FeedScreen() {
 
   // Zustand 스토어 상태 및 액션들
   const { shouldRefreshFeeds, setShouldRefreshFeeds } = useFeedStore();
+  const { stories, loading: storyLoading, loadStories } = useStoryStore();
 
-  // 컴포넌트 마운트 시 피드 로드
+  // 컴포넌트 마운트 시 피드와 스토리 로드
   useEffect(() => {
     loadInitialFeeds();
+    loadStories();
   }, []);
 
   // 스마트한 포커스 기반 새로고침
@@ -91,6 +93,7 @@ export default function FeedScreen() {
       setCursor(undefined);
       setHasNext(true);
       await loadInitialFeeds();
+      await loadStories(); // 스토리도 함께 새로고침
     } finally {
       setRefreshing(false);
     }
@@ -112,7 +115,7 @@ export default function FeedScreen() {
   ];
 
   // 스토리 액션 핸들러들
-  const handleStoryPress = (user: StoryUser) => {
+  const handleStoryPress = (user: any) => {
     console.log('스토리 보기:', user.nickname);
     // TODO: 스토리 상세 화면으로 이동
   };
@@ -163,6 +166,8 @@ export default function FeedScreen() {
   // 리스트 헤더 (스토리 섹션)
   const renderListHeader = () => (
     <StorySection
+      stories={stories}
+      loading={storyLoading}
       onStoryPress={handleStoryPress}
       onAddStoryPress={handleAddStoryPress}
     />

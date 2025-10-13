@@ -1,14 +1,25 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
-import { StoryUser, getAllStoryUsers } from '../data/storyMockData';
+import { StoryListResponse } from '../types/story';
 import { useThemeStore } from '../stores/themeStore';
 import Svg, { Circle } from 'react-native-svg';
 import UserAvatar from './UserAvatar';
 
 interface StorySectionProps {
-  onStoryPress?: (user: StoryUser) => void;
+  stories: StoryListResponse | null;
+  loading?: boolean;
+  onStoryPress?: (user: any) => void;
   onAddStoryPress?: () => void;
+}
+
+// UI용 스토리 사용자 타입 (기존 mock 데이터 호환용)
+interface StoryUser {
+  id: number;
+  nickname: string;
+  profile_img: string | null;
+  has_story: boolean;
+  is_viewed: boolean;
 }
 
 // 플러스 아이콘 컴포넌트
@@ -21,10 +32,11 @@ const PlusIcon = ({ size = 20, color = '#FFFFFF' }) => (
 );
 
 // 개별 스토리 아이템 컴포넌트
-const StoryItem = ({ user, isMyProfile = false, onPress, colors, styles }: {
+const StoryItem = ({ user, isMyProfile = false, onPress, onPlusPress, colors, styles }: {
   user: StoryUser;
   isMyProfile?: boolean;
   onPress: () => void;
+  onPlusPress?: () => void;
   colors: Record<string, string>;
   styles: any;
 }) => {
@@ -35,19 +47,19 @@ const StoryItem = ({ user, isMyProfile = false, onPress, colors, styles }: {
   return (
     <TouchableOpacity style={styles.storyItem} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.storyImageContainer}>
-        <View style={[styles.storyImageBorder, { borderColor }]}>
-          <UserAvatar 
-            profileImg={user.profile_img} 
+        <TouchableOpacity style={[styles.storyImageBorder, { borderColor }]}>
+          <UserAvatar
+            profileImg={user.profile_img}
             nickname={user.nickname}
             size={60}
           />
-        </View>
-        {isMyProfile && !user.has_story && (
-          <View style={styles.addStoryButton}>
+        </TouchableOpacity>
+        {isMyProfile && (  // 자신 스토리인 경우 항상 + 아이콘 표시 (스토리 추가 기능)
+          <TouchableOpacity style={styles.addStoryButton} onPress={onPlusPress}>
             <View style={styles.plusIconContainer}>
               <Text style={styles.plusIcon}>+</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         )}
       </View>
       <Text style={styles.storyNickname} numberOfLines={1}>
@@ -57,34 +69,69 @@ const StoryItem = ({ user, isMyProfile = false, onPress, colors, styles }: {
   );
 };
 
-export default function StorySection({ onStoryPress, onAddStoryPress }: StorySectionProps) {
+export default function StorySection({ stories, onStoryPress, onAddStoryPress }: StorySectionProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
-  const storyUsers = getAllStoryUsers();
+
+  // API 데이터를 UI용 데이터로 변환
+  const storyItems: StoryUser[] = useMemo(() => {
+    // 1. 첫 번째 아이템은 항상 자신 프로필 (고정)
+    const myStoryItem: StoryUser = {
+      id: 0,
+      nickname: '나',
+      profile_img: stories?.own?.[0]?.user?.profile_img || null,
+      has_story: stories?.own?.[0]?.has_unseen_story !== undefined,
+      is_viewed: stories?.own?.[0]?.has_unseen_story === false,
+    };
+
+    const items: StoryUser[] = [myStoryItem];
+
+    // 2. 팔로우 스토리들 추가
+    if (stories?.following) {
+      Object.values(stories.following).flat().forEach(story => {
+        items.push({
+          id: story.user.id,
+          nickname: story.user.nickname,
+          profile_img: story.user.profile_img,
+          has_story: true,
+          is_viewed: !story.has_unseen_story,
+        });
+      });
+    }
+
+    return items;
+  }, [stories]);
 
   const handleStoryPress = (user: StoryUser) => {
-    if (user.id === 0 && !user.has_story) {
-      // 내 프로필이고 스토리가 없으면 스토리 추가
-      onAddStoryPress?.();
+    if (isMyProfile(user)) {
+      // 자신의 스토리의 경우: 스토리 보기 (나중으로 이동함)
+      console.log('내 스토리를 터치했습니다');
+      // TODO: 내 스토리 화면으로 이동
     } else {
-      // 스토리 보기
+      // 팔로우 스토리인 경우 스토리 보기
       onStoryPress?.(user);
     }
   };
 
+  // 자신 프로필인지 확인하는 헬퍼 함수
+  const isMyProfile = (user: StoryUser) => {
+    return user.id === 0 || user.nickname === '나';
+  };
+
   return (
     <View style={styles.container}>
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {storyUsers.map((user, index) => (
+        {storyItems.map((user, index) => (
           <StoryItem
             key={user.id}
             user={user}
             isMyProfile={user.id === 0}
             onPress={() => handleStoryPress(user)}
+            onPlusPress={onAddStoryPress}
             colors={colors}
             styles={styles}
           />

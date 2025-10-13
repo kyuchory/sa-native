@@ -6,5 +6,6 @@ export * from './notificationStore';
 export * from './postStore';
 export * from './profileStore';
 export * from './socketStore';
+export * from './storyStore';
 export * from './supportStore';
 export * from './themeStore';
