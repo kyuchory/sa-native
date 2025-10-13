@@ -86,9 +86,9 @@ export default function StorySection({ stories, onStoryPress, onAddStoryPress }:
 
     const items: StoryUser[] = [myStoryItem];
 
-    // 2. 팔로우 스토리들 추가
-    if (stories?.following) {
-      Object.values(stories.following).flat().forEach(story => {
+    // 2. 팔로우 스토리들 추가 (서버에서 정렬된 배열로 제공)
+    if (stories?.following &&Array.isArray(stories.following)) {
+      stories.following.forEach(story => {
         items.push({
           id: story.user.id,
           nickname: story.user.nickname,
