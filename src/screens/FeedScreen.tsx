@@ -115,9 +115,10 @@ export default function FeedScreen() {
   ];
 
   // 스토리 액션 핸들러들
-  const handleStoryPress = (user: any) => {
-    console.log('스토리 보기:', user.nickname);
-    // TODO: 스토리 상세 화면으로 이동
+  const handleStoryPress = (user: any, storyId?: number) => {
+    if (storyId) {
+      navigation.navigate('DailyCutDetail', { storyId });
+    }
   };
 
   const handleAddStoryPress = () => {

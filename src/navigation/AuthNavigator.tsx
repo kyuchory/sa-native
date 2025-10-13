@@ -40,6 +40,7 @@ import FollowRequestsScreen from '../screens/FollowRequestsScreen';
 import FollowListScreen from '../screens/FollowListScreen';
 import DailyCutAddScreen from '../screens/DailyCutAddScreen';
 import DailyCutTestAddScreen from '../screens/DailyCutTestAddScreen';
+import DailyCutDetailScreen from '../screens/DailyCutDetailScreen';
 
 // Tab Navigator
 import TabNavigator from './TabNavigator';
@@ -209,6 +210,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="DailyCutTestAdd"
           component={DailyCutTestAddScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DailyCutDetail"
+          component={DailyCutDetailScreen}
           options={{ headerShown: false }}
         />
           </>
