@@ -4,7 +4,9 @@ import type {
   CreateStoryResponse,
   CreateStoryApiResponse,
   StoryListResponse,
-  StoryListApiResponse
+  StoryListApiResponse,
+  StoryDetailResponse,
+  StoryDetailApiResponse
 } from '../types/story';
 import type { ApiResponse } from '../types/api';
 
@@ -73,6 +75,25 @@ export class StoryService {
       return response.data!;
     } catch (error) {
       console.error('스토리 목록 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 스토리 상세 조회
+  static async getStoryDetail(storyId: number, direction?: 'next' | 'prev'): Promise<StoryDetailResponse> {
+    try {
+      const params = new URLSearchParams();
+      if (direction) {
+        params.append('direction', direction);
+      }
+
+      const queryString = params.toString();
+      const url = `/stories/${storyId}/detail${queryString ? `?${queryString}` : ''}`;
+
+      const response = await apiClient.get<StoryDetailApiResponse>(url);
+      return response.data!;
+    } catch (error) {
+      console.error('스토리 상세 조회 실패:', error);
       throw error;
     }
   }

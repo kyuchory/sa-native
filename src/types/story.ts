@@ -49,3 +49,51 @@ export interface StoryListResponse {
 
 // 스토리 목록 조회 API 응답
 export type StoryListApiResponse = ApiResponse<StoryListResponse>;
+
+// 스토리 상세 조회 - 현재 스토리 정보
+export interface StoryDetail {
+  id: number;
+  user_id: number;
+  username: string;
+  profile_img: string;
+  type: 'image' | 'video';
+  content_url: string;
+  thumbnail_url: string | null;
+  duration: number | null;
+  is_viewed: boolean;
+  created_at: string;
+}
+
+// 스토리 상세 조회 - 사용자 스토리 리스트 아이템
+export interface UserStoryItem {
+  id: number;
+  userId: number;
+  username: string;
+  profileImg: string;
+  type: 'image' | 'video';
+  contentUrl: string;
+  thumbnailUrl?: string | null;
+  duration?: number | null;
+  isViewed: boolean;
+  createdAt: string;
+}
+
+// 스토리 상세 조회 - 내비게이션 정보
+export interface NavigationInfo {
+  nextUserId: number | null;
+  prevUserId: number | null;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+// 스토리 상세 조회 응답 데이터
+export interface StoryDetailResponse {
+  current_story: StoryDetail;
+  currentUserStories: UserStoryItem[];
+  nextUserStories: UserStoryItem[] | null;
+  prevUserStories: UserStoryItem[] | null;
+  navigationInfo: NavigationInfo;
+}
+
+// 스토리 상세 조회 API 응답
+export type StoryDetailApiResponse = ApiResponse<StoryDetailResponse>;
