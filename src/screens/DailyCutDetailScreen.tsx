@@ -54,19 +54,20 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   /** 스토리 상세 호출 */
-  const fetchStoryDetail = async (id: number) => {
+  const fetchStoryDetail = useCallback(async (id: number) => {
     try {
       const res = await StoryService.getStoryDetail(id);
       setStoryData(res);
       setCurrentIndex(0);
+      setIsPaused(false); // 새 스토리 로드 시 일시정지 해제
     } catch (error) {
       console.error('스토리 불러오기 실패', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchStoryDetail(storyId);
-  }, [storyId]);
+  }, [storyId, fetchStoryDetail]);
 
   /** 다음 스토리로 이동 */
   const goToNext = useCallback(() => {
@@ -80,7 +81,7 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
     } else {
       console.log('마지막 스토리입니다.');
     }
-  }, [storyData, currentIndex]);
+  }, [storyData, currentIndex, fetchStoryDetail]);
 
   /** 이전 스토리로 이동 */
   const goToPrev = useCallback(() => {
@@ -90,7 +91,7 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
     } else if (storyData.prev_user_stories?.length) {
       fetchStoryDetail(storyData.prev_user_stories[0].id);
     }
-  }, [storyData, currentIndex]);
+  }, [storyData, currentIndex, fetchStoryDetail]);
 
   /** 화면 좌/우 터치 */
   const handlePress = (event: NativeSyntheticEvent<NativeTouchEvent>) => {
@@ -102,16 +103,30 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
     else goToPrev();
   };
 
+  /** 다음 유저 스토리로 이동 */
+  const handleNextUser = useCallback(() => {
+    if (storyData?.next_user_stories?.length) {
+      fetchStoryDetail(storyData.next_user_stories[0].id);
+    }
+  }, [storyData, fetchStoryDetail]);
+
+  /** 이전 유저 스토리로 이동 */
+  const handlePrevUser = useCallback(() => {
+    if (storyData?.prev_user_stories?.length) {
+      fetchStoryDetail(storyData.prev_user_stories[0].id);
+    }
+  }, [storyData, fetchStoryDetail]);
+
   /** 사용자 단위 스와이프 */
   const pan = Gesture.Pan().onEnd((e) => {
+    'worklet';
     const SWIPE_THRESHOLD = 50;
     const shouldGoNext = e.translationX < -SWIPE_THRESHOLD;
     const shouldGoPrev = e.translationX > SWIPE_THRESHOLD;
-
-    if (shouldGoNext && storyData?.next_user_stories?.length) {
-      fetchStoryDetail(storyData.next_user_stories[0].id);
-    } else if (shouldGoPrev && storyData?.prev_user_stories?.length) {
-      fetchStoryDetail(storyData.prev_user_stories[0].id);
+    if (shouldGoNext) {
+      runOnJS(handleNextUser)();
+    } else if (shouldGoPrev) {
+      runOnJS(handlePrevUser)();
     }
   });
 
@@ -151,7 +166,7 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
               <View style={q.topOverlayContainer}>
                 {/* Progress Bars */}
                 <View style={q.progressContainer}>
-                  {storyData.current_user_stories.map((_, idx) => {
+                  {storyData.current_user_stories.map((story, idx) => {
                     const isCompleted = idx < currentIndex;
                     const isActive = idx === currentIndex;
                     const segmentWidth =
@@ -165,8 +180,8 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
                         isActive={isActive}
                         isPaused={isPaused}
                         duration={
-                          storyData.current_user_stories[idx].type === 'video'
-                            ? (storyData.current_user_stories[idx].duration ?? 5) * 1000
+                          story.type === 'video'
+                            ? (story.duration ?? 5) * 1000
                             : 5000
                         }
                         segmentWidth={segmentWidth}
