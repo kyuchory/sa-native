@@ -105,7 +105,6 @@ const checkLoginStatus = async (): Promise<boolean> => {
   try {
     // 실제 구현시에는 authStore에서 토큰 유효성을 확인해야 함
     // 현재는 간단히 토큰 존재 여부만 확인
-    const { getAccessToken } = await import('../stores/authStore');
     const token = getAccessToken();
 
     if (!token) {
