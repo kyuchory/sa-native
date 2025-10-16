@@ -224,7 +224,9 @@ const ProgressBar = ({
       if (isPaused) {
         cancelAnimation(progress);
       } else {
-        progress.value = withTiming(1, { duration: (1 - progress.value) * duration }, (finished) => {
+        // 항상 0부터 시작하도록 수정 (이전 스토리 돌아갈 때 duration 제대로 적용)
+        progress.value = 0;
+        progress.value = withTiming(1, { duration: duration }, (finished) => {
           if (finished) runOnJS(onComplete)();
         });
       }
