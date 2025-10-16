@@ -90,8 +90,8 @@ export interface NavigationInfo {
 export interface StoryDetailResponse {
   current_story: StoryDetail;
   current_user_stories: UserStoryItem[];
-  next_user_stories?: UserStoryItem[] | null;
-  prev_user_stories?: UserStoryItem[] | null;
+  next_user_stories: UserStoryItem[];
+  prev_user_stories: UserStoryItem[];
   navigation_info: NavigationInfo;
 }
 
