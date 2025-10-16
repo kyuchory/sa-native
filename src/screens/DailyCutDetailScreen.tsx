@@ -33,6 +33,7 @@ import { formatRelativeTime } from '../utils/timeUtils';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS as THEME_SHADOWS, TEXT_COLORS } from '../constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const ACTUAL_WIDTH = SCREEN_WIDTH - SPACING.SM * 2;
 
 type DailyCutDetailScreenRouteProp = RouteProp<AuthStackParamList, 'DailyCutDetail'>;
 type DailyCutDetailScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'DailyCutDetail'>;
@@ -154,7 +155,7 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
                     const isCompleted = idx < currentIndex;
                     const isActive = idx === currentIndex;
                     const segmentWidth =
-                      (SCREEN_WIDTH - SPACING.MD * 2 - SPACING.XS * (storyData.current_user_stories.length - 1)) /
+                      (ACTUAL_WIDTH - SPACING.MD * 2 - SPACING.XS * (storyData.current_user_stories.length - 1)) /
                       storyData.current_user_stories.length;
 
                     return (
@@ -297,7 +298,7 @@ const createStyles = (colors: Record<string, string>) =>
       width: '100%',
     },
     overlayContent: {
-      paddingVertical: SPACING.MD,
+      paddingVertical: SPACING.SM,
       paddingHorizontal: SPACING.MD,
     },
     userOverlay: {
