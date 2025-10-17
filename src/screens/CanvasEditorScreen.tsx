@@ -2,9 +2,9 @@ import 'react-native-reanimated';
 import 'react-native-gesture-handler';
 import React, { useRef, useState, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, Button, Image, TextInput, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, Button, Image, TextInput, TouchableOpacity, Dimensions, Alert, Modal } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, runOnJS, withSpring } from 'react-native-reanimated';
 import { captureRef } from 'react-native-view-shot';
 import Svg, { Path } from 'react-native-svg';
 import * as MediaLibrary from 'expo-media-library';
@@ -28,7 +28,6 @@ type TextElement = {
   pos: PercentPos;
   rotation: number;
   scale: number;
-  widthPercent: number;
 };
 
 type Stroke = { id: string; points: { x: number; y: number }[]; color: string; width: number };
@@ -67,12 +66,15 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
   const [drawColor, setDrawColor] = useState('#000000');
   const [drawWidth, setDrawWidth] = useState(3);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  
+  // 텍스트 입력 모달
+  const [showTextModal, setShowTextModal] = useState(false);
+  const [modalTextInput, setModalTextInput] = useState('');
+  const [editingElementId, setEditingElementId] = useState<string | null>(null);
 
-  // Drawing state를 shared value로 관리
   const drawingPoints = useSharedValue<{ x: number; y: number }[]>([]);
 
   const percentToPx = (p: PercentPos) => ({ left: p.left * SCREEN_W, top: p.top * SCREEN_H });
-  const pxToPercent = (x: number, y: number): PercentPos => ({ left: x / SCREEN_W, top: y / SCREEN_H });
 
   const addSticker = (uri: string) => {
     setElements(prev => [
@@ -89,18 +91,41 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
   };
 
   const addTextBox = () => {
-    setElements(prev => [
-      ...prev,
-      {
-        id: `text-${Date.now()}`,
-        type: 'text',
-        text: 'Edit me',
-        pos: { left: 0.2, top: 0.4 },
-        rotation: 0,
-        scale: 1,
-        widthPercent: 0.5,
-      } as TextElement,
-    ]);
+    setEditingElementId(null);
+    setModalTextInput('');
+    setShowTextModal(true);
+  };
+
+  const confirmAddText = () => {
+    if (editingElementId) {
+      // 기존 텍스트 수정
+      if (modalTextInput.trim()) {
+        setElements(prev => prev.map(el => 
+          el.id === editingElementId && el.type === 'text'
+            ? { ...el, text: modalTextInput }
+            : el
+        ));
+      }
+    } else {
+      // 새 텍스트 추가
+      if (modalTextInput.trim()) {
+        const newId = `text-${Date.now()}`;
+        setElements(prev => [
+          ...prev,
+          {
+            id: newId,
+            type: 'text',
+            text: modalTextInput,
+            pos: { left: 0.2, top: 0.4 },
+            rotation: 0,
+            scale: 1,
+          } as TextElement,
+        ]);
+      }
+    }
+    setShowTextModal(false);
+    setModalTextInput('');
+    setEditingElementId(null);
   };
 
   const bringForward = (id: string) => {
@@ -128,6 +153,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
   const exportAsImage = async () => {
     try {
       if (!canvasRef.current) return;
+
       const uri = await captureRef(canvasRef, { format: 'png', quality: 0.9 });
 
       const { status } = await MediaLibrary.requestPermissionsAsync();
@@ -174,7 +200,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
     });
   }, []);
 
-  // ---------- Drawing handlers ----------
+  // ---------- Drawing gesture ----------
   const panForDrawing = Gesture.Pan()
     .enabled(isDrawing)
     .onBegin(e => {
@@ -198,28 +224,80 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
       drawingPoints.value = [];
     });
 
-  const updateElementsJS = useCallback((updater: (prev: Array<StickerElement | TextElement>) => Array<StickerElement | TextElement>) => {
-    setElements(updater);
+  // Element update callbacks
+  const updateElementPosition = useCallback((id: string, newPos: PercentPos) => {
+    setElements(prev => prev.map(el => 
+      el.id === id ? { ...el, pos: newPos } : el
+    ));
+  }, []);
+
+  const updateElementScale = useCallback((id: string, newScale: number) => {
+    setElements(prev => prev.map(el => 
+      el.id === id ? { ...el, scale: newScale } : el
+    ));
+  }, []);
+
+  const updateElementRotation = useCallback((id: string, newRotation: number) => {
+    setElements(prev => prev.map(el => 
+      el.id === id ? { ...el, rotation: newRotation } : el
+    ));
   }, []);
 
   const setSelectedIdJS = useCallback((id: string) => {
     setSelectedId(id);
   }, []);
 
-  // ---------- Element gesturing helpers ----------
-  const ElementWrapper: React.FC<{ el: StickerElement | TextElement; index: number }> = ({ el, index }) => {
+  const openEditModalJS = useCallback((id: string, currentText: string) => {
+    setEditingElementId(id);
+    setModalTextInput(currentText);
+    setShowTextModal(true);
+  }, []);
+
+  // ---------- Element wrapper with Instagram-style gestures ----------
+  const ElementWrapper: React.FC<{ el: StickerElement | TextElement }> = ({ el }) => {
+    const elementId = el.id;
+    const elementType = el.type;
+    const initialPos = el.pos;
+    const initialScale = el.scale ?? 1;
+    const initialRotation = (el.rotation ?? 0) * (Math.PI / 180);
+
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
-    const scale = useSharedValue(el.scale ?? 1);
-    const rotation = useSharedValue((el.rotation ?? 0) * (Math.PI / 180));
-    const initialScale = useSharedValue(el.scale ?? 1);
-    const initialRotation = useSharedValue((el.rotation ?? 0) * (Math.PI / 180));
+    const scale = useSharedValue(1);
+    const rotation = useSharedValue(0);
+    
+    const baseScale = useSharedValue(initialScale);
+    const baseRotation = useSharedValue(initialRotation);
+    
+    // 제스처 시작 시점의 위치 저장
+    const startPosX = useSharedValue(0);
+    const startPosY = useSharedValue(0);
+    
+    // 터치 활성화 상태 (손가락이 화면에 닿아있는 동안)
+    const isActive = useSharedValue(false);
 
+    // Tap gesture - 텍스트 수정 (텍스트 요소에만)
+    const tap = Gesture.Tap()
+      .enabled(!isDrawing && elementType === 'text')
+      .maxDuration(200)
+      .onEnd(() => {
+        'worklet';
+        if (elementType === 'text') {
+          const textEl = el as TextElement;
+          runOnJS(openEditModalJS)(elementId, textEl.text);
+        }
+      });
+
+    // Pan gesture - 이동
     const pan = Gesture.Pan()
       .enabled(!isDrawing)
+      .minDistance(1) // 1px 이상 이동해야 Pan으로 인식 (Tap과 구분)
       .onBegin(() => {
         'worklet';
-        runOnJS(setSelectedIdJS)(el.id);
+        isActive.value = true;
+        runOnJS(setSelectedIdJS)(elementId);
+        startPosX.value = initialPos.left * SCREEN_W;
+        startPosY.value = initialPos.top * SCREEN_H;
       })
       .onUpdate(e => {
         'worklet';
@@ -228,157 +306,133 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
       })
       .onEnd(() => {
         'worklet';
-        const posPx = percentToPx(el.pos);
-        const newLeftPx = posPx.left + translateX.value;
-        const newTopPx = posPx.top + translateY.value;
-        const newPos = pxToPercent(newLeftPx, newTopPx);
+        const newLeftPx = startPosX.value + translateX.value;
+        const newTopPx = startPosY.value + translateY.value;
+        const newPosLeft = newLeftPx / SCREEN_W;
+        const newPosTop = newTopPx / SCREEN_H;
         
-        runOnJS(updateElementsJS)((prev) => {
-          const copy = [...prev];
-          const item = { ...copy[index] } as any;
-          item.pos = newPos;
-          copy[index] = item;
-          return copy;
-        });
+        runOnJS(updateElementPosition)(elementId, { left: newPosLeft, top: newPosTop });
         
         translateX.value = 0;
         translateY.value = 0;
+      })
+      .onFinalize(() => {
+        'worklet';
+        isActive.value = false;
       });
 
+    // Pinch gesture - 확대/축소
     const pinch = Gesture.Pinch()
       .enabled(!isDrawing)
-      .onStart(() => {
+      .onBegin(() => {
         'worklet';
-        initialScale.value = el.scale ?? 1;
+        isActive.value = true;
+        runOnJS(setSelectedIdJS)(elementId);
       })
       .onUpdate(e => {
         'worklet';
-        scale.value = initialScale.value * e.scale;
+        scale.value = e.scale;
+        // Pinch의 focal point를 이용한 위치 조정
+        const focalX = e.focalX;
+        const focalY = e.focalY;
+        const centerX = startPosX.value + translateX.value;
+        const centerY = startPosY.value + translateY.value;
+        
+        // focal point 기준으로 이동 보정
+        translateX.value += (focalX - centerX) * (1 - e.scale) * 0.1;
+        translateY.value += (focalY - centerY) * (1 - e.scale) * 0.1;
       })
       .onEnd(() => {
         'worklet';
-        runOnJS(updateElementsJS)((prev) => {
-          const copy = [...prev];
-          const item = { ...copy[index] } as any;
-          item.scale = scale.value;
-          copy[index] = item;
-          return copy;
-        });
-        initialScale.value = scale.value;
+        const newScale = baseScale.value * scale.value;
+        runOnJS(updateElementScale)(elementId, newScale);
+        baseScale.value = newScale;
+        scale.value = 1;
+      })
+      .onFinalize(() => {
+        'worklet';
+        isActive.value = false;
       });
 
+    // Rotation gesture - 회전
     const rotationGesture = Gesture.Rotation()
       .enabled(!isDrawing)
-      .onStart(() => {
+      .onBegin(() => {
         'worklet';
-        initialRotation.value = (el.rotation ?? 0) * (Math.PI / 180);
+        isActive.value = true;
+        runOnJS(setSelectedIdJS)(elementId);
       })
       .onUpdate(e => {
         'worklet';
-        rotation.value = initialRotation.value + e.rotation;
+        rotation.value = e.rotation;
       })
       .onEnd(() => {
         'worklet';
-        const rotationDegrees = (rotation.value * 180) / Math.PI;
-        runOnJS(updateElementsJS)((prev) => {
-          const copy = [...prev];
-          const item = { ...copy[index] } as any;
-          item.rotation = rotationDegrees;
-          copy[index] = item;
-          return copy;
-        });
-        initialRotation.value = rotation.value;
-      });
-
-    const resizeHandleX = useSharedValue(0);
-
-    const resizePan = Gesture.Pan()
-      .onUpdate(e => {
-        'worklet';
-        resizeHandleX.value = e.translationX;
+        const newRotation = baseRotation.value + rotation.value;
+        const rotationDegrees = (newRotation * 180) / Math.PI;
+        runOnJS(updateElementRotation)(elementId, rotationDegrees);
+        baseRotation.value = newRotation;
+        rotation.value = 0;
       })
-      .onEnd(() => {
+      .onFinalize(() => {
         'worklet';
-        if (el.type === 'text') {
-          const deltaPx = resizeHandleX.value;
-          const deltaPercent = deltaPx / SCREEN_W;
-          
-          runOnJS(updateElementsJS)((prev) => {
-            const copy = [...prev];
-            const item = { ...copy[index] } as TextElement;
-            let newWidth = item.widthPercent + deltaPercent;
-            newWidth = Math.max(0.15, Math.min(0.95, newWidth));
-            item.widthPercent = newWidth;
-            copy[index] = item;
-            return copy;
-          });
-        }
-        resizeHandleX.value = 0;
+        isActive.value = false;
       });
 
-    const composed = Gesture.Simultaneous(pan, pinch, rotationGesture);
+    // Tap과 다른 제스처들을 분리: Tap이 먼저 확인되고, 실패하면 나머지 실행
+    const panPinchRotate = Gesture.Simultaneous(pan, pinch, rotationGesture);
+    const composed = Gesture.Exclusive(tap, panPinchRotate);
 
     const animatedStyle = useAnimatedStyle(() => {
       return {
         transform: [
           { translateX: translateX.value },
           { translateY: translateY.value },
-          { rotate: `${rotation.value}rad` },
-          { scale: scale.value },
+          { rotate: `${baseRotation.value + rotation.value}rad` },
+          { scale: baseScale.value * scale.value },
         ],
       };
     });
+    
+    const borderStyle = useAnimatedStyle(() => {
+      return {
+        borderColor: isActive.value ? '#007AFF' : 'transparent',
+      };
+    });
 
-    const posPx = percentToPx(el.pos);
-    const isSelected = selectedId === el.id;
+    const posPx = percentToPx(initialPos);
 
-    if (el.type === 'sticker') {
+    if (elementType === 'sticker') {
       return (
-        <GestureDetector gesture={composed} key={el.id}>
+        <GestureDetector gesture={composed} key={elementId}>
           <Animated.View style={[styles.elementWrapper, { left: posPx.left, top: posPx.top }, animatedStyle]}>
-            <TouchableOpacity activeOpacity={1} onPress={() => setSelectedId(el.id)}>
+            <Animated.View style={[styles.stickerBorder, borderStyle]}>
               <Image 
-                source={{ uri: el.uri }} 
-                style={[styles.stickerImage, isSelected && styles.selectedBorder]} 
+                source={{ uri: (el as StickerElement).uri }} 
+                style={styles.stickerImage} 
                 resizeMode="contain" 
               />
-            </TouchableOpacity>
+            </Animated.View>
           </Animated.View>
         </GestureDetector>
       );
     }
 
+    // Text element - 이제 편집 불가, 순수 제스처만
+    const textEl = el as TextElement;
+    
     return (
-      <GestureDetector gesture={composed} key={el.id}>
+      <GestureDetector gesture={composed} key={elementId}>
         <Animated.View 
           style={[
             styles.elementWrapper, 
-            { left: posPx.left, top: posPx.top, width: el.widthPercent * SCREEN_W }, 
+            { left: posPx.left, top: posPx.top },
             animatedStyle
           ]}
         >
-          <TouchableOpacity activeOpacity={1} onPress={() => setSelectedId(el.id)}>
-            <View style={[styles.textBox, isSelected && styles.selectedBorder, { width: el.widthPercent * SCREEN_W }]}> 
-              <TextInput
-                multiline
-                value={el.text}
-                onChangeText={text => {
-                  setElements(prev => {
-                    const copy = [...prev];
-                    (copy[index] as TextElement).text = text;
-                    return copy;
-                  });
-                }}
-                style={styles.textInput}
-              />
-            </View>
-          </TouchableOpacity>
-
-          {isSelected && (
-            <GestureDetector gesture={resizePan}>
-              <View style={styles.resizeHandle} />
-            </GestureDetector>
-          )}
+          <Animated.View style={[styles.textBox, borderStyle]}>
+            <Text style={styles.textDisplay}>{textEl.text}</Text>
+          </Animated.View>
         </Animated.View>
       </GestureDetector>
     );
@@ -427,8 +481,8 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
         <GestureDetector gesture={panForDrawing}>
           <View ref={canvasRef} collapsable={false} style={styles.canvas}>
             <View style={styles.canvasInner}>
-              {elements.map((el, i) => (
-                <ElementWrapper el={el} index={i} key={el.id} />
+              {elements.map(el => (
+                <ElementWrapper el={el} key={el.id} />
               ))}
 
               <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -473,6 +527,44 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
             <Button title="Clear strokes" onPress={() => setStrokes([])} />
           </View>
         </View>
+
+        {/* 텍스트 입력 모달 */}
+        <Modal
+          visible={showTextModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            setShowTextModal(false);
+            setEditingElementId(null);
+          }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>
+                {editingElementId ? '텍스트 수정' : '텍스트 입력'}
+              </Text>
+              <TextInput
+                autoFocus
+                multiline
+                placeholder="텍스트를 입력하세요"
+                value={modalTextInput}
+                onChangeText={setModalTextInput}
+                style={styles.modalInput}
+              />
+              <View style={styles.modalButtons}>
+                <Button 
+                  title="취소" 
+                  onPress={() => {
+                    setShowTextModal(false);
+                    setEditingElementId(null);
+                    setModalTextInput('');
+                  }} 
+                />
+                <Button title={editingElementId ? '수정' : '추가'} onPress={confirmAddText} />
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -486,10 +578,62 @@ const styles = StyleSheet.create({
   canvasInner: { flex: 1 },
   elementWrapper: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   stickerImage: { width: 200, height: 200 },
-  textBox: { minHeight: 40, padding: 4, backgroundColor: 'rgba(255,255,255,0.9)' },
-  textInput: { minHeight: 40, padding: 8 },
-  resizeHandle: { width: 20, height: 20, borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.3)', position: 'absolute', right: -10, bottom: -10 },
+  textBox: { 
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  stickerBorder: {
+    borderWidth: 2,
+    borderColor: 'transparent',
+    borderRadius: 4,
+  },
+  textInput: { 
+    minHeight: 40, 
+    fontSize: 16,
+    color: '#000',
+  },
+  textDisplay: {
+    fontSize: 16,
+    color: '#000',
+    fontWeight: '500',
+  },
   footer: { height: 64, alignItems: 'center', justifyContent: 'center' },
-  selectedBorder: { borderWidth: 2, borderColor: '#007AFF' },
+  selectedBorder: { borderColor: '#007AFF' },
+  editingBorder: { borderWidth: 2, borderColor: '#FF3B30' },
   colorSwatch: { width: 28, height: 28, marginHorizontal: 6, borderRadius: 4 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalInput: {
+    minHeight: 100,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
 });
