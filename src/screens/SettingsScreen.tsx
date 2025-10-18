@@ -69,6 +69,10 @@ export default function SettingsScreen() {
     navigation.navigate('CanvasEditor' as never);
   };
 
+  const handleVideoEditorTest = () => {
+    navigation.navigate('VideoTrimCrop' as never);
+  };
+
   const handleLogout = () => {
     Alert.alert(
       '로그아웃',
@@ -233,6 +237,13 @@ export default function SettingsScreen() {
               subtitle="그림판 기능 테스트"
               showArrow={true}
               onPress={handleCanvasEditorTest}
+              colors={colors}
+            />
+            <SettingItem
+              title="비디오 에디터"
+              subtitle="비디오 편집 기능 테스트"
+              showArrow={true}
+              onPress={handleVideoEditorTest}
               colors={colors}
               isLast={true}
             />

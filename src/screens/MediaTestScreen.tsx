@@ -36,8 +36,17 @@ export default function MediaTestScreen() {
             <TouchableOpacity
               style={styles.checkButton}
               onPress={() => {
-                // CanvasEditor로 이미지 전달
-                navigation.navigate('CanvasEditor' as never, { imageUri: selectedMedias[0]?.uri });
+                const selectedMedia = selectedMedias[0];
+                if (selectedMedia?.mediaType === 'video') {
+                  // 비디오인 경우 VideoTrimCrop으로 이동
+                  navigation.navigate('VideoTrimCrop' as never, {
+                    videoUri: selectedMedia.uri,
+                    videoDuration: selectedMedia.duration ? selectedMedia.duration * 1000 : undefined, // ms로 변환
+                  });
+                } else {
+                  // 이미지인 경우 CanvasEditor로 이동
+                  navigation.navigate('CanvasEditor' as never, { imageUri: selectedMedia?.uri });
+                }
               }}
               activeOpacity={0.7}
             >
@@ -49,8 +58,8 @@ export default function MediaTestScreen() {
       <View style={styles.content}>
         <MediaSelector
           maxSelection={1}
-          mediaType="photos"
-          allowedExtensions={['jpg', 'jpeg', 'png', 'gif']}
+          mediaType="all"
+          allowedExtensions={['jpg', 'jpeg', 'png', 'gif', 'mp4', 'mov', 'avi', 'mkv']}
           onSelectionChange={handleSelectionChange}
           onComplete={handleComplete}
         />

@@ -42,6 +42,7 @@ import DailyCutAddScreen from '../screens/DailyCutAddScreen';
 import DailyCutDetailScreen from '../screens/DailyCutDetailScreen';
 import CanvasEditorScreen from '../screens/CanvasEditorScreen';
 import MediaTestScreen from '../screens/MediaTestScreen';
+import VideoTrimCropScreen from '../screens/VideoTrimCropScreen';
 
 // Tab Navigator
 import TabNavigator from './TabNavigator';
@@ -222,6 +223,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="MediaTest"
           component={MediaTestScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="VideoTrimCrop"
+          component={VideoTrimCropScreen}
           options={{ headerShown: false }}
         />
           </>

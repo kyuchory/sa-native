@@ -41,6 +41,10 @@ export type AuthStackParamList = {
     imageUri?: string;
   };
   MediaTest: undefined;
+  VideoTrimCrop: {
+    videoUri?: string;
+    videoDuration?: number;
+  };
 };
 
 export type TabParamList = {
