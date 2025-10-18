@@ -62,7 +62,7 @@ export default function SettingsScreen() {
   };
 
   const handleMediaSelectorTest = () => {
-    navigation.navigate('MediaSelector' as never);
+    navigation.navigate('MediaTest' as never);
   };
 
   const handleCanvasEditorTest = () => {
