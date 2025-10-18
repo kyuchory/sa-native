@@ -41,6 +41,8 @@ import FollowListScreen from '../screens/FollowListScreen';
 import DailyCutAddScreen from '../screens/DailyCutAddScreen';
 import DailyCutTestAddScreen from '../screens/DailyCutTestAddScreen';
 import DailyCutDetailScreen from '../screens/DailyCutDetailScreen';
+import MediaSelectorScreen from '../screens/MediaSelectorScreen';
+import CanvasEditorScreen from '../screens/CanvasEditorScreen';
 
 // Tab Navigator
 import TabNavigator from './TabNavigator';
@@ -215,6 +217,16 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="DailyCutDetail"
           component={DailyCutDetailScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="MediaSelector"
+          component={MediaSelectorScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="CanvasEditor"
+          component={CanvasEditorScreen}
           options={{ headerShown: false }}
         />
           </>

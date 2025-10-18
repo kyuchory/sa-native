@@ -61,6 +61,14 @@ export default function SettingsScreen() {
     console.log('앱 정보');
   };
 
+  const handleMediaSelectorTest = () => {
+    navigation.navigate('MediaSelector' as never);
+  };
+
+  const handleCanvasEditorTest = () => {
+    navigation.navigate('CanvasEditor' as never);
+  };
+
   const handleLogout = () => {
     Alert.alert(
       '로그아웃',
@@ -211,6 +219,20 @@ export default function SettingsScreen() {
             <SettingItem
               title="계정 삭제"
               onPress={handleAccountDelete}
+              colors={colors}
+            />
+            <SettingItem
+              title="미디어 선택기 테스트"
+              subtitle="이미지/비디오 선택 화면 테스트"
+              showArrow={true}
+              onPress={handleMediaSelectorTest}
+              colors={colors}
+            />
+            <SettingItem
+              title="캔버스 에디터"
+              subtitle="그림판 기능 테스트"
+              showArrow={true}
+              onPress={handleCanvasEditorTest}
               colors={colors}
               isLast={true}
             />

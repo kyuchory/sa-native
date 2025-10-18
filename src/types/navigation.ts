@@ -38,6 +38,8 @@ export type AuthStackParamList = {
   DailyCutAdd: undefined;
   DailyCutTestAdd: undefined;
   DailyCutDetail: { storyId: number };
+  MediaSelector: undefined;
+  CanvasEditor: undefined;
 };
 
 export type TabParamList = {
