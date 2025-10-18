@@ -123,7 +123,7 @@ export default function FeedScreen() {
 
   const handleAddStoryPress = () => {
     console.log('데일리 컷 추가');
-    navigation.navigate('DailyCutTestAdd');
+    navigation.navigate('DailyCutAdd');
   };
 
   // 피드 액션 핸들러들
