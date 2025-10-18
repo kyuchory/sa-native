@@ -2,13 +2,74 @@ import 'react-native-reanimated';
 import 'react-native-gesture-handler';
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, Button, Image, TextInput, TouchableOpacity, Dimensions, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Dimensions, Alert, Modal } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
 import { captureRef } from 'react-native-view-shot';
 import Svg, { Path } from 'react-native-svg';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
+import { useThemeStore } from '../stores/themeStore';
+import { SPACING, BORDER_RADIUS, BG_COLORS, COLORS } from '../constants/theme';
+import CommonHeader from '../components/CommonHeader';
+
+// Modern SVG Icons
+const TextIcon = ({ size = 24, color = '#000' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M4 7h16M4 12h10M4 17h6" stroke={color} strokeWidth={2} strokeLinecap="round" />
+  </Svg>
+);
+
+const ImageIcon = ({ size = 24, color = '#000' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2z" stroke={color} strokeWidth={2} />
+    <Path d="M8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+const ExportIcon = ({ size = 24, color = '#000' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5-5 5 5M12 5v12" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+const PencilIcon = ({ size = 24, color = '#000' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+const UndoIcon = ({ size = 24, color = '#000' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M3 7v6h6M3 13a9 9 0 019-9 9 9 0 019 9 9 9 0 01-9 9" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+const CloseIcon = ({ size = 24, color = '#000' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M18 6L6 18M6 6l12 12" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+const LayerUpIcon = ({ size = 20, color = '#000' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M12 2l10 6-10 6L2 8l10-6z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    <Path d="M2 12l10 6 10-6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+const LayerDownIcon = ({ size = 20, color = '#000' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M2 8l10 6 10-6-10-6L2 8z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    <Path d="M2 12l10 6 10-6M2 16l10 6 10-6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+const TrashIcon = ({ size = 20, color = '#000' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
 
 // Types
 type PercentPos = { left: number; top: number };
@@ -20,8 +81,8 @@ type StickerElement = {
   pos: PercentPos;
   rotation: number;
   scale: number;
-  aspect?: number; // h/w
-  baseW?: number;  // 이 스티커의 "기본 너비" (초기 이미지는 캔버스 너비로 세팅)
+  aspect?: number;
+  baseW?: number;
 };
 
 type TextElement = {
@@ -42,10 +103,13 @@ type Props = {
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
-const STICKER_BASE_W = 200; // 일반 스티커(추가 이미지)의 기본 너비
-const CANVAS_MARGIN = 0;   // styles.canvas.margin과 동일값 사용
+const STICKER_BASE_W = 200;
+const CANVAS_MARGIN = 0;
 
 export default function CanvasEditorScreen({ route, navigation }: Props) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
+
   const initialImage = route?.params?.imageUri ?? null;
   const canvasRef = useRef<View>(null);
 
@@ -55,7 +119,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
   const [isDrawing, setIsDrawing] = useState(false);
 
   const [drawColor, setDrawColor] = useState('#000000');
-  const [drawWidth, setDrawWidth] = useState(3);
+  const [drawWidth, setDrawWidth] = useState(4);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [showTextModal, setShowTextModal] = useState(false);
@@ -63,8 +127,6 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
   const [editingElementId, setEditingElementId] = useState<string | null>(null);
 
   const drawingPoints = useSharedValue<{ x: number; y: number }[]>([]);
-
-  // 캔버스 실제 렌더 크기
   const [canvasSize, setCanvasSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
   const percentToPx = (p: PercentPos) => ({ left: p.left * SCREEN_W, top: p.top * SCREEN_H });
@@ -79,7 +141,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
         pos: { left: 0.5, top: 0.5 },
         rotation: 0,
         scale: 1,
-        baseW: STICKER_BASE_W, // 일반 스티커는 200 기준
+        baseW: STICKER_BASE_W,
       } as StickerElement,
     ]);
   };
@@ -122,7 +184,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
             text: modalTextInput,
             pos: { left: 0.5, top: 0.5 },
             rotation: 0,
-            scale: 1,
+            scale: 1.3,
           } as TextElement,
         ]);
       }
@@ -198,6 +260,10 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
     });
   }, []);
 
+  const undoLastStroke = useCallback(() => {
+    setStrokes(prev => prev.slice(0, -1));
+  }, []);
+
   const panForDrawing = Gesture.Pan()
     .enabled(isDrawing)
     .onBegin(e => {
@@ -237,10 +303,8 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
     setShowTextModal(true);
   }, []);
 
-  // 초기 props 이미지: 캔버스 가로폭에 딱 맞게 (baseW=canvasWidth, scale=1)
   const didInitRef = useRef(false);
 
-  // props 이미지가 바뀌면 재배치 가능하도록 reset
   useEffect(() => { didInitRef.current = false; }, [initialImage]);
 
   useEffect(() => {
@@ -250,10 +314,9 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
       initialImage,
       (w, h) => {
         const aspect = h / w;
-        const baseW = canvasSize.width;       // 가로 꽉 차게
+        const baseW = canvasSize.width;
         const baseH = baseW * aspect;
 
-        // 캔버스 왼쪽은 margin 만큼 띄우고, 세로는 중앙 정렬
         const leftPx = CANVAS_MARGIN;
         const topPx = Math.max(0, (canvasSize.height - baseH) / 2);
 
@@ -265,16 +328,15 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
           type: 'sticker',
           uri: initialImage,
           aspect,
-          baseW,                    // ★ 기본 너비를 캔버스 너비로
+          baseW,
           pos: { left: leftPercent, top: topPercent },
           rotation: 0,
-          scale: 1,                 // ★ 스케일 1에서 시작 (핀치로 확대/축소)
+          scale: 1,
         }]);
 
         didInitRef.current = true;
       },
       () => {
-        // 실패시 간단 중앙 배치
         setElements([{
           id: 'sticker-0',
           type: 'sticker',
@@ -289,7 +351,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
     );
   }, [initialImage, canvasSize]);
 
-  const ElementWrapper: React.FC<{ el: StickerElement | TextElement }> = ({ el }) => {
+  const ElementWrapper: React.FC<{ el: StickerElement | TextElement; colors: Record<string, string> }> = ({ el, colors }) => {
     const elementId = el.id;
     const elementType = el.type;
     const initialPos = el.pos;
@@ -378,7 +440,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
     }));
 
     const borderStyle = useAnimatedStyle(() => ({
-      borderColor: isActive.value ? '#007AFF' : 'transparent',
+      borderColor: isActive.value ? colors.PRIMARY : 'transparent',
     }));
 
     const posPx = percentToPx(initialPos);
@@ -420,38 +482,20 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
     return pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
   };
 
-  const colorPresets = ['#000000', '#FF0000', '#00AA00', '#0000FF', '#FFFF00'];
+  const colorPresets = ['#000000', '#FFFFFF', '#FF0000', '#00AA00', '#0000FF', '#FFFF00', '#FF1493'];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.GRAY_50 }} edges={['bottom']}>
+      <CommonHeader
+        title="Edit"
+        onBackPress={() => navigation?.goBack?.()}
+        rightComponent={
+          <TouchableOpacity onPress={exportAsImage} style={styles.doneButton}>
+            <Text style={styles.doneText}>Done</Text>
+          </TouchableOpacity>
+        }
+      />
       <View style={styles.container}>
-        <View style={styles.toolbar}>
-          <Button title="Add text" onPress={addTextBox} />
-          <Button title="Add image" onPress={pickImage} />
-          <Button title="Export & Save" onPress={exportAsImage} />
-          <Button title={isDrawing ? 'Stop drawing' : 'Draw'} onPress={() => setIsDrawing(v => !v)} />
-        </View>
-
-        {isDrawing && (
-          <View style={styles.drawControls}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              {colorPresets.map(c => (
-                <TouchableOpacity
-                  key={c}
-                  onPress={() => setDrawColor(c)}
-                  style={[styles.colorSwatch, { backgroundColor: c, borderWidth: drawColor === c ? 3 : 0, borderColor: '#007AFF' }]}
-                />
-              ))}
-            </View>
-
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ marginRight: 8 }}>Width</Text>
-              <Button title="-" onPress={() => setDrawWidth(w => Math.max(1, w - 1))} />
-              <Text style={{ marginHorizontal: 8 }}>{drawWidth}px</Text>
-              <Button title="+" onPress={() => setDrawWidth(w => Math.min(50, w + 1))} />
-            </View>
-          </View>
-        )}
 
         <GestureDetector gesture={panForDrawing}>
           <View ref={canvasRef} collapsable={false} style={styles.canvas}>
@@ -462,7 +506,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
                 setCanvasSize({ width, height });
               }}
             >
-              {elements.map(el => <ElementWrapper el={el} key={el.id} />)}
+              {elements.map(el => <ElementWrapper el={el} colors={colors} key={el.id} />)}
 
               <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
                 {strokes.map(s => (
@@ -491,58 +535,347 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
           </View>
         </GestureDetector>
 
-        <View style={styles.footer}>
-          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-            <Button title="Bring forward" disabled={!selectedId} onPress={() => selectedId && bringForward(selectedId)} />
-            <Button title="Send backward" disabled={!selectedId} onPress={() => selectedId && sendBackward(selectedId)} />
-            <Button title="Clear strokes" onPress={() => setStrokes([])} />
-          </View>
-        </View>
+        {/* Instagram Style Bottom Toolbar */}
+        {!isDrawing ? (
+          <View style={styles.bottomToolbar}>
+            <TouchableOpacity style={styles.toolItem} onPress={() => setIsDrawing(true)}>
+              <View style={styles.toolIconWrapper}>
+                <PencilIcon size={26} color={colors.GRAY_900} />
+              </View>
+              <Text style={styles.toolLabel}>Draw</Text>
+            </TouchableOpacity>
 
+            <TouchableOpacity style={styles.toolItem} onPress={addTextBox}>
+              <View style={styles.toolIconWrapper}>
+                <TextIcon size={26} color={colors.GRAY_900} />
+              </View>
+              <Text style={styles.toolLabel}>Text</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.toolItem} onPress={pickImage}>
+              <View style={styles.toolIconWrapper}>
+                <ImageIcon size={26} color={colors.GRAY_900} />
+              </View>
+              <Text style={styles.toolLabel}>Sticker</Text>
+            </TouchableOpacity>
+
+            {selectedId && (
+              <>
+                <TouchableOpacity style={styles.toolItem} onPress={() => bringForward(selectedId)}>
+                  <View style={styles.toolIconWrapper}>
+                    <LayerUpIcon size={22} color={colors.GRAY_900} />
+                  </View>
+                  <Text style={styles.toolLabel}>Forward</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.toolItem} onPress={() => sendBackward(selectedId)}>
+                  <View style={styles.toolIconWrapper}>
+                    <LayerDownIcon size={22} color={colors.GRAY_900} />
+                  </View>
+                  <Text style={styles.toolLabel}>Backward</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {strokes.length > 0 && (
+              <TouchableOpacity style={styles.toolItem} onPress={() => setStrokes([])}>
+                <View style={styles.toolIconWrapper}>
+                  <TrashIcon size={22} color={colors.ERROR} />
+                </View>
+                <Text style={[styles.toolLabel, { color: colors.ERROR }]}>Clear</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          <View style={styles.drawingToolbar}>
+            <View style={styles.drawingTop}>
+              <View style={styles.colorPaletteRow}>
+                {colorPresets.map(c => (
+                  <TouchableOpacity
+                    key={c}
+                    onPress={() => setDrawColor(c)}
+                    style={[
+                      styles.colorCircle,
+                      { backgroundColor: c },
+                      drawColor === c && styles.colorCircleActive,
+                      c === '#FFFFFF' && { borderWidth: 1, borderColor: colors.GRAY_600 }
+                    ]}
+                  />
+                ))}
+              </View>
+              
+              <View style={styles.widthPaletteRow}>
+                <Text style={styles.widthLabel}>Size:</Text>
+                {[2, 4, 6, 8, 10].map(size => (
+                  <TouchableOpacity
+                    key={size}
+                    onPress={() => setDrawWidth(size)}
+                    style={[
+                      styles.widthCircle,
+                      { width: size * 4, height: size * 4, backgroundColor: colors.WHITE },
+                      drawWidth === size && styles.widthCircleActive
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.drawingActions}>
+              <TouchableOpacity
+                style={[styles.drawingButton, strokes.length === 0 && styles.drawingButtonDisabled]}
+                onPress={undoLastStroke}
+                disabled={strokes.length === 0}
+              >
+                <UndoIcon size={22} color={strokes.length > 0 ? colors.GRAY_900 : colors.GRAY_600} />
+                <Text style={[styles.drawingButtonText, strokes.length === 0 && styles.drawingButtonTextDisabled]}>
+                  Undo
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.drawingButton}
+                onPress={() => setIsDrawing(false)}
+              >
+                <CloseIcon size={22} color={colors.GRAY_900} />
+                <Text style={styles.drawingButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Simplified Text Modal */}
         <Modal
           visible={showTextModal}
           transparent
           animationType="fade"
-          onRequestClose={() => { setShowTextModal(false); setEditingElementId(null); }}
+          onRequestClose={() => {
+            setShowTextModal(false);
+            setEditingElementId(null);
+            setModalTextInput('');
+          }}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>{editingElementId ? '텍스트 수정' : '텍스트 입력'}</Text>
+          <TouchableOpacity
+            style={styles.simpleModalOverlay}
+            activeOpacity={1}
+            onPress={() => {
+              if (modalTextInput.trim()) {
+                confirmAddText();
+              } else {
+                setShowTextModal(false);
+                setEditingElementId(null);
+                setModalTextInput('');
+              }
+            }}
+          >
+            <View style={styles.simpleModalInputWrapper}>
               <TextInput
                 autoFocus
                 multiline
-                placeholder="텍스트를 입력하세요"
+                placeholder="Type something..."
+                placeholderTextColor={colors.GRAY_400}
                 value={modalTextInput}
                 onChangeText={setModalTextInput}
-                style={styles.modalInput}
+                style={styles.simpleModalInput}
               />
-              <View style={styles.modalButtons}>
-                <Button title="취소" onPress={() => { setShowTextModal(false); setEditingElementId(null); setModalTextInput(''); }} />
-                <Button title={editingElementId ? '수정' : '추가'} onPress={confirmAddText} />
-              </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </Modal>
       </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#eee' },
-  toolbar: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', padding: 8 },
-  drawControls: { padding: 8, backgroundColor: '#fff', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  canvas: { flex: 1, margin: CANVAS_MARGIN, backgroundColor: 'white', borderRadius: 8, overflow: 'hidden' },
-  canvasInner: { flex: 1 },
-  elementWrapper: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  textBox: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 8, borderWidth: 2, borderColor: 'transparent' },
-  stickerBorder: { borderWidth: 2, borderColor: 'transparent', borderRadius: 4 },
-  textDisplay: { fontSize: 16, color: '#000', fontWeight: '500' },
-  footer: { height: 64, alignItems: 'center', justifyContent: 'center' },
-  colorSwatch: { width: 28, height: 28, marginHorizontal: 6, borderRadius: 4 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { width: '80%', backgroundColor: 'white', borderRadius: 12, padding: 20 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' },
-  modalInput: { minHeight: 100, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, fontSize: 16, marginBottom: 16 },
-  modalButtons: { flexDirection: 'row', justifyContent: 'space-around' },
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.GRAY_50
+  },
+
+
+  doneButton: {
+    padding: SPACING.XS,
+  },
+  doneText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#3897F0',
+  },
+
+  // Canvas
+  canvas: {
+    flex: 1,
+    backgroundColor: colors.WHITE,
+    margin: SPACING.MD,
+    borderRadius: BORDER_RADIUS.LG,
+    overflow: 'hidden',
+  },
+  canvasInner: {
+    flex: 1,
+    backgroundColor: colors.GRAY_100,
+  },
+
+  // Elements
+  elementWrapper: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stickerBorder: {
+    borderWidth: 2,
+    borderColor: 'transparent',
+    borderRadius: BORDER_RADIUS.SM,
+  },
+  textBox: {
+    padding: SPACING.SM,
+    minWidth: 100,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    borderRadius: BORDER_RADIUS.MD,
+  },
+  textDisplay: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.GRAY_900,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+
+  // Instagram Style Bottom Toolbar
+  bottomToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingVertical: SPACING.MD,
+    paddingHorizontal: SPACING.SM,
+    backgroundColor: colors.WHITE,
+    borderTopWidth: 0.5,
+    borderTopColor: colors.GRAY_200,
+    minHeight: 90,
+  },
+  toolItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 60,
+  },
+  toolIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.XS,
+  },
+  toolLabel: {
+    fontSize: 11,
+    color: colors.GRAY_900,
+    marginTop: 2,
+  },
+
+  // Drawing Toolbar - Compact Instagram Style
+  drawingToolbar: {
+    backgroundColor: colors.WHITE,
+    borderTopWidth: 0.5,
+    borderTopColor: colors.GRAY_200,
+    paddingVertical: SPACING.SM,
+    paddingHorizontal: SPACING.MD,
+  },
+  drawingTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.MD,
+  },
+  colorPaletteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.SM,
+  },
+  colorCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  colorCircleActive: {
+    borderColor: colors.GRAY_900,
+    borderWidth: 3,
+  },
+  widthPaletteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.XS,
+  },
+  widthLabel: {
+    fontSize: 12,
+    color: colors.GRAY_400,
+    marginRight: SPACING.XS,
+  },
+  widthCircle: {
+    borderRadius: 999,
+    opacity: 0.4,
+  },
+  widthCircleActive: {
+    opacity: 1,
+    borderWidth: 2,
+    borderColor: colors.GRAY_900,
+  },
+  drawingActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: SPACING.SM,
+    gap: SPACING.MD,
+  },
+  drawingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.XS,
+    paddingHorizontal: SPACING.MD,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    borderRadius: BORDER_RADIUS.ROUND,
+    gap: SPACING.XS,
+    minWidth: 80,
+  },
+  drawingButtonDisabled: {
+    opacity: 0.3,
+  },
+  drawingButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.GRAY_900,
+  },
+  drawingButtonTextDisabled: {
+    color: colors.GRAY_600,
+  },
+
+  // Simplified Text Modal
+  simpleModalOverlay: {
+    flex: 1,
+    // backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.XL,
+  },
+  simpleModalInputWrapper: {
+    width: '100%',
+    maxWidth: 400,
+  },
+  simpleModalInput: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: colors.WHITE,
+    textAlign: 'center',
+    minHeight: 80,
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.SM,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: BORDER_RADIUS.LG,
+    // borderWidth: 2,
+    // borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
 });
