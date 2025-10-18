@@ -36,10 +36,11 @@ export type AuthStackParamList = {
   FollowRequests: undefined;
   FollowList: { userId: number; initialTab: 'followers' | 'following' };
   DailyCutAdd: undefined;
-  DailyCutTestAdd: undefined;
   DailyCutDetail: { storyId: number };
-  MediaSelector: undefined;
-  CanvasEditor: undefined;
+  CanvasEditor: {
+    imageUri?: string;
+  };
+  MediaTest: undefined;
 };
 
 export type TabParamList = {
