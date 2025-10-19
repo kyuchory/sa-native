@@ -3,7 +3,8 @@ import 'react-native-gesture-handler';
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import { useEvent } from 'expo';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, runOnJS, useAnimatedProps } from 'react-native-reanimated';
 import Svg, { Path, Rect, Defs, Mask } from 'react-native-svg';
@@ -21,6 +22,18 @@ const CheckIcon = ({ size = 24, color = '#FFF' }) => (
   </Svg>
 );
 
+const PlayIcon = ({ size = 24, color = '#FFF' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M8 5v14l11-7L8 5z" fill={color} />
+  </Svg>
+);
+
+const PauseIcon = ({ size = 24, color = '#FFF' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" fill={color} />
+  </Svg>
+);
+
 type Props = {
   route?: { params?: { videoUri?: string; videoDuration?: number } };
   navigation?: any;
@@ -35,10 +48,8 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
   const styles = createStyles(colors);
 
   const videoUri = route?.params?.videoUri ?? null;
-  const videoRef = useRef<Video>(null);
 
   const [duration, setDuration] = useState(route?.params?.videoDuration ?? 10000);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [currentPosition, setCurrentPosition] = useState(0);
 
   const [trimStart, setTrimStart] = useState(0);
@@ -46,6 +57,53 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
   const [thumbnails, setThumbnails] = useState<string[]>([]);
 
   const [cropArea, setCropArea] = useState({ x: 0, y: 0, width: 1, height: 1 });
+
+  // Create video player
+  const player = useVideoPlayer(videoUri ? { uri: videoUri } : null, (player) => {
+    player.loop = false;
+  });
+
+  // Listen to playing state change
+  const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
+
+  // Listen to source load event
+  useEffect(() => {
+    const subscription = player.addListener('sourceLoad', (payload) => {
+      const dur = payload.duration * 1000; // Convert to milliseconds
+      setDuration(dur);
+      setTrimEnd(dur);
+      if (videoUri) {
+        generateThumbnails(videoUri, dur);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [videoUri]);
+
+  // Listen to time updates
+  useEffect(() => {
+    const subscription = player.addListener('timeUpdate', (payload) => {
+      const positionMs = payload.currentTime * 1000; // Convert to milliseconds
+      setCurrentPosition(positionMs);
+
+      // Loop within trim range
+      if (positionMs >= trimEnd) {
+        player.pause();
+        player.currentTime = trimStart / 1000; // Convert to seconds
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [trimEnd, trimStart]);
+
+  // Set time update interval (60 FPS)
+  useEffect(() => {
+    player.timeUpdateEventInterval = 1 / 60;
+  }, []);
 
   const generateThumbnails = async (uri: string, dur: number) => {
     try {
@@ -68,29 +126,8 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
     }
   };
 
-  const onVideoLoad = (status: AVPlaybackStatus) => {
-    if (status.isLoaded && videoUri) {
-      const dur = status.durationMillis ?? 10000;
-      setDuration(dur);
-      setTrimEnd(dur);
-      generateThumbnails(videoUri, dur);
-    }
-  };
-
-  const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-    if (status.isLoaded) {
-      setCurrentPosition(status.positionMillis);
-      setIsPlaying(status.isPlaying);
-
-      if (status.positionMillis >= trimEnd) {
-        videoRef.current?.pauseAsync();
-        videoRef.current?.setPositionAsync(trimStart);
-      }
-    }
-  };
-
   const seekToTrimStart = async () => {
-    await videoRef.current?.setPositionAsync(trimStart);
+    player.currentTime = trimStart / 1000; // Convert to seconds
   };
 
   useEffect(() => {
@@ -124,16 +161,11 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
       <View style={styles.videoContainer}>
         {videoUri ? (
           <>
-            <Video
-              ref={videoRef}
-              source={{ uri: videoUri }}
+            <VideoView
+              player={player}
               style={styles.video}
-              resizeMode={ResizeMode.CONTAIN}
-              shouldPlay={false}
-              isLooping={false}
-              onLoad={onVideoLoad}
-              onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-              pointerEvents="none"
+              contentFit="contain"
+              nativeControls={false}
             />
             <CropOverlay
               cropArea={cropArea}
@@ -156,13 +188,17 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
           style={styles.playButton}
           onPress={() => {
             if (isPlaying) {
-              videoRef.current?.pauseAsync();
+              player.pause();
             } else {
-              videoRef.current?.playAsync();
+              player.play();
             }
           }}
         >
-          <Text style={styles.playButtonText}>{isPlaying ? '⏸' : '▶'}</Text>
+          {isPlaying ? (
+            <PauseIcon size={28} color={colors.WHITE} />
+          ) : (
+            <PlayIcon size={28} color={colors.WHITE} />
+          )}
         </TouchableOpacity>
         <Text style={styles.timeText}>
           {formatTime(currentPosition)} / {formatTime(trimEnd - trimStart)}
@@ -180,7 +216,7 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
           setTrimEnd(end);
         }}
         onSeek={(position) => {
-          videoRef.current?.setPositionAsync(position);
+          player.currentTime = position / 1000; // Convert to seconds
         }}
         colors={colors}
       />
@@ -444,6 +480,14 @@ const TrimBar: React.FC<{
     return { transform: [{ translateX: Math.max(leftHandleX.value, Math.min(rightHandleX.value, x)) }] };
   });
 
+  const leftDimStyle = useAnimatedStyle(() => ({
+    width: leftHandleX.value,
+  }));
+  const rightDimStyle = useAnimatedStyle(() => ({
+    left: rightHandleX.value,
+    right: 0,
+  }));
+
   const styles = createStyles(colors);
 
   return (
@@ -465,9 +509,10 @@ const TrimBar: React.FC<{
           ) : (
             <View style={styles.timelineTrack} />
           )}
-          
-          <View style={styles.dimOverlay} pointerEvents="none" />
-          
+
+          <Animated.View style={[styles.dimOverlay, styles.dimLeft, leftDimStyle]} />
+          <Animated.View style={[styles.dimOverlay, styles.dimRight, rightDimStyle]} />
+
           <Animated.View style={[styles.selectedRange, selectionStyle]} />
           <GestureDetector gesture={leftHandleGesture}>
             <Animated.View style={[styles.trimHandle, leftAnimatedStyle]}>
@@ -541,10 +586,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     backgroundColor: colors.PRIMARY,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  playButtonText: {
-    fontSize: 20,
-    color: colors.WHITE,
   },
   timeText: {
     color: colors.GRAY_900,
@@ -654,9 +695,13 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     height: 60,
   },
   dimOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
+  dimLeft: { left: 0 },
+  dimRight: {},
   timelineTrack: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: colors.GRAY_200,
