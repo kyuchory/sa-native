@@ -1,12 +1,13 @@
 import 'react-native-reanimated';
 import 'react-native-gesture-handler';
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, runOnJS, withSpring } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, runOnJS, useAnimatedProps } from 'react-native-reanimated';
 import Svg, { Path, Rect, Defs, Mask } from 'react-native-svg';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useThemeStore } from '../stores/themeStore';
 import { SPACING, BORDER_RADIUS } from '../constants/theme';
 import CommonHeader from '../components/CommonHeader';
@@ -27,6 +28,7 @@ type Props = {
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const VIDEO_CONTAINER_HEIGHT = SCREEN_H * 0.6;
+const VIDEO_PADDING = 16;
 
 export default function VideoTrimCropScreen({ route, navigation }: Props) {
   const { colors } = useThemeStore();
@@ -41,14 +43,37 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
 
   const [trimStart, setTrimStart] = useState(0);
   const [trimEnd, setTrimEnd] = useState(duration);
+  const [thumbnails, setThumbnails] = useState<string[]>([]);
 
   const [cropArea, setCropArea] = useState({ x: 0, y: 0, width: 1, height: 1 });
 
+  const generateThumbnails = async (uri: string, dur: number) => {
+    try {
+      const thumbnailCount = 10;
+      const interval = dur / thumbnailCount;
+      const thumbs: string[] = [];
+
+      for (let i = 0; i < thumbnailCount; i++) {
+        const time = i * interval;
+        const { uri: thumbnailUri } = await VideoThumbnails.getThumbnailAsync(uri, {
+          time,
+          quality: 0.5,
+        });
+        thumbs.push(thumbnailUri);
+      }
+      
+      setThumbnails(thumbs);
+    } catch (error) {
+      console.log('썸네일 생성 실패:', error);
+    }
+  };
+
   const onVideoLoad = (status: AVPlaybackStatus) => {
-    if (status.isLoaded) {
+    if (status.isLoaded && videoUri) {
       const dur = status.durationMillis ?? 10000;
       setDuration(dur);
       setTrimEnd(dur);
+      generateThumbnails(videoUri, dur);
     }
   };
 
@@ -113,8 +138,9 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
             <CropOverlay
               cropArea={cropArea}
               setCropArea={setCropArea}
-              containerWidth={SCREEN_W}
-              containerHeight={VIDEO_CONTAINER_HEIGHT}
+              containerWidth={SCREEN_W - VIDEO_PADDING * 2}
+              containerHeight={VIDEO_CONTAINER_HEIGHT - VIDEO_PADDING * 2}
+              paddingOffset={{ x: VIDEO_PADDING, y: VIDEO_PADDING }}
               colors={colors}
             />
           </>
@@ -148,6 +174,7 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         trimStart={trimStart}
         trimEnd={trimEnd}
         currentPosition={currentPosition}
+        thumbnails={thumbnails}
         onTrimChange={(start, end) => {
           setTrimStart(start);
           setTrimEnd(end);
@@ -166,15 +193,15 @@ const CropOverlay: React.FC<{
   setCropArea: (area: { x: number; y: number; width: number; height: number }) => void;
   containerWidth: number;
   containerHeight: number;
+  paddingOffset: { x: number; y: number };
   colors: Record<string, string>;
-}> = ({ cropArea, setCropArea, containerWidth, containerHeight, colors }) => {
+}> = ({ cropArea, setCropArea, containerWidth, containerHeight, paddingOffset, colors }) => {
   const styles = createStyles(colors);
   
-  // 초기값: 전체 화면 꽉 차게 (95%)
-  const initialWidth = containerWidth * 0.95;
-  const initialHeight = containerHeight * 0.95;
-  const initialX = (containerWidth - initialWidth) / 2;
-  const initialY = (containerHeight - initialHeight) / 2;
+  const initialWidth = containerWidth;
+  const initialHeight = containerHeight;
+  const initialX = 0;
+  const initialY = 0;
   
   const translateX = useSharedValue(initialX);
   const translateY = useSharedValue(initialY);
@@ -195,7 +222,6 @@ const CropOverlay: React.FC<{
     });
   }, [containerWidth, containerHeight]);
 
-  // 중앙 영역 드래그 - 이동
   const panGesture = Gesture.Pan()
     .onBegin(() => {
       'worklet';
@@ -214,7 +240,6 @@ const CropOverlay: React.FC<{
       runOnJS(updateCropArea)(translateX.value, translateY.value, width.value, height.value);
     });
 
-  // 모서리 핸들 드래그 - 크기 조절
   const createCornerGesture = (corner: 'tl' | 'tr' | 'bl' | 'br') => {
     return Gesture.Pan()
       .onBegin(() => {
@@ -229,7 +254,6 @@ const CropOverlay: React.FC<{
         const MIN_SIZE = Math.min(containerWidth, containerHeight) * 0.2;
         
         if (corner === 'tl') {
-          // 왼쪽 위
           const newX = Math.max(0, Math.min(startX.value + startWidth.value - MIN_SIZE, startX.value + e.translationX));
           const newY = Math.max(0, Math.min(startY.value + startHeight.value - MIN_SIZE, startY.value + e.translationY));
           const newW = startX.value + startWidth.value - newX;
@@ -239,7 +263,6 @@ const CropOverlay: React.FC<{
           width.value = newW;
           height.value = newH;
         } else if (corner === 'tr') {
-          // 오른쪽 위
           const newY = Math.max(0, Math.min(startY.value + startHeight.value - MIN_SIZE, startY.value + e.translationY));
           const newW = Math.max(MIN_SIZE, Math.min(containerWidth - startX.value, startWidth.value + e.translationX));
           const newH = startY.value + startHeight.value - newY;
@@ -247,7 +270,6 @@ const CropOverlay: React.FC<{
           width.value = newW;
           height.value = newH;
         } else if (corner === 'bl') {
-          // 왼쪽 아래
           const newX = Math.max(0, Math.min(startX.value + startWidth.value - MIN_SIZE, startX.value + e.translationX));
           const newW = startX.value + startWidth.value - newX;
           const newH = Math.max(MIN_SIZE, Math.min(containerHeight - startY.value, startHeight.value + e.translationY));
@@ -255,7 +277,6 @@ const CropOverlay: React.FC<{
           width.value = newW;
           height.value = newH;
         } else if (corner === 'br') {
-          // 오른쪽 아래
           const newW = Math.max(MIN_SIZE, Math.min(containerWidth - startX.value, startWidth.value + e.translationX));
           const newH = Math.max(MIN_SIZE, Math.min(containerHeight - startY.value, startHeight.value + e.translationY));
           width.value = newW;
@@ -274,45 +295,42 @@ const CropOverlay: React.FC<{
     height: height.value,
   }));
 
+  const animatedRectProps = useAnimatedProps(() => ({
+    x: translateX.value + paddingOffset.x,
+    y: translateY.value + paddingOffset.y,
+    width: width.value,
+    height: height.value,
+  }));
+
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      {/* Crop 영역 바깥만 어둡게 만드는 오버레이 */}
       <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
         <Defs>
           <Mask id="cropMask">
-            {/* 전체를 흰색으로 */}
-            <Rect x="0" y="0" width={containerWidth} height={containerHeight} fill="white" />
-            {/* Crop 영역만 검정으로 (구멍 뚫기) */}
+            <Rect x="0" y="0" width={containerWidth + paddingOffset.x * 2} height={containerHeight + paddingOffset.y * 2} fill="white" />
             <AnimatedRect
-              x={translateX.value}
-              y={translateY.value}
-              width={width.value}
-              height={height.value}
+              animatedProps={animatedRectProps}
               fill="black"
             />
           </Mask>
         </Defs>
-        {/* Mask 적용된 어두운 오버레이 */}
         <Rect
           x="0"
           y="0"
-          width={containerWidth}
-          height={containerHeight}
+          width={containerWidth + paddingOffset.x * 2}
+          height={containerHeight + paddingOffset.y * 2}
           fill="rgba(0, 0, 0, 0.75)"
           mask="url(#cropMask)"
         />
       </Svg>
       
-      <Animated.View style={[styles.cropFrameContainer, animatedStyle]} pointerEvents="box-none">
-        {/* 중앙 드래그 영역 */}
+      <Animated.View style={[styles.cropFrameContainer, animatedStyle, { marginLeft: paddingOffset.x, marginTop: paddingOffset.y }]} pointerEvents="box-none">
         <GestureDetector gesture={panGesture}>
           <View style={styles.cropCenter} />
         </GestureDetector>
 
-        {/* 깔끔한 테두리 (Instagram 스타일 - 얇고 밝은 흰색) */}
         <View style={styles.cropBorder} pointerEvents="none" />
 
-        {/* 그리드 라인 (3x3) */}
         <View style={styles.gridContainer} pointerEvents="none">
           <View style={[styles.gridLine, styles.gridVertical1]} />
           <View style={[styles.gridLine, styles.gridVertical2]} />
@@ -320,7 +338,6 @@ const CropOverlay: React.FC<{
           <View style={[styles.gridLine, styles.gridHorizontal2]} />
         </View>
 
-        {/* 4개 모서리 핸들 (Instagram 스타일 - L자 형태) */}
         <GestureDetector gesture={createCornerGesture('tl')}>
           <View style={[styles.cornerHandle, styles.cornerTL]}>
             <View style={[styles.cornerLineH, { top: 0, left: 0 }]} />
@@ -355,10 +372,11 @@ const TrimBar: React.FC<{
   trimStart: number;
   trimEnd: number;
   currentPosition: number;
+  thumbnails: string[];
   onTrimChange: (start: number, end: number) => void;
   onSeek: (position: number) => void;
   colors: Record<string, string>;
-}> = ({ duration, trimStart, trimEnd, currentPosition, onTrimChange, onSeek, colors }) => {
+}> = ({ duration, trimStart, trimEnd, currentPosition, thumbnails, onTrimChange, onSeek, colors }) => {
   const TRIM_WIDTH = SCREEN_W - SPACING.LG * 2;
   const HANDLE_WIDTH = 20;
 
@@ -433,7 +451,23 @@ const TrimBar: React.FC<{
       <Text style={styles.trimLabel}>구간 선택</Text>
       <GestureDetector gesture={timelineTapGesture}>
         <View style={styles.timeline}>
-          <View style={styles.timelineTrack} />
+          {thumbnails.length > 0 ? (
+            <View style={styles.thumbnailContainer}>
+              {thumbnails.map((thumb, index) => (
+                <Image
+                  key={index}
+                  source={{ uri: thumb }}
+                  style={[styles.thumbnail, { width: TRIM_WIDTH / thumbnails.length }]}
+                  resizeMode="cover"
+                />
+              ))}
+            </View>
+          ) : (
+            <View style={styles.timelineTrack} />
+          )}
+          
+          <View style={styles.dimOverlay} pointerEvents="none" />
+          
           <Animated.View style={[styles.selectedRange, selectionStyle]} />
           <GestureDetector gesture={leftHandleGesture}>
             <Animated.View style={[styles.trimHandle, leftAnimatedStyle]}>
@@ -475,10 +509,12 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: colors.GRAY_200,
+    padding: VIDEO_PADDING,
   },
   video: {
     width: '100%',
     height: '100%',
+    borderRadius: 4,
   },
   noVideo: {
     justifyContent: 'center',
@@ -513,10 +549,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   timeText: {
     color: colors.GRAY_900,
     fontSize: 14,
-  },
-  dimLayer: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   cropFrameContainer: {
     position: 'absolute',
@@ -610,6 +642,20 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   timeline: {
     height: 60,
     position: 'relative',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  thumbnailContainer: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    backgroundColor: colors.GRAY_200,
+  },
+  thumbnail: {
+    height: 60,
+  },
+  dimOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   timelineTrack: {
     ...StyleSheet.absoluteFillObject,
@@ -619,23 +665,26 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   selectedRange: {
     position: 'absolute',
     height: 60,
-    backgroundColor: colors.PRIMARY,
-    opacity: 0.5,
-    borderRadius: 4,
+    backgroundColor: 'transparent',
+    borderTopWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: colors.PRIMARY,
   },
   trimHandle: {
     position: 'absolute',
     width: 20,
     height: 60,
-    backgroundColor: colors.GRAY_900,
+    backgroundColor: colors.WHITE,
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.PRIMARY,
   },
   handleBar: {
-    width: 4,
-    height: 30,
-    backgroundColor: colors.WHITE,
+    width: 3,
+    height: 20,
+    backgroundColor: colors.PRIMARY,
     borderRadius: 2,
   },
   playhead: {
