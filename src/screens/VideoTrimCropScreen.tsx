@@ -1,6 +1,6 @@
 import 'react-native-reanimated';
 import 'react-native-gesture-handler';
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -10,8 +10,11 @@ import Animated, { useSharedValue, useAnimatedStyle, runOnJS, useAnimatedProps }
 import Svg, { Path, Rect, Defs, Mask } from 'react-native-svg';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useThemeStore } from '../stores/themeStore';
-import { SPACING, BORDER_RADIUS } from '../constants/theme';
+import useFeedStore from '../stores/feedStore';
+import { FeedService } from '../services/feedService';
+import { SPACING } from '../constants/theme';
 import CommonHeader from '../components/CommonHeader';
+import LoadingOverlay from '../components/LoadingOverlay';
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
@@ -35,7 +38,7 @@ const PauseIcon = ({ size = 24, color = '#FFF' }) => (
 );
 
 type Props = {
-  route?: { params?: { videoUri?: string; videoDuration?: number } };
+  route?: { params?: { videoUri?: string; videoDuration?: number; aspectRatio?: string; uploadService?: string } };
   navigation?: any;
 };
 
@@ -43,64 +46,122 @@ const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const VIDEO_CONTAINER_HEIGHT = SCREEN_H * 0.6;
 const VIDEO_PADDING = 16;
 
+// 유틸리티: 비디오 회전 감지
+function isVideoRotated(
+  videoDimensions: { width: number; height: number } | null,
+  actualVideoDimensions: { width: number; height: number } | null
+): boolean {
+  if (!videoDimensions || !actualVideoDimensions) return false;
+
+  const metadataAspectRatio = videoDimensions.width / videoDimensions.height;
+  const containerAspectRatio = actualVideoDimensions.width / actualVideoDimensions.height;
+
+  return (metadataAspectRatio > 1 && containerAspectRatio < 1) || 
+         (metadataAspectRatio < 1 && containerAspectRatio > 1);
+}
+
+// 유틸리티: 회전 보정 좌표 변환
+function convertCropAreaForServer(
+  screenCropArea: { x: number; y: number; width: number; height: number },
+  videoDimensions: { width: number; height: number } | null,
+  actualVideoDimensions: { width: number; height: number } | null
+): { x: number; y: number; width: number; height: number } {
+  if (!videoDimensions || !actualVideoDimensions) {
+    console.warn('⚠️ 비디오 차원 정보 없음, 원본 좌표 반환');
+    return screenCropArea;
+  }
+
+  const rotated = isVideoRotated(videoDimensions, actualVideoDimensions);
+
+  if (!rotated) {
+    console.log('✅ 회전 없음, 원본 좌표 사용');
+    return screenCropArea;
+  }
+
+  // 90도 회전된 경우 좌표 변환
+  // 화면 좌표계 (회전된 세로) → 원본 좌표계 (가로)
+  const converted = {
+    x: screenCropArea.y,
+    y: 1 - (screenCropArea.x + screenCropArea.width),
+    width: screenCropArea.height,
+    height: screenCropArea.width,
+  };
+
+  console.log('🔄 90도 회전 좌표 변환:', {
+    원본메타: videoDimensions,
+    화면표시: actualVideoDimensions,
+    화면좌표: screenCropArea,
+    서버좌표: converted
+  });
+
+  return converted;
+}
+
 export default function VideoTrimCropScreen({ route, navigation }: Props) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
   const videoUri = route?.params?.videoUri ?? null;
+  const aspectRatio = route?.params?.aspectRatio ?? null;
+  const uploadService = route?.params?.uploadService ?? null;
+
+  const { setVideoEditResult } = useFeedStore();
 
   const [duration, setDuration] = useState(route?.params?.videoDuration ?? 10000);
   const [currentPosition, setCurrentPosition] = useState(0);
-
   const [trimStart, setTrimStart] = useState(0);
   const [trimEnd, setTrimEnd] = useState(duration);
   const [thumbnails, setThumbnails] = useState<string[]>([]);
-
   const [cropArea, setCropArea] = useState({ x: 0, y: 0, width: 1, height: 1 });
+  const [videoDimensions, setVideoDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [actualVideoDimensions, setActualVideoDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  // Create video player
   const player = useVideoPlayer(videoUri ? { uri: videoUri } : null, (player) => {
     player.loop = false;
   });
 
-  // Listen to playing state change
   const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
 
-  // Listen to source load event
   useEffect(() => {
     const subscription = player.addListener('sourceLoad', (payload) => {
-      const dur = payload.duration * 1000; // Convert to milliseconds
+      const dur = payload.duration * 1000;
       setDuration(dur);
       setTrimEnd(dur);
+      
+      if (payload.availableVideoTracks && payload.availableVideoTracks.length > 0) {
+        const videoTrack = payload.availableVideoTracks[0];
+        if (videoTrack.size) {
+          console.log('Video metadata size:', videoTrack.size);
+          setVideoDimensions({
+            width: videoTrack.size.width,
+            height: videoTrack.size.height,
+          });
+        }
+      }
+      
       if (videoUri) {
         generateThumbnails(videoUri, dur);
       }
     });
 
-    return () => {
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, [videoUri]);
 
-  // Listen to time updates
   useEffect(() => {
     const subscription = player.addListener('timeUpdate', (payload) => {
-      const positionMs = payload.currentTime * 1000; // Convert to milliseconds
+      const positionMs = payload.currentTime * 1000;
       setCurrentPosition(positionMs);
 
-      // Loop within trim range
       if (positionMs >= trimEnd) {
         player.pause();
-        player.currentTime = trimStart / 1000; // Convert to seconds
+        player.currentTime = trimStart / 1000;
       }
     });
 
-    return () => {
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, [trimEnd, trimStart]);
 
-  // Set time update interval (60 FPS)
   useEffect(() => {
     player.timeUpdateEventInterval = 1 / 60;
   }, []);
@@ -126,24 +187,54 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
     }
   };
 
-  const seekToTrimStart = async () => {
-    player.currentTime = trimStart / 1000; // Convert to seconds
-  };
-
   useEffect(() => {
-    seekToTrimStart();
+    player.currentTime = trimStart / 1000;
   }, [trimStart]);
 
-  const handleConfirm = () => {
-    const result = {
-      videoUri,
-      trimStart,
-      trimEnd,
-      cropArea,
-      duration: trimEnd - trimStart,
-    };
-    console.log('편집 결과:', result);
-    Alert.alert('편집 완료', `Trim: ${trimStart}ms ~ ${trimEnd}ms\nCrop: ${JSON.stringify(cropArea)}`);
+  const handleConfirm = async () => {
+    if (!videoUri) return;
+
+    if (uploadService === 'feed') {
+      try {
+        setIsUploading(true);
+        console.log("비디오 편집 업로드 요청 (화면 좌표):", { videoUri, trimStart, trimEnd, cropArea });
+        
+        const correctedCropArea = convertCropAreaForServer(cropArea, videoDimensions, actualVideoDimensions);
+        console.log("비디오 편집 업로드 요청 (서버 좌표):", correctedCropArea);
+        
+        const uploadResult = await FeedService.uploadVideoEdit(
+          videoUri!,
+          trimStart,
+          trimEnd,
+          correctedCropArea
+        );
+        console.log("비디오 편집 업로드 성공:", uploadResult);
+
+        setVideoEditResult({
+          videoPath: uploadResult.editedVideo.path,
+          videoUrl: uploadResult.editedVideo.url,
+          thumbnailPath: uploadResult.thumbnail.path,
+          thumbnailUrl: uploadResult.thumbnail.url,
+        });
+
+        navigation.goBack();
+      } catch (error) {
+        console.error('비디오 편집 업로드 실패:', error);
+        Alert.alert('업로드 실패', '비디오 편집 업로드에 실패했습니다. 다시 시도해주세요.');
+      } finally {
+        setIsUploading(false);
+      }
+    } else {
+      const result = {
+        videoUri,
+        trimStart,
+        trimEnd,
+        cropArea,
+        duration: trimEnd - trimStart,
+      };
+      console.log('편집 결과:', result);
+      Alert.alert('편집 완료', `Trim: ${trimStart}ms ~ ${trimEnd}ms\nCrop: ${JSON.stringify(cropArea)}`);
+    }
   };
 
   return (
@@ -161,12 +252,21 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
       <View style={styles.videoContainer}>
         {videoUri ? (
           <>
-            <VideoView
-              player={player}
+            <View
               style={styles.video}
-              contentFit="contain"
-              nativeControls={false}
-            />
+              onLayout={(e) => {
+                const { width, height } = e.nativeEvent.layout;
+                console.log('VideoView layout size:', width, height);
+                setActualVideoDimensions({ width, height });
+              }}
+            >
+              <VideoView
+                player={player}
+                style={StyleSheet.absoluteFill}
+                contentFit="contain"
+                nativeControls={false}
+              />
+            </View>
             <CropOverlay
               cropArea={cropArea}
               setCropArea={setCropArea}
@@ -174,6 +274,9 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
               containerHeight={VIDEO_CONTAINER_HEIGHT - VIDEO_PADDING * 2}
               paddingOffset={{ x: VIDEO_PADDING, y: VIDEO_PADDING }}
               colors={colors}
+              aspectRatio={aspectRatio}
+              videoDimensions={videoDimensions}
+              actualVideoDimensions={actualVideoDimensions}
             />
           </>
         ) : (
@@ -216,9 +319,14 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
           setTrimEnd(end);
         }}
         onSeek={(position) => {
-          player.currentTime = position / 1000; // Convert to seconds
+          player.currentTime = position / 1000;
         }}
         colors={colors}
+      />
+
+      <LoadingOverlay
+        visible={isUploading}
+        message="비디오 편집 및 업로드를 진행중입니다..."
       />
     </SafeAreaView>
   );
@@ -231,18 +339,142 @@ const CropOverlay: React.FC<{
   containerHeight: number;
   paddingOffset: { x: number; y: number };
   colors: Record<string, string>;
-}> = ({ cropArea, setCropArea, containerWidth, containerHeight, paddingOffset, colors }) => {
+  aspectRatio?: string | null;
+  videoDimensions?: { width: number; height: number } | null;
+  actualVideoDimensions?: { width: number; height: number } | null;
+}> = ({ cropArea, setCropArea, containerWidth, containerHeight, paddingOffset, colors, aspectRatio, videoDimensions, actualVideoDimensions }) => {
   const styles = createStyles(colors);
-  
-  const initialWidth = containerWidth;
-  const initialHeight = containerHeight;
-  const initialX = 0;
-  const initialY = 0;
+
+  // Parse aspect ratio
+  let targetRatio: number | null = null;
+  if (aspectRatio) {
+    const parts = aspectRatio.split(':').map(Number);
+    if (parts.length === 2 && parts[0] > 0 && parts[1] > 0) {
+      targetRatio = parts[0] / parts[1];
+    }
+  }
+
+  // Calculate actual video rendering area
+  let videoRenderWidth = containerWidth;
+  let videoRenderHeight = containerHeight;
+  let videoOffsetX = 0;
+  let videoOffsetY = 0;
+
+  if (videoDimensions && actualVideoDimensions) {
+    const rotated = isVideoRotated(videoDimensions, actualVideoDimensions);
+    
+    const effectiveWidth = rotated ? videoDimensions.height : videoDimensions.width;
+    const effectiveHeight = rotated ? videoDimensions.width : videoDimensions.height;
+    const videoAspectRatio = effectiveWidth / effectiveHeight;
+    
+    console.log('Video calculation:', {
+      metadata: videoDimensions,
+      container: actualVideoDimensions,
+      isRotated: rotated,
+      effectiveSize: { width: effectiveWidth, height: effectiveHeight },
+      videoAspectRatio,
+      containerAspectRatio: actualVideoDimensions.width / actualVideoDimensions.height
+    });
+
+    if (videoAspectRatio > actualVideoDimensions.width / actualVideoDimensions.height) {
+      videoRenderWidth = actualVideoDimensions.width;
+      videoRenderHeight = actualVideoDimensions.width / videoAspectRatio;
+      videoOffsetY = (actualVideoDimensions.height - videoRenderHeight) / 2;
+    } else {
+      videoRenderHeight = actualVideoDimensions.height;
+      videoRenderWidth = actualVideoDimensions.height * videoAspectRatio;
+      videoOffsetX = (actualVideoDimensions.width - videoRenderWidth) / 2;
+    }
+  } else if (videoDimensions) {
+    const videoAspectRatio = videoDimensions.width / videoDimensions.height;
+    const containerAspectRatio = containerWidth / containerHeight;
+
+    if (videoAspectRatio > containerAspectRatio) {
+      videoRenderWidth = containerWidth;
+      videoRenderHeight = containerWidth / videoAspectRatio;
+      videoOffsetY = (containerHeight - videoRenderHeight) / 2;
+    } else {
+      videoRenderHeight = containerHeight;
+      videoRenderWidth = containerHeight * videoAspectRatio;
+      videoOffsetX = (containerWidth - videoRenderWidth) / 2;
+    }
+  }
+
+  // Calculate initial crop size
+  let initialWidth: number;
+  let initialHeight: number;
+  let initialX: number;
+  let initialY: number;
+
+  if (targetRatio && videoRenderWidth > 0 && videoRenderHeight > 0) {
+    const videoRatio = videoRenderWidth / videoRenderHeight;
+    if (targetRatio > videoRatio) {
+      initialWidth = videoRenderWidth;
+      initialHeight = videoRenderWidth / targetRatio;
+    } else {
+      initialHeight = videoRenderHeight;
+      initialWidth = videoRenderHeight * targetRatio;
+    }
+    initialX = videoOffsetX + (videoRenderWidth - initialWidth) / 2;
+    initialY = videoOffsetY + (videoRenderHeight - initialHeight) / 2;
+    
+    console.log('Initial crop calculation:', {
+      targetRatio,
+      videoRatio,
+      videoRenderSize: { width: videoRenderWidth, height: videoRenderHeight },
+      videoOffset: { x: videoOffsetX, y: videoOffsetY },
+      initialCrop: { x: initialX, y: initialY, width: initialWidth, height: initialHeight }
+    });
+  } else if (videoRenderWidth > 0 && videoRenderHeight > 0) {
+    initialWidth = videoRenderWidth;
+    initialHeight = videoRenderHeight;
+    initialX = videoOffsetX;
+    initialY = videoOffsetY;
+  } else {
+    initialWidth = containerWidth;
+    initialHeight = containerHeight;
+    initialX = 0;
+    initialY = 0;
+  }
   
   const translateX = useSharedValue(initialX);
   const translateY = useSharedValue(initialY);
   const width = useSharedValue(initialWidth);
   const height = useSharedValue(initialHeight);
+  
+  React.useEffect(() => {
+    if (videoRenderWidth > 0 && videoRenderHeight > 0) {
+      let newWidth: number;
+      let newHeight: number;
+      let newX: number;
+      let newY: number;
+
+      if (targetRatio) {
+        const videoRatio = videoRenderWidth / videoRenderHeight;
+        if (targetRatio > videoRatio) {
+          newWidth = videoRenderWidth;
+          newHeight = videoRenderWidth / targetRatio;
+        } else {
+          newHeight = videoRenderHeight;
+          newWidth = videoRenderHeight * targetRatio;
+        }
+        newX = videoOffsetX + (videoRenderWidth - newWidth) / 2;
+        newY = videoOffsetY + (videoRenderHeight - newHeight) / 2;
+      } else {
+        newWidth = videoRenderWidth;
+        newHeight = videoRenderHeight;
+        newX = videoOffsetX;
+        newY = videoOffsetY;
+      }
+
+      translateX.value = newX;
+      translateY.value = newY;
+      width.value = newWidth;
+      height.value = newHeight;
+
+      runOnJS(updateCropArea)(newX, newY, newWidth, newHeight);
+    }
+  }, [videoRenderWidth, videoRenderHeight, videoOffsetX, videoOffsetY]);
   
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
@@ -250,13 +482,18 @@ const CropOverlay: React.FC<{
   const startHeight = useSharedValue(0);
 
   const updateCropArea = useCallback((x: number, y: number, w: number, h: number) => {
+    const relativeX = (x - videoOffsetX) / videoRenderWidth;
+    const relativeY = (y - videoOffsetY) / videoRenderHeight;
+    const relativeW = w / videoRenderWidth;
+    const relativeH = h / videoRenderHeight;
+
     setCropArea({
-      x: Math.max(0, Math.min(1, x / containerWidth)),
-      y: Math.max(0, Math.min(1, y / containerHeight)),
-      width: Math.max(0.2, Math.min(1, w / containerWidth)),
-      height: Math.max(0.2, Math.min(1, h / containerHeight)),
+      x: Math.max(0, Math.min(1, relativeX)),
+      y: Math.max(0, Math.min(1, relativeY)),
+      width: Math.max(0.2, Math.min(1, relativeW)),
+      height: Math.max(0.2, Math.min(1, relativeH)),
     });
-  }, [containerWidth, containerHeight]);
+  }, [videoRenderWidth, videoRenderHeight, videoOffsetX, videoOffsetY]);
 
   const panGesture = Gesture.Pan()
     .onBegin(() => {
@@ -266,8 +503,8 @@ const CropOverlay: React.FC<{
     })
     .onUpdate((e) => {
       'worklet';
-      const newX = Math.max(0, Math.min(containerWidth - width.value, startX.value + e.translationX));
-      const newY = Math.max(0, Math.min(containerHeight - height.value, startY.value + e.translationY));
+      const newX = Math.max(videoOffsetX, Math.min(videoOffsetX + videoRenderWidth - width.value, startX.value + e.translationX));
+      const newY = Math.max(videoOffsetY, Math.min(videoOffsetY + videoRenderHeight - height.value, startY.value + e.translationY));
       translateX.value = newX;
       translateY.value = newY;
     })
@@ -287,11 +524,11 @@ const CropOverlay: React.FC<{
       })
       .onUpdate((e) => {
         'worklet';
-        const MIN_SIZE = Math.min(containerWidth, containerHeight) * 0.2;
+        const MIN_SIZE = Math.min(videoRenderWidth, videoRenderHeight) * 0.2;
         
         if (corner === 'tl') {
-          const newX = Math.max(0, Math.min(startX.value + startWidth.value - MIN_SIZE, startX.value + e.translationX));
-          const newY = Math.max(0, Math.min(startY.value + startHeight.value - MIN_SIZE, startY.value + e.translationY));
+          const newX = Math.max(videoOffsetX, Math.min(startX.value + startWidth.value - MIN_SIZE, startX.value + e.translationX));
+          const newY = Math.max(videoOffsetY, Math.min(startY.value + startHeight.value - MIN_SIZE, startY.value + e.translationY));
           const newW = startX.value + startWidth.value - newX;
           const newH = startY.value + startHeight.value - newY;
           translateX.value = newX;
@@ -299,24 +536,54 @@ const CropOverlay: React.FC<{
           width.value = newW;
           height.value = newH;
         } else if (corner === 'tr') {
-          const newY = Math.max(0, Math.min(startY.value + startHeight.value - MIN_SIZE, startY.value + e.translationY));
-          const newW = Math.max(MIN_SIZE, Math.min(containerWidth - startX.value, startWidth.value + e.translationX));
+          const newY = Math.max(videoOffsetY, Math.min(startY.value + startHeight.value - MIN_SIZE, startY.value + e.translationY));
+          const newW = Math.max(MIN_SIZE, Math.min(videoOffsetX + videoRenderWidth - startX.value, startWidth.value + e.translationX));
           const newH = startY.value + startHeight.value - newY;
           translateY.value = newY;
           width.value = newW;
           height.value = newH;
         } else if (corner === 'bl') {
-          const newX = Math.max(0, Math.min(startX.value + startWidth.value - MIN_SIZE, startX.value + e.translationX));
+          const newX = Math.max(videoOffsetX, Math.min(startX.value + startWidth.value - MIN_SIZE, startX.value + e.translationX));
           const newW = startX.value + startWidth.value - newX;
-          const newH = Math.max(MIN_SIZE, Math.min(containerHeight - startY.value, startHeight.value + e.translationY));
+          const newH = Math.max(MIN_SIZE, Math.min(videoOffsetY + videoRenderHeight - startY.value, startHeight.value + e.translationY));
           translateX.value = newX;
           width.value = newW;
           height.value = newH;
         } else if (corner === 'br') {
-          const newW = Math.max(MIN_SIZE, Math.min(containerWidth - startX.value, startWidth.value + e.translationX));
-          const newH = Math.max(MIN_SIZE, Math.min(containerHeight - startY.value, startHeight.value + e.translationY));
-          width.value = newW;
-          height.value = newH;
+          const newW = Math.max(MIN_SIZE, Math.min(videoOffsetX + videoRenderWidth - startX.value, startWidth.value + e.translationX));
+          const newH = Math.max(MIN_SIZE, Math.min(videoOffsetY + videoRenderHeight - startY.value, startHeight.value + e.translationY));
+          let adjustedW = newW;
+          let adjustedH = newH;
+
+          if (targetRatio) {
+            const currentRatio = newW / newH;
+            if (currentRatio > targetRatio) {
+              adjustedW = newH * targetRatio;
+            } else {
+              adjustedH = newW / targetRatio;
+            }
+            const scaledMinSize = Math.sqrt(MIN_SIZE * MIN_SIZE * targetRatio);
+            adjustedW = Math.max(scaledMinSize, adjustedW);
+            adjustedH = Math.max(scaledMinSize / targetRatio, adjustedH);
+            adjustedW = Math.min(adjustedW, videoOffsetX + videoRenderWidth - startX.value);
+            adjustedH = Math.min(adjustedH, videoOffsetY + videoRenderHeight - startY.value);
+          }
+
+          width.value = adjustedW;
+          height.value = adjustedH;
+        }
+
+        if (targetRatio) {
+          if (corner === 'tl' || corner === 'tr' || corner === 'bl') {
+            const currentRatio = width.value / height.value;
+            if (currentRatio !== targetRatio) {
+              if (currentRatio > targetRatio) {
+                width.value = height.value * targetRatio;
+              } else {
+                height.value = width.value / targetRatio;
+              }
+            }
+          }
         }
       })
       .onEnd(() => {
@@ -357,6 +624,18 @@ const CropOverlay: React.FC<{
           height={containerHeight + paddingOffset.y * 2}
           fill="rgba(0, 0, 0, 0.75)"
           mask="url(#cropMask)"
+        />
+        
+        {/* 비디오 렌더링 영역 표시 (디버깅용) */}
+        <Rect
+          x={videoOffsetX + paddingOffset.x}
+          y={videoOffsetY + paddingOffset.y}
+          width={videoRenderWidth}
+          height={videoRenderHeight}
+          stroke="#00FF00"
+          strokeWidth={2}
+          fill="none"
+          strokeDasharray="5,5"
         />
       </Svg>
       
@@ -601,8 +880,8 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   cropBorder: {
     ...StyleSheet.absoluteFillObject,
-    borderWidth: 1.5,
-    borderColor: colors.WHITE,
+    borderWidth: 3,
+    borderColor: '#FF6B00',
     borderRadius: 0,
   },
   gridContainer: {
@@ -646,13 +925,13 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     position: 'absolute',
     width: 20,
     height: 3,
-    backgroundColor: colors.WHITE,
+    backgroundColor: '#FF6B00',
   },
   cornerLineV: {
     position: 'absolute',
     width: 3,
     height: 20,
-    backgroundColor: colors.WHITE,
+    backgroundColor: '#FF6B00',
   },
   cornerTL: {
     top: -1.5,
