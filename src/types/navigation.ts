@@ -44,6 +44,8 @@ export type AuthStackParamList = {
   VideoTrimCrop: {
     videoUri?: string;
     videoDuration?: number;
+    aspectRatio?: string;
+    uploadService?: string;
   };
 };
 
