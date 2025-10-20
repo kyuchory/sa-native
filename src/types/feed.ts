@@ -248,3 +248,22 @@ export interface FeedVideoUploadResponse {
 
 // 피드 비디오 업로드 API 응답
 export type FeedVideoUploadApiResponse = ApiResponse<FeedVideoUploadResponse>;
+
+// 피드 비디오 편집 업로드 응답 데이터 (새 API: /feeds/upload/video/edit)
+export interface FeedVideoEditUploadResponse {
+  editedVideo: {
+    filename: string;
+    path: string;
+    url: string;
+    size: number;
+  };
+  thumbnail: {
+    filename: string;
+    path: string;
+    url: string;
+    size: number;
+  };
+}
+
+// 피드 비디오 편집 업로드 API 응답
+export type FeedVideoEditUploadApiResponse = ApiResponse<FeedVideoEditUploadResponse>;
