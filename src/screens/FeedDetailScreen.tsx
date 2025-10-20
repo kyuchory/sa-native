@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, Image, Pressable, TouchableOpacity, Alert, Platform, KeyboardAvoidingView, Keyboard, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, Image, Pressable, TouchableOpacity, TouchableWithoutFeedback, Alert, Platform, KeyboardAvoidingView, Keyboard, ActivityIndicator } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -453,21 +453,36 @@ export default function FeedDetailScreen() {
     );
   };
   
-  // VideoBlock 컴포넌트 추가
-  const VideoBlock = ({ videoUri }: { videoUri: string }) => {
-    const player = useVideoPlayer(videoUri, player => {
+  // TapPauseVideo 컴포넌트 - 탭하면 재생/일시정지
+  const TapPauseVideo = ({ videoUri }: { videoUri: string }) => {
+    const player = useVideoPlayer(videoUri, (player) => {
       player.loop = true;
       player.muted = true;
-      player.play();
+      player.play(); // 처음엔 재생 상태로 시작
     });
 
+    const [isPlaying, setIsPlaying] = useState(true);
+
+    const handleTogglePlay = () => {
+      if (isPlaying) {
+        player.pause();
+      } else {
+        player.play();
+      }
+      setIsPlaying(!isPlaying);
+    };
+
     return (
-      <VideoView
-        player={player}
-        style={styles.mainImage}
-        nativeControls
-        contentFit="contain"
-      />
+      <TouchableWithoutFeedback onPress={handleTogglePlay}>
+        <View style={styles.videoContainer}>
+          <VideoView
+            player={player}
+            style={styles.mainImage}
+            contentFit="contain"
+            nativeControls={false} // 네이티브 UI는 숨김
+          />
+        </View>
+      </TouchableWithoutFeedback>
     );
   };
 
@@ -594,7 +609,7 @@ export default function FeedDetailScreen() {
                     {index + 1} / {mediaBlocks.length}
                   </Text>
                   {block.type === 'video' ? (
-                    <VideoBlock videoUri={block.value} />
+                    <TapPauseVideo videoUri={block.value} />
                   ) : (
                     <Image
                       source={{ uri: block.value }}
@@ -892,5 +907,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   // 메뉴 버튼
   menuButton: {
     padding: SPACING.SM,
+  },
+  // 비디오 컨테이너
+  videoContainer: {
+    flex: 1,
   },
 });

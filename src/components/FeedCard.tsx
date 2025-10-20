@@ -36,6 +36,41 @@ const formatTimeAgo = (dateString: string): string => {
   }
 };
 
+// VideoBlock 컴포넌트를 FeedCard 외부로 분리하고 React.memo로 래핑
+interface VideoBlockProps {
+  videoUri: string;
+  feedId: number;
+  styles: any;
+}
+
+const VideoBlock = React.memo(({ videoUri, feedId, styles }: VideoBlockProps) => {
+  const player = useVideoPlayer(videoUri, player => {
+    player.loop = true;
+    player.muted = true;
+    player.play();
+  });
+
+  // cleanup: 컴포넌트 언마운트 시 player 해제
+  useEffect(() => {
+    return () => {
+      player.release();
+    };
+  }, [player]);
+
+  return (
+    <VideoView
+      player={player}
+      style={styles.mainImage}
+      nativeControls={false}
+      contentFit="contain"
+    />
+  );
+}, (prevProps, nextProps) => {
+  // feedId와 videoUri가 동일하면 리렌더링 방지
+  return prevProps.feedId === nextProps.feedId && 
+         prevProps.videoUri === nextProps.videoUri;
+});
+
 export default function FeedCard({
   feed,
   onLikePress,
@@ -160,24 +195,6 @@ export default function FeedCard({
   const handleImagePress = () => {
     onImagePress?.(feed.id);
   };
-  
-  // VideoBlock 컴포넌트 추가
-  const VideoBlock = ({ videoUri }: { videoUri: string }) => {
-    const player = useVideoPlayer(videoUri, player => {
-      player.loop = true;
-      player.muted = true;
-      player.play();
-    });
-
-    return (
-      <VideoView
-        player={player}
-        style={styles.mainImage}
-        nativeControls
-        contentFit="contain"
-      />
-    );
-  };
 
   // 텍스트 더보기/접기 처리
   const renderContent = () => {
@@ -231,7 +248,11 @@ export default function FeedCard({
       {mediaBlocks.length > 0 && (
         <TouchableOpacity style={styles.imageContainer} onPress={handleImagePress} activeOpacity={0.9}>
           {mediaBlocks[0].type === 'video' ? (
-            <VideoBlock videoUri={mediaBlocks[0].value} />
+            <VideoBlock 
+              videoUri={mediaBlocks[0].value} 
+              feedId={feed.id}
+              styles={styles}
+            />
           ) : (
             <Image
               source={{ uri: mediaBlocks[0].value }}

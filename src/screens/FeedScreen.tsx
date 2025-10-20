@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl, Alert } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -100,31 +100,31 @@ export default function FeedScreen() {
   };
 
   // 헤더 액션 핸들러들
-  const handleFeedPress = () => {
+  const handleFeedPress = useCallback(() => {
     console.log('피드 작성 버튼 클릭');
     navigation.navigate('CreateFeed');
-  };
+  }, [navigation]);
 
   // 헤더 버튼들 설정 (알림 버튼은 MainHeader가 자동으로 제공하므로 제외)
-  const headerRightButtons = [
+  const headerRightButtons = useMemo(() => [
     {
       key: 'feed',
       onPress: handleFeedPress,
       IconComponent: WriteIcon,
     },
-  ];
+  ], [handleFeedPress]);
 
   // 스토리 액션 핸들러들
-  const handleStoryPress = (user: any, storyId?: number) => {
+  const handleStoryPress = useCallback((user: any, storyId?: number) => {
     if (storyId) {
       navigation.navigate('DailyCutDetail', { storyId });
     }
-  };
+  }, [navigation]);
 
-  const handleAddStoryPress = () => {
+  const handleAddStoryPress = useCallback(() => {
     console.log('데일리 컷 추가');
     navigation.navigate('DailyCutAdd');
-  };
+  }, [navigation]);
 
   // 피드 액션 핸들러들
   const handleLikePress = (feedId: number) => {
@@ -183,7 +183,7 @@ export default function FeedScreen() {
       <FlatList
         data={feeds}
         renderItem={renderFeed}
-        keyExtractor={(item, index) => `${item.id}-${index}`}
+        keyExtractor={(item) => `feed-${item.id}`}
         style={styles.feedList}
         showsVerticalScrollIndicator={false}
         refreshControl={

@@ -69,12 +69,9 @@ const StoryItem = ({ user, isMyProfile = false, onPress, onPlusPress, colors, st
   );
 };
 
-export default function StorySection({ stories, onStoryPress, onAddStoryPress }: StorySectionProps) {
+export default React.memo(function StorySection({ stories, onStoryPress, onAddStoryPress }: StorySectionProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
-
-  console.log('📱 StorySection 렌더링 - 스토리 데이터:', stories);
-  console.log('스토리 items 개수:', stories?.following?.length || 0);
 
   // API 데이터를 UI용 데이터로 변환
   const storyItems: StoryUser[] = useMemo(() => {
@@ -106,22 +103,16 @@ export default function StorySection({ stories, onStoryPress, onAddStoryPress }:
   }, [stories]);
 
   const handleStoryPress = (user: StoryUser) => {
-    console.log('🖱️ StoryItem pressed:', user);
     if (isMyProfile(user)) {
       // 자신의 스토리의 경우: 스토리 보기 (나중으로 이동함)
-      console.log('내 스토리를 터치했습니다');
       // TODO: 내 스토리 화면으로 이동
     } else {
       // 팔로우 스토리인 경우 스토리 보기 - storyId 포함해서 호출
-      console.log('팔로우 스토리 터치:', user.nickname, user.id);
       const storyData = stories?.following?.find(story => story.user.id === user.id);
       const storyId = storyData?.id;
-      console.log('찾은 스토리 데이터:', storyData, '스토리 ID:', storyId);
       onStoryPress?.(user, storyId);
     }
   };
-
-  console.log('📱 StorySection 렌더링 - 스토리 데이터:', stories);
 
   // 자신 프로필인지 확인하는 헬퍼 함수
   const isMyProfile = (user: StoryUser) => {
@@ -149,7 +140,7 @@ export default function StorySection({ stories, onStoryPress, onAddStoryPress }:
       </ScrollView>
     </View>
   );
-}
+});
 
 // 스타일 생성 함수
 const createStyles = (colors: Record<string, string>) => StyleSheet.create({
