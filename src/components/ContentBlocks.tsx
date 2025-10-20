@@ -236,7 +236,7 @@ export function VideoBlock({
   // VideoPlayer 컴포넌트
   const VideoPlayer = ({ videoUri }: { videoUri: string }) => {
     const player = useVideoPlayer(videoUri, player => {
-      player.loop = true;
+      player.loop = false;
       player.muted = true;
       player.play();
     });
@@ -245,8 +245,8 @@ export function VideoBlock({
       <VideoView
         player={player}
         style={styles.videoPreview}
-        nativeControls
-        contentFit="contain"
+        nativeControls={false}
+        contentFit="cover"
       />
     );
   };
