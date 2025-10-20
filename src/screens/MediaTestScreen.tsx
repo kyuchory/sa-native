@@ -42,6 +42,7 @@ export default function MediaTestScreen() {
                   navigation.navigate('VideoTrimCrop' as never, {
                     videoUri: selectedMedia.uri,
                     videoDuration: selectedMedia.duration ? selectedMedia.duration * 1000 : undefined, // ms로 변환
+                    aspectRatio: '1:1',
                   });
                 } else {
                   // 이미지인 경우 CanvasEditor로 이동
