@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { Image } from 'expo-image';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
@@ -16,6 +15,7 @@ import { ProfileService } from '../services/profileService';
 import CommonHeader from '../components/CommonHeader';
 import CustomButton from '../components/CustomButton';
 import { ProfileEditIcon } from '../components/ProfileIcons';
+import UserAvatar from '../components/UserAvatar';
 
 type ProfileImageEditScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ProfileImageEdit'>;
 type ProfileImageEditScreenRouteProp = RouteProp<AuthStackParamList, 'ProfileImageEdit'>;
@@ -167,20 +167,11 @@ export default function ProfileImageEditScreen() {
         {/* 현재 이미지 표시 */}
         <View style={styles.imageSection}>
           <TouchableOpacity style={styles.imageContainer} onPress={handleImageSelect} activeOpacity={0.7}>
-            {displayImageUri ? (
-              <Image
-                source={{ uri: displayImageUri }}
-                style={styles.profileImage}
-                cachePolicy={'memory-disk'}
-                transition={200}
-              />
-            ) : (
-              <View style={[styles.profileImage, styles.imagePlaceholder]}>
-                <Text style={styles.placeholderText}>
-                  {(nickname || 'U').charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
+            <UserAvatar
+              profileImg={displayImageUri}
+              nickname={nickname || 'U'}
+              size={120}
+            />
             <View style={styles.editIconContainer}>
               <ProfileEditIcon size={16} color={colors.WHITE} />
             </View>
@@ -230,21 +221,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   imageContainer: {
     position: 'relative',
     marginBottom: SPACING.SM,
-  },
-  profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-  },
-  imagePlaceholder: {
-    backgroundColor: colors.GRAY_300, // COLORS.GRAY_300
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-  },
-  placeholderText: {
-    fontSize: TYPOGRAPHY.SIZE.XXXL,
-    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: colors.WHITE, // COLORS.WHITE
   },
   editIconContainer: {
     position: 'absolute',

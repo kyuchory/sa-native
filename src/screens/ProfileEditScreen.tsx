@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../types/navigation';
@@ -15,6 +14,7 @@ import { useAuthStore } from '../stores/authStore';
 import CommonHeader from '../components/CommonHeader';
 import CustomInput from '../components/CustomInput';
 import { ProfileEditIcon } from '../components/ProfileIcons';
+import UserAvatar from '../components/UserAvatar';
 
 type ProfileEditScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ProfileEdit'>;
 
@@ -100,20 +100,11 @@ export default function ProfileEditScreen() {
         {/* 프로필 이미지 섹션 */}
         <View style={styles.imageSection}>
           <TouchableOpacity style={styles.imageContainer} onPress={handleImagePress} activeOpacity={0.7}>
-            {profileData.profileImage ? (
-              <Image
-                source={{ uri: profileData.profileImage }}
-                style={styles.profileImage}
-                cachePolicy={'memory-disk'}
-                transition={200}
-              />
-            ) : (
-              <View style={[styles.profileImage, styles.imagePlaceholder]}>
-                <Text style={styles.placeholderText}>
-                  {profileData.nickname.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
+            <UserAvatar
+              profileImg={profileData.profileImage}
+              nickname={profileData.nickname}
+              size={100}
+            />
             <View style={styles.editIconContainer}>
               <ProfileEditIcon size={16} color={colors.WHITE} />
             </View>
@@ -180,21 +171,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   imageContainer: {
     position: 'relative',
   },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  imagePlaceholder: {
-    backgroundColor: colors.GRAY_300, // COLORS.GRAY_300
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-  },
-  placeholderText: {
-    fontSize: TYPOGRAPHY.SIZE.XXXL,
-    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: colors.WHITE, // COLORS.WHITE
-  },
   editIconContainer: {
     position: 'absolute',
     bottom: 0,
@@ -207,9 +183,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     alignItems: 'center' as const,
     borderWidth: 3,
     borderColor: colors.WHITE, // COLORS.WHITE
-  },
-  editIcon: {
-    fontSize: 16,
   },
 
 // 입력 섹션
