@@ -5,10 +5,9 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   Alert,
-  Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
@@ -253,6 +252,8 @@ export default function CreateFeedScreen() {
           videoDuration: selectedVideo.duration ? selectedVideo.duration * 1000 : undefined, // ms로 변환
           aspectRatio: '1:1', // 1:1 비율 고정
           uploadService: 'feed', // feed 서비스로 업로드
+          editMode: 'both', // 크롭 + 트림 모두 사용
+          maxDuration: 30000, // 최대 30초
         } as any);
       }
     } catch (error) {
@@ -318,7 +319,7 @@ export default function CreateFeedScreen() {
 
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* 헤더 */}
       <CommonHeader
         title="새 피드"
@@ -389,7 +390,7 @@ export default function CreateFeedScreen() {
         visible={isLoading}
         message={isUploadingImage ? '이미지를 업로드중입니다...' : isUploadingVideo ? '비디오를 업로드중입니다...' : undefined}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
