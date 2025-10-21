@@ -27,8 +27,20 @@ export default function DailyCutAddScreen() {
             <TouchableOpacity
               style={styles.checkButton}
               onPress={() => {
-                // CanvasEditor로 이미지 전달
-                navigation.navigate('CanvasEditor' as never, { imageUri: selectedMedias[0]?.uri });
+                const selectedMedia = selectedMedias[0];
+                if (selectedMedia?.mediaType === 'photo') {
+                  // CanvasEditor로 이미지 전달
+                  navigation.navigate('CanvasEditor' as never, { imageUri: selectedMedia.uri });
+                } else if (selectedMedia?.mediaType === 'video') {
+                  // VideoTrimCrop으로 비디오 전달
+                  navigation.navigate('VideoTrimCrop' as never, {
+                    videoUri: selectedMedia.uri,
+                    videoDuration: selectedMedia.duration ? selectedMedia.duration * 1000 : undefined,
+                    editMode: 'both',
+                    maxDuration: 30000,
+                    uploadService: 'story',
+                  });
+                }
               }}
               activeOpacity={0.7}
             >
