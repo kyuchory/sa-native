@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,29 @@ import { DragHandleIcon } from './CommonIcons';
 import type { ContentBlock, ContentBlockType } from '../types/post';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+// 최적화된 VideoPlayer 컴포넌트
+const VideoPlayer = memo(({ videoUri, style }: { videoUri: string, style?: any }) => {
+  const player = useVideoPlayer(videoUri, player => {
+    player.loop = false;
+    player.muted = true;
+    player.play();
+  });
+
+  return (
+    <VideoView
+      player={player}
+      style={style}
+      nativeControls={false}
+      contentFit="cover"
+    />
+  );
+}, (prevProps, nextProps) => {
+  // videoUri와 style이 같으면 리렌더링하지 않음
+  return prevProps.videoUri === nextProps.videoUri && prevProps.style === nextProps.style;
+});
+
+VideoPlayer.displayName = 'VideoPlayer';
 
 interface ContentBlockProps {
   block: ContentBlock;
@@ -235,23 +258,7 @@ export function VideoBlock({
     );
   };
 
-  // VideoPlayer 컴포넌트
-  const VideoPlayer = ({ videoUri }: { videoUri: string }) => {
-    const player = useVideoPlayer(videoUri, player => {
-      player.loop = false;
-      player.muted = true;
-      player.play();
-    });
 
-    return (
-      <VideoView
-        player={player}
-        style={styles.videoPreview}
-        nativeControls={false}
-        contentFit="cover"
-      />
-    );
-  };
 
   return (
     <View style={styles.blockContainer}>
@@ -295,7 +302,7 @@ export function VideoBlock({
       </View>
 
       {block.value ? (
-        <VideoPlayer videoUri={block.value} />
+        <VideoPlayer videoUri={block.value} style={styles.videoPreview} />
       ) : (
         <TouchableOpacity 
           style={styles.videoPlaceholder}
@@ -310,8 +317,8 @@ export function VideoBlock({
   );
 }
 
-// 메인 콘텐츠 블록 컴포넌트
-export function ContentBlockComponent(props: ContentBlockProps) {
+// 메인 콘텐츠 블록 컴포넌트 - 메모이제이션 적용
+export const ContentBlockComponent = memo((props: ContentBlockProps) => {
   switch (props.block.type) {
     case 'text':
       return <TextBlock {...props} />;
@@ -322,7 +329,20 @@ export function ContentBlockComponent(props: ContentBlockProps) {
     default:
       return null;
   }
-}
+}, (prevProps, nextProps) => {
+  // 해당 블록에 영향을 주는 props만 비교
+  return (
+    prevProps.block.id === nextProps.block.id &&
+    prevProps.block.value === nextProps.block.value &&
+    prevProps.block.type === nextProps.block.type &&
+    prevProps.canMoveUp === nextProps.canMoveUp &&
+    prevProps.canMoveDown === nextProps.canMoveDown &&
+    prevProps.showDeleteButton === nextProps.showDeleteButton &&
+    prevProps.showMoveButtons === nextProps.showMoveButtons
+  );
+});
+
+ContentBlockComponent.displayName = 'ContentBlockComponent';
 
 const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   blockContainer: {

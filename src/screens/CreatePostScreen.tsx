@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -120,16 +120,16 @@ export default function CreatePostScreen() {
   };
 
   // 블록 내용 변경
-  const updateBlockContent = (blockId: string, content: string) => {
-    setContentBlocks(prev => 
-      prev.map(block => 
+  const updateBlockContent = useCallback((blockId: string, content: string) => {
+    setContentBlocks(prev =>
+      prev.map(block =>
         block.id === blockId ? { ...block, value: content } : block
       )
     );
-  };
+  }, []);
 
   // 블록 삭제
-  const deleteBlock = (blockId: string) => {
+  const deleteBlock = useCallback((blockId: string) => {
     setContentBlocks(prev => {
       const filteredBlocks = prev.filter(block => block.id !== blockId);
       // sequence 재정렬 (0부터 시작)
@@ -138,43 +138,45 @@ export default function CreatePostScreen() {
         sequence: index
       }));
     });
-  };
+  }, []);
 
   // 블록 위로 이동
-  const moveBlockUp = (blockId: string) => {
+  const moveBlockUp = useCallback((blockId: string) => {
     setContentBlocks(prev => {
       const blockIndex = prev.findIndex(block => block.id === blockId);
       if (blockIndex <= 0) return prev;
-      
+
       const newBlocks = [...prev];
-      [newBlocks[blockIndex - 1], newBlocks[blockIndex]] = 
+      [newBlocks[blockIndex - 1], newBlocks[blockIndex]] =
       [newBlocks[blockIndex], newBlocks[blockIndex - 1]];
-      
+
       // sequence 재정렬 (0부터 시작)
       return newBlocks.map((block, index) => ({
         ...block,
         sequence: index
       }));
     });
-  };
+  }, []);
 
   // 블록 아래로 이동
-  const moveBlockDown = (blockId: string) => {
+  const moveBlockDown = useCallback((blockId: string) => {
     setContentBlocks(prev => {
       const blockIndex = prev.findIndex(block => block.id === blockId);
       if (blockIndex >= prev.length - 1) return prev;
-      
+
       const newBlocks = [...prev];
-      [newBlocks[blockIndex], newBlocks[blockIndex + 1]] = 
+      [newBlocks[blockIndex], newBlocks[blockIndex + 1]] =
       [newBlocks[blockIndex + 1], newBlocks[blockIndex]];
-      
+
       // sequence 재정렬 (0부터 시작)
       return newBlocks.map((block, index) => ({
         ...block,
         sequence: index
       }));
     });
-  };
+  }, []);
+
+
 
   // 이미지 선택 및 업로드
   const handleImageSelection = async () => {
@@ -343,7 +345,7 @@ export default function CreatePostScreen() {
       <CommonHeader
         title="새 게시물"
         rightComponent={
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.publishButton}
             onPress={handleCreatePost}
             activeOpacity={0.7}
@@ -398,21 +400,21 @@ export default function CreatePostScreen() {
           <Text style={styles.sectionLabel}>내용</Text>
           <View style={styles.contentContainer}>
             {contentBlocks.map((block, index) => (
-            <ContentBlockComponent
-              key={block.id}
-              block={block}
-              onContentChange={updateBlockContent}
-              onDeleteBlock={deleteBlock}
-              onMoveUp={moveBlockUp}
-              onMoveDown={moveBlockDown}
-              canMoveUp={index > 0}
-              canMoveDown={index < contentBlocks.length - 1}
-            />
-          ))}
+              <ContentBlockComponent
+                key={block.id}
+                block={block}
+                onContentChange={updateBlockContent}
+                onDeleteBlock={deleteBlock}
+                onMoveUp={moveBlockUp}
+                onMoveDown={moveBlockDown}
+                canMoveUp={index > 0}
+                canMoveDown={index < contentBlocks.length - 1}
+              />
+            ))}
           </View>
         </View>
 
-        {/* 여백 (하단 버튼들을 위한) */}
+        {/* 하단 여백 */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
 
@@ -519,6 +521,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     borderColor: colors.GRAY_200,
     padding: SPACING.SM,
   },
+
 
   // 로딩
   loadingContainer: {

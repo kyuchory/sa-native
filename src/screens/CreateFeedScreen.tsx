@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -99,16 +99,16 @@ export default function CreateFeedScreen() {
   };
 
   // 블록 내용 변경
-  const updateBlockContent = (blockId: string, content: string) => {
-    setContentBlocks(prev => 
-      prev.map(block => 
+  const updateBlockContent = useCallback((blockId: string, content: string) => {
+    setContentBlocks(prev =>
+      prev.map(block =>
         block.id === blockId ? { ...block, value: content } : block
       )
     );
-  };
+  }, []);
 
   // 블록 삭제 (텍스트 블록은 삭제 불가)
-  const deleteBlock = (blockId: string) => {
+  const deleteBlock = useCallback((blockId: string) => {
     const block = contentBlocks.find(b => b.id === blockId);
     if (block?.type === 'text') {
       return; // 텍스트 블록은 삭제 불가
@@ -122,43 +122,43 @@ export default function CreateFeedScreen() {
         sequence: block.type === 'text' ? 0 : index
       }));
     });
-  };
+  }, [contentBlocks]);
 
   // 블록 위로 이동
-  const moveBlockUp = (blockId: string) => {
+  const moveBlockUp = useCallback((blockId: string) => {
     setContentBlocks(prev => {
       const blockIndex = prev.findIndex(block => block.id === blockId);
       if (blockIndex <= 1) return prev; // 텍스트 블록(0번)은 이동 불가
-      
+
       const newBlocks = [...prev];
-      [newBlocks[blockIndex - 1], newBlocks[blockIndex]] = 
+      [newBlocks[blockIndex - 1], newBlocks[blockIndex]] =
       [newBlocks[blockIndex], newBlocks[blockIndex - 1]];
-      
+
       // sequence 재정렬 (텍스트는 0 고정, 나머지는 1부터)
       return newBlocks.map((block, index) => ({
         ...block,
         sequence: block.type === 'text' ? 0 : index
       }));
     });
-  };
+  }, []);
 
   // 블록 아래로 이동
-  const moveBlockDown = (blockId: string) => {
+  const moveBlockDown = useCallback((blockId: string) => {
     setContentBlocks(prev => {
       const blockIndex = prev.findIndex(block => block.id === blockId);
       if (blockIndex >= prev.length - 1) return prev;
-      
+
       const newBlocks = [...prev];
-      [newBlocks[blockIndex], newBlocks[blockIndex + 1]] = 
+      [newBlocks[blockIndex], newBlocks[blockIndex + 1]] =
       [newBlocks[blockIndex + 1], newBlocks[blockIndex]];
-      
+
       // sequence 재정렬 (텍스트는 0 고정, 나머지는 1부터)
       return newBlocks.map((block, index) => ({
         ...block,
         sequence: block.type === 'text' ? 0 : index
       }));
     });
-  };
+  }, []);
 
   // 이미지 선택 및 업로드
   const handleImageSelection = async () => {
