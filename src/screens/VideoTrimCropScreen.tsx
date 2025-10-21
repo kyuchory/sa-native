@@ -75,16 +75,18 @@ function isVideoRotated(
 function convertCropAreaForServer(
   screenCropArea: { x: number; y: number; width: number; height: number },
   videoDimensions: { width: number; height: number } | null,
-  actualVideoDimensions: { width: number; height: number } | null
+  actualVideoOrientation: 'landscape' | 'portrait' | null
 ): { x: number; y: number; width: number; height: number } {
-  if (!videoDimensions || !actualVideoDimensions) {
+  if (!videoDimensions || !actualVideoOrientation) {
     console.warn('⚠️ 비디오 차원 정보 없음, 원본 좌표 반환');
     return screenCropArea;
   }
 
-  const rotated = isVideoRotated(videoDimensions, actualVideoDimensions);
+  const metadataAspectRatio = videoDimensions.width / videoDimensions.height;
+  const metadataOrientation = metadataAspectRatio > 1 ? 'landscape' : 'portrait';
+  const isRotated = metadataOrientation !== actualVideoOrientation;
 
-  if (!rotated) {
+  if (!isRotated) {
     console.log('✅ 회전 없음, 원본 좌표 사용');
     return screenCropArea;
   }
@@ -100,7 +102,8 @@ function convertCropAreaForServer(
 
   console.log('🔄 90도 회전 좌표 변환:', {
     원본메타: videoDimensions,
-    화면표시: actualVideoDimensions,
+    메타방향: metadataOrientation,
+    실제방향: actualVideoOrientation,
     화면좌표: screenCropArea,
     서버좌표: converted
   });
@@ -129,6 +132,7 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
   const [cropArea, setCropArea] = useState({ x: 0, y: 0, width: 1, height: 1 });
   const [videoDimensions, setVideoDimensions] = useState<{ width: number; height: number } | null>(null);
   const [actualVideoDimensions, setActualVideoDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [actualVideoOrientation, setActualVideoOrientation] = useState<'landscape' | 'portrait' | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const player = useVideoPlayer(videoUri ? { uri: videoUri } : null, (player) => {
@@ -145,6 +149,7 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
       
       if (payload.availableVideoTracks && payload.availableVideoTracks.length > 0) {
         const videoTrack = payload.availableVideoTracks[0];
+        console.log('📹 전체 videoTrack 정보:', videoTrack);
         if (videoTrack.size) {
           console.log('Video metadata size:', videoTrack.size);
           setVideoDimensions({
@@ -188,13 +193,21 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
 
       for (let i = 0; i < thumbnailCount; i++) {
         const time = i * interval;
-        const { uri: thumbnailUri } = await VideoThumbnails.getThumbnailAsync(uri, {
+        const result = await VideoThumbnails.getThumbnailAsync(uri, {
           time,
           quality: 0.5,
         });
-        thumbs.push(thumbnailUri);
+        thumbs.push(result.uri);
+
+        // 첫 번째 썸네일로 실제 방향 확인
+        if (i === 0 && result.width && result.height) {
+          const thumbnailAspectRatio = result.width / result.height;
+          const orientation = thumbnailAspectRatio > 1 ? 'landscape' : 'portrait';
+          setActualVideoOrientation(orientation);
+          console.log('🖼️ 썸네일 크기:', result.width, result.height, '방향:', orientation);
+        }
       }
-      
+
       setThumbnails(thumbs);
     } catch (error) {
       console.log('썸네일 생성 실패:', error);
@@ -225,7 +238,7 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         setIsUploading(true);
         console.log("비디오 편집 업로드 요청 (화면 좌표):", { videoUri, trimStart, trimEnd, cropArea });
         
-        const correctedCropArea = convertCropAreaForServer(cropArea, videoDimensions, actualVideoDimensions);
+        const correctedCropArea = convertCropAreaForServer(cropArea, videoDimensions, actualVideoOrientation);
         console.log("비디오 편집 업로드 요청 (서버 좌표):", correctedCropArea);
         
         const uploadResult = await FeedService.uploadVideoEdit(
@@ -255,7 +268,7 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         setIsUploading(true);
         console.log("포스트 비디오 편집 업로드 요청 (화면 좌표):", { videoUri, trimStart, trimEnd, cropArea });
 
-        const correctedCropArea = convertCropAreaForServer(cropArea, videoDimensions, actualVideoDimensions);
+        const correctedCropArea = convertCropAreaForServer(cropArea, videoDimensions, actualVideoOrientation);
         console.log("포스트 비디오 편집 업로드 요청 (서버 좌표):", correctedCropArea);
 
         const uploadResult = await PostService.uploadVideoEdit(
@@ -280,6 +293,9 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
       } finally {
         setIsUploading(false);
       }
+    } else if (uploadService === 'story') {
+      console.log("아직 API 구현중");
+      navigation.goBack();
     } else {
       const result = {
         videoUri,
@@ -334,6 +350,7 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
                 aspectRatio={aspectRatio}
                 videoDimensions={videoDimensions}
                 actualVideoDimensions={actualVideoDimensions}
+                actualVideoOrientation={actualVideoOrientation}
               />
             )}
           </>
@@ -402,7 +419,8 @@ const CropOverlay: React.FC<{
   aspectRatio?: string | null;
   videoDimensions?: { width: number; height: number } | null;
   actualVideoDimensions?: { width: number; height: number } | null;
-}> = ({ cropArea, setCropArea, containerWidth, containerHeight, paddingOffset, colors, aspectRatio, videoDimensions, actualVideoDimensions }) => {
+  actualVideoOrientation?: 'landscape' | 'portrait' | null;
+}> = ({ cropArea, setCropArea, containerWidth, containerHeight, paddingOffset, colors, aspectRatio, videoDimensions, actualVideoDimensions, actualVideoOrientation }) => {
   const styles = createStyles(colors);
 
   // Parse aspect ratio
@@ -420,31 +438,44 @@ const CropOverlay: React.FC<{
   let videoOffsetX = 0;
   let videoOffsetY = 0;
 
-  if (videoDimensions && actualVideoDimensions) {
-    const rotated = isVideoRotated(videoDimensions, actualVideoDimensions);
-    
-    const effectiveWidth = rotated ? videoDimensions.height : videoDimensions.width;
-    const effectiveHeight = rotated ? videoDimensions.width : videoDimensions.height;
-    const videoAspectRatio = effectiveWidth / effectiveHeight;
-    
-    console.log('Video calculation:', {
+  if (videoDimensions && actualVideoDimensions && actualVideoOrientation) {
+    const metadataAspectRatio = videoDimensions.width / videoDimensions.height;
+    const containerAspectRatio = actualVideoDimensions.width / actualVideoDimensions.height;
+
+    // 썸네일 방향으로 실제 회전 여부 판단
+    const metadataOrientation = metadataAspectRatio > 1 ? 'landscape' : 'portrait';
+    const isRotated = metadataOrientation !== actualVideoOrientation;
+
+    // 회전된 경우 width/height 바꿔서 계산
+    const effectiveVideoAspectRatio = isRotated
+      ? videoDimensions.height / videoDimensions.width
+      : videoDimensions.width / videoDimensions.height;
+
+    console.log('🎬 Video rendering calculation:', {
       metadata: videoDimensions,
       container: actualVideoDimensions,
-      isRotated: rotated,
-      effectiveSize: { width: effectiveWidth, height: effectiveHeight },
-      videoAspectRatio,
-      containerAspectRatio: actualVideoDimensions.width / actualVideoDimensions.height
+      metadataAspectRatio,
+      containerAspectRatio,
+      isRotated,
+      effectiveVideoAspectRatio
     });
 
-    if (videoAspectRatio > actualVideoDimensions.width / actualVideoDimensions.height) {
+    if (effectiveVideoAspectRatio > containerAspectRatio) {
       videoRenderWidth = actualVideoDimensions.width;
-      videoRenderHeight = actualVideoDimensions.width / videoAspectRatio;
+      videoRenderHeight = actualVideoDimensions.width / effectiveVideoAspectRatio;
       videoOffsetY = (actualVideoDimensions.height - videoRenderHeight) / 2;
     } else {
       videoRenderHeight = actualVideoDimensions.height;
-      videoRenderWidth = actualVideoDimensions.height * videoAspectRatio;
+      videoRenderWidth = actualVideoDimensions.height * effectiveVideoAspectRatio;
       videoOffsetX = (actualVideoDimensions.width - videoRenderWidth) / 2;
     }
+
+    console.log('✅ Video render area:', {
+      width: videoRenderWidth,
+      height: videoRenderHeight,
+      offsetX: videoOffsetX,
+      offsetY: videoOffsetY
+    });
   } else if (videoDimensions) {
     const videoAspectRatio = videoDimensions.width / videoDimensions.height;
     const containerAspectRatio = containerWidth / containerHeight;
@@ -534,7 +565,7 @@ const CropOverlay: React.FC<{
 
       runOnJS(updateCropArea)(newX, newY, newWidth, newHeight);
     }
-  }, [videoRenderWidth, videoRenderHeight, videoOffsetX, videoOffsetY]);
+  }, [videoRenderWidth, videoRenderHeight, videoOffsetX, videoOffsetY, actualVideoOrientation]);
   
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
@@ -684,6 +715,17 @@ const CropOverlay: React.FC<{
           height={containerHeight + paddingOffset.y * 2}
           fill="rgba(0, 0, 0, 0.75)"
           mask="url(#cropMask)"
+        />
+        {/* 비디오 렌더링 영역 표시 (디버깅용) */}
+        <Rect
+          x={videoOffsetX + paddingOffset.x}
+          y={videoOffsetY + paddingOffset.y}
+          width={videoRenderWidth}
+          height={videoRenderHeight}
+          stroke="#00FF00"
+          strokeWidth={2}
+          fill="none"
+          strokeDasharray="5,5"
         />
       </Svg>
       
