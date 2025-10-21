@@ -1,4 +1,5 @@
 // 게시물 작성 관련 타입 정의
+import { ApiResponse } from './api';
 
 // 콘텐츠 블록 타입
 export type ContentBlockType = 'text' | 'image' | 'video';
@@ -272,3 +273,22 @@ export type DeletePostResponse = null;
 
 // 게시글 수정 응답 (data는 null)
 export type UpdatePostResponse = null;
+
+// 게시글 비디오 편집 업로드 응답 데이터 (새 API: /posts/upload/video/edit)
+export interface PostVideoEditUploadResponse {
+  editedVideo: {
+    filename: string;
+    path: string;
+    url: string;
+    size: number;
+  };
+  thumbnail: {
+    filename: string;
+    path: string;
+    url: string;
+    size: number;
+  };
+}
+
+// 게시글 비디오 편집 업로드 API 응답
+export type PostVideoEditUploadApiResponse = ApiResponse<PostVideoEditUploadResponse>;

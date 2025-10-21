@@ -20,7 +20,9 @@ import type {
   DeleteCommentRequest,
   DeletePostResponse,
   UpdatePostRequest,
-  UpdatePostResponse
+  UpdatePostResponse,
+  PostVideoEditUploadResponse,
+  PostVideoEditUploadApiResponse
 } from '../types/post';
 import type { ApiResponse } from '../types/api';
 
@@ -128,10 +130,10 @@ export class PostService {
     try {
       // FormData 생성
       const formData = new FormData();
-      
+
       // 파일명 추출 (URI에서 마지막 부분)
       const fileName = videoUri.split('/').pop() || `video_${Date.now()}.mp4`;
-      
+
       formData.append('video', {
         uri: videoUri,
         type: 'video/mp4', // 기본값, 실제로는 asset.type 사용 권장
@@ -140,7 +142,7 @@ export class PostService {
 
       // API 호출
       const response = await apiClient.postFormData<ApiResponse<VideoUploadResponse>>(
-        '/posts/upload/video', 
+        '/posts/upload/video',
         formData
       );
 
@@ -150,6 +152,43 @@ export class PostService {
       };
     } catch (error) {
       console.error('비디오 업로드 실패:', error);
+      throw error;
+    }
+  }
+
+  // 게시글 비디오 편집 업로드 (trim + crop)
+  static async uploadVideoEdit(
+    videoUri: string,
+    trimStart: number,
+    trimEnd: number,
+    cropArea: { x: number; y: number; width: number; height: number }
+  ): Promise<PostVideoEditUploadResponse> {
+    try {
+      const formData = new FormData();
+
+      // 비디오 파일 추가
+      const fileName = videoUri.split('/').pop() || `video_edit_${Date.now()}.mp4`;
+      formData.append('video', {
+        uri: videoUri,
+        type: 'video/mp4',
+        name: fileName,
+      } as any);
+
+      // 편집 파라미터들 추가
+      formData.append('trimStart', trimStart.toString());
+      formData.append('trimEnd', trimEnd.toString());
+
+      // cropArea JSON으로 추가 (API 명세에 따라)
+      formData.append('cropArea', JSON.stringify(cropArea));
+
+      const response = await apiClient.postFormData<PostVideoEditUploadApiResponse>(
+        '/posts/upload/video/edit',
+        formData
+      );
+
+      return response.data!;
+    } catch (error) {
+      console.error('게시글 비디오 편집 업로드 실패:', error);
       throw error;
     }
   }
