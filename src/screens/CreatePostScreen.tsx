@@ -4,12 +4,12 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   TextInput,
   Alert
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
@@ -51,7 +51,7 @@ export default function CreatePostScreen() {
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
   // Zustand 스토어
-  const { setShouldRefreshPosts } = usePostStore();
+  const { setShouldRefreshPosts, videoEditResult, setVideoEditResult } = usePostStore();
   const { setShouldRefreshProfilePosts } = useProfileStore();
 
   // 컴포넌트 마운트 시 카테고리 로드 및 기본 텍스트 블록 추가
@@ -59,6 +59,29 @@ export default function CreatePostScreen() {
     loadCategories();
     addDefaultTextBlock();
   }, []);
+
+  // 비디오 편집 결과 처리
+  useFocusEffect(
+    React.useCallback(() => {
+      if (videoEditResult) {
+        console.log('videoResult:', videoEditResult);
+        // 비디오 블록 추가
+        const newVideoBlock: ContentBlock = {
+          id: `video_${Date.now()}`,
+          type: 'video',
+          value: videoEditResult.videoUrl, // 실제 비디오 URL 사용 (썸네일이 아닌 영상 재생용)
+          sequence: contentBlocks.length,
+          originalValue: videoEditResult.videoPath, // 서버 전송용 비디오 경로
+          thumbnailPath: videoEditResult.thumbnailPath, // 서버 전송용 썸네일 경로
+        };
+
+        setContentBlocks(prev => [...prev, newVideoBlock]);
+
+        // 처리 완료 후 결과 클리어
+        setVideoEditResult(null);
+      }
+    }, [videoEditResult, contentBlocks.length, setVideoEditResult])
+  );
 
   // 카테고리 로드
   const loadCategories = async () => {
@@ -216,7 +239,7 @@ export default function CreatePostScreen() {
     }
   };
 
-  // 비디오 선택 및 업로드
+  // 비디오 선택 및 편집 화면 이동
   const handleVideoSelection = async () => {
     try {
       // 권한 요청
@@ -232,57 +255,24 @@ export default function CreatePostScreen() {
         allowsMultipleSelection: false,
         allowsEditing: true, // 비디오 편집 기능 활성화
         quality: 0.8, // 품질 조정
-        videoMaxDuration: 60, // 최대 60초로 제한
       });
 
       if (!result.canceled && result.assets.length > 0) {
         const selectedVideo = result.assets[0];
-        
-        // 비디오 블록 추가
-        const newVideoBlock: ContentBlock = {
-          id: `video_${Date.now()}`,
-          type: 'video',
-          value: selectedVideo.uri, // 임시로 URI 저장
-          sequence: contentBlocks.length, // 현재 블록 개수를 sequence로 사용
-        };
-        
-        setContentBlocks(prev => [...prev, newVideoBlock]);
 
-        // 비디오 업로드
-        try {
-          setIsUploadingVideo(true); // 비디오 업로드 상태
-          setIsLoading(true);
-          const uploadedVideo = await PostService.uploadVideo(selectedVideo.uri);
-          
-          // 업로드된 비디오로 블록 업데이트
-          // 화면 표시용: 썸네일 URL (있으면), 서버 전송용: 비디오 경로 + 썸네일 경로
-          setContentBlocks(prev =>
-            prev.map(block =>
-              block.id === newVideoBlock.id
-                ? { 
-                    ...block, 
-                    value: uploadedVideo.thumbnail?.url || uploadedVideo.video.url, // 화면 표시용 (썸네일 우선, 없으면 비디오)
-                    originalValue: uploadedVideo.video.path, // 서버 전송용 (비디오)
-                    thumbnailPath: uploadedVideo.thumbnail?.path // 서버 전송용 (썸네일, 있으면)
-                  }
-                : block
-            )
-          );
-
-        } catch (uploadError) {
-          console.error('비디오 업로드 실패:', uploadError);
-          Alert.alert('오류', '비디오 업로드에 실패했습니다.');
-
-          // 업로드 실패 시 블록 제거
-          setContentBlocks(prev => prev.filter(block => block.id !== newVideoBlock.id));
-        }
+        // VideoTrimCrop 화면으로 이동 (편집 후 업로드)
+        navigation.navigate('VideoTrimCrop', {
+          videoUri: selectedVideo.uri,
+          videoDuration: selectedVideo.duration ? selectedVideo.duration * 1000 : undefined, // ms로 변환
+          aspectRatio: undefined, // trim only
+          uploadService: 'post', // post 서비스로 업로드
+          editMode: 'trim', // 트림만 사용
+          maxDuration: 180000, // 최대 3분
+        } as any);
       }
     } catch (error) {
       console.error('비디오 선택 실패:', error);
       Alert.alert('오류', '비디오 선택에 실패했습니다.');
-    } finally {
-      setIsLoading(false);
-      setIsUploadingVideo(false);
     }
   };
 
@@ -348,7 +338,7 @@ export default function CreatePostScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* 헤더 */}
       <CommonHeader
         title="새 게시물"
@@ -461,7 +451,7 @@ export default function CreatePostScreen() {
         visible={isLoading}
         message={isUploadingImage ? '이미지를 업로드중입니다...' : isUploadingVideo ? '비디오를 업로드중입니다...' : undefined}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -11,7 +11,9 @@ import Svg, { Path, Rect, Defs, Mask } from 'react-native-svg';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useThemeStore } from '../stores/themeStore';
 import useFeedStore from '../stores/feedStore';
+import usePostStore from '../stores/postStore';
 import { FeedService } from '../services/feedService';
+import { PostService } from '../services/postService';
 import { SPACING } from '../constants/theme';
 import CommonHeader from '../components/CommonHeader';
 import LoadingOverlay from '../components/LoadingOverlay';
@@ -116,7 +118,8 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
   const editMode = route?.params?.editMode ?? 'both'; // 기본값: 둘다 가능
   const maxDuration = route?.params?.maxDuration; // undefined면 제한 없음
 
-  const { setVideoEditResult } = useFeedStore();
+  const { setVideoEditResult: setFeedVideoEditResult } = useFeedStore();
+  const { setVideoEditResult: setPostVideoEditResult } = usePostStore();
 
   const [duration, setDuration] = useState(route?.params?.videoDuration ?? 10000);
   const [currentPosition, setCurrentPosition] = useState(0);
@@ -233,7 +236,7 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         );
         console.log("비디오 편집 업로드 성공:", uploadResult);
 
-        setVideoEditResult({
+        setFeedVideoEditResult({
           videoPath: uploadResult.editedVideo.path,
           videoUrl: uploadResult.editedVideo.url,
           thumbnailPath: uploadResult.thumbnail.path,
@@ -243,6 +246,36 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         navigation.goBack();
       } catch (error) {
         console.error('비디오 편집 업로드 실패:', error);
+        Alert.alert('업로드 실패', '비디오 편집 업로드에 실패했습니다. 다시 시도해주세요.');
+      } finally {
+        setIsUploading(false);
+      }
+    } else if (uploadService === 'post') {
+      try {
+        setIsUploading(true);
+        console.log("포스트 비디오 편집 업로드 요청 (화면 좌표):", { videoUri, trimStart, trimEnd, cropArea });
+
+        const correctedCropArea = convertCropAreaForServer(cropArea, videoDimensions, actualVideoDimensions);
+        console.log("포스트 비디오 편집 업로드 요청 (서버 좌표):", correctedCropArea);
+
+        const uploadResult = await PostService.uploadVideoEdit(
+          videoUri!,
+          trimStart,
+          trimEnd,
+          correctedCropArea
+        );
+        console.log("포스트 비디오 편집 업로드 성공:", uploadResult);
+
+        setPostVideoEditResult({
+          videoPath: uploadResult.editedVideo.path,
+          videoUrl: uploadResult.editedVideo.url,
+          thumbnailPath: uploadResult.thumbnail.path,
+          thumbnailUrl: uploadResult.thumbnail.url,
+        });
+
+        navigation.goBack();
+      } catch (error) {
+        console.error('포스트 비디오 편집 업로드 실패:', error);
         Alert.alert('업로드 실패', '비디오 편집 업로드에 실패했습니다. 다시 시도해주세요.');
       } finally {
         setIsUploading(false);
