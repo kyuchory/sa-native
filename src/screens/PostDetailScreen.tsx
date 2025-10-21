@@ -5,13 +5,13 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Keyboard,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useEventListener } from 'expo';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -73,17 +73,15 @@ export default function PostDetailScreen() {
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
   const { user } = useAuthStore();
   const currentUserId = user?.id;
-  const { setShouldRefreshPosts } = usePostStore(); // 게시물 목록 새로고침 플래그 설정용
-  const { setShouldRefreshProfilePosts } = useProfileStore(); // 프로필 플래그 설정용
+  const { setShouldRefreshPosts } = usePostStore(); 
+  const { setShouldRefreshProfilePosts } = useProfileStore(); 
 
-  // 게시물 focus 시 데이터 로드 (수정 후 최신 데이터 보장)
   useFocusEffect(
     useCallback(() => {
       loadPostDetail();
     }, [postId])
   );
 
-  // 게시물 상세 정보 로드
   const loadPostDetail = async () => {
     try {
       setIsLoading(true);
@@ -93,13 +91,10 @@ export default function PostDetailScreen() {
       setIsBookmarked(postData.is_bookmarked || false);
       setLikeCount(postData.like_count);
       setBookmarkCount(postData.bookmark_count);
-
-      // 댓글 데이터 로드
       const commentsData = await PostService.getComments(postId);
       setComments(commentsData);
     } catch (error) {
       Alert.alert('오류', '게시물을 불러오는데 실패했습니다.');
-      console.error('게시물 상세 조회 실패:', error);
       navigation.goBack();
     } finally {
       setIsLoading(false);
@@ -425,44 +420,33 @@ export default function PostDetailScreen() {
     return date.toLocaleDateString('ko-KR');
   };
 
-  // ImageBlock 컴포넌트 추가
+  // ✅ expo-image 적용 ImageBlock
   const ImageBlock = ({ imageUri }: { imageUri: string }) => {
     const [aspectRatio, setAspectRatio] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-      if (imageUri) {
-        setIsLoading(true);
-        Image.getSize(
-          imageUri,
-          (width, height) => {
-            setAspectRatio(width / height);
-            setIsLoading(false);
-          },
-          (error) => {
-            console.error('이미지 크기 로드 실패:', error);
-            setIsLoading(false);
-          }
-        );
-      }
-    }, [imageUri]);
-
     return (
       <View style={styles.imageBlock}>
-        {isLoading ? (
+        {isLoading && (
           <View style={styles.imageLoadingContainer}>
             <ActivityIndicator size="large" color={colors.PRIMARY} />
           </View>
-        ) : (
-          <Image
-            source={{ uri: imageUri }}
-            style={[
-              styles.contentImage,
-              ...(aspectRatio && aspectRatio > 0 ? [{ aspectRatio }] : [])
-            ]}
-            resizeMode="contain"
-          />
         )}
+        <Image
+          source={{ uri: imageUri }}
+          cachePolicy="memory-disk"
+          style={[
+            styles.contentImage,
+            aspectRatio ? { aspectRatio } : { height: 250 },
+          ]}
+          onLoad={(e) => {
+            const { width, height } = e.source;
+            if (width && height) setAspectRatio(width / height);
+            setIsLoading(false);
+          }}
+          transition={200}
+          contentFit="contain"
+        />
       </View>
     );
   };

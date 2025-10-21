@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import UserAvatar from './UserAvatar';
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { Notification } from '../types/notification';
@@ -47,18 +48,11 @@ const NotificationListItem = ({ notification, onPress }: NotificationListItemPro
       <View style={styles.content}>
         {/* 프로필 이미지 */}
         <View style={styles.profileContainer}>
-          {notification.sender.profile_img ? (
-            <Image
-              source={{ uri: notification.sender.profile_img }}
-              style={styles.profileImage}
-            />
-          ) : (
-            <View style={[styles.profileImage, styles.placeholderImage]}>
-              <Text style={styles.placeholderText}>
-                {notification.sender.nickname.slice(0, 1).toUpperCase()}
-              </Text>
-            </View>
-          )}
+          <UserAvatar
+            profileImg={notification.sender.profile_img}
+            nickname={notification.sender.nickname}
+            size={44}
+          />
         </View>
 
         {/* 텍스트 컨텐츠 - 한 줄로 통합 */}
@@ -108,23 +102,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   // 프로필 이미지
   profileContainer: {
     marginRight: SPACING.MD,
-  },
-  profileImage: {
-    width: 44,
-    height: 44,
-    borderRadius: BORDER_RADIUS.ROUND,
-  },
-  placeholderImage: {
-    backgroundColor: colors.GRAY_100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.GRAY_200,
-  },
-  placeholderText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: colors.GRAY_600,
   },
 
   // 텍스트 컨테이너

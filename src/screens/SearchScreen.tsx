@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

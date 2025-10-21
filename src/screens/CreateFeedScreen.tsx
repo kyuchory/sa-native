@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  Image,
   Dimensions,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -26,7 +25,6 @@ import { CreateFeedIcon } from '../components/CommonIcons';
 import LoadingOverlay from '../components/LoadingOverlay';
 
 // Services
-import { PostService } from '../services/postService';
 import { FeedService } from '../services/feedService';
 
 // Stores

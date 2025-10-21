@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Image, TouchableOpacity, StyleSheet, Dimensions, FlatList, Text, ActivityIndicator } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Dimensions, FlatList, Text, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { SPACING, BORDER_RADIUS, COLORS, TEXT_COLORS, TYPOGRAPHY } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import type { ProfileFeedItem } from '../types/profile';
@@ -20,7 +21,13 @@ export default function ProfileFeedGrid({ data = [], loading = false, onItemPres
   const styles = createStyles(colors);
   const renderItem = ({ item }: { item: ProfileFeedItem }) => (
     <TouchableOpacity style={styles.feedItem} onPress={() => onItemPress?.(item)} activeOpacity={0.8}>
-      <Image source={{ uri: item.preview_image }} style={styles.feedImage} />
+      <Image
+        source={{ uri: item.preview_image }}
+        style={styles.feedImage}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        transition={200}
+      />
     </TouchableOpacity>
   );
 

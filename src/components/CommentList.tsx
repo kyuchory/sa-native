@@ -2,11 +2,11 @@ import React from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
-  Image,
   StyleSheet,
+  TouchableOpacity,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import UserAvatar from './UserAvatar';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { CommentItem as FeedComment } from '../types/feed';
 import { Comment } from '../types/post';
@@ -223,10 +223,12 @@ const CommentItem = ({
       <TouchableOpacity
         onPress={handleProfilePress}
         activeOpacity={0.7}
+        style={{ marginRight: SPACING.SM }}
       >
-        <Image
-          source={{ uri: comment.user.profile_img }}
-          style={styles.profileImage}
+        <UserAvatar
+          profileImg={comment.user.profile_img}
+          nickname={comment.user.nickname}
+          size={32}
         />
       </TouchableOpacity>
     );

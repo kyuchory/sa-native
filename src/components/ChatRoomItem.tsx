@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { ChatRoom, ChatType } from '../types/chat';
 import { useThemeStore } from '../stores/themeStore';
@@ -55,6 +56,9 @@ export default function ChatRoomItem({
           <Image
             source={{ uri: chatRoom.other_user.avatar_url }}
             style={styles.profileImage}
+            contentFit="cover"
+            cachePolicy={'memory-disk'}
+            transition={200}
           />
         );
       }
@@ -73,6 +77,9 @@ export default function ChatRoomItem({
           <Image
             source={{ uri: chatRoom.avatar_url }}
             style={styles.profileImage}
+            contentFit="cover"
+            cachePolicy={'memory-disk'}
+            transition={200}
           />
         );
       }

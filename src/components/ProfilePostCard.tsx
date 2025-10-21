@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { EmptyHeartIcon, FilledHeartIcon, CommentIcon } from './PostCardIcons';
@@ -101,10 +102,12 @@ export default function ProfilePostCard({
         {/* 이미지가 있는 경우 */}
         {post.preview_image && (
           <View style={styles.imageContainer}>
-            <Image 
-              source={{ uri: post.preview_image }} 
+            <Image
+              source={{ uri: post.preview_image }}
               style={styles.postImage}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={200}
             />
           </View>
         )}

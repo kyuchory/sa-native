@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../types/navigation';
@@ -100,7 +101,12 @@ export default function ProfileEditScreen() {
         <View style={styles.imageSection}>
           <TouchableOpacity style={styles.imageContainer} onPress={handleImagePress} activeOpacity={0.7}>
             {profileData.profileImage ? (
-              <Image source={{ uri: profileData.profileImage }} style={styles.profileImage} />
+              <Image
+                source={{ uri: profileData.profileImage }}
+                style={styles.profileImage}
+                cachePolicy={'memory-disk'}
+                transition={200}
+              />
             ) : (
               <View style={[styles.profileImage, styles.imagePlaceholder]}>
                 <Text style={styles.placeholderText}>

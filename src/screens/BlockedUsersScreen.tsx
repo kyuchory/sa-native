@@ -5,7 +5,6 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   Alert,
 } from 'react-native';
@@ -16,6 +15,7 @@ import { BlockService } from '../services/blockService';
 import { BlockedUser } from '../types/block';
 import { formatMessageDate } from '../utils/timeUtils';
 import CommonHeader from '../components/CommonHeader';
+import UserAvatar from '../components/UserAvatar';
 
 export default function BlockedUsersScreen() {
   const navigation = useNavigation();
@@ -110,14 +110,11 @@ export default function BlockedUsersScreen() {
   const renderUserItem = ({ item }: { item: BlockedUser }) => (
     <View style={[styles.userItem, { backgroundColor: colors.WHITE }]}>
       <View style={styles.userInfo}>
-        {item.profile_img ? (
-          <Image
-            source={{ uri: item.profile_img }}
-            style={styles.avatar}
-          />
-        ) : (
-          <View style={[styles.avatar, { backgroundColor: colors.GRAY_300 }]} />
-        )}
+        <UserAvatar
+          profileImg={item.profile_img}
+          nickname={item.nickname}
+          size={40}
+        />
         <View style={styles.userDetails}>
           <Text style={[styles.nickname, { color: colors.GRAY_900 }]}>
             {item.nickname}
@@ -231,12 +228,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: SPACING.SM,
   },
   userDetails: {
     flex: 1,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { FeedListItem, FeedContentBlock } from '../types/feed';
@@ -257,7 +258,9 @@ export default function FeedCard({
             <Image
               source={{ uri: mediaBlocks[0].value }}
               style={styles.mainImage}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={200}
             />
           )}
           {feed.media_count > 1 && (

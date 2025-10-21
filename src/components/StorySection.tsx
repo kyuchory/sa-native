@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { StoryListResponse } from '../types/story';
 import { useThemeStore } from '../stores/themeStore';

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Image, TouchableOpacity, StyleSheet, Dimensions, FlatList, Text } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Dimensions, FlatList, Text } from 'react-native';
+import { Image } from 'expo-image';
 import { SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 
@@ -25,7 +26,7 @@ export default function FeedTab({ data, onItemPress }: FeedTabProps) {
       onPress={() => onItemPress?.(item)}
       activeOpacity={0.8}
     >
-      <Image source={{ uri: item.preview_image }} style={styles.feedImage} />
+      <Image source={{ uri: item.preview_image }} style={styles.feedImage} contentFit="cover" />
     </TouchableOpacity>
   );
 

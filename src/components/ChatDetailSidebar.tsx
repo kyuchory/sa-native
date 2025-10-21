@@ -5,12 +5,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Image,
-  SafeAreaView,
   Modal,
   Animated,
   Dimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { MediaIcon, NoticeIcon, MembersIcon, ChevronRightIcon } from './SidebarIcons';
@@ -158,7 +158,7 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
     <View key={member.id} style={styles.memberItem}>
       <View style={styles.memberAvatarContainer}>
         {member.avatar_url ? (
-          <Image source={{ uri: member.avatar_url }} style={styles.memberAvatar} />
+          <Image source={{ uri: member.avatar_url }} style={styles.memberAvatar} contentFit="cover" cachePolicy={'memory-disk'} transition={200}/>
         ) : (
           <View style={styles.memberAvatarPlaceholder}>
             <Text style={styles.memberAvatarText}>
@@ -176,7 +176,7 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
 
   const renderMediaItem = (item: MediaItem, index: number) => (
     <TouchableOpacity key={item.id} style={styles.mediaItem}>
-      <Image source={{ uri: item.thumbnail || item.url }} style={styles.mediaThumbnail} />
+      <Image source={{ uri: item.thumbnail || item.url }} style={styles.mediaThumbnail} contentFit="cover" cachePolicy={'memory-disk'} transition={200}/>
       {item.type === 'video' && (
         <View style={styles.videoOverlay}>
           <Text style={styles.videoIcon}>▶</Text>

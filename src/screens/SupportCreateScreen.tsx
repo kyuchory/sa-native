@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  Image,
   Platform
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
@@ -280,7 +280,7 @@ export default function SupportCreateScreen() {
             <View style={styles.imageGrid}>
               {images.map((image, index) => (
                 <View key={index} style={styles.imageContainer}>
-                  <Image source={{ uri: image.uri }} style={styles.image} />
+                  <Image source={{ uri: image.uri }} style={styles.image} contentFit="cover" cachePolicy="memory-disk" transition={200}/>
                   <TouchableOpacity
                     style={styles.removeButton}
                     onPress={() => removeImage(index)}

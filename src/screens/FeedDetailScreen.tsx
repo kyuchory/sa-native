@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, Image, Pressable, TouchableOpacity, TouchableWithoutFeedback, Alert, Platform, KeyboardAvoidingView, Keyboard, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, Pressable, TouchableOpacity, TouchableWithoutFeedback, Alert, Platform, KeyboardAvoidingView, Keyboard, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -614,6 +615,9 @@ export default function FeedDetailScreen() {
                     <Image
                       source={{ uri: block.value }}
                       style={styles.mainImage}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={200}
                     />
                   )}
                 </View>

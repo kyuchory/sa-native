@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
+import { Image } from 'expo-image';
 import { SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS } from '../constants/theme';
 import { EmptyHeartIcon, CommentIcon } from './PostCardIcons';
 import { useThemeStore } from '../stores/themeStore';
@@ -80,7 +81,7 @@ export default function PostTab({ data, onItemPress }: PostTabProps) {
         {/* 이미지가 있는 경우 */}
         {item.preview_image && (
           <View style={styles.imageContainer}>
-            <Image source={{ uri: item.preview_image }} style={styles.postImage} />
+            <Image source={{ uri: item.preview_image }} style={styles.postImage} contentFit="cover" cachePolicy="memory-disk" transition={200}/>
           </View>
         )}
       </View>

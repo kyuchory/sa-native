@@ -4,11 +4,11 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Image,
   StyleSheet,
   Alert,
   Dimensions
 } from 'react-native';
+import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
@@ -177,10 +177,12 @@ export function ImageBlock({
 
       {block.value ? (
         <View style={styles.imageContainer}>
-          <Image 
-            source={{ uri: block.value }} 
+          <Image
+            source={{ uri: block.value }}
             style={styles.imagePreview}
-            resizeMode="cover"
+            contentFit="cover"
+            cachePolicy={'memory-disk'}
+            transition={200}
           />
           <View style={styles.imageInfo}>
             <Text style={styles.imageInfoText}>이미지가 업로드되었습니다</Text>

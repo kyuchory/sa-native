@@ -185,6 +185,7 @@ export default function MediaSelector({
           style={styles.image}
           contentFit="cover"
           cachePolicy="memory-disk"
+          transition={200}
         />
         
         {isVideo && item.duration && item.duration > 0 && (

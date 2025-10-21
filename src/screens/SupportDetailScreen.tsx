@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Image } from 'expo-image';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  Image,
   Alert,
   TouchableOpacity,
   ActivityIndicator
@@ -296,7 +296,9 @@ export default function SupportDetailScreen() {
                   <Image
                     source={{ uri: attachment.file_url }}
                     style={styles.image}
-                    resizeMode="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
+                    contentFit="cover"
                   />
                 </TouchableOpacity>
               ))}

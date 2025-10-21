@@ -6,7 +6,6 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
-  Image,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -15,15 +14,15 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
 // Components
 import CommonHeader from '../components/CommonHeader';
 import { SearchIcon, MenuIcon, PlusCircleIcon, SendIcon } from '../components/ChatDetailIcons';
-import { MenuIcon as MenuIcon32, CheckIcon, AddImageIcon, NoticeIcon, CameraIcon } from '../components/CommonIcons';
+import { MenuIcon as AddImageIcon, NoticeIcon, CameraIcon } from '../components/CommonIcons';
 import ChatDetailSidebar from '../components/ChatDetailSidebar';
 import MenuActionSheet from '../components/MenuActionSheet';
 import UserAvatar from '../components/UserAvatar';
@@ -658,7 +657,9 @@ export default function ChatDetailScreen() {
                   <Image
                     source={{ uri: item.content }}
                     style={styles.messageImage}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    cachePolicy={'memory-disk'}
+                    transition={200}
                   />
                 ) : (
                   <Text style={[

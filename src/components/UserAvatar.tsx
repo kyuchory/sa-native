@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 
@@ -21,9 +22,12 @@ export default function UserAvatar({
 
   if (profileImg) {
     return (
-      <Image 
-        source={{ uri: profileImg }} 
+      <Image
+        source={{ uri: profileImg }}
         style={[styles.avatar, style]}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        transition={200}
       />
     );
   }

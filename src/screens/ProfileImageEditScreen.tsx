@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { Image } from 'expo-image';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
@@ -167,7 +168,12 @@ export default function ProfileImageEditScreen() {
         <View style={styles.imageSection}>
           <TouchableOpacity style={styles.imageContainer} onPress={handleImageSelect} activeOpacity={0.7}>
             {displayImageUri ? (
-              <Image source={{ uri: displayImageUri }} style={styles.profileImage} />
+              <Image
+                source={{ uri: displayImageUri }}
+                style={styles.profileImage}
+                cachePolicy={'memory-disk'}
+                transition={200}
+              />
             ) : (
               <View style={[styles.profileImage, styles.imagePlaceholder]}>
                 <Text style={styles.placeholderText}>

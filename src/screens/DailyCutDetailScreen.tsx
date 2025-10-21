@@ -14,11 +14,11 @@ import {
   View,
   Text,
   Dimensions,
-  Image,
   TouchableWithoutFeedback,
   NativeSyntheticEvent,
   NativeTouchEvent,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler';
 
@@ -155,7 +155,7 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
           >
             <View style={q.storyContainer}>
               {currentStory.type === 'image' ? (
-                <Image source={{ uri: currentStory.content_url }} style={q.storyImage} resizeMode="cover" />
+                <Image source={{ uri: currentStory.content_url }} style={q.storyImage} contentFit="cover" cachePolicy={'memory-disk'} transition={200}/>
               ) : (
                 <View style={q.storyVideo}>
                   <Text style={q.videoText}>영상 재생: {currentStory.duration}s</Text>

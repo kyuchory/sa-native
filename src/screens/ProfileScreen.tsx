@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useFocusEffect, useNavigation, NavigationProp, RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../types/navigation';
-import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { useAuthStore } from '../stores/authStore';
 import { handleApiError } from '../services/apiClient';
 // 컴포넌트 imports
-import CommonHeader from '../components/CommonHeader';
 import ProfileHeader from '../components/ProfileHeader';
 import ProfileTabNavigation, { ProfileTabType } from '../components/ProfileTabNavigation';
 import ProfileFeedGrid from '../components/ProfileFeedGrid';
