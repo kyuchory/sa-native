@@ -173,7 +173,7 @@ export default function CreateFeedScreen() {
 
       // 이미지 선택 (단일 선택)
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsMultipleSelection: false,
         allowsEditing: true, // 이미지 편집 기능 활성화
         aspect: [1, 1], // 정방형 비율로 편집
@@ -238,11 +238,10 @@ export default function CreateFeedScreen() {
 
       // 비디오 선택
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        mediaTypes: ['videos'],
         allowsMultipleSelection: false,
         allowsEditing: true, // 비디오 편집 기능 활성화
         quality: 0.8, // 품질 조정
-        videoMaxDuration: 60, // 최대 60초로 제한
       });
 
       if (!result.canceled && result.assets.length > 0) {

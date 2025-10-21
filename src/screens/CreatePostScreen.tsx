@@ -165,7 +165,7 @@ export default function CreatePostScreen() {
 
       // 이미지 선택
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsMultipleSelection: false,
         quality: 1,
         aspect: [4, 3],
@@ -228,7 +228,7 @@ export default function CreatePostScreen() {
 
       // 비디오 선택
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        mediaTypes: ['videos'],
         allowsMultipleSelection: false,
         allowsEditing: true, // 비디오 편집 기능 활성화
         quality: 0.8, // 품질 조정

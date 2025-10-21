@@ -70,7 +70,7 @@ export default function SupportCreateScreen() {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsMultipleSelection: true,
         quality: 0.8,
         selectionLimit: 5 - images.length, // 남은 슬롯만큼 선택 가능

@@ -762,7 +762,7 @@ export default function ChatDetailScreen() {
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: false, // 채팅에서는 편집 없이 바로 전송
         quality: 0.8, // 적절한 품질로 압축
         exif: false,
@@ -790,7 +790,7 @@ export default function ChatDetailScreen() {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: false, // 채팅에서는 편집 없이 바로 선택
         quality: 0.8, // 적절한 품질로 압축
         exif: false,
