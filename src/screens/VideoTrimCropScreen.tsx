@@ -38,7 +38,16 @@ const PauseIcon = ({ size = 24, color = '#FFF' }) => (
 );
 
 type Props = {
-  route?: { params?: { videoUri?: string; videoDuration?: number; aspectRatio?: string; uploadService?: string } };
+  route?: { 
+    params?: { 
+      videoUri?: string; 
+      videoDuration?: number; 
+      aspectRatio?: string; 
+      uploadService?: string;
+      editMode?: 'both' | 'crop' | 'trim'; // 편집 모드: 둘다, 크롭만, 트림만
+      maxDuration?: number; // 최대 비디오 길이 (ms), undefined면 제한 없음
+    } 
+  };
   navigation?: any;
 };
 
@@ -104,6 +113,8 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
   const videoUri = route?.params?.videoUri ?? null;
   const aspectRatio = route?.params?.aspectRatio ?? null;
   const uploadService = route?.params?.uploadService ?? null;
+  const editMode = route?.params?.editMode ?? 'both'; // 기본값: 둘다 가능
+  const maxDuration = route?.params?.maxDuration; // undefined면 제한 없음
 
   const { setVideoEditResult } = useFeedStore();
 
@@ -194,6 +205,18 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
   const handleConfirm = async () => {
     if (!videoUri) return;
 
+    console.log('편집 확인:', { trimStart, trimEnd });
+
+    // 최대 길이 제한 확인
+    if (maxDuration && (trimEnd - trimStart) > maxDuration) {
+      const maxSeconds = Math.floor(maxDuration / 1000);
+      Alert.alert(
+        '비디오 길이 제한', 
+        `선택한 구간이 너무 깁니다.\n최대 ${maxSeconds}초까지 가능합니다.`
+      );
+      return;
+    }
+
     if (uploadService === 'feed') {
       try {
         setIsUploading(true);
@@ -267,17 +290,19 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
                 nativeControls={false}
               />
             </View>
-            <CropOverlay
-              cropArea={cropArea}
-              setCropArea={setCropArea}
-              containerWidth={SCREEN_W - VIDEO_PADDING * 2}
-              containerHeight={VIDEO_CONTAINER_HEIGHT - VIDEO_PADDING * 2}
-              paddingOffset={{ x: VIDEO_PADDING, y: VIDEO_PADDING }}
-              colors={colors}
-              aspectRatio={aspectRatio}
-              videoDimensions={videoDimensions}
-              actualVideoDimensions={actualVideoDimensions}
-            />
+            {(editMode === 'both' || editMode === 'crop') && (
+              <CropOverlay
+                cropArea={cropArea}
+                setCropArea={setCropArea}
+                containerWidth={SCREEN_W - VIDEO_PADDING * 2}
+                containerHeight={VIDEO_CONTAINER_HEIGHT - VIDEO_PADDING * 2}
+                paddingOffset={{ x: VIDEO_PADDING, y: VIDEO_PADDING }}
+                colors={colors}
+                aspectRatio={aspectRatio}
+                videoDimensions={videoDimensions}
+                actualVideoDimensions={actualVideoDimensions}
+              />
+            )}
           </>
         ) : (
           <View style={styles.noVideo}>
@@ -308,21 +333,23 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         </Text>
       </View>
 
-      <TrimBar
-        duration={duration}
-        trimStart={trimStart}
-        trimEnd={trimEnd}
-        currentPosition={currentPosition}
-        thumbnails={thumbnails}
-        onTrimChange={(start, end) => {
-          setTrimStart(start);
-          setTrimEnd(end);
-        }}
-        onSeek={(position) => {
-          player.currentTime = position / 1000;
-        }}
-        colors={colors}
-      />
+      {(editMode === 'both' || editMode === 'trim') && (
+        <TrimBar
+          duration={duration}
+          trimStart={trimStart}
+          trimEnd={trimEnd}
+          currentPosition={currentPosition}
+          thumbnails={thumbnails}
+          onTrimChange={(start, end) => {
+            setTrimStart(start);
+            setTrimEnd(end);
+          }}
+          onSeek={(position) => {
+            player.currentTime = position / 1000;
+          }}
+          colors={colors}
+        />
+      )}
 
       <LoadingOverlay
         visible={isUploading}
@@ -625,18 +652,6 @@ const CropOverlay: React.FC<{
           fill="rgba(0, 0, 0, 0.75)"
           mask="url(#cropMask)"
         />
-        
-        {/* 비디오 렌더링 영역 표시 (디버깅용) */}
-        <Rect
-          x={videoOffsetX + paddingOffset.x}
-          y={videoOffsetY + paddingOffset.y}
-          width={videoRenderWidth}
-          height={videoRenderHeight}
-          stroke="#00FF00"
-          strokeWidth={2}
-          fill="none"
-          strokeDasharray="5,5"
-        />
       </Svg>
       
       <Animated.View style={[styles.cropFrameContainer, animatedStyle, { marginLeft: paddingOffset.x, marginTop: paddingOffset.y }]} pointerEvents="box-none">
@@ -881,7 +896,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   cropBorder: {
     ...StyleSheet.absoluteFillObject,
     borderWidth: 3,
-    borderColor: '#FF6B00',
+    borderColor: colors.WHITE,
     borderRadius: 0,
   },
   gridContainer: {
@@ -925,13 +940,13 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     position: 'absolute',
     width: 20,
     height: 3,
-    backgroundColor: '#FF6B00',
+    backgroundColor: colors.PRIMARY,
   },
   cornerLineV: {
     position: 'absolute',
     width: 3,
     height: 20,
-    backgroundColor: '#FF6B00',
+    backgroundColor: colors.PRIMARY,
   },
   cornerTL: {
     top: -1.5,
