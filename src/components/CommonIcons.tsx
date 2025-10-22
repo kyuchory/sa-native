@@ -384,4 +384,39 @@ const ChatIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
   </View>
 );
 
-export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, EditIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon, NoticeIcon, ReportEyeSlashIcon, FollowersOnlyIcon, CameraIcon, ChatIcon };
+// 저장 아이콘 (디스크/플로피 디스크 모양)
+const SaveIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* 디스크 본체 */}
+      <Rect
+        x="4"
+        y="6"
+        width="16"
+        height="12"
+        rx="2"
+        stroke={color}
+        strokeWidth="2"
+        fill="none"
+      />
+      {/* 디스크 내부 원 */}
+      <Circle
+        cx="12"
+        cy="12"
+        r="3"
+        stroke={color}
+        strokeWidth="2"
+        fill="none"
+      />
+      {/* 디스크 중앙 점 */}
+      <Circle
+        cx="12"
+        cy="12"
+        r="0.5"
+        fill={color}
+      />
+    </Svg>
+  </View>
+);
+
+export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, EditIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon, NoticeIcon, ReportEyeSlashIcon, FollowersOnlyIcon, CameraIcon, ChatIcon, SaveIcon };
