@@ -2,16 +2,19 @@ import 'react-native-reanimated';
 import 'react-native-gesture-handler';
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Dimensions, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Dimensions, Alert, Modal, ScrollView } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
 import { captureRef } from 'react-native-view-shot';
 import Svg, { Path } from 'react-native-svg';
+import { CheckIcon } from '../components/CommonIcons';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
 import { useThemeStore } from '../stores/themeStore';
+import { StoryService } from '../services/storyService';
 import { SPACING, BORDER_RADIUS, BG_COLORS, COLORS } from '../constants/theme';
 import CommonHeader from '../components/CommonHeader';
+import LoadingOverlay from '../components/LoadingOverlay';
 
 // Modern SVG Icons
 const TextIcon = ({ size = 24, color = '#000' }) => (
@@ -125,6 +128,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
   const [showTextModal, setShowTextModal] = useState(false);
   const [modalTextInput, setModalTextInput] = useState('');
   const [editingElementId, setEditingElementId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const drawingPoints = useSharedValue<{ x: number; y: number }[]>([]);
   const [canvasSize, setCanvasSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
@@ -236,6 +240,28 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
     } catch (e) {
       console.error(e);
       Alert.alert('Error', 'Failed to export');
+    }
+  };
+
+  const submitAsStory = async () => {
+    try {
+      if (!canvasRef.current) return;
+
+      setIsUploading(true);
+      const uri = await captureRef(canvasRef, { format: 'png', quality: 0.9 });
+
+      // 스토리 생성 API 호출
+      const response = await StoryService.createStory({
+        fileUri: uri,
+      });
+
+      // 생성된 스토리의 ID로 DailyCutDetailScreen으로 이동
+      navigation.navigate('DailyCutDetail', { storyId: response.id });
+    } catch (error) {
+      console.error('스토리 생성 실패:', error);
+      Alert.alert('업로드 실패', '스토리 업로드에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -490,8 +516,8 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
         title="Edit"
         onBackPress={() => navigation?.goBack?.()}
         rightComponent={
-          <TouchableOpacity onPress={exportAsImage} style={styles.doneButton}>
-            <Text style={styles.doneText}>Done</Text>
+          <TouchableOpacity onPress={submitAsStory} style={styles.submitButton}>
+            <CheckIcon size={24} color={colors.PRIMARY} />
           </TouchableOpacity>
         }
       />
@@ -537,54 +563,68 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
 
         {/* Instagram Style Bottom Toolbar */}
         {!isDrawing ? (
-          <View style={styles.bottomToolbar}>
-            <TouchableOpacity style={styles.toolItem} onPress={() => setIsDrawing(true)}>
-              <View style={styles.toolIconWrapper}>
-                <PencilIcon size={26} color={colors.GRAY_900} />
-              </View>
-              <Text style={styles.toolLabel}>Draw</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.toolItem} onPress={addTextBox}>
-              <View style={styles.toolIconWrapper}>
-                <TextIcon size={26} color={colors.GRAY_900} />
-              </View>
-              <Text style={styles.toolLabel}>Text</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.toolItem} onPress={pickImage}>
-              <View style={styles.toolIconWrapper}>
-                <ImageIcon size={26} color={colors.GRAY_900} />
-              </View>
-              <Text style={styles.toolLabel}>Sticker</Text>
-            </TouchableOpacity>
-
-            {selectedId && (
-              <>
-                <TouchableOpacity style={styles.toolItem} onPress={() => bringForward(selectedId)}>
-                  <View style={styles.toolIconWrapper}>
-                    <LayerUpIcon size={22} color={colors.GRAY_900} />
-                  </View>
-                  <Text style={styles.toolLabel}>Forward</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.toolItem} onPress={() => sendBackward(selectedId)}>
-                  <View style={styles.toolIconWrapper}>
-                    <LayerDownIcon size={22} color={colors.GRAY_900} />
-                  </View>
-                  <Text style={styles.toolLabel}>Backward</Text>
-                </TouchableOpacity>
-              </>
-            )}
-
-            {strokes.length > 0 && (
-              <TouchableOpacity style={styles.toolItem} onPress={() => setStrokes([])}>
-                <View style={styles.toolIconWrapper}>
-                  <TrashIcon size={22} color={colors.ERROR} />
+          <View style={styles.bottomToolbarContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.bottomToolbar}
+              bounces={false}
+            >
+              <TouchableOpacity style={styles.toolItem} onPress={exportAsImage}>
+                <View style={styles.saveIconWrapper}>
+                  <ExportIcon size={24} color={colors.WHITE} />
                 </View>
-                <Text style={[styles.toolLabel, { color: colors.ERROR }]}>Clear</Text>
+                <Text style={styles.saveLabel}>Save</Text>
               </TouchableOpacity>
-            )}
+
+              <TouchableOpacity style={styles.toolItem} onPress={() => setIsDrawing(true)}>
+                <View style={styles.toolIconWrapper}>
+                  <PencilIcon size={26} color={colors.GRAY_900} />
+                </View>
+                <Text style={styles.toolLabel}>Draw</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.toolItem} onPress={addTextBox}>
+                <View style={styles.toolIconWrapper}>
+                  <TextIcon size={26} color={colors.GRAY_900} />
+                </View>
+                <Text style={styles.toolLabel}>Text</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.toolItem} onPress={pickImage}>
+                <View style={styles.toolIconWrapper}>
+                  <ImageIcon size={26} color={colors.GRAY_900} />
+                </View>
+                <Text style={styles.toolLabel}>Sticker</Text>
+              </TouchableOpacity>
+
+              {strokes.length > 0 && (
+                <TouchableOpacity style={styles.toolItem} onPress={() => setStrokes([])}>
+                  <View style={styles.toolIconWrapper}>
+                    <TrashIcon size={22} color={colors.ERROR} />
+                  </View>
+                  <Text style={[styles.toolLabel, { color: colors.ERROR }]}>Clear</Text>
+                </TouchableOpacity>
+              )}
+
+              {selectedId && (
+                <>
+                  <TouchableOpacity style={styles.toolItem} onPress={() => bringForward(selectedId)}>
+                    <View style={styles.toolIconWrapper}>
+                      <LayerUpIcon size={22} color={colors.GRAY_900} />
+                    </View>
+                    <Text style={styles.toolLabel}>Forward</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.toolItem} onPress={() => sendBackward(selectedId)}>
+                    <View style={styles.toolIconWrapper}>
+                      <LayerDownIcon size={22} color={colors.GRAY_900} />
+                    </View>
+                    <Text style={styles.toolLabel}>Backward</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </ScrollView>
           </View>
         ) : (
           <View style={styles.drawingToolbar}>
@@ -681,6 +721,11 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
           </TouchableOpacity>
         </Modal>
       </View>
+
+      <LoadingOverlay
+        visible={isUploading}
+        message="스토리를 생성하고 있습니다..."
+      />
     </SafeAreaView>
   );
 }
@@ -691,14 +736,8 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     backgroundColor: colors.GRAY_50
   },
 
-
-  doneButton: {
+  submitButton: {
     padding: SPACING.XS,
-  },
-  doneText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#3897F0',
   },
 
   // Canvas
@@ -772,6 +811,14 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: 11,
     color: colors.GRAY_900,
     marginTop: 2,
+  },
+
+  // Instagram Style Bottom Toolbar Container
+  bottomToolbarContainer: {
+    backgroundColor: colors.WHITE,
+    borderTopWidth: 0.5,
+    borderTopColor: colors.GRAY_200,
+    minHeight: 90,
   },
 
   // Drawing Toolbar - Compact Instagram Style
@@ -851,6 +898,23 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   drawingButtonTextDisabled: {
     color: colors.GRAY_600,
+  },
+
+  // Save Button (하단 툴바용)
+  saveIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.PRIMARY,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.XS,
+  },
+  saveLabel: {
+    fontSize: 11,
+    color: colors.PRIMARY,
+    fontWeight: '600',
+    marginTop: 2,
   },
 
   // Simplified Text Modal

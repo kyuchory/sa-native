@@ -295,9 +295,8 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
           cropArea: correctedCropArea,
         });
         console.log("✅ 스토리 생성 성공:", storyResult);
-        Alert.alert('스토리가 성공적으로 업로드되었습니다', '', [
-          { text: '확인', onPress: () => navigation.goBack() }
-        ]);
+        // 생성된 스토리의 ID로 DailyCutDetailScreen으로 이동
+        navigation.navigate('DailyCutDetail', { storyId: storyResult.id });
       } catch (error) {
         console.error('❌ 스토리 생성 실패:', error);
         Alert.alert('업로드 실패', '스토리 업로드에 실패했습니다. 다시 시도해주세요.');
