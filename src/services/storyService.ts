@@ -55,6 +55,17 @@ export class StoryService {
         name: fileName,
       } as any);
 
+      // 비디오 편집 파라미터 추가 (선택적)
+      if (request.trimStart !== undefined) {
+        formData.append('trimStart', request.trimStart.toString());
+      }
+      if (request.trimEnd !== undefined) {
+        formData.append('trimEnd', request.trimEnd.toString());
+      }
+      if (request.cropArea) {
+        formData.append('cropArea', JSON.stringify(request.cropArea));
+      }
+
       // API 호출
       const response = await apiClient.postFormData<CreateStoryApiResponse>(
         '/stories',

@@ -3,6 +3,14 @@ import { ApiResponse } from './api';
 // 스토리 생성 요청 (클라이언트에서 파일 URI를 받음)
 export interface CreateStoryRequest {
   fileUri: string;
+  trimStart?: number; // 자르기 시작 시간 (밀리초) - 영상 파일인 경우
+  trimEnd?: number; // 자르기 종료 시간 (밀리초) - 영상 파일인 경우
+  cropArea?: { // 크롭 영역 정보 - 영상 파일인 경우
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 }
 
 // 스토리 생성 응답 데이터
