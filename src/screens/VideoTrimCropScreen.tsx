@@ -14,6 +14,7 @@ import useFeedStore from '../stores/feedStore';
 import usePostStore from '../stores/postStore';
 import { FeedService } from '../services/feedService';
 import { PostService } from '../services/postService';
+import { StoryService } from '../services/storyService';
 import { SPACING } from '../constants/theme';
 import CommonHeader from '../components/CommonHeader';
 import LoadingOverlay from '../components/LoadingOverlay';
@@ -285,8 +286,24 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         setIsUploading(false);
       }
     } else if (uploadService === 'story') {
-      console.log("⚠️ 아직 API 구현중");
-      navigation.goBack();
+      try {
+        setIsUploading(true);
+        const storyResult = await StoryService.createStory({
+          fileUri: videoUri,
+          trimStart,
+          trimEnd,
+          cropArea: correctedCropArea,
+        });
+        console.log("✅ 스토리 생성 성공:", storyResult);
+        Alert.alert('스토리가 성공적으로 업로드되었습니다', '', [
+          { text: '확인', onPress: () => navigation.goBack() }
+        ]);
+      } catch (error) {
+        console.error('❌ 스토리 생성 실패:', error);
+        Alert.alert('업로드 실패', '스토리 업로드에 실패했습니다. 다시 시도해주세요.');
+      } finally {
+        setIsUploading(false);
+      }
     } else {
       const result = {
         videoUri,
