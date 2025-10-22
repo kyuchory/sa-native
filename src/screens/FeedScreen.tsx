@@ -33,7 +33,8 @@ export default function FeedScreen() {
     loading: false,
   });
   const [refreshing, setRefreshing] = useState(false);
-  // 알림 카운트 쓰지 않음
+  // 비디오 가시성 상태 관리 - 화면에 보이는 피드 아이템 추적
+  const [visibleVideoFeeds, setVisibleVideoFeeds] = useState<Set<number>>(new Set());
 
   // Zustand 스토어 상태 및 액션들
   const { shouldRefreshFeeds, setShouldRefreshFeeds } = useFeedStore();
@@ -168,17 +169,46 @@ export default function FeedScreen() {
     navigation.navigate('FeedDetail', { feedId });
   };
 
-  // 피드 렌더링
-  const renderFeed = ({ item }: { item: FeedListItem }) => (
-    <FeedCard
-      feed={item}
-      onLikePress={handleLikePress}
-      onCommentPress={handleCommentPress}
-      onBookmarkPress={handleBookmarkPress}
-      onUserPress={handleUserPress}
-      onImagePress={handleImagePress}
-    />
-  );
+  // 피드 렌더링 - 가시성 상태 전달
+  const renderFeed = ({ item }: { item: FeedListItem }) => {
+    // 해당 피드가 비디오를 포함하고, 화면에 보이는지 확인
+    const hasVideo = item.content_blocks.some(block => block.type === 'video');
+    const isVideoVisible = hasVideo && visibleVideoFeeds.has(item.id);
+
+    return (
+      <FeedCard
+        feed={item}
+        onLikePress={handleLikePress}
+        onCommentPress={handleCommentPress}
+        onBookmarkPress={handleBookmarkPress}
+        onUserPress={handleUserPress}
+        onImagePress={handleImagePress}
+        isVisible={hasVideo ? isVideoVisible : true} // 비디오가 있으면 visibility 제어, 없으면 항상 true
+      />
+    );
+  };
+
+  // 비디오 가시성 변경 핸들러 - 화면에 보이는 영상만 재생
+  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
+    const visibleFeeds = new Set<number>();
+    viewableItems.forEach((item: any) => {
+      // 해당 피드가 비디오를 포함하는지 확인
+      const feed = feedState.feeds.find(f => f.id === item.item.id);
+      if (feed) {
+        const hasVideo = feed.content_blocks.some(block => block.type === 'video');
+        if (hasVideo) {
+          visibleFeeds.add(feed.id);
+        }
+      }
+    });
+    setVisibleVideoFeeds(visibleFeeds);
+  }, [feedState.feeds]);
+
+  // FlatList viewability 설정 - 화면에 50% 이상 보이는 아이템 감지
+  const viewabilityConfig = useMemo(() => ({
+    itemVisiblePercentThreshold: 50, // 아이템의 50% 이상이 화면에 보일 때
+    minimumViewTime: 300, // 최소 300ms 동안 보여야 인식
+  }), []);
 
   // 리스트 헤더 (스토리 섹션) - 메모이제이션으로 불필요한 리렌더링 방지
   const listHeader = useMemo(() => (
@@ -199,7 +229,7 @@ export default function FeedScreen() {
       <FlatList
         data={feedState.feeds}
         renderItem={renderFeed}
-        keyExtractor={(item) => `feed-${item.id}`}
+        keyExtractor={(item) => `feed-${String(item.id)}`}
         style={styles.feedList}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -213,6 +243,9 @@ export default function FeedScreen() {
         ListHeaderComponent={listHeader}
         onEndReached={loadMoreFeeds}
         onEndReachedThreshold={0.5}
+        // 비디오 가시성 제어 - 화면에 보이는 영상만 재생
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
         // 성능 최적화
         removeClippedSubviews={true}
         maxToRenderPerBatch={5}

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Platform } from 'react-native';
 import { Image } from 'expo-image';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { VideoView, useVideoPlayer, VideoSource } from 'expo-video';
+import { getThumbnailAsync } from 'expo-video-thumbnails';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { FeedListItem, FeedContentBlock } from '../types/feed';
 import { FeedService } from '../services/feedService';
@@ -16,6 +17,7 @@ interface FeedCardProps {
   onBookmarkPress?: (feedId: number) => void;
   onUserPress?: (userId: number) => void;
   onImagePress?: (feedId: number) => void;
+  isVisible?: boolean; // 비디오 가시성 제어 (선택적)
 }
 
 // 아이콘 컴포넌트들
@@ -37,39 +39,106 @@ const formatTimeAgo = (dateString: string): string => {
   }
 };
 
-// VideoBlock 컴포넌트를 FeedCard 외부로 분리하고 React.memo로 래핑
-interface VideoBlockProps {
+// Enhanced VideoBlock 컴포넌트 - 성능 최적화 포함
+interface EnhancedVideoBlockProps {
   videoUri: string;
   feedId: number;
   styles: any;
+  isVisible?: boolean; // 화면에 보이는지 여부 (미래 확장용)
 }
 
-const VideoBlock = React.memo(({ videoUri, feedId, styles }: VideoBlockProps) => {
-  const player = useVideoPlayer(videoUri, player => {
+const EnhancedVideoBlock = React.memo(({
+  videoUri,
+  feedId,
+  styles,
+  isVisible = true
+}: EnhancedVideoBlockProps) => {
+  const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const playerRef = useRef<any>(null);
+
+  // 메모이제이션된 VideoSource - 캐싱 활성화 및 플랫폼별 최적화
+  const videoSource = useMemo<VideoSource>(() => ({
+    uri: videoUri,
+    useCaching: true, // 동일 영상 재시청 시 네트워크 요청 제거
+    // HLS 제외하고 캐싱 적용 (iOS HLS는 플랫폼 제한)
+    headers: Platform.OS === 'ios' && videoUri.includes('.m3u8') ? undefined : {}
+  }), [videoUri]);
+
+  // 썸네일 미리 로드
+  useEffect(() => {
+    const preloadThumbnail = async () => {
+      try {
+        // 영상 첫 프레임(0초)에서 썸네일 생성
+        const thumbnail = await getThumbnailAsync(videoUri, {
+          time: 0.0, // 첫 프레임
+          quality: 0.5 // 압축 품질 (0.0-1.0)
+        });
+        setThumbnailUri(thumbnail.uri);
+      } catch (error) {
+        console.warn('썸네일 생성 실패:', error);
+        // 썸네일 실패해도 비디오 재생은 계속됨
+      }
+    };
+
+    preloadThumbnail();
+  }, [videoUri]);
+
+  // 플레이어 설정
+  const player = useVideoPlayer(videoSource, player => {
     player.loop = true;
     player.muted = true;
-    player.play();
+    if (isVisible) {
+      player.play(); // 화면에 보이면 자동 재생
+    }
+    setIsPlayerReady(true);
+    playerRef.current = player;
   });
 
-  // cleanup: 컴포넌트 언마운트 시 player 해제
+  // Visibility 변화에 따른 플레이어 제어
   useEffect(() => {
-    return () => {
-      player.release();
-    };
-  }, [player]);
+    if (!player || !isPlayerReady) return;
+
+    if (isVisible && player.playing === false) {
+      player.play();
+    } else if (!isVisible && player.playing === true) {
+      player.pause();
+    }
+  }, [isVisible, player, isPlayerReady]);
+
+  // 메모리 정리 불필요 - useVideoPlayer 훅이 자동으로 처리함
+  // createVideoPlayer()로 수동 생성한 경우에만 release() 직접 호출 필요
 
   return (
-    <VideoView
-      player={player}
-      style={styles.mainImage}
-      nativeControls={false}
-      contentFit="contain"
-    />
+    <View style={styles.videoContainer}>
+      {/* 썸네일 표시 (비디오 로딩 전) */}
+      {!isPlayerReady && thumbnailUri && (
+        <Image
+          source={{ uri: thumbnailUri }}
+          style={styles.mainImage}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+        />
+      )}
+
+      {/* 비디오 플레이어 */}
+      <VideoView
+        player={player}
+        style={styles.mainImage}
+        nativeControls={false}
+        contentFit="contain"
+        // 안드로이드 겹침 문제 해결 - textureView 사용
+        surfaceType={Platform.OS === 'android' ? 'textureView' : 'surfaceView'}
+        // 비디오가 준비되면 썸네일 오버레이
+        onFirstFrameRender={() => setThumbnailUri(null)}
+      />
+    </View>
   );
 }, (prevProps, nextProps) => {
-  // feedId와 videoUri가 동일하면 리렌더링 방지
-  return prevProps.feedId === nextProps.feedId && 
-         prevProps.videoUri === nextProps.videoUri;
+  // feedId, videoUri, isVisible가 동일하면 리렌더링 방지
+  return prevProps.feedId === nextProps.feedId &&
+         prevProps.videoUri === nextProps.videoUri &&
+         prevProps.isVisible === nextProps.isVisible;
 });
 
 export default function FeedCard({
@@ -78,7 +147,8 @@ export default function FeedCard({
   onCommentPress,
   onBookmarkPress,
   onUserPress,
-  onImagePress
+  onImagePress,
+  isVisible = true // 기본적으로 보이는 것으로 설정
 }: FeedCardProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
@@ -107,46 +177,46 @@ export default function FeedCard({
   // 텍스트 블록 찾기
   const textBlock = feed.content_blocks.find(block => block.type === 'text');
 
-  // 좋아요 토글 핸들러 (낙관적 UI 적용)
-  const handleLikePress = async () => {
+  // 좋아요 토글 핸들러 (낙관적 UI 적용 + useCallback 최적화)
+  const handleLikePress = useCallback(async () => {
     if (isLikeLoading) return; // 이미 요청 중이면 무시
-    
+
     // 낙관적 UI: 즉시 상태 업데이트
     const originalIsLiked = isLiked;
     const originalLikeCount = likeCount;
     const newLikeState = !isLiked;
-    
+
     setIsLiked(newLikeState);
     setLikeCount(prev => newLikeState ? prev + 1 : Math.max(0, prev - 1));
     setIsLikeLoading(true);
-    
+
     try {
       // API 호출
       const response = await FeedService.toggleLike(feed.id);
-      
+
       // 서버 응답으로 최종 상태 동기화
       setIsLiked(response.is_liked);
       setLikeCount(response.like_count);
-      
+
       // 부모 컴포넌트에 알림
       onLikePress?.(feed.id);
-      
+
     } catch (error) {
       console.error('좋아요 토글 실패:', error);
-      
+
       // 실패 시 원래 상태로 롤백
       setIsLiked(originalIsLiked);
       setLikeCount(originalLikeCount);
-      
+
       // TODO: 에러 토스트 메시지 표시
-      
+
     } finally {
       setIsLikeLoading(false);
     }
-  };
+  }, [isLikeLoading, isLiked, likeCount, feed.id, onLikePress]);
 
-  // 북마크 토글 핸들러 (낙관적 UI 적용, FeedDetailScreen과 동일 패턴)
-  const handleBookmarkPress = async () => {
+  // 북마크 토글 핸들러 (낙관적 UI 적용, FeedDetailScreen과 동일 패턴 + useCallback 최적화)
+  const handleBookmarkPress = useCallback(async () => {
     if (isBookmarkLoading) return; // 이미 요청 중이면 무시
 
     // 낙관적 UI: 즉시 상태 업데이트
@@ -183,7 +253,7 @@ export default function FeedCard({
     } finally {
       setIsBookmarkLoading(false);
     }
-  };
+  }, [isBookmarkLoading, isBookmarked, bookmarkCount, feed.id, onBookmarkPress]);
 
   const handleUserPress = () => {
     onUserPress?.(feed.user.id);
@@ -249,10 +319,11 @@ export default function FeedCard({
       {mediaBlocks.length > 0 && (
         <TouchableOpacity style={styles.imageContainer} onPress={handleImagePress} activeOpacity={0.9}>
           {mediaBlocks[0].type === 'video' ? (
-            <VideoBlock 
-              videoUri={mediaBlocks[0].value} 
+            <EnhancedVideoBlock
+              videoUri={mediaBlocks[0].value}
               feedId={feed.id}
               styles={styles}
+              isVisible={isVisible} // FeedScreen에서 전달받은 visibility 상태 사용
             />
           ) : (
             <Image
@@ -369,6 +440,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
 
   // 이미지
   imageContainer: {
+    position: 'relative',
+  },
+  videoContainer: {
     position: 'relative',
   },
   mainImage: {
