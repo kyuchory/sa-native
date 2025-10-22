@@ -25,12 +25,14 @@ export default function FeedScreen() {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
-  // 상태 관리
-  const [feeds, setFeeds] = useState<FeedListItem[]>([]);
+  // 상태 관리 - 통합된 feedState로 변경하여 불필요한 리렌더링 방지
+  const [feedState, setFeedState] = useState({
+    feeds: [] as FeedListItem[],
+    cursor: undefined as number | undefined,
+    hasNext: true,
+    loading: false,
+  });
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [cursor, setCursor] = useState<number | undefined>(undefined);
-  const [hasNext, setHasNext] = useState(true);
   // 알림 카운트 쓰지 않음
 
   // Zustand 스토어 상태 및 액션들
@@ -56,44 +58,58 @@ export default function FeedScreen() {
   // 초기 피드 로드
   const loadInitialFeeds = async () => {
     try {
-      setLoading(true);
-      const response = await FeedService.getFeeds(undefined, 20);
-      setFeeds(response.feeds);
-      setCursor(response.pagination.next_cursor || undefined);
-      setHasNext(response.pagination.has_next);
+      setFeedState(prev => ({ ...prev, loading: true }));
+      const response = await FeedService.getFeeds(undefined, 10);
+      setFeedState({
+        feeds: response.feeds,
+        cursor: response.pagination.next_cursor || undefined,
+        hasNext: response.pagination.has_next,
+        loading: false,
+      });
     } catch (error) {
       console.error('피드 로드 실패:', error);
       Alert.alert('오류', '피드를 불러오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
+      setFeedState(prev => ({ ...prev, loading: false }));
     }
   };
 
   // 추가 피드 로드 (무한 스크롤)
   const loadMoreFeeds = async () => {
-    if (loading || !hasNext) return;
+    if (feedState.loading || !feedState.hasNext) return;
 
     try {
-      setLoading(true);
-      const response = await FeedService.getFeeds(cursor, 20);
-      setFeeds(prev => [...prev, ...response.feeds]);
-      setCursor(response.pagination.next_cursor || undefined);
-      setHasNext(response.pagination.has_next);
+      setFeedState(prev => ({ ...prev, loading: true }));
+      const response = await FeedService.getFeeds(feedState.cursor, 10);
+      setFeedState(prev => ({
+        feeds: [...prev.feeds, ...response.feeds],
+        cursor: response.pagination.next_cursor || undefined,
+        hasNext: response.pagination.has_next,
+        loading: false,
+      }));
     } catch (error) {
       console.error('추가 피드 로드 실패:', error);
-    } finally {
-      setLoading(false);
+      setFeedState(prev => ({ ...prev, loading: false }));
     }
   };
 
   // 새로고침 핸들러
   const handleRefresh = async () => {
     setRefreshing(true);
+
     try {
-      setCursor(undefined);
-      setHasNext(true);
-      await loadInitialFeeds();
-      await loadStories(); // 스토리도 함께 새로고침
+      const [feedsResponse] = await Promise.all([
+        FeedService.getFeeds(undefined, 10),
+        loadStories()
+      ]);
+
+      setFeedState({
+        feeds: feedsResponse.feeds,
+        cursor: feedsResponse.pagination.next_cursor || undefined,
+        hasNext: feedsResponse.pagination.has_next,
+        loading: false,
+      });
+    } catch (error) {
+      console.error('새로고침 실패:', error);
     } finally {
       setRefreshing(false);
     }
@@ -164,15 +180,15 @@ export default function FeedScreen() {
     />
   );
 
-  // 리스트 헤더 (스토리 섹션)
-  const renderListHeader = () => (
+  // 리스트 헤더 (스토리 섹션) - 메모이제이션으로 불필요한 리렌더링 방지
+  const listHeader = useMemo(() => (
     <StorySection
       stories={stories}
       loading={storyLoading}
       onStoryPress={handleStoryPress}
       onAddStoryPress={handleAddStoryPress}
     />
-  );
+  ), [stories, storyLoading, handleStoryPress, handleAddStoryPress]);
 
   return (
     <View style={styles.container}>
@@ -181,7 +197,7 @@ export default function FeedScreen() {
 
       {/* 피드 목록 */}
       <FlatList
-        data={feeds}
+        data={feedState.feeds}
         renderItem={renderFeed}
         keyExtractor={(item) => `feed-${item.id}`}
         style={styles.feedList}
@@ -194,7 +210,7 @@ export default function FeedScreen() {
             colors={[colors.PRIMARY]}
           />
         }
-        ListHeaderComponent={renderListHeader}
+        ListHeaderComponent={listHeader}
         onEndReached={loadMoreFeeds}
         onEndReachedThreshold={0.5}
         // 성능 최적화

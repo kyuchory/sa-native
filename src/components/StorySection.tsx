@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { StoryListResponse } from '../types/story';
@@ -8,7 +8,7 @@ import UserAvatar from './UserAvatar';
 
 interface StorySectionProps {
   stories: StoryListResponse | null;
-  loading?: boolean;
+  loading: boolean;
   onStoryPress?: (user: any, storyId?: number) => void;
   onAddStoryPress?: () => void;
 }
@@ -69,7 +69,7 @@ const StoryItem = ({ user, isMyProfile = false, onPress, onPlusPress, colors, st
   );
 };
 
-export default React.memo(function StorySection({ stories, onStoryPress, onAddStoryPress }: StorySectionProps) {
+export default React.memo(function StorySection({ stories, loading, onStoryPress, onAddStoryPress }: StorySectionProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
@@ -139,6 +139,12 @@ export default React.memo(function StorySection({ stories, onStoryPress, onAddSt
         ))}
       </ScrollView>
     </View>
+  );
+}, (prevProps, nextProps) => {
+  // 커스텀 비교 함수: stories와 loading만 비교하여 불필요한 리렌더링 방지
+  return (
+    prevProps.stories === nextProps.stories &&
+    prevProps.loading === nextProps.loading
   );
 });
 
