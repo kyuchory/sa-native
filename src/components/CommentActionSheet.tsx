@@ -14,6 +14,7 @@ import {
   Alert,
   Keyboard,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '../stores/themeStore';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { FeedListItem, CommentItem } from '../types/feed';
@@ -56,6 +57,7 @@ export default function CommentActionSheet({
 }: CommentActionSheetProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
+  const insets = useSafeAreaInsets();
 
   // 애니메이션 값들
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -352,7 +354,7 @@ export default function CommentActionSheet({
           </ScrollView>
 
           {/* 댓글 입력 영역 */}
-          <View style={[styles.inputContainer, { paddingBottom: keyboardHeight || SPACING.MD }]}>
+          <View style={[styles.inputContainer, { paddingBottom: (keyboardHeight || SPACING.MD) + insets.bottom }]}>
             {editingComment ? (
               <CommentEditInput
                 initialText={editingComment.content}
