@@ -18,7 +18,7 @@ import UserAvatar from '../components/UserAvatar';
 import { CommentItem, FeedDetailResponse } from '../types/feed';
 import { AuthStackParamList } from '../types/navigation';
 import MenuActionSheet from '../components/MenuActionSheet';
-import { MenuIcon, EditIcon, DeleteIcon, ReportIcon } from '../components/CommonIcons';
+import { MenuIcon, EditIcon, DeleteIcon, ReportIcon, MuteIcon, UnmuteIcon } from '../components/CommonIcons';
 
 // 불필요한 mock import는 제거됨
 
@@ -458,11 +458,12 @@ export default function FeedDetailScreen() {
   const TapPauseVideo = ({ videoUri }: { videoUri: string }) => {
     const player = useVideoPlayer(videoUri, (player) => {
       player.loop = true;
-      player.muted = true;
+      player.muted = true; // 시작할 때 기본적으로 음소거 상태
       player.play(); // 처음엔 재생 상태로 시작
     });
 
     const [isPlaying, setIsPlaying] = useState(true);
+    const [isMuted, setIsMuted] = useState(true); // 음소거 상태 관리
 
     const handleTogglePlay = () => {
       if (isPlaying) {
@@ -473,27 +474,37 @@ export default function FeedDetailScreen() {
       setIsPlaying(!isPlaying);
     };
 
+    const handleToggleMute = () => {
+      player.muted = !isMuted;
+      setIsMuted(!isMuted);
+    };
+
     return (
-      <View style={{ width: screenWidth, height: screenWidth }}>
+      <View style={videoStyles.container}>
         <VideoView
           player={player}
-          style={{ width: screenWidth, height: screenWidth }}
+          style={videoStyles.videoView}
           contentFit="contain"
           nativeControls={false}
           surfaceType={Platform.OS === 'android' ? 'textureView' : 'surfaceView'}
         />
+        {/* 음소거 토글 버튼 - 우측 상단 */}
+        <TouchableOpacity
+          onPress={handleToggleMute}
+          activeOpacity={0.9}
+          style={videoStyles.muteButton}
+        >
+          {isMuted ? (
+            <MuteIcon size={20} color="#FFFFFF" />
+          ) : (
+            <UnmuteIcon size={20} color="#FFFFFF" />
+          )}
+        </TouchableOpacity>
         {/* 터치 오버레이 - VideoView 위에 투명 레이어 */}
         <TouchableOpacity
           onPress={handleTogglePlay}
           activeOpacity={1}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'transparent',
-          }}
+          style={videoStyles.touchOverlay}
         />
       </View>
     );
@@ -927,5 +938,39 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   // 비디오 컨테이너
   videoContainer: {
     flex: 1,
+  },
+});
+
+// 비디오 컴포넌트용 스타일
+const videoStyles = StyleSheet.create({
+  container: {
+    width: screenWidth,
+    height: screenWidth,
+    position: 'relative' as const,
+  },
+  videoView: {
+    width: screenWidth,
+    height: screenWidth,
+  },
+  touchOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+    zIndex: 10,
+  },
+  muteButton: {
+    position: 'absolute' as const,
+    top: SPACING.SM,
+    right: SPACING.SM,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
   },
 });

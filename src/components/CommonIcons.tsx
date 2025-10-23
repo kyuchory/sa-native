@@ -419,4 +419,75 @@ const SaveIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
   </View>
 );
 
-export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, EditIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon, NoticeIcon, ReportEyeSlashIcon, FollowersOnlyIcon, CameraIcon, ChatIcon, SaveIcon };
+// 음소거 아이콘 (스피커 + X 표시)
+const MuteIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* 스피커 본체 */}
+      <Path
+        d="M11 5L6 9H2V15H6L11 19V5Z"
+        fill={color}
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* X 표시 - 첫 번째 대각선 (\) */}
+      <Line
+        x1="17"
+        y1="9"
+        x2="23"
+        y2="15"
+        stroke={color}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      {/* X 표시 - 두 번째 대각선 (/) */}
+      <Line
+        x1="23"
+        y1="9"
+        x2="17"
+        y2="15"
+        stroke={color}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+    </Svg>
+  </View>
+);
+
+// 음소거 해제 아이콘 (스피커 볼륨 있음)
+const UnmuteIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* 스피커 본체 */}
+      <Path
+        d="M11 5L6 9H2V15H6L11 19V5Z"
+        fill={color}
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* 소리 파장 */}
+      <Path
+        d="M19.07 4.93C20.9447 6.80528 21.9979 9.34836 21.9979 12C21.9979 14.6516 20.9447 17.1947 19.07 19.07"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <Path
+        d="M15.54 8.46C16.4709 9.39094 17.0043 10.6484 17.0043 11.96C17.0043 13.2716 16.4709 14.5291 15.54 15.46"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </Svg>
+  </View>
+);
+
+export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, EditIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon, NoticeIcon, ReportEyeSlashIcon, FollowersOnlyIcon, CameraIcon, ChatIcon, SaveIcon, MuteIcon, UnmuteIcon };
