@@ -70,3 +70,17 @@ export const ViewIcon = ({ size = 20, color = COLORS.PRIMARY }: IconProps) => (
     />
   </Svg>
 );
+
+// 비디오 아이콘 (플레이 버튼)
+export const VideoIcon = ({ size = 20, color = COLORS.WHITE }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M5 3l14 9-14 9V3z"
+      fill={color}
+      stroke={color}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);

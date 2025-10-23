@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { EmptyHeartIcon, FilledHeartIcon, CommentIcon } from './PostCardIcons';
+import { VideoIcon } from './PostIcons';
 import type { ProfilePostItem } from '../types/profile';
 
 interface ProfilePostCardProps {
@@ -109,6 +110,11 @@ export default function ProfilePostCard({
               cachePolicy="memory-disk"
               transition={200}
             />
+            {post.preview_content_type === 'video' && (
+              <View style={styles.videoIndicator}>
+                <VideoIcon size={16} />
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -194,12 +200,23 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   imageContainer: {
     width: 80,
     height: 80,
+    position: 'relative',
   },
   postImage: {
     width: '100%',
     height: '100%',
     borderRadius: BORDER_RADIUS.MD,
     backgroundColor: colors.GRAY_100,
+  },
+  videoIndicator: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: BORDER_RADIUS.SM,
+    padding: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   // 하단 통계

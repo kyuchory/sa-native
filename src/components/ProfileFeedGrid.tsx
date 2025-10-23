@@ -3,6 +3,7 @@ import { View, TouchableOpacity, StyleSheet, Dimensions, FlatList, Text, Activit
 import { Image } from 'expo-image';
 import { SPACING, BORDER_RADIUS, COLORS, TEXT_COLORS, TYPOGRAPHY } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
+import { VideoIcon } from './PostIcons';
 import type { ProfileFeedItem } from '../types/profile';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -21,13 +22,20 @@ export default function ProfileFeedGrid({ data = [], loading = false, onItemPres
   const styles = createStyles(colors);
   const renderItem = ({ item }: { item: ProfileFeedItem }) => (
     <TouchableOpacity style={styles.feedItem} onPress={() => onItemPress?.(item)} activeOpacity={0.8}>
-      <Image
-        source={{ uri: item.preview_image }}
-        style={styles.feedImage}
-        contentFit="cover"
-        cachePolicy="memory-disk"
-        transition={200}
-      />
+      {item.preview_image && (
+        <Image
+          source={{ uri: item.preview_image }}
+          style={styles.feedImage}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          transition={200}
+        />
+      )}
+      {item.preview_image && item.preview_content_type === 'video' && (
+        <View style={styles.videoIndicator}>
+          <VideoIcon size={12} />
+        </View>
+      )}
     </TouchableOpacity>
   );
 
@@ -75,12 +83,23 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     width: imageSize,
     height: imageSize,
     margin: SPACING.XS / 2,
+    position: 'relative',
   },
   feedImage: {
     width: '100%',
     height: '100%',
     borderRadius: BORDER_RADIUS.SM,
     backgroundColor: colors.WHITE,
+  },
+  videoIndicator: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: BORDER_RADIUS.SM,
+    padding: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   loadingContainer: {
     padding: SPACING.MD,

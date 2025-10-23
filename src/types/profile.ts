@@ -100,15 +100,17 @@ export interface ProfilePostItem {
   like_count: number;
   comment_count: number;
   preview_image: string | null;
-  is_liked: boolean;
-  is_bookmarked: boolean;
+  preview_content_type?: string;
+  is_liked?: boolean;
+  is_bookmarked?: boolean;
 }
 
 // 피드 목록 아이템 (프로필용)
 export interface ProfileFeedItem {
   id: number;
   created_at: string;
-  preview_image: string;
+  preview_image: string | null;
+  preview_content_type?: string;
 }
 
 // 페이지네이션 정보
