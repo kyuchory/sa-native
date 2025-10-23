@@ -474,16 +474,28 @@ export default function FeedDetailScreen() {
     };
 
     return (
-      <TouchableWithoutFeedback onPress={handleTogglePlay}>
-        <View style={styles.videoContainer}>
-          <VideoView
-            player={player}
-            style={styles.mainImage}
-            contentFit="contain"
-            nativeControls={false} // 네이티브 UI는 숨김
-          />
-        </View>
-      </TouchableWithoutFeedback>
+      <View style={{ width: screenWidth, height: screenWidth }}>
+        <VideoView
+          player={player}
+          style={{ width: screenWidth, height: screenWidth }}
+          contentFit="contain"
+          nativeControls={false}
+          surfaceType={Platform.OS === 'android' ? 'textureView' : 'surfaceView'}
+        />
+        {/* 터치 오버레이 - VideoView 위에 투명 레이어 */}
+        <TouchableOpacity
+          onPress={handleTogglePlay}
+          activeOpacity={1}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'transparent',
+          }}
+        />
+      </View>
     );
   };
 
