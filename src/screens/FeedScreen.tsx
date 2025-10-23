@@ -13,6 +13,7 @@ import MainHeader from '../components/MainHeader';
 import StorySection from '../components/StorySection';
 import FeedCard from '../components/FeedCard';
 import MenuActionSheet from '../components/MenuActionSheet';
+import CommentActionSheet from '../components/CommentActionSheet';
 import { WriteIcon } from '../components/HomeHeaderIcons';
 import { EditIcon, DeleteIcon, ReportIcon } from '../components/CommonIcons';
 
@@ -41,6 +42,10 @@ export default function FeedScreen() {
   // 메뉴 관련 상태
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
   const [selectedFeed, setSelectedFeed] = useState<FeedListItem | null>(null);
+
+  // 댓글 액션 시트 관련 상태
+  const [commentActionSheetVisible, setCommentActionSheetVisible] = useState(false);
+  const [selectedFeedForComments, setSelectedFeedForComments] = useState<FeedListItem | null>(null);
 
   // Zustand 스토어 상태 및 액션들
   const { shouldRefreshFeeds, setShouldRefreshFeeds } = useFeedStore();
@@ -158,13 +163,30 @@ export default function FeedScreen() {
 
   const handleCommentPress = (feedId: number) => {
     console.log('댓글 클릭:', feedId);
-    // TODO: 댓글 화면으로 이동
+    // 댓글 액션 시트 열기 위해 피드 찾기
+    const feed = feedState.feeds.find(f => f.id === feedId);
+    if (feed) {
+      setSelectedFeedForComments(feed);
+      setCommentActionSheetVisible(true);
+    }
   };
 
   const handleBookmarkPress = (feedId: number) => {
     console.log('북마크 클릭:', feedId);
     // TODO: 북마크 API 호출
   };
+
+  // 댓글 수 업데이트 핸들러
+  const handleCommentCountUpdate = useCallback((feedId: number, newCount: number) => {
+    setFeedState(prev => ({
+      ...prev,
+      feeds: prev.feeds.map(feed =>
+        feed.id === feedId
+          ? { ...feed, comment_count: newCount }
+          : feed
+      ),
+    }));
+  }, []);
 
   const handleUserPress = (userId: number) => {
     console.log('사용자 프로필 클릭:', userId);
@@ -349,6 +371,19 @@ export default function FeedScreen() {
           },
         ]}
       />
+
+      {/* 댓글 액션 시트 - 피드가 선택된 경우에만 렌더링 */}
+      {selectedFeedForComments && (
+        <CommentActionSheet
+          visible={commentActionSheetVisible}
+          onClose={() => {
+            setCommentActionSheetVisible(false);
+            setSelectedFeedForComments(null);
+          }}
+          feed={selectedFeedForComments}
+          onCommentCountUpdate={handleCommentCountUpdate}
+        />
+      )}
     </View>
   );
 }
