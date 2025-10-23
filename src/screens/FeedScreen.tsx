@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl, Alert } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { SPACING } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
 import { useThemeStore } from '../stores/themeStore';
 import useFeedStore from '../stores/feedStore';

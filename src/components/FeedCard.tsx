@@ -4,13 +4,13 @@ import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer, VideoSource } from 'expo-video';
 import { getThumbnailAsync } from 'expo-video-thumbnails';
 import { TYPOGRAPHY, SPACING, COLORS } from '../constants/theme';
-import { FeedListItem, FeedContentBlock } from '../types/feed';
+import { FeedListItem } from '../types/feed';
 import { FeedService } from '../services/feedService';
 import { useThemeStore } from '../stores/themeStore';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../types/navigation';
-import { MenuIcon, EditIcon, DeleteIcon, ReportIcon } from './CommonIcons';
+import { MenuIcon } from './CommonIcons';
 import useFeedStore from '../stores/feedStore';
 import useProfileStore from '../stores/profileStore';
 
@@ -66,7 +66,7 @@ const TapPauseVideo = ({ videoUri, isVisible }: { videoUri: string; isVisible?: 
   };
 
   return (
-    <TouchableOpacity onPress={handleTogglePlay} activeOpacity={0.9}>
+    <View style={{ width: screenWidth, height: screenWidth }}>
       <VideoView
         player={player}
         style={{ width: screenWidth, height: screenWidth }}
@@ -74,7 +74,20 @@ const TapPauseVideo = ({ videoUri, isVisible }: { videoUri: string; isVisible?: 
         nativeControls={false}
         surfaceType={Platform.OS === 'android' ? 'textureView' : 'surfaceView'}
       />
-    </TouchableOpacity>
+      {/* 터치 오버레이 - VideoView 위에 투명 레이어 */}
+      <TouchableOpacity
+        onPress={handleTogglePlay}
+        activeOpacity={1}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'transparent',
+        }}
+      />
+    </View>
   );
 };
 
