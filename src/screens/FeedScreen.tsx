@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl, Alert } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -46,6 +46,10 @@ export default function FeedScreen() {
   // 댓글 액션 시트 관련 상태
   const [commentActionSheetVisible, setCommentActionSheetVisible] = useState(false);
   const [selectedFeedForComments, setSelectedFeedForComments] = useState<FeedListItem | null>(null);
+
+  // feeds 참조로 viewability 핸들러 최적화
+  const feedsRef = useRef<FeedListItem[]>([]);
+  useEffect(() => { feedsRef.current = feedState.feeds; }, [feedState.feeds]);
 
   // Zustand 스토어 상태 및 액션들
   const { shouldRefreshFeeds, setShouldRefreshFeeds } = useFeedStore();
@@ -242,9 +246,8 @@ export default function FeedScreen() {
     );
   };
 
-  // 피드 렌더링 - 가시성 상태 전달
-  const renderFeed = ({ item }: { item: FeedListItem }) => {
-    // 해당 피드가 비디오를 포함하고, 화면에 보이는지 확인
+  // 피드 렌더링 - 가시성 상태 전달 및 메모이제이션
+  const renderFeed = useCallback(({ item }: { item: FeedListItem }) => {
     const hasVideo = item.content_blocks.some(block => block.type === 'video');
     const isVideoVisible = hasVideo && visibleVideoFeeds.has(item.id);
 
@@ -257,26 +260,30 @@ export default function FeedScreen() {
         onUserPress={handleUserPress}
         onImagePress={handleImagePress}
         onMenuPress={handleMenuPress}
-        isVisible={hasVideo ? isVideoVisible : true} // 비디오가 있으면 visibility 제어, 없으면 항상 true
+        isVisible={hasVideo ? isVideoVisible : true}
       />
     );
-  };
+  }, [
+    visibleVideoFeeds,
+    handleLikePress,
+    handleCommentPress,
+    handleBookmarkPress,
+    handleUserPress,
+    handleImagePress,
+    handleMenuPress,
+  ]);
 
-  // 비디오 가시성 변경 핸들러 - 화면에 보이는 영상만 재생
-  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
+  // 비디오 가시성 변경 핸들러 - 화면에 보이는 영상만 재생 (useRef로 안정화)
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     const visibleFeeds = new Set<number>();
     viewableItems.forEach((item: any) => {
-      // 해당 피드가 비디오를 포함하는지 확인
-      const feed = feedState.feeds.find(f => f.id === item.item.id);
-      if (feed) {
-        const hasVideo = feed.content_blocks.some(block => block.type === 'video');
-        if (hasVideo) {
-          visibleFeeds.add(feed.id);
-        }
+      const feed = feedsRef.current.find(f => f.id === item.item.id);
+      if (feed?.content_blocks.some(block => block.type === 'video')) {
+        visibleFeeds.add(feed.id);
       }
     });
     setVisibleVideoFeeds(visibleFeeds);
-  }, [feedState.feeds]);
+  }).current;
 
   // FlatList viewability 설정 - 화면에 50% 이상 보이는 아이템 감지
   const viewabilityConfig = useMemo(() => ({
