@@ -32,6 +32,7 @@ export interface FeedListItem {
   comment_count: number;
   is_liked: boolean;
   is_bookmarked: boolean;
+  is_author: boolean;
 }
 
 // 피드 목록 페이지네이션

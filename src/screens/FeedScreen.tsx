@@ -6,13 +6,16 @@ import { SPACING } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
 import { useThemeStore } from '../stores/themeStore';
 import useFeedStore from '../stores/feedStore';
+import useProfileStore from '../stores/profileStore';
 import useStoryStore from '../stores/storyStore';
 
   // 컴포넌트 imports
 import MainHeader from '../components/MainHeader';
 import StorySection from '../components/StorySection';
 import FeedCard from '../components/FeedCard';
+import MenuActionSheet from '../components/MenuActionSheet';
 import { WriteIcon } from '../components/HomeHeaderIcons';
+import { EditIcon, DeleteIcon, ReportIcon } from '../components/CommonIcons';
 
 // 데이터 imports
 import { FeedListItem } from '../types/feed';
@@ -36,8 +39,13 @@ export default function FeedScreen() {
   // 비디오 가시성 상태 관리 - 화면에 보이는 피드 아이템 추적
   const [visibleVideoFeeds, setVisibleVideoFeeds] = useState<Set<number>>(new Set());
 
+  // 메뉴 관련 상태
+  const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
+  const [selectedFeed, setSelectedFeed] = useState<FeedListItem | null>(null);
+
   // Zustand 스토어 상태 및 액션들
   const { shouldRefreshFeeds, setShouldRefreshFeeds } = useFeedStore();
+  const { setShouldRefreshProfileFeeds } = useProfileStore();
   const { stories, loading: storyLoading, loadStories } = useStoryStore();
 
   // 컴포넌트 마운트 시 피드와 스토리 로드
@@ -169,6 +177,50 @@ export default function FeedScreen() {
     navigation.navigate('FeedDetail', { feedId });
   };
 
+  const handleMenuPress = (feed: FeedListItem) => {
+    setSelectedFeed(feed);
+    setMenuActionSheetVisible(true);
+  };
+
+  const handleDeleteFeed = async () => {
+    if (!selectedFeed) return;
+
+    Alert.alert(
+      '피드 삭제',
+      '피드를 삭제하시겠습니까? 삭제된 피드는 복구할 수 없습니다.',
+      [
+        {
+          text: '취소',
+          style: 'cancel',
+        },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // API 호출
+              await FeedService.deleteFeed(selectedFeed.id);
+
+              // 목록 새로고침 플래그 설정
+              setShouldRefreshFeeds(true);
+              setShouldRefreshProfileFeeds(true);
+
+              // 메뉴 닫기
+              setMenuActionSheetVisible(false);
+              setSelectedFeed(null);
+
+              // 삭제 완료 알림
+              Alert.alert('삭제 완료', '피드가 삭제되었습니다.');
+            } catch (error) {
+              Alert.alert('오류', '피드 삭제에 실패했습니다.');
+              console.error('피드 삭제 실패:', error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // 피드 렌더링 - 가시성 상태 전달
   const renderFeed = ({ item }: { item: FeedListItem }) => {
     // 해당 피드가 비디오를 포함하고, 화면에 보이는지 확인
@@ -183,6 +235,7 @@ export default function FeedScreen() {
         onBookmarkPress={handleBookmarkPress}
         onUserPress={handleUserPress}
         onImagePress={handleImagePress}
+        onMenuPress={handleMenuPress}
         isVisible={hasVideo ? isVideoVisible : true} // 비디오가 있으면 visibility 제어, 없으면 항상 true
       />
     );
@@ -251,6 +304,51 @@ export default function FeedScreen() {
         maxToRenderPerBatch={5}
         windowSize={10}
         initialNumToRender={3}
+      />
+
+      {/* 메뉴 액션 시트 */}
+      <MenuActionSheet
+        visible={menuActionSheetVisible}
+        onClose={() => {
+          setMenuActionSheetVisible(false);
+          setSelectedFeed(null);
+        }}
+        title="피드"
+        actions={[
+          // 작성자인 경우 수정/삭제 메뉴 추가
+          ...(selectedFeed?.is_author ? [
+            {
+              id: 'edit',
+              title: '피드 수정',
+              icon: <EditIcon size={20} color={colors.GRAY_700} />,
+              color: colors.GRAY_700,
+              onPress: () => {
+                if (selectedFeed) {
+                  navigation.navigate('EditFeed', { feedId: selectedFeed.id });
+                }
+                setMenuActionSheetVisible(false);
+              },
+            },
+            {
+              id: 'delete',
+              title: '피드 삭제',
+              icon: <DeleteIcon size={20} color={colors.ERROR} />,
+              color: colors.ERROR,
+              onPress: handleDeleteFeed,
+            },
+          ] : []),
+          // 신고는 모든 사용자에게 표시
+          {
+            id: 'report',
+            title: '피드 신고',
+            icon: <ReportIcon size={20} color={colors.ERROR} />,
+            color: colors.ERROR,
+            onPress: () => {
+              Alert.alert('신고', '피드 신고 기능이 구현 예정입니다.');
+              setMenuActionSheetVisible(false);
+            },
+          },
+        ]}
       />
     </View>
   );

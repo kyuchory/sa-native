@@ -1,12 +1,18 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Platform, ScrollView, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer, VideoSource } from 'expo-video';
 import { getThumbnailAsync } from 'expo-video-thumbnails';
-import { TYPOGRAPHY, SPACING } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, COLORS } from '../constants/theme';
 import { FeedListItem, FeedContentBlock } from '../types/feed';
 import { FeedService } from '../services/feedService';
 import { useThemeStore } from '../stores/themeStore';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { AuthStackParamList } from '../types/navigation';
+import { MenuIcon, EditIcon, DeleteIcon, ReportIcon } from './CommonIcons';
+import useFeedStore from '../stores/feedStore';
+import useProfileStore from '../stores/profileStore';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -17,12 +23,60 @@ interface FeedCardProps {
   onBookmarkPress?: (feedId: number) => void;
   onUserPress?: (userId: number) => void;
   onImagePress?: (feedId: number) => void;
+  onMenuPress?: (feed: FeedListItem) => void; // 메뉴 버튼 클릭 콜백
   isVisible?: boolean; // 비디오 가시성 제어 (선택적)
 }
+
+type FeedCardNavigationProp = StackNavigationProp<AuthStackParamList>;
 
 // 아이콘 컴포넌트들
 import { HeartIcon, CommentIcon, BookmarkIcon } from './FeedCardIcons';
 import UserAvatar from './UserAvatar';
+
+// TapPauseVideo 컴포넌트 - 탭하면 재생/일시정지
+const TapPauseVideo = ({ videoUri, isVisible }: { videoUri: string; isVisible?: boolean }) => {
+  const player = useVideoPlayer(videoUri, (player) => {
+    player.loop = true;
+    player.muted = true;
+    if (isVisible) {
+      player.play();
+    }
+  });
+
+  const [isPlaying, setIsPlaying] = useState(true);
+
+  // Visibility change effect
+  useEffect(() => {
+    if (!player) return;
+
+    if (isVisible && player.playing === false) {
+      player.play();
+    } else if (!isVisible && player.playing === true) {
+      player.pause();
+    }
+  }, [isVisible, player]);
+
+  const handleTogglePlay = () => {
+    if (isPlaying) {
+      player.pause();
+    } else {
+      player.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  return (
+    <TouchableOpacity onPress={handleTogglePlay} activeOpacity={0.9}>
+      <VideoView
+        player={player}
+        style={{ width: screenWidth, height: screenWidth }}
+        contentFit="contain"
+        nativeControls={false}
+        surfaceType={Platform.OS === 'android' ? 'textureView' : 'surfaceView'}
+      />
+    </TouchableOpacity>
+  );
+};
 
 // 시간 포맷 함수
 const formatTimeAgo = (dateString: string): string => {
@@ -148,6 +202,7 @@ export default function FeedCard({
   onBookmarkPress,
   onUserPress,
   onImagePress,
+  onMenuPress,
   isVisible = true // 기본적으로 보이는 것으로 설정
 }: FeedCardProps) {
   const { colors } = useThemeStore();
@@ -159,6 +214,13 @@ export default function FeedCard({
   const [isBookmarked, setIsBookmarked] = useState(feed.is_bookmarked);
   const [bookmarkCount, setBookmarkCount] = useState(feed.bookmark_count);
   const [isBookmarkLoading, setIsBookmarkLoading] = useState(false);
+
+  // 카로셀 페이지 상태 관리
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const navigation = useNavigation<FeedCardNavigationProp>();
+  const { setShouldRefreshFeeds } = useFeedStore(); // 피드 목록 새로고침 플래그 설정용
+  const { setShouldRefreshProfileFeeds } = useProfileStore(); // 프로필 플래그 설정용
 
   // feed prop이 변경될 때 상태 초기화
   useEffect(() => {
@@ -304,42 +366,88 @@ export default function FeedCard({
   return (
     <View style={styles.container}>
       {/* 헤더 - 프로필 정보 */}
-      <TouchableOpacity style={styles.header} onPress={handleUserPress} activeOpacity={0.7}>
-        <UserAvatar 
-          profileImg={feed.user.profile_img} 
-          nickname={feed.user.nickname}
-          size={40}
-        />
-        <View style={styles.userInfo}>
-          <Text style={styles.nickname}>{feed.user.nickname}</Text>
-        </View>
-      </TouchableOpacity>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.headerLeft} onPress={handleUserPress} activeOpacity={0.7}>
+          <UserAvatar
+            profileImg={feed.user.profile_img}
+            nickname={feed.user.nickname}
+            size={40}
+          />
+          <View style={styles.userInfo}>
+            <Text style={styles.nickname}>{feed.user.nickname}</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* 모든 피드카드에 메뉴 버튼 표시 */}
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={() => onMenuPress?.(feed)}
+          activeOpacity={0.7}
+        >
+          <MenuIcon size={20} color={colors.GRAY_700} />
+        </TouchableOpacity>
+      </View>
 
       {/* 미디어 영역 (이미지 + 비디오) */}
       {mediaBlocks.length > 0 && (
-        <TouchableOpacity style={styles.imageContainer} onPress={handleImagePress} activeOpacity={0.9}>
-          {mediaBlocks[0].type === 'video' ? (
-            <EnhancedVideoBlock
-              videoUri={mediaBlocks[0].value}
-              feedId={feed.id}
-              styles={styles}
-              isVisible={isVisible} // FeedScreen에서 전달받은 visibility 상태 사용
-            />
+        <>
+          {mediaBlocks.length === 1 ? (
+            // 단일 미디어 표시 (+(media_count - 1) 표시하지 않음, 대신 전체 개수 표시)
+            <TouchableOpacity style={styles.imageContainer} onPress={handleImagePress} activeOpacity={0.9}>
+              {mediaBlocks[0].type === 'video' ? (
+                <TapPauseVideo videoUri={mediaBlocks[0].value} isVisible={isVisible} />
+              ) : (
+                <Image
+                  source={{ uri: mediaBlocks[0].value }}
+                  style={styles.mainImage}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
+                />
+              )}
+              {/* 단일 미디어일 때는 세로 영역 표시 */}
+              {feed.media_count > 1 && (
+                <View style={styles.imageCountBadge}>
+                  <Text style={styles.imageCountText}>{feed.media_count}장</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           ) : (
-            <Image
-              source={{ uri: mediaBlocks[0].value }}
-              style={styles.mainImage}
-              contentFit="cover"
-              cachePolicy="memory-disk"
-              transition={200}
-            />
+            // 다중 미디어 카로셀
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              style={styles.imageScroll}
+              onMomentumScrollEnd={(event) => {
+                const page = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
+                setCurrentPage(page);
+              }}
+              decelerationRate="fast"
+            >
+              {mediaBlocks.map((block, index) => (
+                <View key={block.sequence} style={styles.carouselItem}>
+                  {index === 0 && mediaBlocks.length > 1 && (
+                    <Text style={styles.moreImagesText}>
+                      +{mediaBlocks.length - 1}
+                    </Text>
+                  )}
+                  {block.type === 'video' ? (
+                    <TapPauseVideo videoUri={block.value} isVisible={isVisible && currentPage === index} />
+                  ) : (
+                    <Image
+                      source={{ uri: block.value }}
+                      style={styles.mainImage}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={200}
+                    />
+                  )}
+                </View>
+              ))}
+            </ScrollView>
           )}
-          {feed.media_count > 1 && (
-            <View style={styles.imageCountBadge}>
-              <Text style={styles.imageCountText}>+{feed.media_count - 1}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        </>
       )}
 
       {/* 액션 버튼들 */}
@@ -420,8 +528,17 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  menuButton: {
+    padding: SPACING.SM,
   },
   userInfo: {
     flex: 1,
@@ -441,6 +558,27 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   // 이미지
   imageContainer: {
     position: 'relative',
+  },
+  imageScroll: {
+    height: screenWidth,
+  },
+  carouselItem: {
+    position: 'relative',
+    width: screenWidth,
+    height: screenWidth,
+  },
+  moreImagesText: {
+    position: 'absolute',
+    bottom: SPACING.SM,
+    right: SPACING.SM,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    color: COLORS.WHITE,
+    paddingHorizontal: SPACING.SM,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
+    zIndex: 10, // 이미지 위에 표시되도록 zIndex 추가
   },
   videoContainer: {
     position: 'relative',
@@ -463,7 +601,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     alignItems: 'center',
   },
   imageCountText: {
-    color: '#FFFFFF',
+    color: COLORS.WHITE,
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
   },
