@@ -34,7 +34,9 @@ export default function ProfileContentGrid({
       onPress={() => onItemPress?.(item)}
       activeOpacity={0.8}
     >
-      <Image source={{ uri: item.preview_image }} style={styles.feedImage} />
+      {item.preview_image ? (
+        <Image source={{ uri: item.preview_image }} style={styles.feedImage} />
+      ) : null}
     </TouchableOpacity>
   );
 
