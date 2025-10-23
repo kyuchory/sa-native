@@ -219,7 +219,7 @@ const EnhancedVideoBlock = React.memo(({
          prevProps.isVisible === nextProps.isVisible;
 });
 
-export default function FeedCard({
+function FeedCard({
   feed,
   onLikePress,
   onCommentPress,
@@ -230,7 +230,7 @@ export default function FeedCard({
   isVisible = true // 기본적으로 보이는 것으로 설정
 }: FeedCardProps) {
   const { colors } = useThemeStore();
-  const styles = createStyles(colors);
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLiked, setIsLiked] = useState(feed.is_liked);
   const [likeCount, setLikeCount] = useState(feed.like_count);
@@ -341,17 +341,17 @@ export default function FeedCard({
     }
   }, [isBookmarkLoading, isBookmarked, bookmarkCount, feed.id, onBookmarkPress]);
 
-  const handleUserPress = () => {
+  const handleUserPress = useCallback(() => {
     onUserPress?.(feed.user.id);
-  };
+  }, [onUserPress, feed.user.id]);
 
-  const handleCommentPress = () => {
+  const handleCommentPress = useCallback(() => {
     onCommentPress?.(feed.id);
-  };
+  }, [onCommentPress, feed.id]);
 
-  const handleImagePress = () => {
+  const handleImagePress = useCallback(() => {
     onImagePress?.(feed.id);
-  };
+  }, [onImagePress, feed.id]);
 
   // 텍스트 더보기/접기 처리
   const renderContent = () => {
@@ -717,3 +717,21 @@ const videoStyles = StyleSheet.create({
     zIndex: 20,
   },
 });
+
+// FeedCard 메모이제이션 비교 함수 - 서버 데이터 변경 감지를 위해 필수 필드들 비교
+const feedCardPropsAreEqual = (prevProps: FeedCardProps, nextProps: FeedCardProps): boolean => {
+  const prevFeed = prevProps.feed;
+  const nextFeed = nextProps.feed;
+
+  return (
+    prevFeed.id === nextFeed.id &&
+    prevFeed.is_liked === nextFeed.is_liked &&
+    prevFeed.like_count === nextFeed.like_count &&
+    prevFeed.is_bookmarked === nextFeed.is_bookmarked &&
+    prevFeed.bookmark_count === nextFeed.bookmark_count &&
+    prevProps.isVisible === nextProps.isVisible
+  );
+};
+
+// React.memo 적용으로 리스트 스크롤 성능 최적화
+export default React.memo(FeedCard, feedCardPropsAreEqual);
