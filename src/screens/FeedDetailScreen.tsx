@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SPACING, TYPOGRAPHY } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 
@@ -56,6 +56,7 @@ export default function FeedDetailScreen() {
   const navigation = useNavigation<FeedDetailNavigationProp>();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
+  const insets = useSafeAreaInsets();
 
   const feedId = route.params?.feedId || 15;
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -579,7 +580,7 @@ export default function FeedDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={['right', 'left']}>
       {/* 헤더 */}
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
@@ -729,7 +730,7 @@ export default function FeedDetailScreen() {
       </ScrollView>
 
         {/* 댓글 입력창 */}
-        <View style={styles.commentInputWrapper}>
+        <View style={[styles.commentInputWrapper, { paddingBottom: (keyboardHeight || SPACING.MD) + insets.bottom }]}>
           {editingComment ? (
             <CommentEditInput
               initialText={editingComment.content}

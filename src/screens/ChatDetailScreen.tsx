@@ -13,7 +13,7 @@ import {
   Keyboard,
   Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -68,11 +68,14 @@ const { height: screenHeight } = Dimensions.get('window');
 export default function ChatDetailScreen() {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
+  const insets = useSafeAreaInsets();
 
   const navigation = useNavigation<ChatDetailScreenNavigationProp>();
   const route = useRoute<ChatDetailScreenRouteProp>();
   const flatListRef = useRef<FlatList<Message>>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // 발신자 정보 캐시 (실시간 메시지의 프로필 이미지가 없으므로 캐시에서 보강)
   const senderCache = useRef<Map<number, { nickname: string; profile_img: string | null }>>(new Map());
@@ -312,6 +315,22 @@ export default function ChatDetailScreen() {
       };
     }, [chatRoomId])
   );
+
+  // 키보드 이벤트 리스너 (채팅 입력 시 키보드 높이 추적)
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e: any) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
 
   // 백그라운드 복귀 처리 - 순차적 동기화로 중복 메시지 방지
   useAppState({
@@ -851,7 +870,7 @@ export default function ChatDetailScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       {/* 헤더 */}
       <CommonHeader
         title={chatRoomName}
@@ -924,7 +943,8 @@ export default function ChatDetailScreen() {
 
           {/* 메시지 입력 영역 */}
           <View style={[
-            styles.inputContainer
+            styles.inputContainer,
+            { paddingBottom: (keyboardHeight || SPACING.MD) + insets.bottom }
           ]}>
             <TouchableOpacity
               style={styles.attachButton}

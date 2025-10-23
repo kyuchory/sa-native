@@ -14,7 +14,7 @@ import {
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useEventListener } from 'expo';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
@@ -56,6 +56,9 @@ export default function PostDetailScreen() {
   const { postId } = route.params;
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
+  const insets = useSafeAreaInsets();
+
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // 상태 관리
   const [post, setPost] = useState<PostDetail | null>(null);
@@ -81,6 +84,22 @@ export default function PostDetailScreen() {
       loadPostDetail();
     }, [postId])
   );
+
+  // 키보드 이벤트 리스너 (댓글 입력 시 키보드 높이 추적)
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e: any) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
 
   const loadPostDetail = async () => {
     try {
@@ -545,7 +564,7 @@ export default function PostDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       {/* 헤더 */}
       <CommonHeader
         title="게시물"
@@ -681,7 +700,7 @@ export default function PostDetailScreen() {
         </ScrollView>
 
         {/* 댓글 입력창 */}
-        <View style={styles.commentInputWrapper}>
+        <View style={[styles.commentInputWrapper, { paddingBottom: (keyboardHeight || SPACING.MD) + insets.bottom }]}>
           {replyingTo ? (
             <ReplyInput
               onSendReply={handleSendReply}
