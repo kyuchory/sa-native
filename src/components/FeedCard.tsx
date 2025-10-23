@@ -729,6 +729,7 @@ const feedCardPropsAreEqual = (prevProps: FeedCardProps, nextProps: FeedCardProp
     prevFeed.like_count === nextFeed.like_count &&
     prevFeed.is_bookmarked === nextFeed.is_bookmarked &&
     prevFeed.bookmark_count === nextFeed.bookmark_count &&
+    prevFeed.comment_count === nextFeed.comment_count &&
     prevProps.isVisible === nextProps.isVisible
   );
 };
