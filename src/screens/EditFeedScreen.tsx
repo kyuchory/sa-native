@@ -10,7 +10,7 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
@@ -53,7 +53,7 @@ export default function EditFeedScreen() {
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
 
   // Zustand 스토어
-  const { setShouldRefreshFeeds } = useFeedStore();
+  const { setShouldRefreshFeeds, videoEditResult, setVideoEditResult } = useFeedStore();
   const { setShouldRefreshProfileFeeds } = useProfileStore();
 
   // 기존 피드 데이터 로드
@@ -84,6 +84,30 @@ export default function EditFeedScreen() {
   useEffect(() => {
     loadFeedData();
   }, [feedId]);
+
+  // 비디오 편집 결과 처리
+  useFocusEffect(
+    React.useCallback(() => {
+      if (videoEditResult) {
+        // 비디오 블록 추가
+        const newVideoBlock: ContentBlock = {
+          id: `video_${Date.now()}`,
+          type: 'video',
+          value: videoEditResult.videoUrl, // 실제 비디오 URL 사용 (썸네일이 아닌 영상 재생용)
+          sequence: contentBlocks.length,
+          originalValue: videoEditResult.videoPath, // 서버 전송용 비디오 경로
+          thumbnailPath: videoEditResult.thumbnailPath, // 서버 전송용 썸네일 경로
+        };
+        console.log('videoResult:',videoEditResult)
+        console.log('newVideoBlock:', newVideoBlock);
+
+        setContentBlocks(prev => [...prev, newVideoBlock]);
+
+        // 처리 완료 후 결과 클리어
+        setVideoEditResult(null);
+      }
+    }, [videoEditResult, contentBlocks.length, setVideoEditResult, setContentBlocks])
+  );
 
   // 블록 추가 (이미지/영상만)
   const addBlock = (type: 'image' | 'video') => {
@@ -223,7 +247,7 @@ export default function EditFeedScreen() {
     }
   };
 
-  // 비디오 선택 및 업로드
+  // 비디오 선택 및 편집 화면 이동
   const handleVideoSelection = async () => {
     try {
       // 권한 요청
@@ -239,57 +263,24 @@ export default function EditFeedScreen() {
         allowsMultipleSelection: false,
         allowsEditing: false, // 비디오 편집 기능 활성화
         quality: 0.8, // 품질 조정
-        videoMaxDuration: 60, // 최대 60초로 제한
       });
 
       if (!result.canceled && result.assets.length > 0) {
         const selectedVideo = result.assets[0];
-        
-        // 비디오 블록 추가
-        const newVideoBlock: ContentBlock = {
-          id: `video_${Date.now()}`,
-          type: 'video',
-          value: selectedVideo.uri, // 임시로 URI 저장
-          sequence: contentBlocks.length,
-        };
-        
-        setContentBlocks(prev => [...prev, newVideoBlock]);
 
-        // 비디오 업로드
-        try {
-          setIsUploadingVideo(true);
-          setIsLoading(true);
-          const uploadResult = await FeedService.uploadVideo(selectedVideo.uri);
-          
-          // 업로드된 비디오로 블록 업데이트
-          // 화면 표시용: 썸네일 URL (있으면), 서버 전송용: 비디오 경로 + 썸네일 경로
-          setContentBlocks(prev =>
-            prev.map(block =>
-              block.id === newVideoBlock.id
-                ? { 
-                    ...block, 
-                    value: uploadResult.thumbnail?.url || uploadResult.video.url, // 화면 표시용 (썸네일 우선, 없으면 비디오)
-                    originalValue: uploadResult.video.path, // 서버 전송용 (비디오)
-                    thumbnailPath: uploadResult.thumbnail?.path // 서버 전송용 (썸네일, 있으면)
-                  }
-                : block
-            )
-          );
-
-        } catch (uploadError) {
-          console.error('비디오 업로드 실패:', uploadError);
-          Alert.alert('오류', '비디오 업로드에 실패했습니다.');
-
-          // 업로드 실패 시 블록 제거
-          setContentBlocks(prev => prev.filter(block => block.id !== newVideoBlock.id));
-        }
+        // VideoTrimCrop 화면으로 이동 (편집 후 업로드)
+        navigation.navigate('VideoTrimCrop', {
+          videoUri: selectedVideo.uri,
+          videoDuration: selectedVideo.duration ? selectedVideo.duration * 1000 : undefined, // ms로 변환
+          aspectRatio: '1:1', // 1:1 비율 고정
+          uploadService: 'feed', // feed 서비스로 업로드
+          editMode: 'both', // 크롭 + 트림 모두 사용
+          maxDuration: 30000, // 최대 30초
+        } as any);
       }
     } catch (error) {
       console.error('비디오 선택 실패:', error);
       Alert.alert('오류', '비디오 선택에 실패했습니다.');
-    } finally {
-      setIsLoading(false);
-      setIsUploadingVideo(false);
     }
   };
 
