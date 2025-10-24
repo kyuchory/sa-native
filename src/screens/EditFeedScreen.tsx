@@ -237,7 +237,7 @@ export default function EditFeedScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['videos'],
         allowsMultipleSelection: false,
-        allowsEditing: true, // 비디오 편집 기능 활성화
+        allowsEditing: false, // 비디오 편집 기능 활성화
         quality: 0.8, // 품질 조정
         videoMaxDuration: 60, // 최대 60초로 제한
       });

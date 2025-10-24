@@ -192,8 +192,8 @@ export default function CreatePostScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsMultipleSelection: false,
-        quality: 1,
-        aspect: [4, 3],
+        allowsEditing: true, // 이미지 편집 기능 활성화
+        quality: 0.8, // 품질 조정
       });
 
       if (!result.canceled && result.assets.length > 0) {
@@ -255,7 +255,7 @@ export default function CreatePostScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['videos'],
         allowsMultipleSelection: false,
-        allowsEditing: true, // 비디오 편집 기능 활성화
+        allowsEditing: false, // 비디오 편집 기능 활성화
         quality: 0.8, // 품질 조정
       });
 
