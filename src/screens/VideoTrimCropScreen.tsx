@@ -192,7 +192,7 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
       const thumbs: string[] = [];
 
       for (let i = 0; i < thumbnailCount; i++) {
-        const time = i * interval;
+        const time = Math.floor(i * interval); // 소수점 제거
         const result = await VideoThumbnails.getThumbnailAsync(uri, {
           time,
           quality: 0.5,
