@@ -29,6 +29,7 @@ import LoadingOverlay from '../components/LoadingOverlay';
 
 // Services
 import { PostService } from '../services/postService';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type EditPostRouteProp = RouteProp<AuthStackParamList, 'EditPost'>;
 type EditPostNavigationProp = StackNavigationProp<AuthStackParamList, 'EditPost'>;
@@ -391,7 +392,7 @@ export default function EditPostScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* 헤더 */}
       <CommonHeader
         title="게시물 수정"
@@ -504,7 +505,7 @@ export default function EditPostScreen() {
         visible={isLoading}
         message={isUploadingImage ? '이미지를 업로드중입니다...' : isUploadingVideo ? '비디오를 업로드중입니다...' : undefined}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -33,6 +33,7 @@ import { FeedService } from '../services/feedService';
 // Stores
 import useFeedStore from '../stores/feedStore';
 import useProfileStore from '../stores/profileStore';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type EditFeedRouteProp = RouteProp<AuthStackParamList, 'EditFeed'>;
 type EditFeedNavigationProp = StackNavigationProp<AuthStackParamList, 'EditFeed'>;
@@ -357,7 +358,7 @@ export default function EditFeedScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* 헤더 */}
       <CommonHeader
         title="피드 수정"
@@ -428,7 +429,7 @@ export default function EditFeedScreen() {
         visible={isLoading}
         message={isUploadingImage ? '이미지를 업로드중입니다...' : isUploadingVideo ? '비디오를 업로드중입니다...' : undefined}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
