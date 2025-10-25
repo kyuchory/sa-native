@@ -870,21 +870,21 @@ export default function ChatDetailScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      {/* 헤더 */}
-      <CommonHeader
-        title={chatRoomName}
-        onBackPress={handleBack}
-        showBackButton={true}
-        rightComponent={renderHeaderRight()}
-      />
-        
-      {/* KeyboardAvoidingView - Android와 iOS 다르게 설정 */}
-      <KeyboardAvoidingView 
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
+        {/* 상단 고정 헤더 */}
+        <CommonHeader
+          title={chatRoomName}
+          onBackPress={handleBack}
+          showBackButton={true}
+          rightComponent={renderHeaderRight()}
+        />
+
+        {/* 채팅 컨텐츠 영역 */}
         <View style={styles.contentContainer}>
           {/* 채팅 메시지 목록 또는 빈 상태 */}
           {messages.length > 0 ? (
@@ -942,10 +942,7 @@ export default function ChatDetailScreen() {
 
 
           {/* 메시지 입력 영역 */}
-          <View style={[
-            styles.inputContainer,
-            { paddingBottom: (keyboardHeight || SPACING.MD) + insets.bottom }
-          ]}>
+          <View style={[styles.inputContainer]}>
             <TouchableOpacity
               style={styles.attachButton}
               activeOpacity={0.7}
