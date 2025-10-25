@@ -148,7 +148,7 @@ export interface FeedDetailResponse {
     updated_at: string; // 추가된 필드
     user: FeedUser;
     content_blocks: FeedContentBlock[];
-    media_count?: number; // 선택 필드로 변경 (API 명세에 따라)
+    media_count: number;
     like_count: number;
     bookmark_count: number;
     comment_count: number;
