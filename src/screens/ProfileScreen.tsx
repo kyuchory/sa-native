@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useFocusEffect, useNavigation, NavigationProp, RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../types/navigation';
@@ -51,6 +51,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
     has_next: false,
   });
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
+  const isFirstFocusRef = useRef(true);
 
   // 프로필 스토어 상태
   const { shouldRefreshProfilePosts, shouldRefreshProfileFeeds, setShouldRefreshProfilePosts, setShouldRefreshProfileFeeds } = useProfileStore();
@@ -150,11 +151,30 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
   // 화면에 다시 포커스될 때 프로필 데이터 리프레시
   useFocusEffect(
     useCallback(() => {
+      // 첫 Focus (마운트 직후) 이벤트는 무시
+      if (isFirstFocusRef.current) {
+        isFirstFocusRef.current = false;
+        return;
+      }
+
       // 프로필 데이터를 로딩 없이 다시 가져와서 최신 상태로 유지
-        fetchProfile(false);
-      return () => {};
+      fetchProfile(false);
+
+      if (isOwnProfile) {
+        if (shouldRefreshProfilePosts) {
+          fetchPosts();
+          setShouldRefreshProfilePosts(false); // 플래그 초기화
+        }
+        if (shouldRefreshProfileFeeds) {
+          fetchFeeds(true);
+          setShouldRefreshProfileFeeds(false); // 플래그 초기화
+        }
+      }
     }, [
-      targetUserId
+      targetUserId,
+      shouldRefreshProfilePosts,
+      shouldRefreshProfileFeeds,
+      isOwnProfile,
     ])
   );
 
@@ -307,20 +327,6 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
 
   const handleTabChange = (tab: ProfileTabType) => {
     setActiveTab(tab);
-
-    // 자신의 프로필일 때만 탭 전환 시 플래그 기반으로 데이터 로드
-    if (isOwnProfile) {
-      if (shouldRefreshProfilePosts && tab === 'posts') {
-        console.log("자신 게시물 플래그 감지 - 게시물 데이터 리프레시")
-        fetchPosts();
-        setShouldRefreshProfilePosts(false); // 플래그 초기화
-      }
-      if (shouldRefreshProfileFeeds && tab === 'feed') {
-        console.log("자신 피드 플래그 감지 - 피드 데이터 리프레시")
-        fetchFeeds(true);
-        setShouldRefreshProfileFeeds(false); // 플래그 초기화
-      }
-    }
   };
 
   const handleItemPress = (item: any) => {
