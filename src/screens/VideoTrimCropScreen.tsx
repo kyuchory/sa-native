@@ -747,6 +747,9 @@ const TrimBar: React.FC<{
   const startLeft = useSharedValue(0);
   const startRight = useSharedValue(0);
 
+  const lastSeekTime = useSharedValue(0);
+  const SEEK_THROTTLE = 33; // 50ms throttle
+
   const updateTrimJS = useCallback((start: number, end: number) => {
     onTrimChange(start, end);
   }, [onTrimChange]);
@@ -764,12 +767,21 @@ const TrimBar: React.FC<{
       'worklet';
       const newX = Math.max(0, Math.min(rightHandleX.value - HANDLE_WIDTH * 2, startLeft.value + e.translationX));
       leftHandleX.value = newX;
+
+      // 실시간 시크 (throttle 적용)
+      const now = Date.now();
+      if (now - lastSeekTime.value > SEEK_THROTTLE) {
+        const newStart = Math.round((leftHandleX.value / TRIM_WIDTH) * duration);
+        runOnJS(seekJS)(newStart);
+        lastSeekTime.value = now;
+      }
     })
     .onEnd(() => {
       'worklet';
       const newStart = Math.round((leftHandleX.value / TRIM_WIDTH) * duration);
       const newEnd = Math.round((rightHandleX.value / TRIM_WIDTH) * duration);
       runOnJS(updateTrimJS)(newStart, newEnd);
+      runOnJS(seekJS)(newStart);
     });
 
   const rightHandleGesture = Gesture.Pan()
@@ -781,12 +793,21 @@ const TrimBar: React.FC<{
       'worklet';
       const newX = Math.max(leftHandleX.value + HANDLE_WIDTH * 2, Math.min(TRIM_WIDTH, startRight.value + e.translationX));
       rightHandleX.value = newX;
+
+      // 실시간 시크 (throttle 적용)
+      const now = Date.now();
+      if (now - lastSeekTime.value > SEEK_THROTTLE) {
+        const newEnd = Math.round((rightHandleX.value / TRIM_WIDTH) * duration);
+        runOnJS(seekJS)(newEnd);
+        lastSeekTime.value = now;
+      }
     })
     .onEnd(() => {
       'worklet';
       const newStart = Math.round((leftHandleX.value / TRIM_WIDTH) * duration);
       const newEnd = Math.round((rightHandleX.value / TRIM_WIDTH) * duration);
       runOnJS(updateTrimJS)(newStart, newEnd);
+      runOnJS(seekJS)(newEnd);
     });
 
   const timelineTapGesture = Gesture.Tap().onEnd((e) => {
