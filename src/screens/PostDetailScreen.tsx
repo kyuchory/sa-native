@@ -14,7 +14,7 @@ import {
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useEventListener } from 'expo';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
@@ -52,10 +52,13 @@ type PostDetailNavigationProp = StackNavigationProp<AuthStackParamList, 'PostDet
 export default function PostDetailScreen() {
   const route = useRoute<PostDetailRouteProp>();
   const navigation = useNavigation<PostDetailNavigationProp>();
+  const insets = useSafeAreaInsets();
 
   const { postId } = route.params;
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
+
+  const headerHeight = 56 + insets.top;
 
 
 
@@ -564,7 +567,7 @@ export default function PostDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -572,7 +575,7 @@ export default function PostDetailScreen() {
       >
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: 0 }}
           keyboardShouldPersistTaps="handled"
         >
           {/* 게시물 내용 */}
@@ -697,12 +700,7 @@ export default function PostDetailScreen() {
         </ScrollView>
 
         {/* 댓글 입력창 */}
-        <View
-          style={[
-            styles.commentInputWrapper,
-            { position: 'absolute', bottom: 0, left: 0, right: 0 },
-          ]}
-        >
+        <View style={[styles.commentInputWrapper]}>
           {replyingTo ? (
             <ReplyInput
               onSendReply={handleSendReply}
@@ -789,6 +787,8 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   // 댓글 입력창 wrapper
   commentInputWrapper: {
     backgroundColor: colors.WHITE,
+    borderTopWidth: 1,
+    borderTopColor: colors.GRAY_200,
   },
 
   // 작성자 섹션
