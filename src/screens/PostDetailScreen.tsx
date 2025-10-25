@@ -573,24 +573,27 @@ export default function PostDetailScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
+        {/* 상단 고정 헤더 */}
+        <CommonHeader
+          title="게시물"
+          rightComponent={
+            <TouchableOpacity
+              style={styles.menuButton}
+              onPress={() => setMenuActionSheetVisible(true)}
+              activeOpacity={0.7}
+            >
+              <MenuIcon size={20} color={colors.GRAY_700} />
+            </TouchableOpacity>
+          }
+        />
+
+        {/* 스크롤 가능한 컨텐츠 */}
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 0 }}
           keyboardShouldPersistTaps="handled"
         >
           {/* 게시물 내용 */}
-          <CommonHeader
-            title="게시물"
-            rightComponent={
-              <TouchableOpacity
-                style={styles.menuButton}
-                onPress={() => setMenuActionSheetVisible(true)}
-                activeOpacity={0.7}
-              >
-                <MenuIcon size={20} color={colors.GRAY_700} />
-              </TouchableOpacity>
-            }
-          />
           {/* 작성자 정보 */}
           <View style={styles.authorSection}>
             <TouchableOpacity
