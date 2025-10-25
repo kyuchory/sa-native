@@ -564,31 +564,30 @@ export default function PostDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      {/* 헤더 */}
-      <CommonHeader
-        title="게시물"
-        rightComponent={
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => setMenuActionSheetVisible(true)}
-            activeOpacity={0.7}
-          >
-            <MenuIcon size={20} color={colors.GRAY_700} />
-          </TouchableOpacity>
-        }
-      />
-
+    <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-
         <ScrollView
-          style={styles.content}
-          showsVerticalScrollIndicator={false}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          keyboardShouldPersistTaps="handled"
         >
+          {/* 게시물 내용 */}
+          <CommonHeader
+            title="게시물"
+            rightComponent={
+              <TouchableOpacity
+                style={styles.menuButton}
+                onPress={() => setMenuActionSheetVisible(true)}
+                activeOpacity={0.7}
+              >
+                <MenuIcon size={20} color={colors.GRAY_700} />
+              </TouchableOpacity>
+            }
+          />
           {/* 작성자 정보 */}
           <View style={styles.authorSection}>
             <TouchableOpacity
@@ -695,12 +694,15 @@ export default function PostDetailScreen() {
             onDeleteComment={handleDeleteComment}
           />
 
-          {/* 하단 여백 */}
-          <View style={styles.bottomSpacing} />
         </ScrollView>
 
         {/* 댓글 입력창 */}
-        <View style={styles.commentInputWrapper}>
+        <View
+          style={[
+            styles.commentInputWrapper,
+            { position: 'absolute', bottom: 0, left: 0, right: 0 },
+          ]}
+        >
           {replyingTo ? (
             <ReplyInput
               onSendReply={handleSendReply}
@@ -769,12 +771,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.GRAY_50
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
   },
 
   // 로딩 및 에러
@@ -1002,12 +998,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   loadingText: {
     opacity: 0.6,
-  },
-
-  // 하단 여백
-  bottomSpacing: {
-    height: SPACING.XL,
-    backgroundColor: colors.GRAY_50,
   },
 
   // 메뉴 버튼
