@@ -447,11 +447,9 @@ function FeedCard({
             >
               {mediaBlocks.map((block, index) => (
                 <View key={block.sequence} style={styles.carouselItem}>
-                  {index === 0 && mediaBlocks.length > 1 && (
-                    <Text style={styles.moreImagesText}>
-                      +{mediaBlocks.length - 1}
-                    </Text>
-                  )}
+                  <Text style={styles.moreImagesText}>
+                    {index + 1}/{mediaBlocks.length}
+                  </Text>
                   {block.type === 'video' ? (
                     <TapPauseVideo videoUri={block.value} isVisible={isVisible && currentPage === index} />
                   ) : (
