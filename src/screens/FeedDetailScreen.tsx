@@ -580,11 +580,11 @@ export default function FeedDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['right', 'left']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* 헤더 */}
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
       <CommonHeader
@@ -730,7 +730,7 @@ export default function FeedDetailScreen() {
       </ScrollView>
 
         {/* 댓글 입력창 */}
-        <View style={[styles.commentInputWrapper, { paddingBottom: (keyboardHeight || SPACING.MD) + insets.bottom }]}>
+        <View style={[styles.commentInputWrapper]}>
           {editingComment ? (
             <CommentEditInput
               initialText={editingComment.content}
