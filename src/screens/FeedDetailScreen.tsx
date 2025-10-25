@@ -5,7 +5,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SPACING, TYPOGRAPHY } from '../constants/theme';
+import { SPACING, TYPOGRAPHY, COLORS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 
 import CommonHeader from '../components/CommonHeader';
@@ -630,9 +630,6 @@ export default function FeedDetailScreen() {
             >
               {mediaBlocks.map((block: any, index: number) => (
                 <View key={block.sequence} style={styles.imageContainer}>
-                  <Text style={styles.imageCounter}>
-                    {index + 1} / {mediaBlocks.length}
-                  </Text>
                   {block.type === 'video' ? (
                     <TapPauseVideo videoUri={block.value} />
                   ) : (
@@ -644,6 +641,10 @@ export default function FeedDetailScreen() {
                       transition={200}
                     />
                   )}
+                  {/* 모든 미디어에 순번 표시 - 우측 하단 */}
+                  <Text style={styles.moreImagesText}>
+                    {index + 1}/{mediaBlocks.length}
+                  </Text>
                 </View>
               ))}
             </ScrollView>
@@ -842,22 +843,23 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     width: screenWidth,
     height: screenWidth,
   },
-  imageCounter: {
-    position: 'absolute',
-    top: SPACING.SM,
-    right: SPACING.SM,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    color: colors.WHITE,
-    paddingHorizontal: SPACING.SM,
-    paddingVertical: 4,
-    borderRadius: 12,
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-  },
   mainImage: {
     width: screenWidth,
     height: screenWidth,
     backgroundColor: colors.GRAY_200, // COLORS.GRAY_200
+  },
+  moreImagesText: {
+    position: 'absolute',
+    bottom: SPACING.SM,
+    right: SPACING.SM,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    color: COLORS.WHITE,
+    paddingHorizontal: SPACING.SM,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
+    zIndex: 10,
   },
 
   // 액션 버튼들
