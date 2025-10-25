@@ -19,7 +19,8 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/MomTalk_app_icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#ffffff",
+        "softwareKeyboardLayoutMode": "resize"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.anonymous.xMomTalk"
