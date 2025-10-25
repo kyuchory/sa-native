@@ -14,7 +14,7 @@ import {
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useEventListener } from 'expo';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
@@ -56,9 +56,9 @@ export default function PostDetailScreen() {
   const { postId } = route.params;
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
-  const insets = useSafeAreaInsets();
 
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+
 
   // 상태 관리
   const [post, setPost] = useState<PostDetail | null>(null);
@@ -85,21 +85,21 @@ export default function PostDetailScreen() {
     }, [postId])
   );
 
-  // 키보드 이벤트 리스너 (댓글 입력 시 키보드 높이 추적)
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e: any) => {
-      setKeyboardHeight(e.endCoordinates.height);
-    });
 
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardHeight(0);
-    });
 
-    return () => {
-      keyboardDidShowListener?.remove();
-      keyboardDidHideListener?.remove();
-    };
-  }, []);
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   const loadPostDetail = async () => {
     try {
@@ -123,20 +123,20 @@ export default function PostDetailScreen() {
   // 좋아요 토글 (PostCard와 동일한 낙관적 UI 적용)
   const handleLikeToggle = async () => {
     if (isLikeLoading) return; // 이미 요청 중이면 무시
-    
+
     // 낙관적 UI: 즉시 상태 업데이트
     const originalIsLiked = isLiked;
     const originalLikeCount = likeCount;
     const newLikeState = !isLiked;
-    
+
     setIsLiked(newLikeState);
     setLikeCount(prev => newLikeState ? prev + 1 : Math.max(0, prev - 1));
     setIsLikeLoading(true);
-    
+
     try {
       // API 호출
       const response = await PostService.togglePostLike(postId);
-      
+
       // 서버 응답으로 최종 상태 동기화
       setIsLiked(response.is_liked);
       setLikeCount(response.like_count);
@@ -146,13 +146,13 @@ export default function PostDetailScreen() {
 
     } catch (error) {
       console.error('좋아요 토글 실패:', error);
-      
+
       // 실패 시 원래 상태로 롤백
       setIsLiked(originalIsLiked);
       setLikeCount(originalLikeCount);
-      
+
       Alert.alert('오류', '좋아요 처리에 실패했습니다.');
-      
+
     } finally {
       setIsLikeLoading(false);
     }
@@ -200,7 +200,7 @@ export default function PostDetailScreen() {
   const handleCommentLike = async (commentId: number) => {
     // 낙관적 UI 업데이트
     const originalComments = [...comments];
-    
+
     setComments(prev => {
       const updateComment = (comment: Comment): Comment => {
         if (comment.id === commentId) {
@@ -218,14 +218,14 @@ export default function PostDetailScreen() {
         }
         return comment;
       };
-      
+
       return prev.map(updateComment);
     });
 
     try {
       // API 호출
       const response = await PostService.toggleCommentLike(commentId);
-      
+
       // 서버 응답으로 최종 동기화
       setComments(prev => {
         const updateComment = (comment: Comment): Comment => {
@@ -244,7 +244,7 @@ export default function PostDetailScreen() {
           }
           return comment;
         };
-        
+
         return prev.map(updateComment);
       });
     } catch (error) {
@@ -258,13 +258,13 @@ export default function PostDetailScreen() {
   // 댓글 작성
   const handleSendComment = async (text: string) => {
     if (!text.trim() || isCommentLoading) return;
-    
+
     try {
       setIsCommentLoading(true);
-      
+
       // API 호출
       await PostService.createComment(postId, text);
-      
+
       // 댓글 목록 새로고침
       const updatedComments = await PostService.getComments(postId);
       setComments(updatedComments);
@@ -284,7 +284,7 @@ export default function PostDetailScreen() {
   const handleReplyPress = (comment: Comment) => {
     // 대댓글에 답글을 다는 경우 최상위 부모 댓글의 ID를 사용
     const parentCommentId = comment.parent_comment_id || comment.id;
-    
+
     setReplyingTo({
       commentId: parentCommentId,
       userName: comment.user.nickname
@@ -294,25 +294,25 @@ export default function PostDetailScreen() {
   // 답글 전송
   const handleSendReply = async (text: string) => {
     if (!replyingTo || !text.trim() || isCommentLoading) return;
-    
+
     try {
       setIsCommentLoading(true);
-      
+
       // 멘션된 사용자 ID 찾기 (실제로는 사용자 검색 API 필요)
       const mentionUserId = comments
         .flatMap(c => [c, ...(c.replies || [])])
         .find(c => c.user.nickname === replyingTo.userName)?.user.id;
-      
+
       // API 호출
       await PostService.createComment(postId, text, replyingTo.commentId, mentionUserId);
-      
+
       // 댓글 목록 새로고침
       const updatedComments = await PostService.getComments(postId);
       setComments(updatedComments);
-      
+
       // 답글 입력 모드 종료
       setReplyingTo(null);
-      
+
     } catch (error) {
       Alert.alert('오류', '답글 작성에 실패했습니다.');
       console.error('답글 작성 실패:', error);
@@ -326,7 +326,7 @@ export default function PostDetailScreen() {
     const comment = comments
       .flatMap(c => [c, ...(c.replies || [])])
       .find(c => c.id === commentId);
-    
+
     if (comment) {
       setEditingComment({
         commentId: comment.id,
@@ -338,20 +338,20 @@ export default function PostDetailScreen() {
   // 댓글 수정 저장
   const handleSaveEdit = async (text: string) => {
     if (!editingComment || !text.trim() || isCommentLoading) return;
-    
+
     try {
       setIsCommentLoading(true);
-      
+
       // API 호출
       await PostService.updateComment(editingComment.commentId, text);
-      
+
       // 댓글 목록 새로고침
       const updatedComments = await PostService.getComments(postId);
       setComments(updatedComments);
-      
+
       // 수정 모드 종료
       setEditingComment(null);
-      
+
     } catch (error) {
       Alert.alert('오류', '댓글 수정에 실패했습니다.');
       console.error('댓글 수정 실패:', error);
@@ -432,7 +432,7 @@ export default function PostDetailScreen() {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) return '방금 전';
     if (diffInHours < 24) return `${diffInHours}시간 전`;
     if (diffInHours < 24 * 7) return `${Math.floor(diffInHours / 24)}일 전`;
@@ -473,7 +473,7 @@ export default function PostDetailScreen() {
   // VideoBlock 컴포넌트 추가
   const VideoBlock = ({ videoUri }: { videoUri: string }) => {
     const [aspectRatio, setAspectRatio] = useState<number | null>(null);
-    
+
     const player = useVideoPlayer(videoUri, player => {
       player.loop = true;
       player.muted = true;
@@ -531,7 +531,7 @@ export default function PostDetailScreen() {
   // 태그 렌더링
   const renderTags = (tags: PostTag[]) => {
     if (tags.length === 0) return null;
-    
+
     return (
       <View style={styles.tagsContainer}>
         {tags.map((tag) => (
@@ -564,7 +564,7 @@ export default function PostDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* 헤더 */}
       <CommonHeader
         title="게시물"
@@ -700,7 +700,7 @@ export default function PostDetailScreen() {
         </ScrollView>
 
         {/* 댓글 입력창 */}
-        <View style={[styles.commentInputWrapper, { paddingBottom: (keyboardHeight || SPACING.MD) + insets.bottom }]}>
+        <View style={styles.commentInputWrapper}>
           {replyingTo ? (
             <ReplyInput
               onSendReply={handleSendReply}
@@ -847,7 +847,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   contentSection: {
     backgroundColor: colors.WHITE,
   },
-  
+
   // 콘텐츠 블록
   textBlock: {
     paddingHorizontal: SPACING.MD,
