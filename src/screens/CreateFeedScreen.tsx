@@ -45,7 +45,7 @@ export default function CreateFeedScreen() {
 
   // Zustand 스토어
   const { setShouldRefreshFeeds, videoEditResult, setVideoEditResult } = useFeedStore();
-  const { setShouldRefreshProfilePosts } = useProfileStore();
+  const { setShouldRefreshProfileFeeds } = useProfileStore();
 
   // 비디오 편집 결과 처리
   useFocusEffect(
@@ -305,7 +305,7 @@ export default function CreateFeedScreen() {
 
       // 목록 새로고침 플래그 설정
       setShouldRefreshFeeds(true);
-      setShouldRefreshProfilePosts(true);
+      setShouldRefreshProfileFeeds(true);
 
       // 작성된 피드 상세 화면으로 이동
       navigation.replace('FeedDetail', { feedId: result.feedId });
