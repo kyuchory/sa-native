@@ -22,7 +22,6 @@ interface FeedCardProps {
   onCommentPress?: (feedId: number) => void;
   onBookmarkPress?: (feedId: number) => void;
   onUserPress?: (userId: number) => void;
-  onImagePress?: (feedId: number) => void;
   onMenuPress?: (feed: FeedListItem) => void; // 메뉴 버튼 클릭 콜백
   isVisible?: boolean; // 비디오 가시성 제어 (선택적)
 }
@@ -225,7 +224,6 @@ function FeedCard({
   onCommentPress,
   onBookmarkPress,
   onUserPress,
-  onImagePress,
   onMenuPress,
   isVisible = true // 기본적으로 보이는 것으로 설정
 }: FeedCardProps) {
@@ -349,9 +347,7 @@ function FeedCard({
     onCommentPress?.(feed.id);
   }, [onCommentPress, feed.id]);
 
-  const handleImagePress = useCallback(() => {
-    onImagePress?.(feed.id);
-  }, [onImagePress, feed.id]);
+
 
   // 텍스트 더보기/접기 처리
   const renderContent = () => {
@@ -417,7 +413,7 @@ function FeedCard({
         <>
           {mediaBlocks.length === 1 ? (
             // 단일 미디어 표시 (+(media_count - 1) 표시하지 않음, 대신 전체 개수 표시)
-            <TouchableOpacity style={styles.imageContainer} onPress={handleImagePress} activeOpacity={0.9}>
+            <TouchableOpacity style={styles.imageContainer} activeOpacity={0.9}>
               {mediaBlocks[0].type === 'video' ? (
                 <TapPauseVideo videoUri={mediaBlocks[0].value} isVisible={isVisible} />
               ) : (

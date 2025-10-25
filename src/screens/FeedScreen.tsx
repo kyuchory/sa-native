@@ -197,10 +197,7 @@ export default function FeedScreen() {
     navigation.navigate('UserProfile', { userId: String(userId) });
   };
 
-  const handleImagePress = (feedId: number) => {
-    console.log('피드 이미지 클릭:', feedId);
-    navigation.navigate('FeedDetail', { feedId });
-  };
+
 
   const handleMenuPress = (feed: FeedListItem) => {
     setSelectedFeed(feed);
@@ -258,7 +255,6 @@ export default function FeedScreen() {
         onCommentPress={handleCommentPress}
         onBookmarkPress={handleBookmarkPress}
         onUserPress={handleUserPress}
-        onImagePress={handleImagePress}
         onMenuPress={handleMenuPress}
         isVisible={hasVideo ? isVideoVisible : true}
       />
@@ -269,7 +265,6 @@ export default function FeedScreen() {
     handleCommentPress,
     handleBookmarkPress,
     handleUserPress,
-    handleImagePress,
     handleMenuPress,
   ]);
 
