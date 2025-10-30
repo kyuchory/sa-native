@@ -16,6 +16,11 @@ import com.facebook.react.defaults.DefaultReactNativeHost
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Build
+
 class MainApplication : Application(), ReactApplication {
 
   override val reactNativeHost: ReactNativeHost = ReactNativeHostWrapper(
@@ -40,6 +45,23 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val channelId = "momtalk-high"
+        val name = "MomTalk 알림"
+        val descriptionText = "앱 푸시 알림용 채널"
+        val importance = NotificationManager.IMPORTANCE_HIGH
+
+        val channel = NotificationChannel(channelId, name, importance).apply {
+            description = descriptionText
+            enableLights(true)
+            enableVibration(true)
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+        }
+
+        val notificationManager: NotificationManager =
+            getSystemService(NotificationManager::class.java)
+        notificationManager.createNotificationChannel(channel)
+    }
     DefaultNewArchitectureEntryPoint.releaseLevel = try {
       ReleaseLevel.valueOf(BuildConfig.REACT_NATIVE_RELEASE_LEVEL.uppercase())
     } catch (e: IllegalArgumentException) {
