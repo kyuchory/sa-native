@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuthStore } from '../stores/authStore';
 import { AuthStackParamList } from '../types/navigation';
 // 🔧 개선된 소켓 초기화 로직으로 더 안정적인 연결 관리
@@ -46,6 +47,9 @@ import CanvasEditorScreen from '../screens/CanvasEditorScreen';
 import MediaTestScreen from '../screens/MediaTestScreen';
 import VideoTrimCropScreen from '../screens/VideoTrimCropScreen';
 
+// Components for notifications
+import { NotificationBanner } from '../components/NotificationBanner';
+
 // Tab Navigator
 import TabNavigator from './TabNavigator';
 
@@ -77,17 +81,19 @@ export default function AuthNavigator() {
   }, [isAuthenticated, tokens?.accessToken]);
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator 
-        screenOptions={{ 
-          headerShown: false 
-        }}
-      >
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NotificationBanner />
+      <NavigationContainer>
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: false
+          }}
+        >
         {isAuthenticated ? (
           // 인증된 사용자: 메인 앱
           <>
-        <Stack.Screen 
-          name="MainApp" 
+        <Stack.Screen
+          name="MainApp"
           component={TabNavigator}
           options={{ headerShown: false }}
         />
@@ -146,9 +152,9 @@ export default function AuthNavigator() {
           component={ProfileScreen}
           options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="Settings" 
-          component={SettingsScreen} 
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
           options={{ headerShown: false }}
         />
                 <Stack.Screen
@@ -247,5 +253,6 @@ export default function AuthNavigator() {
         )}
       </Stack.Navigator>
     </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }

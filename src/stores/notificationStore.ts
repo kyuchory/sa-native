@@ -12,6 +12,9 @@ interface NotificationState {
   isLoading: boolean;
   lastUpdated: Date | null;
 
+  // 포그라운드 푸시 알림 상태
+  foregroundNotification: { id: string; title: string; body: string; data?: any } | null;
+
   // 액션
   setNotifications: (notifications: Notification[]) => void;
   addNotification: (notification: Notification) => void;
@@ -24,6 +27,10 @@ interface NotificationState {
   loadNotifications: () => Promise<void>;
   loadUnreadCount: () => Promise<void>;
   setLoading: (loading: boolean) => void;
+
+  // 포그라운드 알림 액션
+  showForegroundNotification: (title: string, body: string, data?: any) => void;
+  hideForegroundNotification: () => void;
 }
 
 export const useNotificationStore = create<NotificationState>()(
@@ -34,6 +41,7 @@ export const useNotificationStore = create<NotificationState>()(
       unreadCount: 0,
       isLoading: false,
       lastUpdated: null,
+      foregroundNotification: null,
 
       // 알림 목록 액션들
       setNotifications: (notifications: Notification[]) => set({
@@ -157,6 +165,20 @@ export const useNotificationStore = create<NotificationState>()(
       },
 
       setLoading: (loading: boolean) => set({ isLoading: loading }),
+
+      // 포그라운드 알림 표시
+      showForegroundNotification: (title: string, body: string, data?: any) =>
+        set({
+          foregroundNotification: {
+            id: Date.now().toString(),
+            title,
+            body,
+            data
+          }
+        }),
+
+      // 포그라운드 알림 숨김
+      hideForegroundNotification: () => set({ foregroundNotification: null }),
     }),
     {
       name: 'notification-storage',

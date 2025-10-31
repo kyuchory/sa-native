@@ -1,8 +1,9 @@
 import * as Application from 'expo-application';
 import { getApp } from '@react-native-firebase/app';
-import { getMessaging, getToken, requestPermission, AuthorizationStatus } from '@react-native-firebase/messaging';
+import { getMessaging, getToken, requestPermission, AuthorizationStatus, onMessage } from '@react-native-firebase/messaging';
 import { DeviceService } from './deviceService';
 import { Alert, Platform } from 'react-native';
+import { useNotificationStore } from '../stores/notificationStore';
 
 export class FCMService {
   static async initializeFCMAndRegisterDevice(): Promise<void> {
@@ -40,6 +41,20 @@ export class FCMService {
       }
 
       console.log('📱 FCM Token:', fcmToken);
+
+      // 5️⃣ 포그라운드 메시지 리스너 설정
+      onMessage(messaging, async (remoteMessage) => {
+        console.log('📨 포그라운드 메시지 수신:', remoteMessage);
+
+        const { notification } = remoteMessage;
+        if (notification) {
+          useNotificationStore.getState().showForegroundNotification(
+            notification.title || '알림',
+            notification.body || '새로운 메시지가 도착했습니다.',
+            remoteMessage.data
+          );
+        }
+      });
 
       // 4️⃣ 서버에 디바이스 등록
       await DeviceService.registerDevice({
