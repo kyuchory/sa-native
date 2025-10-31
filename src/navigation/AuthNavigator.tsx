@@ -9,6 +9,8 @@ import { AuthStackParamList } from '../types/navigation';
 import { initializeSocketServices } from '../utils/socketInitializer';
 // 앱 상태 감지 훅
 import { useSocketAppState } from '../hooks/useAppState';
+// FCM 서비스 초기화
+import { FCMService } from '../services/fcmService';
 
 // Screens
 import LoginScreen from '../screens/LoginScreen';
@@ -58,14 +60,19 @@ export default function AuthNavigator() {
   // 소켓 서비스 초기화 (로그인 상태 확인 후)
   useEffect(() => {
     if (isAuthenticated && tokens?.accessToken) {
-      console.log('🔗 로그인 확인됨, 소켓 서비스 초기화 시작...');
+      console.log('🔗 로그인 확인됨, 서비스 초기화 시작...');
 
       // 소켓 서비스 초기화 (비동기로 실행)
       initializeSocketServices().catch(error => {
         console.error('❌ 소켓 서비스 초기화 실패:', error);
       });
+
+      // FCM 초기화 및 디바이스 토큰 등록
+      FCMService.initializeFCMAndRegisterDevice().catch(error => {
+        console.error('❌ FCM 초기화 실패:', error);
+      });
     } else {
-      console.log('🔐 로그인되지 않음 또는 토큰 없음 - 소켓 초기화 스킵');
+      console.log('🔐 로그인되지 않음 또는 토큰 없음 - 서비스 초기화 스킵');
     }
   }, [isAuthenticated, tokens?.accessToken]);
 
