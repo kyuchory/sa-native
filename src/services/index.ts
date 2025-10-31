@@ -4,6 +4,8 @@ export * from './authService';
 export * from './blockService';
 export * from './chatService';
 export * from './chatSocketService';
+export * from './deviceService';
+export * from './fcmService';
 export * from './feedService';
 export * from './followService';
 export * from './notificationService';
