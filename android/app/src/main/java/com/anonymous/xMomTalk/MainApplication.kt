@@ -62,11 +62,6 @@ class MainApplication : Application(), ReactApplication {
             getSystemService(NotificationManager::class.java)
         notificationManager.createNotificationChannel(channel)
     }
-    DefaultNewArchitectureEntryPoint.releaseLevel = try {
-      ReleaseLevel.valueOf(BuildConfig.REACT_NATIVE_RELEASE_LEVEL.uppercase())
-    } catch (e: IllegalArgumentException) {
-      ReleaseLevel.STABLE
-    }
     loadReactNative(this)
     ApplicationLifecycleDispatcher.onApplicationCreate(this)
   }
