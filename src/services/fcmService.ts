@@ -1,16 +1,20 @@
 import * as Application from 'expo-application';
-import messaging from '@react-native-firebase/messaging';
+import { getApp } from '@react-native-firebase/app';
+import { getMessaging, getToken, requestPermission, AuthorizationStatus } from '@react-native-firebase/messaging';
 import { DeviceService } from './deviceService';
 import { Alert, Platform } from 'react-native';
 
 export class FCMService {
   static async initializeFCMAndRegisterDevice(): Promise<void> {
     try {
+      // Get messaging instance
+      const messaging = getMessaging(getApp());
+
       // 1️⃣ 알림 권한 요청
-      const authStatus = await messaging().requestPermission();
+      const authStatus = await requestPermission(messaging);
       const enabled =
-        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+        authStatus === AuthorizationStatus.AUTHORIZED ||
+        authStatus === AuthorizationStatus.PROVISIONAL;
 
       if (!enabled) {
         Alert.alert(
@@ -29,7 +33,7 @@ export class FCMService {
       console.log('🔢 Device ID:', deviceId);
 
       // 3️⃣ FCM 토큰 가져오기
-      const fcmToken = await messaging().getToken();
+      const fcmToken = await getToken(messaging);
       if (!fcmToken) {
         console.warn('⚠️ FCM 토큰을 가져오지 못했습니다.');
         return;
