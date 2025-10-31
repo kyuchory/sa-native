@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "714633136655",
+    "project_id": "sa-project-dfb56",
+    "storage_bucket": "sa-project-dfb56.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:714633136655:android:23ca0ba86782c0999af17a",
+        "android_client_info": {
+          "package_name": "com.anonymous.xMomTalk"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAMQYSd6dVCPFqQh-7nNUsJ3RgyIHuFzgo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
