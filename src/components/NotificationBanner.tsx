@@ -1,36 +1,42 @@
 import React, { useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, interpolate } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useNotificationStore } from '../stores/notificationStore';
 import { useThemeStore } from '../stores/themeStore';
 
 const { width: SCREEN_W } = Dimensions.get('window');
-const HEIGHT = 60;
-const DISMISS_THRESHOLD = -HEIGHT * 0.5;
+const HEIGHT = 70;
+const DISMISS_THRESHOLD = -HEIGHT * 0.4;
+const HORIZONTAL_PADDING = 12;
+const BANNER_WIDTH = SCREEN_W - (HORIZONTAL_PADDING * 2);
 
 export const NotificationBanner: React.FC = () => {
   const { foregroundNotification, hideForegroundNotification } = useNotificationStore();
   const { colors } = useThemeStore();
   const insets = useSafeAreaInsets();
 
-  const translateY = useSharedValue(-HEIGHT);
+  const translateY = useSharedValue(-HEIGHT - 20);
   const startY = useSharedValue(0);
+  const scale = useSharedValue(1);
 
   useEffect(() => {
     if (foregroundNotification) {
-      translateY.value = withTiming(0, { duration: 300 });
+      translateY.value = withSpring(0, {
+        damping: 20,
+        stiffness: 300,
+      });
 
-      // Auto-hide after 3 seconds
       const timer = setTimeout(() => {
         hideNotification();
-      }, 3000);
+      }, 4000);
 
       return () => clearTimeout(timer);
     } else {
-      translateY.value = -HEIGHT;
+      translateY.value = -HEIGHT - 20;
     }
   }, [foregroundNotification]);
 
@@ -40,7 +46,7 @@ export const NotificationBanner: React.FC = () => {
   }, [hideForegroundNotification]);
 
   const hideNotification = () => {
-    translateY.value = withTiming(-HEIGHT, { duration: 200 }, (finished) => {
+    translateY.value = withTiming(-HEIGHT - 20, { duration: 250 }, (finished) => {
       if (finished) {
         handleDismiss();
       }
@@ -50,55 +56,93 @@ export const NotificationBanner: React.FC = () => {
   const panGesture = Gesture.Pan()
     .onBegin(() => {
       startY.value = translateY.value;
+      scale.value = withSpring(0.98, { damping: 15 });
     })
     .onUpdate((e) => {
       if (e.translationY < 0) {
         translateY.value = startY.value + e.translationY;
       }
     })
-    .onEnd(() => {
-      if (translateY.value < DISMISS_THRESHOLD) {
-        translateY.value = withTiming(-HEIGHT, { duration: 200 }, (finished) => {
+    .onEnd((e) => {
+      scale.value = withSpring(1, { damping: 15 });
+      
+      if (translateY.value < DISMISS_THRESHOLD || e.velocityY < -500) {
+        translateY.value = withTiming(-HEIGHT - 20, { duration: 200 }, (finished) => {
           if (finished) {
             handleDismiss();
           }
         });
       } else {
-        translateY.value = withTiming(0, { duration: 200 });
+        translateY.value = withSpring(0, {
+          damping: 20,
+          stiffness: 300,
+        });
       }
     });
 
+  const tapGesture = Gesture.Tap()
+    .onBegin(() => {
+      scale.value = withSpring(0.96, { damping: 15 });
+    })
+    .onFinalize(() => {
+      scale.value = withSpring(1, { damping: 15 });
+    });
+
+  const composedGesture = Gesture.Simultaneous(panGesture, tapGesture);
+
   const animatedStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      translateY.value,
+      [-HEIGHT, 0],
+      [0, 1]
+    );
+
     return {
-      transform: [{ translateY: translateY.value }],
+      transform: [
+        { translateY: translateY.value },
+        { scale: scale.value }
+      ],
+      opacity,
     };
   });
 
   if (!foregroundNotification) return null;
 
   return (
-    <GestureDetector gesture={panGesture}>
+    <GestureDetector gesture={composedGesture}>
       <Animated.View
         style={[
           styles.container,
           {
             backgroundColor: colors.WHITE,
-            borderColor: colors.PRIMARY,
-            top: insets.top + 10
+            top: insets.top + 8
           },
           animatedStyle,
         ]}
       >
+        
         <View style={styles.content}>
+          {/* 아이콘 영역 */}
+          <View style={styles.iconContainer}>
+            <Image
+              source={require('../assets/main/MomTalk_app_icon.png')}
+              style={styles.iconImage}
+              cachePolicy="memory-disk"
+            />
+          </View>
+
           <View style={styles.textContainer}>
             <Text style={[styles.title, { color: colors.GRAY_900 }]} numberOfLines={1}>
               {foregroundNotification.title}
             </Text>
-            <Text style={[styles.body, { color: colors.GRAY_700 }]} numberOfLines={1}>
+            <Text style={[styles.body, { color: colors.GRAY_700 }]} numberOfLines={2}>
               {foregroundNotification.body}
             </Text>
           </View>
         </View>
+
+        {/* 하단 인디케이터 */}
+        <View style={styles.indicator} />
       </Animated.View>
     </GestureDetector>
   );
@@ -107,38 +151,74 @@ export const NotificationBanner: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 20,
-    left: SCREEN_W * 0.1,
-    width: SCREEN_W * 0.8,
-    height: HEIGHT,
-    borderRadius: 16,
-    borderWidth: 0,
+    left: HORIZONTAL_PADDING,
+    width: BANNER_WIDTH,
+    minHeight: HEIGHT,
+    borderRadius: 14,
     zIndex: 1000,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   content: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingLeft: 14,
+    paddingRight: 16,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  iconContainer: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+  },
+  iconDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   textContainer: {
     flex: 1,
+    gap: 2,
   },
   title: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    lineHeight: 18,
+    lineHeight: 20,
+    letterSpacing: -0.2,
   },
   body: {
-    fontSize: 12,
-    lineHeight: 16,
-    opacity: 0.9,
-    marginTop: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    opacity: 0.85,
+    letterSpacing: -0.1,
+  },
+  indicator: {
+    position: 'absolute',
+    bottom: 6,
+    left: '50%',
+    marginLeft: -16,
+    width: 32,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#00000008',
   },
 });
