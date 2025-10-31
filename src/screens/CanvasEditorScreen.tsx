@@ -4,7 +4,8 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Dimensions, Alert, Modal, ScrollView } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { captureRef } from 'react-native-view-shot';
 import Svg, { Path } from 'react-native-svg';
 import { CheckIcon } from '../components/CommonIcons';
@@ -293,22 +294,19 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
   const panForDrawing = Gesture.Pan()
     .enabled(isDrawing)
     .onBegin(e => {
-      'worklet';
       drawingPoints.value = [{ x: e.x, y: e.y }];
-      runOnJS(startDrawing)(e.x, e.y, drawColor, drawWidth);
+      scheduleOnRN(startDrawing, e.x, e.y, drawColor, drawWidth);
     })
     .onUpdate(e => {
-      'worklet';
       const newPoints = [...drawingPoints.value, { x: e.x, y: e.y }];
       drawingPoints.value = newPoints;
-      runOnJS(updateDrawing)(newPoints);
+      scheduleOnRN(updateDrawing, newPoints);
     })
     .onEnd(() => {
-      'worklet';
-      runOnJS(finishDrawing)();
+      scheduleOnRN(finishDrawing);
       drawingPoints.value = [];
     })
-    .onFinalize(() => { 'worklet'; drawingPoints.value = []; });
+    .onFinalize(() => { drawingPoints.value = []; });
 
   const updateElementPosition = useCallback((id: string, newPos: PercentPos) => {
     setElements(prev => prev.map(el => el.id === id ? { ...el, pos: newPos } : el));
@@ -399,10 +397,9 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
       .enabled(!isDrawing && elementType === 'text')
       .maxDuration(200)
       .onEnd(() => {
-        'worklet';
         if (elementType === 'text') {
           const textEl = el as TextElement;
-          runOnJS(openEditModalJS)(elementId, textEl.text);
+          scheduleOnRN(openEditModalJS, elementId, textEl.text);
         }
       });
 
@@ -410,48 +407,44 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
       .enabled(!isDrawing)
       .minDistance(1)
       .onBegin(() => {
-        'worklet';
         isActive.value = true;
-        runOnJS(setSelectedIdJS)(elementId);
+        scheduleOnRN(setSelectedIdJS, elementId);
         startPosX.value = initialPos.left * SCREEN_W;
         startPosY.value = initialPos.top * SCREEN_H;
       })
-      .onUpdate(e => { 'worklet'; translateX.value = e.translationX; translateY.value = e.translationY; })
+      .onUpdate(e => { translateX.value = e.translationX; translateY.value = e.translationY; })
       .onEnd(() => {
-        'worklet';
         const newLeftPx = startPosX.value + translateX.value;
         const newTopPx = startPosY.value + translateY.value;
-        runOnJS(updateElementPosition)(elementId, { left: newLeftPx / SCREEN_W, top: newTopPx / SCREEN_H });
+        scheduleOnRN(updateElementPosition, elementId, { left: newLeftPx / SCREEN_W, top: newTopPx / SCREEN_H });
         translateX.value = 0;
         translateY.value = 0;
       })
-      .onFinalize(() => { 'worklet'; isActive.value = false; });
+      .onFinalize(() => { isActive.value = false; });
 
     const pinch = Gesture.Pinch()
       .enabled(!isDrawing)
-      .onBegin(() => { 'worklet'; isActive.value = true; runOnJS(setSelectedIdJS)(elementId); })
-      .onUpdate(e => { 'worklet'; scale.value = e.scale; })
+      .onBegin(() => { isActive.value = true; scheduleOnRN(setSelectedIdJS, elementId); })
+      .onUpdate(e => { scale.value = e.scale; })
       .onEnd(() => {
-        'worklet';
         const newScale = baseScale.value * scale.value;
-        runOnJS(updateElementScale)(elementId, newScale);
+        scheduleOnRN(updateElementScale, elementId, newScale);
         baseScale.value = newScale;
         scale.value = 1;
       })
-      .onFinalize(() => { 'worklet'; isActive.value = false; });
+      .onFinalize(() => { isActive.value = false; });
 
     const rotationGesture = Gesture.Rotation()
       .enabled(!isDrawing)
-      .onBegin(() => { 'worklet'; isActive.value = true; runOnJS(setSelectedIdJS)(elementId); })
-      .onUpdate(e => { 'worklet'; rotation.value = e.rotation; })
+      .onBegin(() => { isActive.value = true; scheduleOnRN(setSelectedIdJS, elementId); })
+      .onUpdate(e => { rotation.value = e.rotation; })
       .onEnd(() => {
-        'worklet';
         const newRotation = baseRotation.value + rotation.value;
-        runOnJS(updateElementRotation)(elementId, (newRotation * 180) / Math.PI);
+        scheduleOnRN(updateElementRotation, elementId, (newRotation * 180) / Math.PI);
         baseRotation.value = newRotation;
         rotation.value = 0;
       })
-      .onFinalize(() => { 'worklet'; isActive.value = false; });
+      .onFinalize(() => { isActive.value = false; });
 
     const panPinchRotate = Gesture.Simultaneous(pan, pinch, rotationGesture);
     const composed = Gesture.Exclusive(tap, panPinchRotate);

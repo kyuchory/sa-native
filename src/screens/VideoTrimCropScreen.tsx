@@ -6,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEvent } from 'expo';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, runOnJS, useAnimatedProps } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, useAnimatedProps } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Path, Rect, Defs, Mask } from 'react-native-svg';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useThemeStore } from '../stores/themeStore';
@@ -513,7 +514,7 @@ const CropOverlay: React.FC<{
     width.value = initialCropArea.initialWidth;
     height.value = initialCropArea.initialHeight;
 
-    runOnJS(updateCropArea)(
+    scheduleOnRN(updateCropArea,
       initialCropArea.initialX,
       initialCropArea.initialY,
       initialCropArea.initialWidth,
@@ -542,33 +543,28 @@ const CropOverlay: React.FC<{
 
   const panGesture = Gesture.Pan()
     .onBegin(() => {
-      'worklet';
       startX.value = translateX.value;
       startY.value = translateY.value;
     })
     .onUpdate((e) => {
-      'worklet';
       const newX = Math.max(videoOffsetX, Math.min(videoOffsetX + videoRenderWidth - width.value, startX.value + e.translationX));
       const newY = Math.max(videoOffsetY, Math.min(videoOffsetY + videoRenderHeight - height.value, startY.value + e.translationY));
       translateX.value = newX;
       translateY.value = newY;
     })
     .onEnd(() => {
-      'worklet';
-      runOnJS(updateCropArea)(translateX.value, translateY.value, width.value, height.value);
+      scheduleOnRN(updateCropArea, translateX.value, translateY.value, width.value, height.value);
     });
 
   const createCornerGesture = useCallback((corner: 'tl' | 'tr' | 'bl' | 'br') => {
     return Gesture.Pan()
       .onBegin(() => {
-        'worklet';
         startX.value = translateX.value;
         startY.value = translateY.value;
         startWidth.value = width.value;
         startHeight.value = height.value;
       })
       .onUpdate((e) => {
-        'worklet';
         const MIN_SIZE = Math.min(videoRenderWidth, videoRenderHeight) * 0.2;
         
         if (corner === 'tl') {
@@ -632,8 +628,7 @@ const CropOverlay: React.FC<{
         }
       })
       .onEnd(() => {
-        'worklet';
-        runOnJS(updateCropArea)(translateX.value, translateY.value, width.value, height.value);
+        scheduleOnRN(updateCropArea, translateX.value, translateY.value, width.value, height.value);
       });
   }, [targetRatio, videoOffsetX, videoOffsetY, videoRenderWidth, videoRenderHeight, updateCropArea]);
 
@@ -760,11 +755,9 @@ const TrimBar: React.FC<{
 
   const leftHandleGesture = Gesture.Pan()
     .onBegin(() => {
-      'worklet';
       startLeft.value = leftHandleX.value;
     })
     .onUpdate((e) => {
-      'worklet';
       const newX = Math.max(0, Math.min(rightHandleX.value - HANDLE_WIDTH * 2, startLeft.value + e.translationX));
       leftHandleX.value = newX;
 
@@ -772,25 +765,22 @@ const TrimBar: React.FC<{
       const now = Date.now();
       if (now - lastSeekTime.value > SEEK_THROTTLE) {
         const newStart = Math.round((leftHandleX.value / TRIM_WIDTH) * duration);
-        runOnJS(seekJS)(newStart);
+        scheduleOnRN(seekJS, newStart);
         lastSeekTime.value = now;
       }
     })
     .onEnd(() => {
-      'worklet';
       const newStart = Math.round((leftHandleX.value / TRIM_WIDTH) * duration);
       const newEnd = Math.round((rightHandleX.value / TRIM_WIDTH) * duration);
-      runOnJS(updateTrimJS)(newStart, newEnd);
-      runOnJS(seekJS)(newStart);
+      scheduleOnRN(updateTrimJS, newStart, newEnd);
+      scheduleOnRN(seekJS, newEnd);
     });
 
   const rightHandleGesture = Gesture.Pan()
     .onBegin(() => {
-      'worklet';
       startRight.value = rightHandleX.value;
     })
     .onUpdate((e) => {
-      'worklet';
       const newX = Math.max(leftHandleX.value + HANDLE_WIDTH * 2, Math.min(TRIM_WIDTH, startRight.value + e.translationX));
       rightHandleX.value = newX;
 
@@ -798,23 +788,21 @@ const TrimBar: React.FC<{
       const now = Date.now();
       if (now - lastSeekTime.value > SEEK_THROTTLE) {
         const newEnd = Math.round((rightHandleX.value / TRIM_WIDTH) * duration);
-        runOnJS(seekJS)(newEnd);
+        scheduleOnRN(seekJS, newEnd);
         lastSeekTime.value = now;
       }
     })
     .onEnd(() => {
-      'worklet';
       const newStart = Math.round((leftHandleX.value / TRIM_WIDTH) * duration);
       const newEnd = Math.round((rightHandleX.value / TRIM_WIDTH) * duration);
-      runOnJS(updateTrimJS)(newStart, newEnd);
-      runOnJS(seekJS)(newEnd);
+      scheduleOnRN(updateTrimJS, newStart, newEnd);
+      scheduleOnRN(seekJS, newEnd);
     });
 
   const timelineTapGesture = Gesture.Tap().onEnd((e) => {
-    'worklet';
     const ratio = e.x / TRIM_WIDTH;
     const position = Math.max(trimStart, Math.min(trimEnd, ratio * duration));
-    runOnJS(seekJS)(position);
+    scheduleOnRN(seekJS, position);
   });
 
   const leftAnimatedStyle = useAnimatedStyle(() => ({ transform: [{ translateX: leftHandleX.value }] }));
