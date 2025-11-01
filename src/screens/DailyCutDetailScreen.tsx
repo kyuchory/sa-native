@@ -5,7 +5,7 @@ import Animated, {
   withTiming,
   cancelAnimation,
   interpolate,
-  Extrapolate,
+  Extrapolation,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -237,7 +237,7 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
 
                   return (
                     <ProgressBar
-                      key={idx}
+                      key={`${currentStory?.user_id}-${idx}`}
                       isCompleted={isCompleted}
                       isActive={isActive}
                       isPaused={isPaused}
@@ -337,7 +337,7 @@ const ProgressBar = ({
   }, [isActive, isPaused, duration, onComplete]);
 
   const progressAnimatedStyle = useAnimatedStyle(() => ({
-    width: interpolate(progress.value, [0, 1], [0, segmentWidth], Extrapolate.CLAMP),
+    width: interpolate(progress.value, [0, 1], [0, segmentWidth], Extrapolation.CLAMP),
   }));
 
   return (
