@@ -6,8 +6,8 @@ import Animated, {
   cancelAnimation,
   interpolate,
   Extrapolate,
-  runOnJS,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   StyleSheet,
@@ -21,7 +21,7 @@ import {
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -166,14 +166,13 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
 
   /** 사용자 단위 스와이프 */
   const pan = Gesture.Pan().onEnd((e) => {
-    'worklet';
     const SWIPE_THRESHOLD = 50;
     const shouldGoNext = e.translationX < -SWIPE_THRESHOLD;
     const shouldGoPrev = e.translationX > SWIPE_THRESHOLD;
     if (shouldGoNext) {
-      runOnJS(handleNextUser)();
+      scheduleOnRN(handleNextUser);
     } else if (shouldGoPrev) {
-      runOnJS(handlePrevUser)();
+      scheduleOnRN(handlePrevUser);
     }
   });
 
@@ -191,7 +190,7 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
 
   return (
     <SafeAreaView style={q.container} edges={['bottom', 'top']}>
-      <GestureHandlerRootView style={q.gestureRoot}>
+      <View style={q.contentContainer}>
         <GestureDetector gesture={pan}>
           <View style={q.storyContainer}>
             {/* 이미지 또는 비디오 렌더링 */}
@@ -273,7 +272,7 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
             </View>
           </View>
         </GestureDetector>
-      </GestureHandlerRootView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -329,7 +328,7 @@ const ProgressBar = ({
 
         progress.value = resumedProgress;
         progress.value = withTiming(1, { duration: remainingDuration }, (finished) => {
-          if (finished) runOnJS(onComplete)();
+          if (finished) scheduleOnRN(onComplete);
         });
       }
     } else if (isCompleted) {
@@ -358,7 +357,7 @@ const createStyles = (colors: Record<string, string>) =>
       flex: 1,
       backgroundColor: colors.GRAY_50,
     },
-    gestureRoot: {
+    contentContainer: {
       flex: 1,
       margin: SPACING.SM,
       ...THEME_SHADOWS.SMALL,
