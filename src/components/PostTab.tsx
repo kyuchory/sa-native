@@ -128,7 +128,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   postCard: {
     backgroundColor: colors.WHITE,
-    marginHorizontal: SPACING.MD,
+    marginHorizontal: SPACING.SM, // 좌우 마진 축소 (MD → SM)
     marginVertical: SPACING.XS,
     borderRadius: BORDER_RADIUS.LG,
     padding: SPACING.MD,
