@@ -36,7 +36,7 @@ export type AuthStackParamList = {
   FollowRequests: undefined;
   FollowList: { userId: number; initialTab: 'followers' | 'following' };
   DailyCutAdd: undefined;
-  DailyCutDetail: { storyId: number };
+  DailyCutDetail: { storyId: number; isMyStory?: boolean };
   CanvasEditor: {
     imageUri?: string;
   };

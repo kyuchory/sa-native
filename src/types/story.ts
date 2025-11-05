@@ -129,3 +129,15 @@ export interface UserStoryDetailResponse {
 
 // 사용자 스토리 상세 조회 API 응답
 export type UserStoryDetailApiResponse = ApiResponse<UserStoryDetailResponse>;
+
+// 자신의 스토리 상세 조회 응답 데이터
+export interface MyStoryDetailResponse {
+  current_story: StoryDetail;
+  current_user_stories: UserStoryItem[];
+  next_user_stories: UserStoryItem[]; // 빈 배열
+  prev_user_stories: UserStoryItem[]; // 빈 배열
+  navigation_info: NavigationInfo; // 모두 false/null
+}
+
+// 자신의 스토리 상세 조회 API 응답
+export type MyStoryDetailApiResponse = ApiResponse<MyStoryDetailResponse>;

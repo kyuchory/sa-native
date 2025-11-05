@@ -9,7 +9,7 @@ import UserAvatar from './UserAvatar';
 interface StorySectionProps {
   stories: StoryListResponse | null;
   loading: boolean;
-  onStoryPress?: (user: any, storyId?: number) => void;
+  onStoryPress?: (user: any, storyId?: number, isMyStory?: boolean) => void;
   onAddStoryPress?: () => void;
 }
 
@@ -104,8 +104,12 @@ export default React.memo(function StorySection({ stories, loading, onStoryPress
 
   const handleStoryPress = (user: StoryUser) => {
     if (isMyProfile(user)) {
-      // 자신의 스토리의 경우: 스토리 보기 (나중으로 이동함)
-      // TODO: 내 스토리 화면으로 이동
+      // 자신의 스토리의 경우: 자신의 스토리 상세 화면으로 이동
+      // 자신의 스토리가 있는 경우 첫 번째 스토리 ID로 이동
+      const myStoryId = stories?.own?.[0]?.id;
+      if (myStoryId) {
+        onStoryPress?.(user, myStoryId, true); // 세 번째 파라미터로 자신의 스토리임을 표시
+      }
     } else {
       // 팔로우 스토리인 경우 스토리 보기 - storyId 포함해서 호출
       const storyData = stories?.following?.find(story => story.user.id === user.id);

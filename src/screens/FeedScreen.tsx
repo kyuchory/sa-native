@@ -148,9 +148,12 @@ export default function FeedScreen() {
   ], [handleFeedPress]);
 
   // 스토리 액션 핸들러들
-  const handleStoryPress = useCallback((user: any, storyId?: number) => {
+  const handleStoryPress = useCallback((user: any, storyId?: number, isMyStory?: boolean) => {
     if (storyId) {
-      navigation.navigate('DailyCutDetail', { storyId });
+      navigation.navigate('DailyCutDetail', {
+        storyId,
+        isMyStory: isMyStory || false
+      });
     }
   }, [navigation]);
 

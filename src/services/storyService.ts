@@ -10,7 +10,9 @@ import type {
   StoryEntryResponse,
   StoryEntryApiResponse,
   UserStoryDetailResponse,
-  UserStoryDetailApiResponse
+  UserStoryDetailApiResponse,
+  MyStoryDetailResponse,
+  MyStoryDetailApiResponse
 } from '../types/story';
 import type { ApiResponse } from '../types/api';
 
@@ -139,6 +141,25 @@ export class StoryService {
       return response.data!;
     } catch (error) {
       console.error('사용자 스토리 상세 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 자신의 스토리 상세 조회
+  static async getMyStoryDetail(storyId: number, direction?: 'next' | 'prev'): Promise<MyStoryDetailResponse> {
+    try {
+      const params = new URLSearchParams();
+      if (direction) {
+        params.append('direction', direction);
+      }
+
+      const queryString = params.toString();
+      const url = `/stories/my/${storyId}/detail${queryString ? `?${queryString}` : ''}`;
+
+      const response = await apiClient.get<MyStoryDetailApiResponse>(url);
+      return response.data!;
+    } catch (error) {
+      console.error('자신의 스토리 상세 조회 실패:', error);
       throw error;
     }
   }

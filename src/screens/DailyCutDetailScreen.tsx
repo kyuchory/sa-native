@@ -310,7 +310,7 @@ const StoryView: React.FC<{
 
 // ====== 메인 컴포넌트 ======
 export default function DailyCutDetailScreen({ route, navigation }: Props) {
-  const { storyId } = route.params;
+  const { storyId, isMyStory = false } = route.params;
   const { colors } = useThemeStore();
 
   // 동적 상태 관리
@@ -371,106 +371,141 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
   }, []);
 
   // 초기 로드
-  const initializeStory = useCallback(async (storyId: number) => {
-    console.log(`[initializeStory] 시작 - storyId: ${storyId}`);
+  const initializeStory = useCallback(async (storyId: number, isMyStory: boolean) => {
+    console.log(`[initializeStory] 시작 - storyId: ${storyId}, isMyStory: ${isMyStory}`);
     setLoading(true);
 
     try {
-      // 1. 스토리 진입 정보 조회
-      const entryResponse = await StoryService.getStoryEntry(storyId);
-      const targetUserId = entryResponse.entry_user_id;
-      console.log(`[initializeStory] 진입 유저 ID: ${targetUserId}`);
+      if (isMyStory) {
+        // 자신의 스토리인 경우
+        console.log('[initializeStory] 자신의 스토리 조회');
 
-      // 2. 해당 유저의 스토리 상세 조회 (초기 조회 - direction 없음)
-      const detailResponse = await StoryService.getUserStoryDetail(targetUserId);
-      console.log('[initializeStory] API 응답:', {
-        current: detailResponse.current_user_stories?.length || 0,
-        next: detailResponse.next_user_stories?.length || 0,
-        prev: detailResponse.prev_user_stories?.length || 0,
-        nav: detailResponse.navigation_info
-      });
+        // 자신의 스토리 상세 조회
+        const detailResponse = await StoryService.getMyStoryDetail(storyId);
+        console.log('[initializeStory] 자신의 스토리 API 응답:', {
+          stories: detailResponse.current_user_stories?.length || 0
+        });
 
-      // 3. current_user_stories를 현재 유저로 변환
-      let currentUser: UserStories | null = null;
-      if (detailResponse.current_user_stories?.length > 0) {
-        const first = detailResponse.current_user_stories[0];
-        currentUser = {
-          user_id: first.user_id,
-          username: first.username,
-          profile_img: first.profile_img,
+        if (!detailResponse.current_user_stories || detailResponse.current_user_stories.length === 0) {
+          throw new Error('자신의 스토리를 찾을 수 없습니다.');
+        }
+
+        // 자신의 스토리 데이터를 UserStories 형식으로 변환
+        const myStories: UserStories = {
+          user_id: detailResponse.current_user_stories[0].user_id,
+          username: detailResponse.current_user_stories[0].username,
+          profile_img: detailResponse.current_user_stories[0].profile_img,
           stories: detailResponse.current_user_stories,
         };
-        console.log(`[initializeStory] current_user 변환 - userId: ${first.user_id}, stories: ${detailResponse.current_user_stories.length}개`);
-      }
 
-      // 4. next/prev 유저 변환
-      const { prevUser, nextUser } = transformApiResponse(detailResponse);
-
-      if (!currentUser) {
-        throw new Error('현재 유저 스토리를 찾을 수 없습니다.');
-      }
-
-      // 5. pagination_info를 활용한 동적 초기 데이터 세팅
-      let initialArray: Array<UserStories | null> = [];
-      let baseIndex = 0;
-
-      if (detailResponse.pagination_info) {
-        // pagination_info가 있는 경우 (초기 조회)
-        const { total_users, current_index } = detailResponse.pagination_info;
-
-        // 동적 크기 배열 생성
-        initialArray = Array(total_users).fill(null);
-        baseIndex = current_index;
-
-        // 현재 유저 배치
-        initialArray[baseIndex] = currentUser;
-        loadedIndexMap.current.set(currentUser.user_id, baseIndex);
-
-        // prev/next 유저 배치
-        if (prevUser) {
-          initialArray[baseIndex - 1] = prevUser;
-          loadedIndexMap.current.set(prevUser.user_id, baseIndex - 1);
-        }
-
-        if (nextUser) {
-          initialArray[baseIndex + 1] = nextUser;
-          loadedIndexMap.current.set(nextUser.user_id, baseIndex + 1);
-        }
-
-        console.log(`[initializeStory] pagination_info 활용 초기화 - total_users: ${total_users}, current_index: ${current_index}`);
-        console.log(`[initializeStory] 초기 데이터 구성 완료 - baseIndex: ${baseIndex}`);
-        console.log(`[initializeStory] loadedIndexMap:`, Array.from(loadedIndexMap.current.entries()));
-
-        // 상태 설정
-        setTotalUsers(total_users);
+        // 자신의 스토리만 표시 (인덱스 0에 배치)
+        const initialArray: Array<UserStories | null> = [myStories];
         setData(initialArray);
-        setCurrentUserIndex(baseIndex);
-        setNavigationInfo(detailResponse.navigation_info);
+        setCurrentUserIndex(0);
+        setTotalUsers(1);
+        setNavigationInfo(null); // 내비게이션 정보 없음
+
+        console.log('[initializeStory] 자신의 스토리 초기화 완료');
       } else {
-        // pagination_info가 없는 경우 (예외 상황) - 기존 로직으로 폴백
-        console.warn('[initializeStory] pagination_info가 없음 - 폴백 모드');
-        initialArray = Array(FALLBACK_TOTAL_USERS).fill(null);
-        baseIndex = FALLBACK_CENTER_INDEX;
+        // 다른 유저의 스토리인 경우 (기존 로직)
+        console.log('[initializeStory] 다른 유저의 스토리 조회');
 
-        initialArray[baseIndex] = currentUser;
-        loadedIndexMap.current.set(currentUser.user_id, baseIndex);
+        // 1. 스토리 진입 정보 조회
+        const entryResponse = await StoryService.getStoryEntry(storyId);
+        const targetUserId = entryResponse.entry_user_id;
+        console.log(`[initializeStory] 진입 유저 ID: ${targetUserId}`);
 
-        if (prevUser) {
-          initialArray[baseIndex - 1] = prevUser;
-          loadedIndexMap.current.set(prevUser.user_id, baseIndex - 1);
+        // 2. 해당 유저의 스토리 상세 조회 (초기 조회 - direction 없음)
+        const detailResponse = await StoryService.getUserStoryDetail(targetUserId);
+        console.log('[initializeStory] API 응답:', {
+          current: detailResponse.current_user_stories?.length || 0,
+          next: detailResponse.next_user_stories?.length || 0,
+          prev: detailResponse.prev_user_stories?.length || 0,
+          nav: detailResponse.navigation_info
+        });
+
+        // 3. current_user_stories를 현재 유저로 변환
+        let currentUser: UserStories | null = null;
+        if (detailResponse.current_user_stories?.length > 0) {
+          const first = detailResponse.current_user_stories[0];
+          currentUser = {
+            user_id: first.user_id,
+            username: first.username,
+            profile_img: first.profile_img,
+            stories: detailResponse.current_user_stories,
+          };
+          console.log(`[initializeStory] current_user 변환 - userId: ${first.user_id}, stories: ${detailResponse.current_user_stories.length}개`);
         }
 
-        if (nextUser) {
-          initialArray[baseIndex + 1] = nextUser;
-          loadedIndexMap.current.set(nextUser.user_id, baseIndex + 1);
+        // 4. next/prev 유저 변환
+        const { prevUser, nextUser } = transformApiResponse(detailResponse);
+
+        if (!currentUser) {
+          throw new Error('현재 유저 스토리를 찾을 수 없습니다.');
         }
 
-        setData(initialArray);
-        setCurrentUserIndex(baseIndex);
-        setNavigationInfo(detailResponse.navigation_info);
+        // 5. pagination_info를 활용한 동적 초기 데이터 세팅
+        let initialArray: Array<UserStories | null> = [];
+        let baseIndex = 0;
+
+        if (detailResponse.pagination_info) {
+          // pagination_info가 있는 경우 (초기 조회)
+          const { total_users, current_index } = detailResponse.pagination_info;
+
+          // 동적 크기 배열 생성
+          initialArray = Array(total_users).fill(null);
+          baseIndex = current_index;
+
+          // 현재 유저 배치
+          initialArray[baseIndex] = currentUser;
+          loadedIndexMap.current.set(currentUser.user_id, baseIndex);
+
+          // prev/next 유저 배치
+          if (prevUser) {
+            initialArray[baseIndex - 1] = prevUser;
+            loadedIndexMap.current.set(prevUser.user_id, baseIndex - 1);
+          }
+
+          if (nextUser) {
+            initialArray[baseIndex + 1] = nextUser;
+            loadedIndexMap.current.set(nextUser.user_id, baseIndex + 1);
+          }
+
+          console.log(`[initializeStory] pagination_info 활용 초기화 - total_users: ${total_users}, current_index: ${current_index}`);
+          console.log(`[initializeStory] 초기 데이터 구성 완료 - baseIndex: ${baseIndex}`);
+          console.log(`[initializeStory] loadedIndexMap:`, Array.from(loadedIndexMap.current.entries()));
+
+          // 상태 설정
+          setTotalUsers(total_users);
+          setData(initialArray);
+          setCurrentUserIndex(baseIndex);
+          setNavigationInfo(detailResponse.navigation_info);
+        } else {
+          // pagination_info가 없는 경우 (예외 상황) - 기존 로직으로 폴백
+          console.warn('[initializeStory] pagination_info가 없음 - 폴백 모드');
+          initialArray = Array(FALLBACK_TOTAL_USERS).fill(null);
+          baseIndex = FALLBACK_CENTER_INDEX;
+
+          initialArray[baseIndex] = currentUser;
+          loadedIndexMap.current.set(currentUser.user_id, baseIndex);
+
+          if (prevUser) {
+            initialArray[baseIndex - 1] = prevUser;
+            loadedIndexMap.current.set(prevUser.user_id, baseIndex - 1);
+          }
+
+          if (nextUser) {
+            initialArray[baseIndex + 1] = nextUser;
+            loadedIndexMap.current.set(nextUser.user_id, baseIndex + 1);
+          }
+
+          setData(initialArray);
+          setCurrentUserIndex(baseIndex);
+          setNavigationInfo(detailResponse.navigation_info);
+        }
+
+        console.log('[initializeStory] 다른 유저의 스토리 초기화 완료');
       }
-
-      console.log('[initializeStory] 초기화 완료');
 
     } catch (error) {
       console.error('[initializeStory] 실패:', error);
@@ -553,8 +588,8 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
 
   // 초기 로드
   useEffect(() => {
-    initializeStory(storyId);
-  }, [storyId]);
+    initializeStory(storyId, isMyStory);
+  }, [storyId, isMyStory]);
 
   // 다음 유저로 이동
   const handleNextUser = useCallback(() => {
@@ -716,8 +751,8 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
                 onNext={handleNextUser}
                 onPrev={handlePrevUser}
                 onClose={() => navigation.goBack()}
-                canGoNext={!!navigationInfo?.has_next}
-                canGoPrev={!!navigationInfo?.has_prev}
+                canGoNext={isMyStory ? false : !!navigationInfo?.has_next}
+                canGoPrev={isMyStory ? false : !!navigationInfo?.has_prev}
               />
             ) : (
               <View style={{ width: ACTUAL_WIDTH }} />
