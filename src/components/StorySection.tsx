@@ -157,7 +157,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     borderBottomColor: colors.GRAY_100,
   },
   scrollContent: {
-    paddingHorizontal: SPACING.MD,
+    paddingHorizontal: SPACING.SM,
     gap: SPACING.MD,
   },
   storyItem: {
