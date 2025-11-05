@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions, Pressable, TouchableOpacity, TouchableWithoutFeedback, Alert, Platform, KeyboardAvoidingView, Keyboard, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import Animated, { useSharedValue, useAnimatedStyle, interpolate, Extrapolation, useAnimatedScrollHandler, SharedValue } from 'react-native-reanimated';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,6 +37,92 @@ const { width: screenWidth } = Dimensions.get('window');
 type FeedDetailRouteProp = RouteProp<AuthStackParamList, 'FeedDetail'>;
 type FeedDetailNavigationProp = StackNavigationProp<AuthStackParamList, 'FeedDetail'>;
 
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
+
+// 애니메이션 페이지 인디케이터 - 스크롤 오프셋 기반
+const AnimatedPageIndicator: React.FC<{
+  index: number;
+  totalPages: number;
+  scrollX: SharedValue<number>;
+  colors: Record<string, string>;
+}> = ({ index, totalPages, scrollX, colors }) => {
+
+  const animatedStyle = useAnimatedStyle(() => {
+    'worklet';
+    const inputRange = [
+      (index - 1) * screenWidth,
+      index * screenWidth,
+      (index + 1) * screenWidth,
+    ];
+
+    // 현재 페이지와의 거리 계산
+    const distance = Math.abs(scrollX.value / screenWidth - index);
+
+    // 거리에 따라 표시 여부 결정 (현재 기준 앞뒤 2개만)
+    if (distance > 2) {
+      return {
+        width: 0,
+        opacity: 0,
+        transform: [{ scale: 0 }],
+      };
+    }
+
+    // 너비 애니메이션 (active일 때 12, 나머지 6)
+    const width = interpolate(
+      scrollX.value,
+      inputRange,
+      [6, 12, 6],
+      Extrapolation.CLAMP
+    );
+
+    // 투명도 애니메이션
+    const opacity = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.5, 1, 0.5],
+      Extrapolation.CLAMP
+    );
+
+    // 스케일 애니메이션
+    const scale = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.7, 1, 0.7],
+      Extrapolation.CLAMP
+    );
+
+    return {
+      width,
+      opacity,
+      transform: [{ scale }],
+    };
+  });
+
+  // active 판단용 (렌더링용)
+  const isActiveStyle = useAnimatedStyle(() => {
+    'worklet';
+    const currentPage = Math.round(scrollX.value / screenWidth);
+    const isActive = currentPage === index;
+
+    return {
+      backgroundColor: isActive ? colors.PRIMARY : colors.GRAY_400,
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[
+        {
+          height: 6,
+          borderRadius: 3,
+        },
+        isActiveStyle,
+        animatedStyle,
+      ]}
+    />
+  );
+};
+
 // 시간 포맷 함수
 const formatTimeAgo = (dateString: string): string => {
   const now = new Date();
@@ -64,6 +151,9 @@ export default function FeedDetailScreen() {
   // expand/collapse 상태 관리
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // 스크롤 상태 관리
+  const scrollX = useSharedValue(0);
+
   // 피드 데이터 및 상태 관리
   const [feed, setFeed] = useState<FeedDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,6 +177,13 @@ export default function FeedDetailScreen() {
   // 데이터 필터링 (feed가 null일 수 있음)
   const mediaBlocks = feed ? feed.content_blocks.filter(block => block.type === 'image' || block.type === 'video') : [];
   const textBlock = feed ? feed.content_blocks.find(block => block.type === 'text') : null;
+
+  // 스크롤 핸들러
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollX.value = event.contentOffset.x;
+    },
+  });
 
   // 키보드 이벤트 리스너 (양쪽 플랫폼 모두 키보드 높이 추적)
   useEffect(() => {
@@ -622,32 +719,54 @@ export default function FeedDetailScreen() {
 
           {/* 미디어 스크롤 영역 (이미지 + 비디오) */}
           {mediaBlocks.length > 0 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              pagingEnabled
-              style={styles.imageScroll}
-            >
-              {mediaBlocks.map((block: any, index: number) => (
-                <View key={block.sequence} style={styles.imageContainer}>
-                  {block.type === 'video' ? (
-                    <TapPauseVideo videoUri={block.value} />
-                  ) : (
-                    <Image
-                      source={{ uri: block.value }}
-                      style={styles.mainImage}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                      transition={200}
+            <>
+              <AnimatedScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                style={styles.imageScroll}
+                onScroll={scrollHandler}
+                scrollEventThrottle={16}
+                decelerationRate="fast"
+              >
+                {mediaBlocks.map((block: any, index: number) => (
+                  <View key={block.sequence} style={styles.carouselItem}>
+                    {/* 첫 번째 미디어에만 총 개수 표시 */}
+                    {index === 0 && mediaBlocks.length > 1 && (
+                      <Text style={styles.moreImagesText}>
+                        +{mediaBlocks.length}
+                      </Text>
+                    )}
+                    {block.type === 'video' ? (
+                      <TapPauseVideo videoUri={block.value} />
+                    ) : (
+                      <Image
+                        source={{ uri: block.value }}
+                        style={styles.mainImage}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                        transition={200}
+                      />
+                    )}
+                  </View>
+                ))}
+              </AnimatedScrollView>
+
+              {/* 애니메이션 페이지 인디케이터 - 스크롤 기반 */}
+              {mediaBlocks.length > 1 && (
+                <View style={styles.pageIndicatorContainer}>
+                  {mediaBlocks.map((_, index) => (
+                    <AnimatedPageIndicator
+                      key={index}
+                      index={index}
+                      totalPages={mediaBlocks.length}
+                      scrollX={scrollX}
+                      colors={colors}
                     />
-                  )}
-                  {/* 모든 미디어에 순번 표시 - 우측 하단 */}
-                  <Text style={styles.moreImagesText}>
-                    {index + 1}/{mediaBlocks.length}
-                  </Text>
+                  ))}
                 </View>
-              ))}
-            </ScrollView>
+              )}
+            </>
           )}
 
           {/* 액션 버튼들 */}
@@ -816,7 +935,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: SPACING.MD,
+    paddingHorizontal: SPACING.SM,
     paddingVertical: SPACING.SM,
   },
   userInfo: {
@@ -836,6 +955,11 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
 
   // 이미지 스크롤
   imageScroll: {
+    height: screenWidth,
+  },
+  carouselItem: {
+    position: 'relative',
+    width: screenWidth,
     height: screenWidth,
   },
   imageContainer: {
@@ -867,7 +991,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: SPACING.MD,
+    paddingHorizontal: SPACING.SM,
     paddingVertical: SPACING.MD,
   },
   leftActions: {
@@ -893,7 +1017,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
 
   // 콘텐츠 텍스트
   contentTextContainer: {
-    paddingHorizontal: SPACING.MD,
+    paddingHorizontal: SPACING.SM,
     paddingBottom: SPACING.SM,
   },
   contentText: {
@@ -911,7 +1035,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   timeText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
-    paddingHorizontal: SPACING.MD,
+    paddingHorizontal: SPACING.SM,
     paddingBottom: SPACING.MD,
   },
 
@@ -937,6 +1061,13 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   // 메뉴 버튼
   menuButton: {
     padding: SPACING.SM,
+  },
+  pageIndicatorContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SPACING.SM,
+    gap: SPACING.XS,
   },
   // 비디오 컨테이너
   videoContainer: {

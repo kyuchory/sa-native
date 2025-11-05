@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Platform, ScrollView, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer, VideoSource } from 'expo-video';
 import { getThumbnailAsync } from 'expo-video-thumbnails';
+import Animated, { useSharedValue, useAnimatedStyle, interpolate, Extrapolation, useAnimatedScrollHandler, SharedValue } from 'react-native-reanimated';
 import { TYPOGRAPHY, SPACING, COLORS } from '../constants/theme';
 import { FeedListItem } from '../types/feed';
 import { FeedService } from '../services/feedService';
@@ -22,30 +23,123 @@ interface FeedCardProps {
   onCommentPress?: (feedId: number) => void;
   onBookmarkPress?: (feedId: number) => void;
   onUserPress?: (userId: number) => void;
-  onMenuPress?: (feed: FeedListItem) => void; // 메뉴 버튼 클릭 콜백
-  isVisible?: boolean; // 비디오 가시성 제어 (선택적)
+  onMenuPress?: (feed: FeedListItem) => void;
+  isVisible?: boolean;
 }
 
 type FeedCardNavigationProp = StackNavigationProp<AuthStackParamList>;
 
-// 아이콘 컴포넌트들
 import { HeartIcon, CommentIcon, BookmarkIcon } from './FeedCardIcons';
 import UserAvatar from './UserAvatar';
 
-// TapPauseVideo 컴포넌트 - 탭하면 재생/일시정지
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
+
+// 애니메이션 페이지 인디케이터 - 스크롤 오프셋 기반
+const AnimatedPageIndicator: React.FC<{
+  index: number;
+  totalPages: number;
+  scrollX: SharedValue<number>;
+  colors: Record<string, string>;
+}> = ({ index, totalPages, scrollX, colors }) => {
+  
+  const animatedStyle = useAnimatedStyle(() => {
+    'worklet';
+    const inputRange = [
+      (index - 1) * screenWidth,
+      index * screenWidth,
+      (index + 1) * screenWidth,
+    ];
+    
+    // 현재 페이지와의 거리 계산
+    const distance = Math.abs(scrollX.value / screenWidth - index);
+    
+    // 거리에 따라 표시 여부 결정 (현재 기준 앞뒤 2개만)
+    if (distance > 2) {
+      return {
+        width: 0,
+        opacity: 0,
+        transform: [{ scale: 0 }],
+      };
+    }
+    
+    // 너비 애니메이션 (active일 때 12, 나머지 6)
+    const width = interpolate(
+      scrollX.value,
+      inputRange,
+      [6, 12, 6],
+      Extrapolation.CLAMP
+    );
+    
+    // 투명도 애니메이션
+    const opacity = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.5, 1, 0.5],
+      Extrapolation.CLAMP
+    );
+    
+    // 스케일 애니메이션
+    const scale = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.7, 1, 0.7],
+      Extrapolation.CLAMP
+    );
+    
+    // active 여부에 따른 색상 결정을 위한 progress
+    const isActiveProgress = interpolate(
+      scrollX.value,
+      [index * screenWidth - screenWidth * 0.3, index * screenWidth, index * screenWidth + screenWidth * 0.3],
+      [0, 1, 0],
+      Extrapolation.CLAMP
+    );
+    
+    return {
+      width,
+      opacity,
+      transform: [{ scale }],
+      // 색상은 여기서 처리하지 않고 backgroundColor를 조건부로 설정
+    };
+  });
+  
+  // active 판단용 (렌더링용)
+  const isActiveStyle = useAnimatedStyle(() => {
+    'worklet';
+    const currentPage = Math.round(scrollX.value / screenWidth);
+    const isActive = currentPage === index;
+    
+    return {
+      backgroundColor: isActive ? colors.PRIMARY : colors.GRAY_400,
+    };
+  });
+  
+  return (
+    <Animated.View
+      style={[
+        {
+          height: 6,
+          borderRadius: 3,
+        },
+        isActiveStyle,
+        animatedStyle,
+      ]}
+    />
+  );
+};
+
+// TapPauseVideo 컴포넌트
 const TapPauseVideo = ({ videoUri, isVisible }: { videoUri: string; isVisible?: boolean }) => {
   const player = useVideoPlayer(videoUri, (player) => {
     player.loop = true;
-    player.muted = true; // 시작할 때 기본적으로 음소거 상태
+    player.muted = true;
     if (isVisible) {
       player.play();
     }
   });
 
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(true); // 음소거 상태 관리
+  const [isMuted, setIsMuted] = useState(true);
 
-  // Visibility change effect
   useEffect(() => {
     if (!player) return;
 
@@ -79,7 +173,6 @@ const TapPauseVideo = ({ videoUri, isVisible }: { videoUri: string; isVisible?: 
         nativeControls={false}
         surfaceType={Platform.OS === 'android' ? 'textureView' : 'surfaceView'}
       />
-      {/* 음소거 토글 버튼 - 우측 상단 */}
       <TouchableOpacity
         onPress={handleToggleMute}
         activeOpacity={0.9}
@@ -91,7 +184,6 @@ const TapPauseVideo = ({ videoUri, isVisible }: { videoUri: string; isVisible?: 
           <UnmuteIcon size={20} color={COLORS.WHITE} />
         )}
       </TouchableOpacity>
-      {/* 터치 오버레이 - VideoView 위에 투명 레이어 */}
       <TouchableOpacity
         onPress={handleTogglePlay}
         activeOpacity={1}
@@ -116,12 +208,12 @@ const formatTimeAgo = (dateString: string): string => {
   }
 };
 
-// Enhanced VideoBlock 컴포넌트 - 성능 최적화 포함
+// Enhanced VideoBlock 컴포넌트
 interface EnhancedVideoBlockProps {
   videoUri: string;
   feedId: number;
   styles: any;
-  isVisible?: boolean; // 화면에 보이는지 여부 (미래 확장용)
+  isVisible?: boolean;
 }
 
 const EnhancedVideoBlock = React.memo(({
@@ -134,45 +226,38 @@ const EnhancedVideoBlock = React.memo(({
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const playerRef = useRef<any>(null);
 
-  // 메모이제이션된 VideoSource - 캐싱 활성화 및 플랫폼별 최적화
   const videoSource = useMemo<VideoSource>(() => ({
     uri: videoUri,
-    useCaching: true, // 동일 영상 재시청 시 네트워크 요청 제거
-    // HLS 제외하고 캐싱 적용 (iOS HLS는 플랫폼 제한)
+    useCaching: true,
     headers: Platform.OS === 'ios' && videoUri.includes('.m3u8') ? undefined : {}
   }), [videoUri]);
 
-  // 썸네일 미리 로드
   useEffect(() => {
     const preloadThumbnail = async () => {
       try {
-        // 영상 첫 프레임(0초)에서 썸네일 생성
         const thumbnail = await getThumbnailAsync(videoUri, {
-          time: 0.0, // 첫 프레임
-          quality: 0.5 // 압축 품질 (0.0-1.0)
+          time: 0.0,
+          quality: 0.5
         });
         setThumbnailUri(thumbnail.uri);
       } catch (error) {
         console.warn('썸네일 생성 실패:', error);
-        // 썸네일 실패해도 비디오 재생은 계속됨
       }
     };
 
     preloadThumbnail();
   }, [videoUri]);
 
-  // 플레이어 설정
   const player = useVideoPlayer(videoSource, player => {
     player.loop = true;
     player.muted = true;
     if (isVisible) {
-      player.play(); // 화면에 보이면 자동 재생
+      player.play();
     }
     setIsPlayerReady(true);
     playerRef.current = player;
   });
 
-  // Visibility 변화에 따른 플레이어 제어
   useEffect(() => {
     if (!player || !isPlayerReady) return;
 
@@ -183,12 +268,8 @@ const EnhancedVideoBlock = React.memo(({
     }
   }, [isVisible, player, isPlayerReady]);
 
-  // 메모리 정리 불필요 - useVideoPlayer 훅이 자동으로 처리함
-  // createVideoPlayer()로 수동 생성한 경우에만 release() 직접 호출 필요
-
   return (
     <View style={styles.videoContainer}>
-      {/* 썸네일 표시 (비디오 로딩 전) */}
       {!isPlayerReady && thumbnailUri && (
         <Image
           source={{ uri: thumbnailUri }}
@@ -198,21 +279,17 @@ const EnhancedVideoBlock = React.memo(({
         />
       )}
 
-      {/* 비디오 플레이어 */}
       <VideoView
         player={player}
         style={styles.mainImage}
         nativeControls={false}
         contentFit="contain"
-        // 안드로이드 겹침 문제 해결 - textureView 사용
         surfaceType={Platform.OS === 'android' ? 'textureView' : 'surfaceView'}
-        // 비디오가 준비되면 썸네일 오버레이
         onFirstFrameRender={() => setThumbnailUri(null)}
       />
     </View>
   );
 }, (prevProps, nextProps) => {
-  // feedId, videoUri, isVisible가 동일하면 리렌더링 방지
   return prevProps.feedId === nextProps.feedId &&
          prevProps.videoUri === nextProps.videoUri &&
          prevProps.isVisible === nextProps.isVisible;
@@ -225,7 +302,7 @@ function FeedCard({
   onBookmarkPress,
   onUserPress,
   onMenuPress,
-  isVisible = true // 기본적으로 보이는 것으로 설정
+  isVisible = true
 }: FeedCardProps) {
   const { colors } = useThemeStore();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -237,35 +314,36 @@ function FeedCard({
   const [bookmarkCount, setBookmarkCount] = useState(feed.bookmark_count);
   const [isBookmarkLoading, setIsBookmarkLoading] = useState(false);
 
-  // 카로셀 페이지 상태 관리
   const [currentPage, setCurrentPage] = useState(0);
+  const scrollX = useSharedValue(0);
 
   const navigation = useNavigation<FeedCardNavigationProp>();
-  const { setShouldRefreshFeeds } = useFeedStore(); // 피드 목록 새로고침 플래그 설정용
-  const { setShouldRefreshProfileFeeds } = useProfileStore(); // 프로필 플래그 설정용
+  const { setShouldRefreshFeeds } = useFeedStore();
+  const { setShouldRefreshProfileFeeds } = useProfileStore();
 
-  // feed prop이 변경될 때 상태 초기화
   useEffect(() => {
     setIsLiked(feed.is_liked || false);
     setLikeCount(feed.like_count);
   }, [feed.is_liked, feed.like_count]);
 
-  // 북마크 상태 초기화 및 업데이트
   useEffect(() => {
     setIsBookmarked(feed.is_bookmarked || false);
     setBookmarkCount(feed.bookmark_count);
   }, [feed.is_bookmarked, feed.bookmark_count]);
 
-  // 미디어 블록 필터링 (이미지 + 비디오)
   const mediaBlocks = feed.content_blocks.filter(block => block.type === 'image' || block.type === 'video');
-  // 텍스트 블록 찾기
   const textBlock = feed.content_blocks.find(block => block.type === 'text');
 
-  // 좋아요 토글 핸들러 (낙관적 UI 적용 + useCallback 최적화)
-  const handleLikePress = useCallback(async () => {
-    if (isLikeLoading) return; // 이미 요청 중이면 무시
+  // 스크롤 핸들러
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollX.value = event.contentOffset.x;
+    },
+  });
 
-    // 낙관적 UI: 즉시 상태 업데이트
+  const handleLikePress = useCallback(async () => {
+    if (isLikeLoading) return;
+
     const originalIsLiked = isLiked;
     const originalLikeCount = likeCount;
     const newLikeState = !isLiked;
@@ -275,35 +353,22 @@ function FeedCard({
     setIsLikeLoading(true);
 
     try {
-      // API 호출
       const response = await FeedService.toggleLike(feed.id);
-
-      // 서버 응답으로 최종 상태 동기화
       setIsLiked(response.is_liked);
       setLikeCount(response.like_count);
-
-      // 부모 컴포넌트에 알림
       onLikePress?.(feed.id);
-
     } catch (error) {
       console.error('좋아요 토글 실패:', error);
-
-      // 실패 시 원래 상태로 롤백
       setIsLiked(originalIsLiked);
       setLikeCount(originalLikeCount);
-
-      // TODO: 에러 토스트 메시지 표시
-
     } finally {
       setIsLikeLoading(false);
     }
   }, [isLikeLoading, isLiked, likeCount, feed.id, onLikePress]);
 
-  // 북마크 토글 핸들러 (낙관적 UI 적용, FeedDetailScreen과 동일 패턴 + useCallback 최적화)
   const handleBookmarkPress = useCallback(async () => {
-    if (isBookmarkLoading) return; // 이미 요청 중이면 무시
+    if (isBookmarkLoading) return;
 
-    // 낙관적 UI: 즉시 상태 업데이트
     const originalIsBookmarked = isBookmarked;
     const originalBookmarkCount = bookmarkCount;
     const newBookmarkState = !isBookmarked;
@@ -313,27 +378,15 @@ function FeedCard({
     setIsBookmarkLoading(true);
 
     try {
-      // API 호출 - 북마크 토글
       const response = await FeedService.toggleBookmark(feed.id);
-
-      // 서버 응답으로 최종 상태 동기화
       setIsBookmarked(response.is_bookmarked);
       setBookmarkCount(response.bookmark_count);
-
-      // 부모 컴포넌트에 알림
       onBookmarkPress?.(feed.id);
-
       console.log('북마크 토글 성공:', { feedId: feed.id, is_bookmarked: response.is_bookmarked });
-
     } catch (error) {
       console.error('북마크 토글 실패:', error);
-
-      // 실패 시 원래 상태로 롤백
       setIsBookmarked(originalIsBookmarked);
       setBookmarkCount(originalBookmarkCount);
-
-      // TODO: 에러 토스트 메시지 표시
-
     } finally {
       setIsBookmarkLoading(false);
     }
@@ -347,9 +400,6 @@ function FeedCard({
     onCommentPress?.(feed.id);
   }, [onCommentPress, feed.id]);
 
-
-
-  // 텍스트 더보기/접기 처리
   const renderContent = () => {
     if (!textBlock) return null;
     
@@ -385,7 +435,6 @@ function FeedCard({
 
   return (
     <View style={styles.container}>
-      {/* 헤더 - 프로필 정보 */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerLeft} onPress={handleUserPress} activeOpacity={0.7}>
           <UserAvatar
@@ -398,7 +447,6 @@ function FeedCard({
           </View>
         </TouchableOpacity>
 
-        {/* 모든 피드카드에 메뉴 버튼 표시 */}
         <TouchableOpacity
           style={styles.menuButton}
           onPress={() => onMenuPress?.(feed)}
@@ -408,11 +456,9 @@ function FeedCard({
         </TouchableOpacity>
       </View>
 
-      {/* 미디어 영역 (이미지 + 비디오) */}
       {mediaBlocks.length > 0 && (
         <>
           {mediaBlocks.length === 1 ? (
-            // 단일 미디어 표시 (+(media_count - 1) 표시하지 않음, 대신 전체 개수 표시)
             <TouchableOpacity style={styles.imageContainer} activeOpacity={0.9}>
               {mediaBlocks[0].type === 'video' ? (
                 <TapPauseVideo videoUri={mediaBlocks[0].value} isVisible={isVisible} />
@@ -425,7 +471,6 @@ function FeedCard({
                   transition={200}
                 />
               )}
-              {/* 단일 미디어일 때는 세로 영역 표시 */}
               {feed.media_count > 1 && (
                 <View style={styles.imageCountBadge}>
                   <Text style={styles.imageCountText}>{feed.media_count}장</Text>
@@ -433,12 +478,13 @@ function FeedCard({
               )}
             </TouchableOpacity>
           ) : (
-            // 다중 미디어 카로셀
-            <ScrollView
+            <AnimatedScrollView
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               style={styles.imageScroll}
+              onScroll={scrollHandler}
+              scrollEventThrottle={16}
               onMomentumScrollEnd={(event) => {
                 const page = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
                 setCurrentPage(page);
@@ -447,9 +493,12 @@ function FeedCard({
             >
               {mediaBlocks.map((block, index) => (
                 <View key={block.sequence} style={styles.carouselItem}>
-                  <Text style={styles.moreImagesText}>
-                    {index + 1}/{mediaBlocks.length}
-                  </Text>
+                  {/* 첫 번째 미디어에만 총 개수 표시 */}
+                  {index === 0 && mediaBlocks.length > 1 && (
+                    <Text style={styles.moreImagesText}>
+                      +{mediaBlocks.length}
+                    </Text>
+                  )}
                   {block.type === 'video' ? (
                     <TapPauseVideo videoUri={block.value} isVisible={isVisible && currentPage === index} />
                   ) : (
@@ -463,12 +512,26 @@ function FeedCard({
                   )}
                 </View>
               ))}
-            </ScrollView>
+            </AnimatedScrollView>
           )}
         </>
       )}
 
-      {/* 액션 버튼들 */}
+      {/* 애니메이션 페이지 인디케이터 - 스크롤 기반 */}
+      {mediaBlocks.length > 1 && (
+        <View style={styles.pageIndicatorContainer}>
+          {mediaBlocks.map((_, index) => (
+            <AnimatedPageIndicator
+              key={index}
+              index={index}
+              totalPages={mediaBlocks.length}
+              scrollX={scrollX}
+              colors={colors}
+            />
+          ))}
+        </View>
+      )}
+
       <View style={styles.actionsContainer}>
         <View style={styles.leftActions}>
           <TouchableOpacity
@@ -522,32 +585,27 @@ function FeedCard({
         </View>
       </View>
 
-      {/* 콘텐츠 텍스트 */}
       {textBlock && (
         <View style={styles.contentContainer}>
           {renderContent()}
         </View>
       )}
 
-      {/* 시간 정보 */}
       <Text style={styles.timeText}>{formatTimeAgo(feed.created_at)}</Text>
     </View>
   );
 }
 
-// 스타일 생성 함수
 const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     backgroundColor: colors.WHITE,
     marginBottom: SPACING.XS,
   },
-
-  // 헤더
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.MD,
+    paddingHorizontal: SPACING.SM,
     paddingVertical: SPACING.SM,
   },
   headerLeft: {
@@ -565,15 +623,13 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   nickname: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
+    color: colors.GRAY_900,
   },
   location: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
+    color: colors.GRAY_600,
     marginTop: 2,
   },
-
-  // 이미지
   imageContainer: {
     position: 'relative',
   },
@@ -589,14 +645,14 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     position: 'absolute',
     bottom: SPACING.SM,
     right: SPACING.SM,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     color: COLORS.WHITE,
-    paddingHorizontal: SPACING.SM,
-    paddingVertical: 4,
-    borderRadius: 12,
-    fontSize: TYPOGRAPHY.SIZE.MD,
-    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    zIndex: 10, // 이미지 위에 표시되도록 zIndex 추가
+    paddingHorizontal: SPACING.XS,
+    paddingVertical: 2,
+    borderRadius: 8,
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    zIndex: 10,
   },
   videoContainer: {
     position: 'relative',
@@ -623,13 +679,11 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
   },
-
-  // 액션 버튼들
   actionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: SPACING.MD,
+    paddingHorizontal: SPACING.SM,
     paddingVertical: SPACING.MD,
   },
   leftActions: {
@@ -645,40 +699,42 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   actionCount: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
+    color: colors.GRAY_900,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     marginRight: SPACING.MD,
   },
   loadingText: {
     opacity: 0.6,
   },
-
-  // 콘텐츠
   contentContainer: {
-    paddingHorizontal: SPACING.MD,
+    paddingHorizontal: SPACING.SM,
     paddingBottom: SPACING.SM,
   },
   contentText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
+    color: colors.GRAY_900,
     lineHeight: 20,
   },
   moreText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
+    color: colors.GRAY_600,
     marginTop: SPACING.XS,
   },
-
-  // 시간
+  pageIndicatorContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SPACING.SM,
+    gap: SPACING.XS,
+  },
   timeText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
-    paddingHorizontal: SPACING.MD,
+    color: colors.GRAY_600,
+    paddingHorizontal: SPACING.SM,
     paddingBottom: SPACING.MD,
   }
 });
 
-// 비디오 컴포넌트용 스타일
 const videoStyles = StyleSheet.create({
   container: {
     width: screenWidth,
@@ -712,7 +768,6 @@ const videoStyles = StyleSheet.create({
   },
 });
 
-// FeedCard 메모이제이션 비교 함수 - 서버 데이터 변경 감지를 위해 필수 필드들 비교
 const feedCardPropsAreEqual = (prevProps: FeedCardProps, nextProps: FeedCardProps): boolean => {
   const prevFeed = prevProps.feed;
   const nextFeed = nextProps.feed;
@@ -728,5 +783,4 @@ const feedCardPropsAreEqual = (prevProps: FeedCardProps, nextProps: FeedCardProp
   );
 };
 
-// React.memo 적용으로 리스트 스크롤 성능 최적화
 export default React.memo(FeedCard, feedCardPropsAreEqual);
