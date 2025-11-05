@@ -577,6 +577,7 @@ function FeedCard({
           </TouchableOpacity>
           <Text style={[
             styles.actionCount,
+            styles.rightActionCount,
             isBookmarked && { color: colors.PRIMARY },
             isBookmarkLoading && styles.loadingText
           ]}>
@@ -702,6 +703,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     color: colors.GRAY_900,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     marginRight: SPACING.MD,
+  },
+  rightActionCount: {
+    marginRight: 0,
   },
   loadingText: {
     opacity: 0.6,

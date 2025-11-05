@@ -802,7 +802,7 @@ export default function FeedDetailScreen() {
               <Text style={styles.actionCount}>{feed.comment_count}</Text>
             </View>
 
-            <View style={styles.rightActions}>
+        <View style={styles.rightActions}>
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={onFeedBookmarkToggle}
@@ -820,6 +820,7 @@ export default function FeedDetailScreen() {
               </TouchableOpacity>
               <Text style={[
                 styles.actionCount,
+                styles.rightActionCount,
                 feed.is_bookmarked && { color: colors.PRIMARY },
                 isFeedBookmarkLoading && styles.loadingText
               ]}>
@@ -1010,6 +1011,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     marginRight: SPACING.MD,
+  },
+  rightActionCount: {
+    marginRight: 0,
   },
   loadingText: {
     opacity: 0.6,
