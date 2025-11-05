@@ -6,7 +6,11 @@ import type {
   StoryListResponse,
   StoryListApiResponse,
   StoryDetailResponse,
-  StoryDetailApiResponse
+  StoryDetailApiResponse,
+  StoryEntryResponse,
+  StoryEntryApiResponse,
+  UserStoryDetailResponse,
+  UserStoryDetailApiResponse
 } from '../types/story';
 import type { ApiResponse } from '../types/api';
 
@@ -90,7 +94,7 @@ export class StoryService {
     }
   }
 
-  // 스토리 상세 조회
+  // 스토리 상세 조회 (기존 storyId 기반 - deprecated)
   static async getStoryDetail(storyId: number, direction?: 'next' | 'prev'): Promise<StoryDetailResponse> {
     try {
       const params = new URLSearchParams();
@@ -105,6 +109,36 @@ export class StoryService {
       return response.data!;
     } catch (error) {
       console.error('스토리 상세 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 스토리 진입 정보 조회 (새로운 userId 기반 구조의 브릿지)
+  static async getStoryEntry(storyId: number): Promise<StoryEntryResponse> {
+    try {
+      const response = await apiClient.get<StoryEntryApiResponse>(`/stories/${storyId}/entry`);
+      return response.data!;
+    } catch (error) {
+      console.error('스토리 진입 정보 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 사용자 스토리 상세 조회 (새로운 userId 기반 구조)
+  static async getUserStoryDetail(userId: number, direction?: 'next' | 'prev'): Promise<UserStoryDetailResponse> {
+    try {
+      const params = new URLSearchParams();
+      if (direction) {
+        params.append('direction', direction);
+      }
+
+      const queryString = params.toString();
+      const url = `/stories/user/${userId}/detail${queryString ? `?${queryString}` : ''}`;
+
+      const response = await apiClient.get<UserStoryDetailApiResponse>(url);
+      return response.data!;
+    } catch (error) {
+      console.error('사용자 스토리 상세 조회 실패:', error);
       throw error;
     }
   }

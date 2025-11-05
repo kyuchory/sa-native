@@ -88,8 +88,8 @@ export interface UserStoryItem {
 
 // 스토리 상세 조회 - 내비게이션 정보
 export interface NavigationInfo {
-  next_user_id?: number | null;
-  prev_user_id?: number | null;
+  next_user_id: number | null;
+  prev_user_id: number | null;
   has_next: boolean;
   has_prev: boolean;
 }
@@ -105,3 +105,27 @@ export interface StoryDetailResponse {
 
 // 스토리 상세 조회 API 응답
 export type StoryDetailApiResponse = ApiResponse<StoryDetailResponse>;
+
+// 스토리 진입 정보 조회 응답 데이터
+export interface StoryEntryResponse {
+  entry_user_id: number;
+  redirect_to: string;
+}
+
+// 스토리 진입 정보 조회 API 응답
+export type StoryEntryApiResponse = ApiResponse<StoryEntryResponse>;
+
+// 사용자 스토리 상세 조회 응답 데이터 (새로운 userId 기반 구조)
+export interface UserStoryDetailResponse {
+  current_user_stories: UserStoryItem[]; // 현재 사용자의 모든 스토리 (시간순) - direction이 있을 때는 빈 배열
+  next_user_stories: UserStoryItem[]; // 다음 사용자의 스토리 (프리페칭용, 빈 배열 가능)
+  prev_user_stories: UserStoryItem[]; // 이전 사용자의 스토리 (프리페칭용, 빈 배열 가능)
+  navigation_info: NavigationInfo; // 네비게이션 정보
+  pagination_info?: { // 초기 조회시에만 제공
+    total_users: number; // 총 조회 가능한 유저 수
+    current_index: number; // 현재 유저의 인덱스 (0부터 시작)
+  };
+}
+
+// 사용자 스토리 상세 조회 API 응답
+export type UserStoryDetailApiResponse = ApiResponse<UserStoryDetailResponse>;
