@@ -80,52 +80,32 @@ interface NavigationInfo {
 const ProgressBar: React.FC<{
   isActive: boolean;
   isCompleted: boolean;
-  isPaused: boolean;
   duration: number;
   segmentWidth: number;
   colors: Record<string, string>;
   onComplete: () => void;
-}> = ({ isActive, isCompleted, isPaused, duration, segmentWidth, colors, onComplete }) => {
+}> = ({ isActive, isCompleted, duration, segmentWidth, colors, onComplete }) => {
   const progress = useSharedValue(0);
-  const pausedProgressRef = useRef<number>(0);
 
   useEffect(() => {
     if (isActive) {
-      cancelAnimation(progress);
       progress.value = 0;
-      pausedProgressRef.current = 0;
-    } else if (!isCompleted) {
-      cancelAnimation(progress);
-      progress.value = 0;
-      pausedProgressRef.current = 0;
-    }
-  }, [isActive]);
-
-  useEffect(() => {
-    if (isActive) {
-      if (isPaused) {
-        pausedProgressRef.current = progress.value;
-        cancelAnimation(progress);
-      } else {
-        const resumedProgress = pausedProgressRef.current;
-        const remainingDuration = duration * (1 - resumedProgress);
-
-        progress.value = resumedProgress;
-        progress.value = withTiming(
-          1,
-          { duration: remainingDuration },
-          (finished) => {
-            'worklet';
-            if (finished) {
-              scheduleOnRN(onComplete);
-            }
+      progress.value = withTiming(
+        1,
+        { duration },
+        (finished) => {
+          'worklet';
+          if (finished) {
+            scheduleOnRN(onComplete);
           }
-        );
-      }
+        }
+      );
     } else if (isCompleted) {
       progress.value = 1;
+    } else {
+      progress.value = 0;
     }
-  }, [isActive, isPaused, duration]);
+  }, [isActive, duration]);
 
   const progressAnimatedStyle = useAnimatedStyle(() => {
     'worklet';
@@ -150,31 +130,20 @@ const ProgressBar: React.FC<{
 const StorySegment: React.FC<{
   story: Story;
   isActive: boolean;
-  isPaused: boolean;
   colors: Record<string, string>;
   onVideoEnd: () => void;
-}> = ({ story, isActive, isPaused, colors, onVideoEnd }) => {
+}> = ({ story, isActive, colors, onVideoEnd }) => {
   const [imageLoading, setImageLoading] = useState(true);
 
   const player = useVideoPlayer(
     story.type === 'video' && isActive ? story.content_url : '',
     (player) => {
       player.loop = false;
-      if (isActive && !isPaused) {
+      if (isActive) {
         player.play();
       }
     }
   );
-
-  useEffect(() => {
-    if (story.type !== 'video' || !isActive) return;
-
-    if (isPaused) {
-      player.pause();
-    } else {
-      player.play();
-    }
-  }, [isPaused, isActive, story.type]);
 
   useEffect(() => {
     if (story.type !== 'video' || !isActive) return;
@@ -231,7 +200,6 @@ const StoryView: React.FC<{
 }> = ({ userStories, isActive, onNext, onPrev, onClose, canGoNext, canGoPrev }) => {
   const { colors } = useThemeStore();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
   const pressStartRef = useRef<number>(0);
 
   const currentStory = userStories.stories[currentIndex];
@@ -272,9 +240,6 @@ const StoryView: React.FC<{
   }, [currentIndex, onPrev, canGoPrev]);
 
   const handlePress = useCallback((x: number) => {
-    const pressDuration = Date.now() - pressStartRef.current;
-    if (pressDuration > 200) return;
-
     const halfWidth = ACTUAL_WIDTH / 2;
     if (x > halfWidth) {
       handleNext();
@@ -295,7 +260,6 @@ const StoryView: React.FC<{
           key={story.id}
           story={story}
           isActive={index === currentIndex}
-          isPaused={isPaused}
           colors={colors}
           onVideoEnd={handleNext}
         />
@@ -303,11 +267,6 @@ const StoryView: React.FC<{
 
       <Pressable
         style={q.touchOverlay}
-        onPressIn={() => {
-          pressStartRef.current = Date.now();
-          setIsPaused(true);
-        }}
-        onPressOut={() => setIsPaused(false)}
         onPress={(e) => handlePress(e.nativeEvent.locationX)}
       />
 
@@ -322,7 +281,6 @@ const StoryView: React.FC<{
                 key={`${currentStory?.user_id}-${idx}`}
                 isCompleted={isCompleted}
                 isActive={isActiveBar && isActive}
-                isPaused={isPaused}
                 duration={story.type === 'video' ? (story.duration ?? 5) * 1000 : 5000}
                 segmentWidth={segmentWidth}
                 colors={colors}
