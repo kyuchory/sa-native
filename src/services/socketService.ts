@@ -86,24 +86,28 @@ class SocketService {
 
     // 연결 실패
     this.socket.on('connect_error', async (error: any) => {
-      console.error('❌ 소켓 연결 실패:', error.message);
       this._isConnecting = false;
 
-      // 인증 관련 에러 처리
+      // 인증 관련 에러 처리 (API처럼 재발급 먼저 시도)
       if (this.isAuthError(error)) {
+        console.log('🔐 소켓 연결 중 토큰 만료 감지, 자동 재발급 시도...');
+
         const reconnected = await this.handleAuthError();
         if (reconnected) {
           console.log('✅ 인증 에러 해결 후 재연결 성공');
           return;
         } else {
-          console.error('❌ 인증 에러 해결 실패');
+          const errorMessage = error?.message || '알 수 없는 인증 에러';
+          console.error('❌ 소켓 연결 실패 (setupEventListeners):', errorMessage);
           this.notifyErrorCallbacks('인증에 실패했습니다. 다시 로그인해주세요.');
           return;
         }
       }
 
       // 일반 연결 에러
-      this.notifyErrorCallbacks(`연결 실패: ${error.message}`);
+      const errorMessage = error?.message || '알 수 없는 연결 에러';
+      console.error('❌ 소켓 연결 실패 (setupEventListeners):', errorMessage);
+      this.notifyErrorCallbacks(`연결 실패: ${errorMessage}`);
       this.notifyConnectionCallbacks(false);
     });
 
@@ -247,6 +251,16 @@ class SocketService {
       this._isConnecting = false;
       this.reconnectAttempts = 0;
       this.serverConnected = false;
+    }
+  }
+
+  // 현재 join된 룸들 확인 (디버깅용)
+  getCurrentRooms(): string[] {
+    if (!this.socket || !this.socket.rooms) return [];
+    try {
+      return Array.from(this.socket.rooms);
+    } catch (error) {
+      return [];
     }
   }
 

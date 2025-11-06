@@ -166,6 +166,10 @@ export interface ServerToClientEvents {
     unread_count: number;
     updated_at: string;
   }) => void;
+  'notification:chat_badge': (data: {
+    hasNewMessage: boolean;
+    updated_at: string;
+  }) => void;
 
   // 멘션 알림 (채팅에서 멘션당했을 때)
   'notification:mention:receive': (data: {

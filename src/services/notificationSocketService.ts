@@ -1,18 +1,41 @@
 import { socketService } from './socketService';
 import type { ServerToClientEvents } from '../types/socket';
 import { useNotificationStore } from '../stores/notificationStore';
+import { useChatStore } from '../stores/chatStore';
 import { Notification } from '../types/notification';
 
 // 알림 서비스 클래스
 // 서버에서 자동으로 알림 구독을 처리하므로 클라이언트에서는 상태 추적 불필요
 class NotificationSocketService {
   private notificationCallbacks: { [event: string]: Array<(...args: any[]) => void> } = {};
+  private eventListenersSetup = false;
 
   constructor() {
-    this.setupNotificationListeners();
+    this.setupSocketConnectionListener();
   }
 
   // 게터들 (서버 자동 구독이므로 상태 추적 불필요)
+
+  // 소켓 연결 상태 리스너 설정
+  private setupSocketConnectionListener() {
+    socketService.onConnectionChange((connected: boolean) => {
+      if (connected) {
+        console.log('🔌 NotificationSocketService: 소켓 연결됨, 알림 이벤트 리스너 설정');
+        // 재연결 시 플래그 리셋 (중요!)
+        this.eventListenersSetup = false;
+        this.setupNotificationListeners();
+      } else {
+        console.log('🔌 NotificationSocketService: 소켓 연결 해제됨');
+        this.clearAllEventListeners();
+      }
+    });
+
+    // 초기 연결 상태에 따라 설정
+    if (socketService.isConnected) {
+      console.log('🔌 NotificationSocketService: 초기 소켓 연결됨, 알림 이벤트 리스너 설정');
+      this.setupNotificationListeners();
+    }
+  }
 
   // 알림 리스너 설정 (외부에서 호출 가능하도록 public)
   public setupListeners() {
@@ -21,21 +44,16 @@ class NotificationSocketService {
 
   // 알림 리스너 설정 (서버 자동 구독이므로 재연결시 재설정만)
   private setupNotificationListeners() {
+    if (this.eventListenersSetup) return;
+
+    console.log('🎧 NotificationSocketService: 알림 이벤트 리스너 설정 시작');
 
     // 기존 리스너 제거 (알림 수신용만 유지)
-    socketService.off('notification:unread_count');
-    socketService.off('notification:message_badge');
-    socketService.off('notification:post_liked');
-    socketService.off('notification:feed_liked');
-    socketService.off('notification:followed');
-    socketService.off('notification:feed_commented');
-    socketService.off('notification:post_commented');
-    socketService.off('notification:feed_created');
-    socketService.off('notification:post_created');
-    socketService.off('notification:message');
+    this.clearAllEventListeners();
 
     // 포스트 좋아요 알림 수신
     socketService.on('notification:post_liked', (data) => {
+      // 실제 알림 처리 로직
       this.handleRealtimeNotification(data);
     });
 
@@ -174,6 +192,42 @@ class NotificationSocketService {
       console.log('📢 메시지 알림 처리 완료');
     });
 
+    // 채팅 배지 알림 수신 (새 메시지 도착 시)
+    socketService.on('notification:chat_badge', (data) => {
+      console.log('🔔 채팅 배지 알림 수신:', {
+        새메시지여부: data.hasNewMessage,
+        업데이트시간: data.updated_at
+      });
+
+      // 새 메시지가 도착한 경우 채팅 읽지 않은 개수 증가
+      if (data.hasNewMessage) {
+        useChatStore.getState().incrementUnreadCount();
+        console.log('📢 채팅 읽지 않은 개수 증가 처리 완료');
+      }
+    });
+
+    this.eventListenersSetup = true;
+    console.log('🎧 NotificationSocketService: 알림 이벤트 리스너 설정 완료');
+  }
+
+  // 모든 이벤트 리스너 제거 (연결별 정리용)
+  private clearAllEventListeners() {
+    console.log('🧹 NotificationSocketService: 모든 이벤트 리스너 정리');
+
+    // 기존 리스너 제거 (알림 수신용만 유지)
+    socketService.off('notification:unread_count');
+    socketService.off('notification:message_badge');
+    socketService.off('notification:chat_badge');
+    socketService.off('notification:post_liked');
+    socketService.off('notification:feed_liked');
+    socketService.off('notification:followed');
+    socketService.off('notification:feed_commented');
+    socketService.off('notification:post_commented');
+    socketService.off('notification:feed_created');
+    socketService.off('notification:post_created');
+    socketService.off('notification:message');
+
+    this.eventListenersSetup = false;
   }
 
   // 실시간 알림 처리 메서드
@@ -291,5 +345,3 @@ export const onNotification = <K extends keyof ServerToClientEvents>(
   event: K,
   callback: ServerToClientEvents[K]
 ) => notificationSocketService.onNotification(event, callback);
-
-
