@@ -992,7 +992,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: SPACING.SM,
+    paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.MD,
   },
   leftActions: {
@@ -1021,7 +1021,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
 
   // 콘텐츠 텍스트
   contentTextContainer: {
-    paddingHorizontal: SPACING.SM,
+    paddingHorizontal: SPACING.MD,
     paddingBottom: SPACING.SM,
   },
   contentText: {
@@ -1039,7 +1039,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   timeText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
-    paddingHorizontal: SPACING.SM,
+    paddingHorizontal: SPACING.MD,
     paddingBottom: SPACING.MD,
   },
 
