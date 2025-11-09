@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  useColorScheme,
 } from 'react-native';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
@@ -15,13 +14,7 @@ import CommonHeader from '../components/CommonHeader';
 type ThemeModeOption = 'system' | 'light' | 'dark';
 
 export default function ThemeModeSettingsScreen() {
-  const { themeMode, setThemeMode, setSystemColorScheme, colors } = useThemeStore();
-  const systemColorScheme = useColorScheme();
-
-  // 시스템 색상 스키마를 themeStore에 전달
-  useEffect(() => {
-    setSystemColorScheme(systemColorScheme || null);
-  }, [systemColorScheme, setSystemColorScheme]);
+  const { themeMode, setThemeMode, colors } = useThemeStore();
 
   const handleThemeModeChange = async (option: ThemeModeOption) => {
     // 이미 선택된 옵션이면 API 호출하지 않음
