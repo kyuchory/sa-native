@@ -91,6 +91,9 @@ export interface Message {
   sender: ChatUser;
   mentions: any[]; // 멘션 배열 (향후 타입 정의 가능)
   mention_user_ids: number[]; // 서버에서 전송하는 멘션 사용자 ID 배열
+  // UI 상태 관련 필드들 (낙관적 업데이트용)
+  isSending?: boolean; // 전송 중 상태 표시
+  tempId?: string; // 임시 메시지 ID (sent 이벤트와 매칭용)
 }
 
 // API 응답 타입

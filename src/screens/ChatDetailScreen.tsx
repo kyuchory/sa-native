@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -86,8 +86,16 @@ export default function ChatDetailScreen() {
   // Auth store
   const { user } = useAuthStore();
 
-  // 로컬 상태
-  const [messages, setMessages] = useState<Message[]>([]);
+  // 로컬 상태 - 실무 표준 방식: 상태 분리 관리
+  const [messages, setMessages] = useState<Message[]>([]); // 서버에서 온 실제 메시지들
+  const [pendingMessages, setPendingMessages] = useState<Message[]>([]); // 낙관적 메시지들 (전송 중)
+
+  // 표시할 메시지들: 서버 메시지 + 낙관적 메시지 결합 (실무 표준 패턴)
+  const displayMessages = useMemo(() => {
+    return [...messages, ...pendingMessages].sort((a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [messages, pendingMessages]);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
@@ -135,8 +143,23 @@ export default function ChatDetailScreen() {
   // 메시지 이벤트 리스너 설정
   useEffect(() => {
     const unsubscribeMessage = onMessageEvent((type, data) => {
+      // 내가 보낸 메시지 성공 확인 (sent 이벤트)
+      if (type === 'sent' && data.temp_id) {
+        console.log(`✅ 내가 보낸 메시지 성공 확인: ${data.temp_id}`);
+
+        // pendingMessages에서 제거하고 messages에 실제 메시지 추가
+        setPendingMessages(prev => prev.filter(msg => msg.tempId !== data.temp_id));
+        setMessages(prev => {
+          // 중복 방지: 이미 같은 ID의 메시지가 있는지 확인
+          const exists = prev.find(msg => msg.id === data.message.id);
+          if (!exists) {
+            return [data.message, ...prev];
+          }
+          return prev;
+        });
+      }
       // 상대방 메시지 수신
-      if (type === 'receive' && data.chat_room_id === chatRoomId) {
+      else if (type === 'receive' && data.chat_room_id === chatRoomId) {
         // 실시간 메시지의 프로필 이미지가 부족하므로 캐시에서 보강
         const cachedSender = senderCache.current.get(data.sender_id);
         const enrichedSender = cachedSender ? {
@@ -170,10 +193,15 @@ export default function ChatDetailScreen() {
           return [newMessage, ...prev];
         });
       } else if (type === 'failed') {
-        // 메시지 전송 실패 처리 - UI 알림 위주
+        // 메시지 전송 실패 처리
         console.error('메시지 전송 실패:', data.error);
+
+        // 실패한 임시 메시지 제거 (tempId로 식별)
+        if (data.temp_id) {
+          setPendingMessages(prev => prev.filter(msg => msg.tempId !== data.temp_id));
+        }
+
         Alert.alert('전송 실패', '메시지를 전송할 수 없습니다. 다시 시도해주세요.');
-        // TODO: 실패한 임시 메시지 UI에서 제거
       }
     });
 
@@ -483,13 +511,15 @@ export default function ChatDetailScreen() {
       updated_at: new Date().toISOString(),
       mentions: [], // 빈 멘션 배열
       mention_user_ids: mentionUserIds,
+      tempId: tempMessageId, // 임시 ID 추가
+      isSending: true // 로딩 상태 표시
     };
 
     // 입력창 즉시 초기화
     setInputText('');
 
-    // 낙관적 업데이트: 메시지 목록에 메시지 추가 (inverted이므로 맨 앞에 추가)
-    setMessages(prevMessages => [optimisticMessage, ...prevMessages]);
+    // 낙관적 업데이트: pendingMessages에 추가
+    setPendingMessages(prev => [optimisticMessage, ...prev]);
 
     // 스크롤 맨 아래로 즉시 이동 (inverted이므로 맨 위로)
     setTimeout(() => {
@@ -604,24 +634,24 @@ export default function ChatDetailScreen() {
   // 메시지 아이템 렌더링
   const renderMessageItem = ({ item, index }: { item: Message; index: number }) => {
     const isMyMessage = item.sender.id === user?.id;
-    // inverted에서는 다음 메시지(화면상 아래쪽)를 확인해서 날짜 구분선 표시
-    const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
-    // inverted에서는 이전 메시지(화면상 위쪽, 더 최근)를 확인해서 연속 메시지/시간 표시 판별
-    const prevMessage = index > 0 ? messages[index - 1] : null;
+    // displayMessages에서 다음 메시지(화면상 아래쪽)를 확인해서 날짜 구분선 표시
+    const nextMessage = index < displayMessages.length - 1 ? displayMessages[index + 1] : null;
+    // displayMessages에서 이전 메시지(화면상 위쪽, 더 최근)를 확인해서 연속 메시지/시간 표시 판별
+    const prevMessage = index > 0 ? displayMessages[index - 1] : null;
     const isContinuous = isContinuousMessage(item, prevMessage);
-    // 날짜 구분자 표시 (inverted에서는 다음 메시지와 비교)
+    // 날짜 구분자 표시 (다음 메시지와 비교)
     const showDateSeparator = shouldShowDateSeparator(
       item.created_at,
       nextMessage?.created_at || null
     );
-    // 시간 표시 여부 결정 (카카오톡 스타일, inverted에서는 이전 메시지와 비교)
+    // 시간 표시 여부 결정 (이전 메시지와 비교)
     const showTime = shouldShowMessageTime(item, prevMessage);
 
     return (
       <>
         {/* 날짜 구분선 (날짜가 바뀔 때만 표시) */}
         {showDateSeparator && renderDateSeparator(item.created_at)}
-        
+
         {/* 메시지 */}
         <View style={[
           styles.messageContainer,
@@ -631,8 +661,8 @@ export default function ChatDetailScreen() {
           {!isMyMessage && (
             <View style={styles.profileSection}>
               {!isContinuous ? (
-                <UserAvatar 
-                  profileImg={item.sender.profile_img} 
+                <UserAvatar
+                  profileImg={item.sender.profile_img}
                   nickname={item.sender.nickname}
                   size={32}
                 />
@@ -651,44 +681,79 @@ export default function ChatDetailScreen() {
             {!isMyMessage && !isContinuous && (
               <Text style={styles.senderName}>{item.sender.nickname}</Text>
             )}
-            
+
             <View style={styles.messageRow}>
               {/* 내 메시지의 경우 시간이 왼쪽에 */}
               {isMyMessage && showTime && (
                 <View style={styles.myMessageTimeContainer}>
                   <View style={styles.messageTimeContainer}>
-                    <Text style={styles.messageTime}>
-                      {formatMessageTime(item.created_at)}
-                    </Text>
+                    {item.isSending ? (
+                      // 전송 중: 로딩 인디케이터
+                      <ActivityIndicator
+                        size="small"
+                        color={colors.GRAY_500}
+                      />
+                    ) : (
+                      // 전송 완료: 시간 표시
+                      <Text style={styles.messageTime}>
+                        {formatMessageTime(item.created_at)}
+                      </Text>
+                    )}
                   </View>
                 </View>
               )}
 
               {/* 메시지 말풍선 */}
-              <TouchableOpacity
-                style={[
-                  styles.messageBubble,
-                  isMyMessage ? styles.myMessageBubble : styles.otherMessageBubble
-                ]}
-                onLongPress={() => handleLongPressMessage(item)}
-              >
-                {item.type === 'image' ? (
-                  <Image
-                    source={{ uri: item.content }}
-                    style={styles.messageImage}
-                    contentFit="cover"
-                    cachePolicy={'memory-disk'}
-                    transition={200}
-                  />
+              <View style={[
+                styles.messageBubble,
+                isMyMessage ? styles.myMessageBubble : styles.otherMessageBubble
+              ]}>
+                {item.type === 'image' && item.isSending ? (
+                  // 이미지 전송 중: 이미지 표시 + 오버레이
+                  <View style={styles.imageSendingContainer}>
+                    <Image
+                      source={{ uri: item.content }}
+                      style={styles.messageImage}
+                      contentFit="cover"
+                      cachePolicy={'memory-disk'}
+                      transition={200}
+                    />
+                    {/* 반투명 오버레이 */}
+                    <View style={styles.imageSendingOverlay}>
+                      <ActivityIndicator
+                        size="small"
+                        color={colors.WHITE}
+                      />
+                      <Text style={styles.imageSendingText}>
+                        전송 중...
+                      </Text>
+                    </View>
+                  </View>
                 ) : (
-                  <Text style={[
-                    styles.messageText,
-                    isMyMessage ? styles.myMessageText : styles.otherMessageText
-                  ]}>
-                    {item.content}
-                  </Text>
+                  // 일반 메시지 내용 (텍스트 또는 전송 완료된 이미지)
+                  <TouchableOpacity
+                    onLongPress={() => handleLongPressMessage(item)}
+                    activeOpacity={0.7}
+                  >
+                    {item.type === 'image' ? (
+                      <Image
+                        source={{ uri: item.content }}
+                        style={styles.messageImage}
+                        contentFit="cover"
+                        cachePolicy={'memory-disk'}
+                        transition={200}
+                      />
+                    ) : (
+                      <Text style={[
+                        styles.messageText,
+                        isMyMessage ? styles.myMessageText : styles.otherMessageText
+                      ]}>
+                        {item.content}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
                 )}
-              </TouchableOpacity>
+              </View>
 
               {/* 상대방 메시지의 경우 시간이 오른쪽에 */}
               {!isMyMessage && showTime && (
@@ -826,30 +891,62 @@ export default function ChatDetailScreen() {
     setAttachmentActionSheetVisible(false);
   };
 
-  // 이미지 메시지 전송 핸들러
+  // 이미지 메시지 전송 핸들러 (낙관적 업데이트 적용)
   const handleSendImageMessage = async (asset: ImagePicker.ImagePickerAsset) => {
     if (!user) return;
 
     const tempMessageId = `temp_img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+    // 1. 낙관적 업데이트: 로딩 상태로 즉시 UI에 표시
+    const optimisticMessage: Message = {
+      id: -Date.now() - Math.floor(Math.random() * 1000), // 음수 ID로 임시 표시
+      chat_room_id: chatRoomId,
+      sender_id: user.id,
+      content: asset.uri, // 로컬 URI로 먼저 표시
+      type: 'image' as const,
+      sender: {
+        id: user.id,
+        nickname: user.nickname || '',
+        profile_img: user.profile_img || null,
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      mentions: [],
+      mention_user_ids: [],
+      isSending: true, // 로딩 상태 표시
+      tempId: tempMessageId
+    };
+
+    // 입력창 초기화 및 ActionSheet 닫기
+    setAttachmentActionSheetVisible(false);
+
+    // 낙관적 업데이트: pendingMessages에 추가
+    setPendingMessages(prev => [optimisticMessage, ...prev]);
+
+    // 스크롤 맨 아래로 즉시 이동
+    setTimeout(() => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    }, 50);
+
     try {
-      // 1. 이미지 업로드 API 호출 (서버에 파일 저장)
+      // 2. 이미지 업로드 API 호출 (서버에 파일 저장)
       console.log('📤 이미지 업로드 시작...');
       const uploadResponse = await ChatService.uploadChatImage(asset.uri);
       console.log('✅ 이미지 업로드 완료:', uploadResponse);
 
-      // 2. 서버에서 받은 image_path를 사용하여 소켓 메시지 전송
+      // 3. 서버에서 받은 image_path를 사용하여 소켓 메시지 전송
       const imagePath = uploadResponse.image_path;
 
-      // 3. DB에 메시지 저장될 소켓 메시지 전송 (type: 'image', content: image_path)
+      // 4. DB에 메시지 저장될 소켓 메시지 전송 (type: 'image', content: image_path)
       sendMessage(tempMessageId, chatRoomId, 'image', imagePath, []);
 
     } catch (error) {
       console.error('📷 이미지 메시지 전송 실패:', error);
-      Alert.alert('전송 실패', '이미지를 전송할 수 없습니다. 다시 시도해주세요.');
 
-      // ActionSheet 닫기
-      setAttachmentActionSheetVisible(false);
+      // 실패 시 낙관적 메시지 제거
+      setPendingMessages(prev => prev.filter(msg => msg.tempId !== tempMessageId));
+
+      Alert.alert('전송 실패', '이미지를 전송할 수 없습니다. 다시 시도해주세요.');
     }
   };
 
@@ -887,10 +984,10 @@ export default function ChatDetailScreen() {
         {/* 채팅 컨텐츠 영역 */}
         <View style={styles.contentContainer}>
           {/* 채팅 메시지 목록 또는 빈 상태 */}
-          {messages.length > 0 ? (
+          {displayMessages.length > 0 ? (
             <FlatList
               ref={flatListRef}
-              data={messages}
+              data={displayMessages}
               renderItem={renderMessageItem}
               keyExtractor={(item) => item.id.toString()}
               style={styles.messagesList}
@@ -1293,6 +1390,47 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: BORDER_RADIUS.MD,
+  },
+
+  // 이미지 전송 중 컨테이너
+  imageSendingContainer: {
+    position: 'relative' as const,
+  },
+  imageSendingOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: BORDER_RADIUS.MD,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    gap: SPACING.XS,
+  },
+  imageSendingText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    color: colors.WHITE,
+  },
+
+  // 전송 중 컨테이너
+  sendingContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: SPACING.XS,
+    minHeight: 40,
+  },
+  sendingText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
+  mySendingText: {
+    color: colors.WHITE,
+  },
+  otherSendingText: {
+    color: colors.GRAY_700,
   },
 
   // 날짜 구분선
