@@ -14,6 +14,8 @@ import { AuthStackParamList } from '../types/navigation';
 import { MenuIcon, MuteIcon, UnmuteIcon } from './CommonIcons';
 import useFeedStore from '../stores/feedStore';
 import useProfileStore from '../stores/profileStore';
+import { useNetworkState, shouldAutoPlayVideo } from '../hooks/useNetworkState';
+import { useVideoSettingsStore } from '../stores/videoSettingsStore';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -129,26 +131,33 @@ const AnimatedPageIndicator: React.FC<{
 
 // TapPauseVideo 컴포넌트
 const TapPauseVideo = ({ videoUri, isVisible }: { videoUri: string; isVisible?: boolean }) => {
+  const networkState = useNetworkState();
+  const { autoPlayMode } = useVideoSettingsStore();
+  const shouldAutoPlay = shouldAutoPlayVideo(networkState.type, autoPlayMode);
+
   const player = useVideoPlayer(videoUri, (player) => {
     player.loop = true;
     player.muted = true;
-    if (isVisible) {
+    if (isVisible && shouldAutoPlay) {
       player.play();
     }
   });
 
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(shouldAutoPlay);
   const [isMuted, setIsMuted] = useState(true);
 
   useEffect(() => {
     if (!player) return;
 
-    if (isVisible && player.playing === false) {
+    const shouldPlay = isVisible && shouldAutoPlay;
+    if (shouldPlay && player.playing === false) {
       player.play();
-    } else if (!isVisible && player.playing === true) {
+      setIsPlaying(true);
+    } else if (!shouldPlay && player.playing === true) {
       player.pause();
+      setIsPlaying(false);
     }
-  }, [isVisible, player]);
+  }, [isVisible, shouldAutoPlay, player]);
 
   const handleTogglePlay = () => {
     if (isPlaying) {

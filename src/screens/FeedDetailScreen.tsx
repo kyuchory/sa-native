@@ -30,6 +30,8 @@ import { HeartIcon, CommentIcon, BookmarkIcon } from '../components/FeedCardIcon
 import { FeedService } from '../services/feedService';
 import useFeedStore from '../stores/feedStore';
 import useProfileStore from '../stores/profileStore';
+import { useNetworkState, shouldAutoPlayVideo } from '../hooks/useNetworkState';
+import { useVideoSettingsStore } from '../stores/videoSettingsStore';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -554,14 +556,32 @@ export default function FeedDetailScreen() {
   
   // TapPauseVideo 컴포넌트 - 탭하면 재생/일시정지
   const TapPauseVideo = ({ videoUri }: { videoUri: string }) => {
+    const networkState = useNetworkState();
+    const { autoPlayMode } = useVideoSettingsStore();
+    const shouldAutoPlay = shouldAutoPlayVideo(networkState.type, autoPlayMode);
+
     const player = useVideoPlayer(videoUri, (player) => {
       player.loop = true;
       player.muted = true; // 시작할 때 기본적으로 음소거 상태
-      player.play(); // 처음엔 재생 상태로 시작
+      if (shouldAutoPlay) {
+        player.play(); // 설정에 따라 자동 재생
+      }
     });
 
-    const [isPlaying, setIsPlaying] = useState(true);
+    const [isPlaying, setIsPlaying] = useState(shouldAutoPlay);
     const [isMuted, setIsMuted] = useState(true); // 음소거 상태 관리
+
+    useEffect(() => {
+      if (!player) return;
+
+      if (shouldAutoPlay && player.playing === false) {
+        player.play();
+        setIsPlaying(true);
+      } else if (!shouldAutoPlay && player.playing === true) {
+        player.pause();
+        setIsPlaying(false);
+      }
+    }, [shouldAutoPlay, player]);
 
     const handleTogglePlay = () => {
       if (isPlaying) {

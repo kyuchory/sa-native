@@ -45,6 +45,8 @@ import { Comment } from '../types/post';
 import { useAuthStore } from '../stores/authStore';
 import usePostStore from '../stores/postStore';
 import useProfileStore from '../stores/profileStore';
+import { useNetworkState, shouldAutoPlayVideo } from '../hooks/useNetworkState';
+import { useVideoSettingsStore } from '../stores/videoSettingsStore';
 
 type PostDetailRouteProp = RouteProp<AuthStackParamList, 'PostDetail'>;
 type PostDetailNavigationProp = StackNavigationProp<AuthStackParamList, 'PostDetail'>;
@@ -476,11 +478,16 @@ export default function PostDetailScreen() {
   // VideoBlock 컴포넌트 추가
   const VideoBlock = ({ videoUri }: { videoUri: string }) => {
     const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+    const networkState = useNetworkState();
+    const { autoPlayMode } = useVideoSettingsStore();
+    const shouldAutoPlay = shouldAutoPlayVideo(networkState.type, autoPlayMode);
 
     const player = useVideoPlayer(videoUri, player => {
       player.loop = true;
       player.muted = true;
-      player.play();
+      if (shouldAutoPlay) {
+        player.play();
+      }
     });
 
     // 영상 크기 정보를 받아서 aspect ratio 계산
@@ -492,6 +499,16 @@ export default function PostDetailScreen() {
         }
       }
     });
+
+    useEffect(() => {
+      if (!player) return;
+
+      if (shouldAutoPlay && player.playing === false) {
+        player.play();
+      } else if (!shouldAutoPlay && player.playing === true) {
+        player.pause();
+      }
+    }, [shouldAutoPlay, player]);
 
     return (
       <View style={styles.videoBlock}>

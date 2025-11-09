@@ -45,6 +45,10 @@ export default function SettingsScreen() {
     navigation.navigate('ThemeModeSettings' as never);
   };
 
+  const handleVideoAutoPlaySettings = () => {
+    navigation.navigate('VideoAutoPlaySettings' as never);
+  };
+
   const handleNotifications = () => {
     console.log('알림 설정 상세');
   };
@@ -166,10 +170,9 @@ export default function SettingsScreen() {
             />
             <SettingItem
               title="자동 재생"
-              subtitle="Wi-Fi에서만"
-              showToggle={true}
-              toggleValue={isAutoPlay}
-              onToggleChange={setIsAutoPlay}
+              subtitle="Wi-Fi와 데이터 환경에 따른 재생 설정"
+              showArrow={true}
+              onPress={handleVideoAutoPlaySettings}
               colors={colors}
               isLast={true}
             />
