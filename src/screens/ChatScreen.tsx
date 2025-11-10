@@ -549,7 +549,8 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     backgroundColor: colors.WHITE,
   },
   chatListContent: {
-    padding: SPACING.SM,
+    paddingHorizontal: SPACING.LMD,
+    paddingVertical: SPACING.SM,
   },
 
   // 편집 버튼

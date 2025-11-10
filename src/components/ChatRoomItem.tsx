@@ -165,7 +165,7 @@ export default function ChatRoomItem({
 const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flexDirection: 'row' as const,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: 'center' as const,
     backgroundColor: 'transparent',
   },
@@ -184,9 +184,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     marginRight: SPACING.MD,
   },
   profileImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   profileImagePlaceholder: {
     backgroundColor: colors.GRAY_300,
