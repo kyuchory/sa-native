@@ -231,11 +231,12 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   userDetails: {
     flex: 1,
+    marginLeft: SPACING.SM,
   },
   nickname: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    marginBottom: 2,
+    marginBottom: SPACING.XS,
   },
   blockedAt: {
     fontSize: TYPOGRAPHY.SIZE.SM,
