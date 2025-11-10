@@ -165,7 +165,7 @@ export default function ChatRoomItem({
 const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flexDirection: 'row' as const,
-    paddingVertical: SPACING.MD,
+    paddingVertical: 10,
     alignItems: 'center' as const,
     backgroundColor: 'transparent',
   },
@@ -216,7 +216,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     marginRight: SPACING.SM,
   },
   time: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontSize: TYPOGRAPHY.SIZE.XS,
     color: colors.GRAY_700,
   },
   footer: {
@@ -226,7 +226,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   message: {
     flex: 1,
-    fontSize: TYPOGRAPHY.SIZE.MD,
+    fontSize: TYPOGRAPHY.SIZE.SM,
     color: colors.GRAY_700,
     marginRight: SPACING.SM,
   },
