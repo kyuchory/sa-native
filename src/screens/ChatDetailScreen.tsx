@@ -21,6 +21,7 @@ import { MenuIcon as AddImageIcon, NoticeIcon, CameraIcon } from '../components/
 import ChatDetailSidebar from '../components/ChatDetailSidebar';
 import MenuActionSheet from '../components/MenuActionSheet';
 
+
 // Local Components
 import MessageList from '../components/MessageList';
 import TypingIndicator from '../components/TypingIndicator';
@@ -76,6 +77,8 @@ export default function ChatDetailScreen() {
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
   const [attachmentActionSheetVisible, setAttachmentActionSheetVisible] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [localChatRoomName, setLocalChatRoomName] = useState(chatRoomName);
+
 
   // Keyboard height for input adjustments
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -305,6 +308,16 @@ export default function ChatDetailScreen() {
     }
   }, [selectedMessage, chatRoomId]);
 
+  const handleEditChatName = useCallback(() => {
+    // ChatDetailSidebar에서 직접 처리하므로 빈 함수
+  }, []);
+
+  const handleChatNameUpdate = useCallback((newName: string) => {
+    // 채팅방 이름이 변경되었을 때 헤더 등에 반영 (낙관적 업데이트)
+    setLocalChatRoomName(newName);
+    console.log('📝 채팅방 이름 업데이트:', newName);
+  }, []);
+
   // Effects
   useEffect(() => {
     // 읽음 처리
@@ -424,7 +437,7 @@ export default function ChatDetailScreen() {
       >
         {/* 상단 고정 헤더 */}
         <CommonHeader
-          title={chatRoomName}
+          title={localChatRoomName}
           onBackPress={handleBack}
           showBackButton={true}
           rightComponent={renderHeaderRight()}
@@ -505,17 +518,6 @@ export default function ChatDetailScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {/* 사이드바 */}
-      <ChatDetailSidebar
-        isVisible={isSidebarVisible}
-        onClose={handleCloseSidebar}
-        chatRoomName={chatRoomName}
-        chatRoomId={chatRoomId}
-        onAddMember={() => {}}
-        onViewAllMedia={() => {}}
-        onViewNotice={() => {}}
-      />
-
       {/* 메뉴 액션 시트 */}
       <MenuActionSheet
         visible={menuActionSheetVisible}
@@ -554,6 +556,21 @@ export default function ChatDetailScreen() {
           },
         ]}
       />
+
+      {/* 사이드바 */}
+      <ChatDetailSidebar
+        isVisible={isSidebarVisible}
+        onClose={handleCloseSidebar}
+        chatRoomName={chatRoomName}
+        chatRoomId={chatRoomId}
+        onAddMember={() => {}}
+        onViewAllMedia={() => {}}
+        onViewNotice={() => {}}
+        onEditChatName={handleEditChatName}
+        onChatNameUpdate={handleChatNameUpdate}
+      />
+
+
     </SafeAreaView>
   );
 }
