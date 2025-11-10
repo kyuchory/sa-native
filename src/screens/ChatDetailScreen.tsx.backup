@@ -1,0 +1,1529 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+
+// Components
+import CommonHeader from '../components/CommonHeader';
+import { SearchIcon, MenuIcon, PlusCircleIcon, SendIcon } from '../components/ChatDetailIcons';
+import { MenuIcon as AddImageIcon, NoticeIcon, CameraIcon } from '../components/CommonIcons';
+import ChatDetailSidebar from '../components/ChatDetailSidebar';
+import MenuActionSheet from '../components/MenuActionSheet';
+
+// Local Components
+import MessageList from './components/MessageList';
+import TypingIndicator from './components/TypingIndicator';
+
+// Types
+import { Message } from '../types/chat';
+import { AuthStackParamList } from '../types/navigation';
+
+// Constants
+import {
+  TYPOGRAPHY,
+  SPACING,
+  BORDER_RADIUS,
+  INPUT_SIZES,
+} from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
+
+import { useAuthStore } from '../stores/authStore';
+
+// Services
+import { ChatService } from '../services/chatService';
+import { chatSocketService, sendMessage } from '../services/chatSocketService';
+
+// Hooks
+import { useAppState } from '../hooks/useAppState';
+
+// Local Hooks
+import { useChatMessages } from './hooks/useChatMessages';
+import { useChatSocket } from './hooks/useChatSocket';
+import { useChatTyping } from './hooks/useChatTyping';
+
+// Utils
+import { takePhotoFromCamera, selectPhotoFromGallery, uploadChatImage } from './utils/uploadUtils';
+
+type ChatDetailScreenRouteProp = RouteProp<AuthStackParamList, 'ChatDetail'>;
+type ChatDetailScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ChatDetail'>;
+
+export default function ChatDetailScreen() {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
+
+  const navigation = useNavigation<ChatDetailScreenNavigationProp>();
+  const route = useRoute<ChatDetailScreenRouteProp>();
+
+  // Route params
+  const { chatRoomId, chatRoomName, chatPartnerId, unreadCount } = route.params;
+
+  // Auth store
+  const { user } = useAuthStore();
+
+  // Local state
+  const [inputText, setInputText] = useState('');
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+  const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
+  const [attachmentActionSheetVisible, setAttachmentActionSheetVisible] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+
+  // Keyboard height for input adjustments
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // Sender cache for real-time messages
+  const senderCache = useRef<Map<number, { nickname: string; profile_img: string | null }>>(new Map());
+
+  // Custom hooks
+  const {
+    displayMessages,
+    hasMoreMessages,
+    isLoadingMessages,
+    isInitialLoading,
+    loadMoreMessages,
+    addPendingMessage,
+    removePendingMessage,
+    addMessage,
+    setIsInitialLoading,
+  } = useChatMessages({
+    chatRoomId,
+    userId: user?.id,
+  });
+
+  const { subscriptionStatus, subscribeToChat, unsubscribeFromChat } = useChatSocket({
+    chatRoomId,
+    userId: user?.id,
+    onMessageReceive: useCallback((message: Message) => {
+      addMessage(message);
+    }, [addMessage]),
+    onMessageSent: useCallback((tempId: string, message: Message) => {
+      removePendingMessage(tempId);
+      addMessage(message);
+    }, [removePendingMessage, addMessage]),
+    onMessageFailed: useCallback((tempId: string, error: any) => {
+      removePendingMessage(tempId);
+      Alert.alert('전송 실패', '메시지를 전송할 수 없습니다. 다시 시도해주세요.');
+    }, [removePendingMessage]),
+    onTypingUpdate: useCallback((typingUsers) => {
+      // 타이핑 상태는 useChatTyping에서 관리
+    }, []),
+  });
+
+  const { typingUsers, startTypingIndicator, stopTypingIndicator } = useChatTyping({
+    chatRoomId,
+  });
+
+  // Effects
+  useEffect(() => {
+    // 읽음 처리: 메시지 로딩 완료 후 읽지 않은 메시지가 있으면 처리
+    if (!isInitialLoading && unreadCount && unreadCount > 0 && user) {
+      console.log(`✅ 읽음 처리 시작: 채팅방 ${chatRoomId}, 읽지 않은 수: ${unreadCount}`);
+      ChatService.markAsRead(chatRoomId).catch(error => {
+        console.error('❌ 읽음 처리 실패:', error);
+      });
+    }
+  }, [isInitialLoading, unreadCount, chatRoomId, user]);
+
+  // 화면 진입/이탈 처리 (useFocusEffect)
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+
+      const subscribeIfMounted = async () => {
+        if (!isMounted) return;
+        try {
+          await subscribeToChat();
+        } catch (error) {
+          console.error('❌ 채팅방 구독 실패:', error);
+        }
+      };
+
+      subscribeIfMounted();
+
+      return () => {
+        isMounted = false;
+        unsubscribeFromChat();
+      };
+    }, [subscribeToChat, unsubscribeFromChat])
+  );
+
+  // 키보드 이벤트 리스너
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e: any) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
+
+  // 백그라운드 복귀 처리
+  useAppState({
+    onForeground: async () => {
+      console.log('🚀 앱 포그라운드 복귀 (ChatDetailScreen)');
+
+      try {
+        setIsInitialLoading(true);
+        const response = await ChatService.getMessages(chatRoomId);
+        setIsInitialLoading(false);
+        console.log(`📥 API 메시지 동기화 완료: ${response.messages.length}개 메시지 로드`);
+      } catch (error) {
+        console.error('API 메시지 동기화 실패:', error);
+        setIsInitialLoading(false);
+      }
+    },
+    onBackground: () => {
+      console.log('😴 앱 백그라운드 진입 (ChatDetailScreen)');
+    },
+    enableSocketReconnection: false
+  });
+
+
+
+
+  // 구독 상태 변경 콜백 설정 (chatSocketService에서 관리)
+  useEffect(() => {
+    const unsubscribe = chatSocketService.onSubscriptionChange((status: {
+      isSubscribed: boolean;
+      error: string | null;
+      chatRoomId: number | null;
+    }) => {
+      setSubscriptionStatus({
+        isSubscribed: status.isSubscribed,
+        error: status.error,
+        chatRoomId: status.chatRoomId
+      });
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // 메시지 이벤트 리스너 설정
+  useEffect(() => {
+    const unsubscribeMessage = onMessageEvent((type, data) => {
+      // 내가 보낸 메시지 성공 확인 (sent 이벤트)
+      if (type === 'sent' && data.temp_id) {
+        console.log(`✅ 내가 보낸 메시지 성공 확인: ${data.temp_id}`);
+
+        // pendingMessages에서 제거하고 messages에 실제 메시지 추가
+        setPendingMessages(prev => prev.filter(msg => msg.tempId !== data.temp_id));
+        setMessages(prev => {
+          // 중복 방지: 이미 같은 ID의 메시지가 있는지 확인
+          const exists = prev.find(msg => msg.id === data.message.id);
+          if (!exists) {
+            return [data.message, ...prev];
+          }
+          return prev;
+        });
+      }
+      // 상대방 메시지 수신
+      else if (type === 'receive' && data.chat_room_id === chatRoomId) {
+        // 실시간 메시지의 프로필 이미지가 부족하므로 캐시에서 보강
+        const cachedSender = senderCache.current.get(data.sender_id);
+        const enrichedSender = cachedSender ? {
+          id: data.sender.id,
+          nickname: data.sender.nickname,
+          profile_img: cachedSender.profile_img
+        } : data.sender;
+
+        const newMessage: Message = {
+          id: data.id,
+          chat_room_id: data.chat_room_id,
+          sender_id: data.sender_id,
+          content: data.content,
+          type: data.type,
+          sender: enrichedSender,
+          created_at: data.created_at,
+          updated_at: data.created_at,
+          mentions: data.mentions || [],
+          mention_user_ids: data.mentions?.map((m: any) => m.mentionedUserId) || []
+        };
+
+        setMessages(prev => {
+          // 중복 메시지 방지: 이미 같은 ID의 메시지가 있는지 확인
+          const existingMessageIndex = prev.findIndex(msg => msg.id === newMessage.id);
+          if (existingMessageIndex >= 0) {
+            console.warn(`중복 메시지 감지: ID ${newMessage.id} - 추가하지 않음`);
+            return prev; // 중복이면 추가하지 않음
+          }
+
+          console.log(`📨 상대방 메시지 정상 수신:`, newMessage);
+          return [newMessage, ...prev];
+        });
+      } else if (type === 'failed') {
+        // 메시지 전송 실패 처리
+        console.error('메시지 전송 실패:', data.error);
+
+        // 실패한 임시 메시지 제거 (tempId로 식별)
+        if (data.temp_id) {
+          setPendingMessages(prev => prev.filter(msg => msg.tempId !== data.temp_id));
+        }
+
+        Alert.alert('전송 실패', '메시지를 전송할 수 없습니다. 다시 시도해주세요.');
+      }
+    });
+
+    return unsubscribeMessage;
+  }, [chatRoomId]);
+
+  // 타이핑 이벤트 리스너 설정
+  useEffect(() => {
+    const unsubscribeTyping = onTypingEvent((data) => {
+      if (data.chat_room_id === chatRoomId && data.user_id !== user?.id) {
+        // 상대방 타이핑 상태 업데이트
+        setTypingUsers(prev => {
+          const now = Date.now();
+          if (data.is_typing) {
+            // 타이핑 시작
+            const existingIndex = prev.findIndex(u => u.user_id === data.user_id);
+            if (existingIndex >= 0) {
+              // 이미 있는 경우 timestamp만 업데이트
+              const updated = [...prev];
+              updated[existingIndex].timestamp = now;
+              return updated;
+            } else {
+              // 새로 추가
+              return [...prev, {
+                user_id: data.user_id,
+                nickname: data.nickname,
+                timestamp: now
+              }];
+            }
+          } else {
+            // 타이핑 중단
+            return prev.filter(u => u.user_id !== data.user_id);
+          }
+        });
+      }
+    });
+
+    return unsubscribeTyping;
+  }, [chatRoomId, user?.id]);
+
+  // 타이핑 상태 자동 정리 (3초 후 만료)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setTypingUsers(prev => prev.filter(u => now - u.timestamp < 3000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // 메시지 로드 시 발신자 정보 캐시 업데이트
+  useEffect(() => {
+    // 메시지가 로드될 때마다 캐시 업데이트
+    messages.forEach(message => {
+      if (!senderCache.current.has(message.sender_id)) {
+        senderCache.current.set(message.sender_id, {
+          nickname: message.sender.nickname,
+          profile_img: message.sender.profile_img || null
+        });
+      }
+    });
+  }, [messages]);
+
+  // 읽음 처리: 메시지 로딩 완료 후 읽지 않은 메시지가 있으면 처리
+  useEffect(() => {
+    // unreadCount가 존재하고 0보다 크면 읽음 처리
+    if (!isInitialLoading && unreadCount && unreadCount > 0 && user) {
+      console.log(`✅ 읽음 처리 시작: 채팅방 ${chatRoomId}, 읽지 않은 수: ${unreadCount}`);
+
+      ChatService.markAsRead(chatRoomId).catch(error => {
+        console.error('❌ 읽음 처리 실패:', error);
+        // 읽음 처리 실패해도 사용자 경험에 큰 지장 없으므로 경고만 로그
+      });
+    }
+  }, [isInitialLoading, unreadCount, chatRoomId, user]);
+
+  // 채팅방 초기화 - API로 메시지 로드
+  useEffect(() => {
+    const initChatRoom = async () => {
+      try {
+        if (!user) {
+          Alert.alert('오류', '로그인이 필요합니다.');
+          navigation.goBack();
+          return;
+        }
+
+        setIsInitialLoading(true);
+
+        // API로 초기 메시지 로드
+        const response = await ChatService.getMessages(chatRoomId);
+        setMessages(response.messages);
+        setHasMoreMessages(response.hasNext);
+        setNextCursor(response.nextCursor);
+
+        setIsInitialLoading(false);
+        console.log(`📨 초기 메시지 로드 완료: ${response.messages.length}개`);
+
+      } catch (error) {
+        console.error('채팅방 초기화 실패:', error);
+        Alert.alert('오류', '채팅방에 접속할 수 없습니다.');
+        setIsInitialLoading(false);
+      }
+    };
+
+    initChatRoom();
+
+    // 타이핑 타이머 클린업
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [chatRoomId, user?.id, navigation]);
+
+  // 화면 진입/이탈 처리 (useFocusEffect) - Promise 안전 처리
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true; // 마운트 상태 추적
+
+      const subscribeIfMounted = async () => {
+        if (!isMounted) return;
+
+        console.log('📍 ChatDetailScreen 포커스됨 - 채팅방 구독 시작');
+        try {
+          await chatSocketService.subscribeToChat(chatRoomId);
+          console.log('✅ 채팅방 구독 완료');
+        } catch (error) {
+          console.error('❌ 채팅방 구독 실패:', error);
+          // 구독 실패해도 화면은 유지됨
+        }
+      };
+
+      subscribeIfMounted();
+
+      return () => {
+        isMounted = false;
+        console.log('📍 ChatDetailScreen 포커스 해제됨 - 채팅방 구독 해제');
+        chatSocketService.unsubscribeFromChat(chatRoomId);
+      };
+    }, [chatRoomId])
+  );
+
+  // 키보드 이벤트 리스너 (채팅 입력 시 키보드 높이 추적)
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e: any) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
+
+  // 백그라운드 복귀 처리 - 순차적 동기화로 중복 메시지 방지
+  useAppState({
+    onForeground: async () => {
+      console.log('🚀 앱 포그라운드 복귀 (ChatDetailScreen) - 순차적 메시지 동기화');
+
+      const waitForSocket = (timeoutMs: number = 3000): Promise<boolean> => {
+        return new Promise((resolve) => {
+          if (socketService.isConnected) {
+            resolve(true);
+            return;
+          }
+
+          console.log('⏳ 소켓 연결 대기 중...');
+          const startTime = Date.now();
+
+          const checkConnection = () => {
+            if (socketService.isConnected) {
+              console.log('✅ 소켓 연결 감지됨');
+              resolve(true);
+            } else if (Date.now() - startTime > timeoutMs) {
+              console.log('⏰ 소켓 연결 타임아웃');
+              resolve(false);
+            } else {
+              setTimeout(checkConnection, 100);
+            }
+          };
+
+          checkConnection();
+        });
+      };
+
+      const syncMessagesAfterSubscription = async () => {
+        // 1. 먼저 API로 최신 메시지 동기화 (소켓 연결과 무관하게)
+        try {
+          console.log('📥 백그라운드 메시지 동기화 시작 (API)');
+          setIsInitialLoading(true);
+
+          const response = await ChatService.getMessages(chatRoomId);
+          setMessages(response.messages);
+          setHasMoreMessages(response.hasNext);
+          setNextCursor(response.nextCursor);
+
+          setIsInitialLoading(false);
+          console.log(`📥 API 메시지 동기화 완료: ${response.messages.length}개 메시지 로드`);
+        } catch (error) {
+          console.error('API 메시지 동기화 실패:', error);
+          setIsInitialLoading(false);
+          // 동기화 실패해도 구독 시도는 계속 진행
+        }
+
+        // 2. 그 다음 실시간 구독 시작 (Promise 기반으로 안전하게)
+        if (!(await waitForSocket(3000))) {
+          console.warn('⚠️ 소켓 연결 실패 - 실시간 구독 생략');
+          return;
+        }
+
+        try {
+          console.log('🔄 실시간 채팅 구독 시작');
+          await chatSocketService.subscribeToChat(chatRoomId);
+          console.log('✅ 실시간 채팅 구독 완료');
+        } catch (error) {
+          console.error('실시간 채팅 구독 실패:', error);
+          // 구독 실패해도 API 데이터로 채팅은 가능함
+        }
+      };
+
+      // 즉시 메시지 동기화 시작 (소켓 연결 상태와 무관하게)
+      syncMessagesAfterSubscription();
+    },
+    onBackground: () => {
+      console.log('😴 앱 백그라운드 진입 (ChatDetailScreen)');
+      // 백그라운드에서는 구독을 유지하고, 포그라운드 복귀 시 동기화 진행
+      // 구독 해제를 제거하여 연결 끊김 방지
+    },
+    enableSocketReconnection: false
+  });
+
+  // TODO: 컴포넌트 마운트 시 스크롤을 맨 아래로 (새로 구현 예정)
+  // useEffect(() => {
+  //   if (messages.length > 0) {
+  //     setTimeout(() => {
+  //       flatListRef.current?.scrollToEnd({ animated: false });
+  //     }, 100);
+  //   }
+  // }, [messages.length]);
+
+
+  // 더 많은 메시지 로드 (무한 스크롤)
+  const loadMoreMessages = async () => {
+    if (!hasMoreMessages || !nextCursor || isLoadingMessages) return;
+
+    try {
+      setIsLoadingMessages(true);
+      console.log('📨 이전 메시지 로드 시작...');
+
+      const response = await ChatService.getMessages(chatRoomId, nextCursor);
+
+      // 기존 메시지에 이전 메시지 추가
+      setMessages(prevMessages => [...prevMessages, ...response.messages]);
+      setHasMoreMessages(response.hasNext);
+      setNextCursor(response.nextCursor);
+      setIsLoadingMessages(false);
+
+      console.log(`📨 이전 메시지 로드 완료: ${response.messages.length}개`);
+    } catch (error) {
+      console.error('더 많은 메시지 로드 실패:', error);
+      setIsLoadingMessages(false);
+      Alert.alert('오류', '이전 메시지를 불러오는데 실패했습니다.');
+    }
+  };
+
+
+
+  // 뒤로 가기 핸들러
+  const handleBack = () => {
+    navigation.goBack();
+  };
+
+  // 메시지 전송 핸들러
+  const handleSendMessage = async () => {
+    if (!inputText.trim() || !user) return;
+
+    const messageContent = inputText.trim();
+    const tempMessageId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; // 고유 임시 ID 생성
+
+    // @멘션 파싱 (TODO: 실제 멘션 유저 ID로 변환)
+    const mentionRegex = /@(\w+)/g;
+    const mentionUserIds: number[] = [];
+    let match;
+
+    while ((match = mentionRegex.exec(messageContent)) !== null) {
+      console.log('멘션 감지:', match[1]);
+      // TODO: 실제 멘션 유저 ID 변환 로직 추가
+    }
+
+    // 낙관적 UI: 임시 메시지 생성
+    const optimisticMessage: Message = {
+      id: -Date.now() - Math.floor(Math.random() * 1000), // 음수 ID로 임시 표시
+      chat_room_id: chatRoomId,
+      sender_id: user.id,
+      content: messageContent,
+      type: 'text' as const,
+      sender: {
+        id: user.id,
+        nickname: user.nickname || '',
+        profile_img: user.profile_img || null,
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      mentions: [], // 빈 멘션 배열
+      mention_user_ids: mentionUserIds,
+      tempId: tempMessageId, // 임시 ID 추가
+      isSending: true // 로딩 상태 표시
+    };
+
+    // 입력창 즉시 초기화
+    setInputText('');
+
+    // 낙관적 업데이트: pendingMessages에 추가
+    setPendingMessages(prev => [optimisticMessage, ...prev]);
+
+    // 스크롤 맨 아래로 즉시 이동 (inverted이므로 맨 위로)
+    setTimeout(() => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    }, 50);
+
+    // 실제 소켓으로 메시지 전송 (서버에서 검증)
+    console.log('📤 메시지 전송:', messageContent);
+    sendMessage(tempMessageId, chatRoomId, 'text', messageContent, mentionUserIds);
+
+    // 타이핑 중단 (메시지 전송했으므로)
+    stopTyping(chatRoomId);
+  };
+
+  // 타이핑 시작 핸들러
+  const handleTypingStart = () => {
+    // 소켓으로 타이핑 시작 알림
+    startTyping(chatRoomId);
+
+    // 3초 후 자동으로 타이핑 중단
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      handleTypingStop();
+    }, 3000);
+  };
+
+  // 타이핑 중단 핸들러
+  const handleTypingStop = () => {
+    // 소켓으로 타이핑 중단 알림
+    stopTyping(chatRoomId);
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+  };
+
+  // 입력 텍스트 변경 핸들러 - 타이핑 로직 포함
+  const handleInputChange = (text: string) => {
+    const hadText = inputText.length > 0;
+    const hasText = text.length > 0;
+
+    setInputText(text);
+
+    // 타이핑 상태 관리
+    if (!hadText && hasText) {
+      // 텍스트 입력 시작
+      handleTypingStart();
+    } else if (hadText && !hasText) {
+      // 텍스트 모두 삭제
+      handleTypingStop();
+    }
+    // 텍스트가 있을 때는 타이핑 상태 유지 (타이머가 알아서 처리)
+  };
+
+
+  // 내가 보낸 메시지 long press 핸들러
+  const handleLongPressMessage = (message: Message) => {
+    // 자신이 보낸 메시지인 경우에만 메뉴 열기
+    if (message.sender.id === user?.id) {
+      setSelectedMessage(message);
+      setMenuActionSheetVisible(true);
+    }
+  };
+
+  // 같은 발신자의 연속 메시지인지 체크 (inverted FlatList용)
+  const isContinuousMessage = (currentMessage: Message, prevMessage: Message | null) => {
+    if (!prevMessage) return false;
+
+    const isSameSender = currentMessage.sender.id === prevMessage.sender.id;
+    // inverted에서는 prevMessage가 더 최근 메시지이므로 prevMessage - currentMessage 시간 차이를 계산
+    const timeDiff = new Date(prevMessage.created_at).getTime() - new Date(currentMessage.created_at).getTime();
+    const isWithinTimeLimit = timeDiff < 60000; // 1분
+
+    return isSameSender && isWithinTimeLimit && isSameDay(currentMessage.created_at, prevMessage.created_at);
+  };
+
+  // 메시지 시간 표시 여부 결정 (카카오톡 스타일, inverted FlatList용)
+  const shouldShowMessageTime = (currentMessage: Message, prevMessage: Message | null) => {
+    // 이전 메시지가 없으면 (가장 최근 메시지) 시간 표시
+    if (!prevMessage) return true;
+
+    // 이전 메시지가 다른 발신자면 시간 표시
+    if (currentMessage.sender.id !== prevMessage.sender.id) return true;
+
+    // 이전 메시지가 다른 날짜면 시간 표시
+    if (!isSameDay(currentMessage.created_at, prevMessage.created_at)) return true;
+
+    // 이전 메시지가 다른 시간대(분)면 시간 표시
+    const currentTime = new Date(currentMessage.created_at);
+    const prevTime = new Date(prevMessage.created_at);
+    const currentMinute = currentTime.getHours() * 60 + currentTime.getMinutes();
+    const prevMinute = prevTime.getHours() * 60 + prevTime.getMinutes();
+
+    return currentMinute !== prevMinute;
+  };
+
+  // 날짜 구분선 렌더링
+  const renderDateSeparator = (dateString: string) => (
+    <View style={styles.dateSeparatorContainer}>
+      <View style={styles.dateSeparatorLine} />
+      <Text style={styles.dateSeparatorText}>
+        {formatMessageDate(dateString)}
+      </Text>
+      <View style={styles.dateSeparatorLine} />
+    </View>
+  );
+
+  // 메시지 아이템 렌더링
+  const renderMessageItem = ({ item, index }: { item: Message; index: number }) => {
+    const isMyMessage = item.sender.id === user?.id;
+    // displayMessages에서 다음 메시지(화면상 아래쪽)를 확인해서 날짜 구분선 표시
+    const nextMessage = index < displayMessages.length - 1 ? displayMessages[index + 1] : null;
+    // displayMessages에서 이전 메시지(화면상 위쪽, 더 최근)를 확인해서 연속 메시지/시간 표시 판별
+    const prevMessage = index > 0 ? displayMessages[index - 1] : null;
+    const isContinuous = isContinuousMessage(item, prevMessage);
+    // 날짜 구분자 표시 (다음 메시지와 비교)
+    const showDateSeparator = shouldShowDateSeparator(
+      item.created_at,
+      nextMessage?.created_at || null
+    );
+    // 시간 표시 여부 결정 (이전 메시지와 비교)
+    const showTime = shouldShowMessageTime(item, prevMessage);
+
+    return (
+      <>
+        {/* 날짜 구분선 (날짜가 바뀔 때만 표시) */}
+        {showDateSeparator && renderDateSeparator(item.created_at)}
+
+        {/* 메시지 */}
+        <View style={[
+          styles.messageContainer,
+          isMyMessage ? styles.myMessageContainer : styles.otherMessageContainer
+        ]}>
+          {/* 상대방 메시지의 경우 프로필 이미지 (연속 메시지가 아닐 때만) */}
+          {!isMyMessage && (
+            <View style={styles.profileSection}>
+              {!isContinuous ? (
+                <UserAvatar
+                  profileImg={item.sender.profile_img}
+                  nickname={item.sender.nickname}
+                  size={32}
+                />
+              ) : (
+                <View style={styles.profileImagePlaceholder} />
+              )}
+            </View>
+          )}
+
+          {/* 메시지 내용 */}
+          <View style={[
+            styles.messageContentContainer,
+            isMyMessage ? styles.myMessageContentContainer : styles.otherMessageContentContainer
+          ]}>
+            {/* 상대방 메시지의 경우 닉네임 (연속 메시지가 아닐 때만) */}
+            {!isMyMessage && !isContinuous && (
+              <Text style={styles.senderName}>{item.sender.nickname}</Text>
+            )}
+
+            <View style={styles.messageRow}>
+              {/* 내 메시지의 경우 시간이 왼쪽에 */}
+              {isMyMessage && showTime && (
+                <View style={styles.myMessageTimeContainer}>
+                  <View style={styles.messageTimeContainer}>
+                    {item.isSending ? (
+                      // 전송 중: 로딩 인디케이터
+                      <ActivityIndicator
+                        size="small"
+                        color={colors.GRAY_500}
+                      />
+                    ) : (
+                      // 전송 완료: 시간 표시
+                      <Text style={styles.messageTime}>
+                        {formatMessageTime(item.created_at)}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              )}
+
+              {/* 메시지 말풍선 */}
+              <View style={[
+                styles.messageBubble,
+                isMyMessage ? styles.myMessageBubble : styles.otherMessageBubble
+              ]}>
+                {item.type === 'image' && item.isSending ? (
+                  // 이미지 전송 중: 이미지 표시 + 오버레이
+                  <View style={styles.imageSendingContainer}>
+                    <Image
+                      source={{ uri: item.content }}
+                      style={styles.messageImage}
+                      contentFit="cover"
+                      cachePolicy={'memory-disk'}
+                      transition={200}
+                    />
+                    {/* 반투명 오버레이 */}
+                    <View style={styles.imageSendingOverlay}>
+                      <ActivityIndicator
+                        size="small"
+                        color={colors.WHITE}
+                      />
+                      <Text style={styles.imageSendingText}>
+                        전송 중...
+                      </Text>
+                    </View>
+                  </View>
+                ) : (
+                  // 일반 메시지 내용 (텍스트 또는 전송 완료된 이미지)
+                  <TouchableOpacity
+                    onLongPress={() => handleLongPressMessage(item)}
+                    activeOpacity={0.7}
+                  >
+                    {item.type === 'image' ? (
+                      <Image
+                        source={{ uri: item.content }}
+                        style={styles.messageImage}
+                        contentFit="cover"
+                        cachePolicy={'memory-disk'}
+                        transition={200}
+                      />
+                    ) : (
+                      <Text style={[
+                        styles.messageText,
+                        isMyMessage ? styles.myMessageText : styles.otherMessageText
+                      ]}>
+                        {item.content}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* 상대방 메시지의 경우 시간이 오른쪽에 */}
+              {!isMyMessage && showTime && (
+                <Text style={styles.messageTime}>{formatMessageTime(item.created_at)}</Text>
+              )}
+            </View>
+          </View>
+        </View>
+      </>
+    );
+  };
+
+  // 사이드바 관련 핸들러
+  const handleToggleSidebar = () => {
+    setIsSidebarVisible(!isSidebarVisible);
+  };
+
+  const handleCloseSidebar = () => {
+    setIsSidebarVisible(false);
+  };
+
+  const handleAddMember = () => {
+    // TODO: 멤버 추가 기능 구현
+    console.log('멤버 추가');
+  };
+
+  const handleViewAllMedia = () => {
+    // TODO: 전체 미디어 보기 기능 구현
+    console.log('전체 미디어 보기');
+  };
+
+  const handleViewNotice = (notice: any) => {
+    // TODO: 공지사항 상세 보기 기능 구현
+    console.log('공지사항 보기:', notice);
+  };
+
+  // 공지사항 등록 핸들러
+  const handleRegisterNotice = async () => {
+    if (!selectedMessage) {
+      Alert.alert('오류', '선택된 메시지가 없습니다.');
+      setMenuActionSheetVisible(false);
+      return;
+    }
+
+    try {
+      const response = await ChatService.registerNotice(chatRoomId, {
+        content: selectedMessage.content
+      });
+
+      // 성공
+      Alert.alert(
+        '성공',
+        '공지사항이 등록되었습니다.',
+        [{ text: '확인' }]
+      );
+
+      // 공지사항 등록 후 사이드바 새로고침 (사이드바에서 직접 데이터 로드)
+
+      console.log('공지사항 등록 성공:', response);
+    } catch (error: any) {
+      // 에러 처리
+      console.error('공지사항 등록 실패:', error);
+
+      let errorMessage = '공지사항 등록에 실패했습니다.';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+
+      Alert.alert(
+        '오류',
+        errorMessage,
+        [{ text: '확인' }]
+      );
+    } finally {
+      // 정리
+      setSelectedMessage(null);
+      setMenuActionSheetVisible(false);
+    }
+  };
+
+  // 카메라 사진 촬영 핸들러
+  const handleSelectCamera = async () => {
+    try {
+      // 권한 요청
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+
+      if (permissionResult.granted === false) {
+        Alert.alert('권한 필요', '카메라 권한이 필요합니다. 설정에서 허용해주세요.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false, // 채팅에서는 편집 없이 바로 전송
+        quality: 0.8, // 적절한 품질로 압축
+        exif: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        await handleSendImageMessage(result.assets[0]);
+      }
+    } catch (error) {
+      console.error('카메라 촬영 실패:', error);
+      Alert.alert('오류', '사진 촬영에 실패했습니다.');
+    }
+    setAttachmentActionSheetVisible(false);
+  };
+
+  // 갤러리 사진 선택 핸들러
+  const handleSelectGallery = async () => {
+    try {
+      // 권한 요청 (일부 플랫폼에서는 필요)
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (permissionResult.granted === false) {
+        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false, // 채팅에서는 편집 없이 바로 선택
+        quality: 0.8, // 적절한 품질로 압축
+        exif: false,
+        allowsMultipleSelection: false, // 한 장씩만 선택
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        await handleSendImageMessage(result.assets[0]);
+      }
+    } catch (error) {
+      console.error('갤러리 선택 실패:', error);
+      Alert.alert('오류', '사진 선택에 실패했습니다.');
+    }
+    setAttachmentActionSheetVisible(false);
+  };
+
+  // 이미지 메시지 전송 핸들러 (낙관적 업데이트 적용)
+  const handleSendImageMessage = async (asset: ImagePicker.ImagePickerAsset) => {
+    if (!user) return;
+
+    const tempMessageId = `temp_img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // 1. 낙관적 업데이트: 로딩 상태로 즉시 UI에 표시
+    const optimisticMessage: Message = {
+      id: -Date.now() - Math.floor(Math.random() * 1000), // 음수 ID로 임시 표시
+      chat_room_id: chatRoomId,
+      sender_id: user.id,
+      content: asset.uri, // 로컬 URI로 먼저 표시
+      type: 'image' as const,
+      sender: {
+        id: user.id,
+        nickname: user.nickname || '',
+        profile_img: user.profile_img || null,
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      mentions: [],
+      mention_user_ids: [],
+      isSending: true, // 로딩 상태 표시
+      tempId: tempMessageId
+    };
+
+    // 입력창 초기화 및 ActionSheet 닫기
+    setAttachmentActionSheetVisible(false);
+
+    // 낙관적 업데이트: pendingMessages에 추가
+    setPendingMessages(prev => [optimisticMessage, ...prev]);
+
+    // 스크롤 맨 아래로 즉시 이동
+    setTimeout(() => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    }, 50);
+
+    try {
+      // 2. 이미지 업로드 API 호출 (서버에 파일 저장)
+      console.log('📤 이미지 업로드 시작...');
+      const uploadResponse = await ChatService.uploadChatImage(asset.uri);
+      console.log('✅ 이미지 업로드 완료:', uploadResponse);
+
+      // 3. 서버에서 받은 image_path를 사용하여 소켓 메시지 전송
+      const imagePath = uploadResponse.image_path;
+
+      // 4. DB에 메시지 저장될 소켓 메시지 전송 (type: 'image', content: image_path)
+      sendMessage(tempMessageId, chatRoomId, 'image', imagePath, []);
+
+    } catch (error) {
+      console.error('📷 이미지 메시지 전송 실패:', error);
+
+      // 실패 시 낙관적 메시지 제거
+      setPendingMessages(prev => prev.filter(msg => msg.tempId !== tempMessageId));
+
+      Alert.alert('전송 실패', '이미지를 전송할 수 없습니다. 다시 시도해주세요.');
+    }
+  };
+
+  // 헤더 우측 컴포넌트 (검색, 햄버거 메뉴)
+  const renderHeaderRight = () => (
+    <View style={styles.headerRightContainer}>
+      <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
+        <SearchIcon size={20} color={colors.GRAY_700} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.headerIconButton}
+        activeOpacity={0.7}
+        onPress={handleToggleSidebar}
+      >
+        <MenuIcon size={20} color={colors.GRAY_700} />
+      </TouchableOpacity>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        {/* 상단 고정 헤더 */}
+        <CommonHeader
+          title={chatRoomName}
+          onBackPress={handleBack}
+          showBackButton={true}
+          rightComponent={renderHeaderRight()}
+        />
+
+        {/* 채팅 컨텐츠 영역 */}
+        <View style={styles.contentContainer}>
+          {/* 채팅 메시지 목록 또는 빈 상태 */}
+          {displayMessages.length > 0 ? (
+            <FlatList
+              ref={flatListRef}
+              data={displayMessages}
+              renderItem={renderMessageItem}
+              keyExtractor={(item) => item.id.toString()}
+              style={styles.messagesList}
+              showsVerticalScrollIndicator={false}
+              inverted
+              onContentSizeChange={() => {
+                // inverted 속성으로 인해 자동으로 최신 메시지 위치로 스크롤됨
+              }}
+              // 무한 스크롤: 스크롤을 아래로 내리면 과거 메시지 로드
+              onEndReached={loadMoreMessages}
+              onEndReachedThreshold={0.1}
+              // 로딩 인디케이터 제거 - 깔끔한 UX를 위해
+            />
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {isInitialLoading ? '메시지를 불러오는 중...' :
+                 '메시지를 입력해 대화를 시작해보세요.'}
+              </Text>
+            </View>
+          )}
+
+          {/* 구독 상태 표시 */}
+          {subscriptionStatus.error && (
+            <View style={styles.subscriptionErrorContainer}>
+              <Text style={styles.subscriptionErrorText}>
+                {subscriptionStatus.error}
+              </Text>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={() => chatSocketService.subscribeToChat(chatRoomId)}
+                disabled={chatSocketService.subscriptionStatus.isSubscribing}
+              >
+                <Text style={styles.retryButtonText}>
+                  {chatSocketService.subscriptionStatus.isSubscribing ? '구독중...' : '재시도'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* 타이핑 인디케이터 */}
+          {typingUsers.length > 0 && (
+            <View style={styles.typingContainer}>
+              <Text style={styles.typingText}>
+                {typingUsers.map(u => u.nickname).join(', ')}님이 입력 중...
+              </Text>
+            </View>
+          )}
+
+
+          {/* 메시지 입력 영역 */}
+          <View style={[styles.inputContainer]}>
+            <TouchableOpacity
+              style={styles.attachButton}
+              activeOpacity={0.7}
+              onPress={() => setAttachmentActionSheetVisible(true)}
+            >
+              <PlusCircleIcon size={24} color={colors.GRAY_700} />
+            </TouchableOpacity>
+
+            <View style={styles.textInputContainer}>
+              <TextInput
+                style={styles.textInput}
+                placeholder="메시지를 입력하세요..."
+                placeholderTextColor={colors.GRAY_500}
+                value={inputText}
+                onChangeText={handleInputChange}
+                multiline={true}
+                maxLength={1000}
+                returnKeyType="send"
+                onSubmitEditing={handleSendMessage}
+                blurOnSubmit={false}
+                editable={true}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                inputText.trim() ? styles.sendButtonActive : styles.sendButtonInactive
+              ]}
+              onPress={handleSendMessage}
+              activeOpacity={0.7}
+              disabled={!inputText.trim()}
+            >
+              <SendIcon
+                size={24}
+                color={inputText.trim() ? colors.WHITE : colors.GRAY_500}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+
+      {/* 사이드바 - 실제 API 데이터를 사용 */}
+      <ChatDetailSidebar
+        isVisible={isSidebarVisible}
+        onClose={handleCloseSidebar}
+        chatRoomName={chatRoomName}
+        chatRoomId={chatRoomId}
+        onAddMember={handleAddMember}
+        onViewAllMedia={handleViewAllMedia}
+        onViewNotice={handleViewNotice}
+      />
+
+      {/* 메뉴 액션 시트 */}
+      <MenuActionSheet
+        visible={menuActionSheetVisible}
+        onClose={() => setMenuActionSheetVisible(false)}
+        title="채팅"
+        actions={[
+          {
+            id: 'register_notice',
+            title: '공지사항 등록',
+            icon: <NoticeIcon size={20} color={colors.PRIMARY} />,
+            color: colors.PRIMARY,
+            onPress: handleRegisterNotice,
+          },
+        ]}
+      />
+
+      {/* 첨부파일 액션 시트 */}
+      <MenuActionSheet
+        visible={attachmentActionSheetVisible}
+        onClose={() => setAttachmentActionSheetVisible(false)}
+        title="첨부파일"
+        actions={[
+          {
+            id: 'camera',
+            title: '사진 촬영',
+            icon: <CameraIcon size={24} color={colors.PRIMARY} />,
+            color: colors.PRIMARY,
+            onPress: handleSelectCamera,
+          },
+          {
+            id: 'gallery',
+            title: '갤러리에서 선택',
+            icon: <AddImageIcon size={24} color={colors.PRIMARY} />,
+            color: colors.PRIMARY,
+            onPress: handleSelectGallery,
+          },
+        ]}
+      />
+    </SafeAreaView>
+  );
+}
+
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.GRAY_50,
+  },
+
+  // KeyboardAvoidingView 스타일
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+
+  // 컨텐츠 컨테이너
+  contentContainer: {
+    flex: 1,
+  },
+
+  // 헤더 관련
+  headerRightContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: SPACING.SM,
+  },
+  headerIconButton: {
+    padding: SPACING.XS,
+  },
+
+  // 메시지 목록
+  messagesList: {
+    flex: 1,
+    backgroundColor: colors.GRAY_50,
+    paddingHorizontal: SPACING.MD,
+  },
+  messagesContent: {
+    paddingVertical: SPACING.MD,
+    paddingHorizontal: SPACING.SM,
+    flexGrow: 1,
+  },
+
+  // 메시지 컨테이너
+  messageContainer: {
+    flexDirection: 'row' as const,
+    marginBottom: SPACING.SM,
+  },
+  myMessageContainer: {
+    justifyContent: 'flex-end' as const,
+  },
+  otherMessageContainer: {
+    justifyContent: 'flex-start' as const,
+  },
+
+  // 프로필 섹션
+  profileSection: {
+    width: 40,
+    marginRight: SPACING.XS,
+  },
+  profileImagePlaceholder: {
+    width: 32,
+    height: 32,
+  },
+
+  // 메시지 내용
+  messageContentContainer: {
+    flex: 1,
+    maxWidth: '75%',
+  },
+  myMessageContentContainer: {
+    alignItems: 'flex-end' as const,
+  },
+  otherMessageContentContainer: {
+    alignItems: 'flex-start' as const,
+  },
+
+  // 발신자 이름
+  senderName: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    color: colors.GRAY_700,
+    marginBottom: SPACING.XS,
+  },
+
+  // 메시지 행
+  messageRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-end' as const,
+    gap: SPACING.XS,
+  },
+
+  // 메시지 말풍선
+  messageBubble: {
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.SM,
+    borderRadius: BORDER_RADIUS.LG,
+    maxWidth: '100%',
+  },
+  myMessageBubble: {
+    backgroundColor: colors.PRIMARY,
+  },
+  otherMessageBubble: {
+    backgroundColor: colors.WHITE,
+    borderWidth: 1,
+    borderColor: colors.GRAY_200,
+  },
+
+  // 메시지 텍스트
+  messageText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    lineHeight: 20,
+  },
+  myMessageText: {
+    color: colors.WHITE,
+  },
+  otherMessageText: {
+    color: colors.GRAY_900,
+  },
+
+  // 메시지 시간
+  messageTime: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    color: colors.GRAY_500,
+    alignSelf: 'flex-end',
+    marginBottom: SPACING.XS,
+  },
+  messageTimeContainer: {
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    minHeight: 16,
+  },
+
+  // 내 메시지 시간 컨테이너
+  myMessageTimeContainer: {
+    alignItems: 'flex-end' as const,
+    justifyContent: 'flex-end' as const,
+  },
+
+
+  // 입력 영역
+  inputContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.SM,
+    backgroundColor: colors.WHITE,
+    borderTopWidth: 1,
+    borderTopColor: colors.GRAY_200,
+    gap: SPACING.SM,
+  },
+  attachButton: {
+    width: INPUT_SIZES.CHAT_ATTACH_BUTTON_SIZE,
+    height: INPUT_SIZES.CHAT_ATTACH_BUTTON_SIZE,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  textInputContainer: {
+    flex: 1,
+    backgroundColor: colors.GRAY_100,
+    borderRadius: BORDER_RADIUS.LG,
+    paddingHorizontal: SPACING.SM,
+    paddingVertical: 0,
+    minHeight: INPUT_SIZES.CHAT_INPUT_MIN_HEIGHT,
+    maxHeight: INPUT_SIZES.CHAT_INPUT_MAX_HEIGHT,
+    justifyContent: 'center' as const,
+  },
+  textInput: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.GRAY_900,
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+    textAlign: 'left',
+    paddingVertical: SPACING.XS,
+  },
+  sendButton: {
+    width: INPUT_SIZES.CHAT_SEND_BUTTON_SIZE,
+    height: INPUT_SIZES.CHAT_SEND_BUTTON_SIZE,
+    borderRadius: INPUT_SIZES.CHAT_SEND_BUTTON_SIZE / 2,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  sendButtonActive: {
+    backgroundColor: colors.PRIMARY,
+  },
+  sendButtonInactive: {
+    backgroundColor: colors.GRAY_100,
+  },
+
+  // 구독 상태 에러 표시
+  subscriptionErrorContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.SM,
+    backgroundColor: colors.GRAY_100,
+    borderTopWidth: 1,
+    borderTopColor: colors.ERROR,
+  },
+  subscriptionErrorText: {
+    flex: 1,
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.ERROR,
+    marginRight: SPACING.SM,
+  },
+  retryButton: {
+    paddingHorizontal: SPACING.SM,
+    paddingVertical: SPACING.XS,
+    backgroundColor: colors.ERROR,
+    borderRadius: BORDER_RADIUS.SM,
+  },
+  retryButtonText: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    color: colors.WHITE,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
+
+  // 타이핑 인디케이터
+  typingContainer: {
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.XS,
+    backgroundColor: colors.GRAY_100,
+  },
+  typingText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.GRAY_700,
+    fontStyle: 'italic',
+  },
+
+
+  // 빈 상태
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    paddingVertical: SPACING.XXL,
+  },
+  emptyText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: colors.GRAY_700,
+    textAlign: 'center',
+  },
+
+  // 더 많은 메시지 로딩 인디케이터
+  loadingMoreContainer: {
+    paddingVertical: SPACING.MD,
+    alignItems: 'center' as const,
+  },
+  loadingMoreText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.GRAY_700,
+    fontStyle: 'italic',
+  },
+
+  // 메시지 이미지
+  messageImage: {
+    width: 200,
+    height: 200,
+    borderRadius: BORDER_RADIUS.MD,
+  },
+
+  // 이미지 전송 중 컨테이너
+  imageSendingContainer: {
+    position: 'relative' as const,
+  },
+  imageSendingOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: BORDER_RADIUS.MD,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    gap: SPACING.XS,
+  },
+  imageSendingText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    color: colors.WHITE,
+  },
+
+  // 전송 중 컨테이너
+  sendingContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: SPACING.XS,
+    minHeight: 40,
+  },
+  sendingText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
+  mySendingText: {
+    color: colors.WHITE,
+  },
+  otherSendingText: {
+    color: colors.GRAY_700,
+  },
+
+  // 날짜 구분선
+  dateSeparatorContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    marginVertical: SPACING.LG,
+    paddingHorizontal: SPACING.MD,
+  },
+  dateSeparatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.GRAY_300,
+  },
+  dateSeparatorText: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    color: colors.GRAY_700,
+    backgroundColor: colors.GRAY_50,
+    paddingHorizontal: SPACING.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
+});

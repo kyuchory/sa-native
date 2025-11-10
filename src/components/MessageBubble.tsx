@@ -1,0 +1,247 @@
+import React from 'react';
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
+import { Message } from '../types/chat';
+import { formatMessageTime } from '../utils/timeUtils';
+import { useThemeStore } from '../stores/themeStore';
+import { useAuthStore } from '../stores/authStore';
+import UserAvatar from '../components/UserAvatar';
+import { SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../constants/theme';
+
+interface MessageBubbleProps {
+  message: Message;
+  isMyMessage: boolean;
+  isContinuous: boolean;
+  showTime: boolean;
+  onLongPress?: (message: Message) => void;
+}
+
+const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
+  message,
+  isMyMessage,
+  isContinuous,
+  showTime,
+  onLongPress,
+}) => {
+  const { colors } = useThemeStore();
+  const { user } = useAuthStore();
+  const styles = createStyles(colors);
+
+  const renderMessageContent = () => {
+    if (message.type === 'image' && message.isSending) {
+      // 이미지 전송 중: 이미지 표시 + 오버레이
+      return (
+        <View style={styles.imageContainer}>
+          <Image
+            source={{ uri: message.content }}
+            style={styles.image}
+            contentFit="cover"
+            cachePolicy={'memory-disk'}
+            transition={200}
+          />
+          {/* 반투명 오버레이 */}
+          <View style={styles.imageOverlay}>
+            <ActivityIndicator
+              size="small"
+              color={colors.WHITE}
+            />
+            <Text style={styles.imageOverlayText}>
+              전송 중...
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
+    // 일반 메시지 내용 (텍스트 또는 전송 완료된 이미지)
+    const content = message.type === 'image' ? (
+      <Image
+        source={{ uri: message.content }}
+        style={styles.image}
+        contentFit="cover"
+        cachePolicy={'memory-disk'}
+        transition={200}
+      />
+    ) : (
+      <Text style={isMyMessage ? styles.myMessageText : styles.otherMessageText}>
+        {message.content}
+      </Text>
+    );
+
+    return (
+      <TouchableOpacity
+        onLongPress={() => onLongPress?.(message)}
+        activeOpacity={0.7}
+      >
+        {content}
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <View style={[styles.container, isMyMessage ? styles.myMessageContainer : styles.otherMessageContainer]}>
+      {/* 프로필 이미지 (상대방 메시지에서만, 연속 메시지가 아닐 때) */}
+      {!isMyMessage && (
+        <View style={styles.avatarContainer}>
+          {!isContinuous ? (
+            <UserAvatar
+              profileImg={message.sender.profile_img}
+              nickname={message.sender.nickname}
+              size={32}
+            />
+          ) : (
+            <View style={styles.avatarPlaceholder} />
+          )}
+        </View>
+      )}
+
+      {/* 메시지 내용 */}
+      <View style={[styles.contentContainer, isMyMessage ? styles.myContentContainer : styles.otherContentContainer]}>
+        {/* 상대방 메시지의 경우 닉네임 (연속 메시지가 아닐 때만) */}
+        {!isMyMessage && !isContinuous && (
+          <Text style={styles.nickname}>
+            {message.sender.nickname}
+          </Text>
+        )}
+
+        <View style={styles.messageRow}>
+          {/* 내 메시지의 경우 시간이 왼쪽에 */}
+          {isMyMessage && showTime && (
+            <View style={styles.timeContainer}>
+              {message.isSending ? (
+                // 전송 중: 로딩 인디케이터
+                <ActivityIndicator
+                  size="small"
+                  color={colors.GRAY_500}
+                />
+              ) : (
+                // 전송 완료: 시간 표시
+                <Text style={styles.timeText}>
+                  {formatMessageTime(message.created_at)}
+                </Text>
+              )}
+            </View>
+          )}
+
+          {/* 메시지 말풍선 */}
+          <View style={isMyMessage ? styles.myBubble : styles.otherBubble}>
+            {renderMessageContent()}
+          </View>
+
+          {/* 상대방 메시지의 경우 시간이 오른쪽에 */}
+          {!isMyMessage && showTime && (
+            <Text style={styles.timeText}>
+              {formatMessageTime(message.created_at)}
+            </Text>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+});
+
+MessageBubble.displayName = 'MessageBubble';
+
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    marginBottom: SPACING.XS,
+  },
+  myMessageContainer: {
+    justifyContent: 'flex-end',
+  },
+  otherMessageContainer: {
+    justifyContent: 'flex-start',
+  },
+  avatarContainer: {
+    width: 40,
+    marginRight: 2,
+  },
+  avatarPlaceholder: {
+    width: 32,
+    height: 32,
+  },
+  contentContainer: {
+    flex: 1,
+    maxWidth: '75%',
+  },
+  myContentContainer: {
+    alignItems: 'flex-end',
+  },
+  otherContentContainer: {
+    alignItems: 'flex-start',
+  },
+  nickname: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    color: colors.GRAY_700,
+    marginBottom: SPACING.XS,
+  },
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: SPACING.XS,
+  },
+  timeContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 16,
+  },
+  timeText: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    color: colors.GRAY_500,
+    alignSelf: 'flex-end',
+    marginBottom: SPACING.XS,
+  },
+  myBubble: {
+    paddingHorizontal: SPACING.SMD,
+    paddingVertical: SPACING.SM,
+    borderRadius: BORDER_RADIUS.LG,
+    backgroundColor: colors.PRIMARY,
+  },
+  otherBubble: {
+    paddingHorizontal: SPACING.SMD,
+    paddingVertical: SPACING.SM,
+    borderRadius: BORDER_RADIUS.LG,
+    backgroundColor: colors.WHITE,
+    borderWidth: 1,
+    borderColor: colors.GRAY_200,
+  },
+  imageContainer: {
+    position: 'relative',
+  },
+  image: {
+    width: 200,
+    height: 200,
+    borderRadius: BORDER_RADIUS.MD,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: BORDER_RADIUS.MD,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SPACING.XS,
+  },
+  imageOverlayText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    color: colors.WHITE,
+  },
+  myMessageText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    lineHeight: 20,
+    color: colors.WHITE,
+  },
+  otherMessageText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    lineHeight: 20,
+    color: colors.GRAY_900,
+  },
+});
+
+export default MessageBubble;
