@@ -112,6 +112,7 @@ export const TYPOGRAPHY = {
 export const SPACING = {
   XS: 4,
   SM: 8,
+  SMD: 12,  // SM과 MD 사이의 중간값
   MD: 16,
   LG: 24,
   XL: 32,
