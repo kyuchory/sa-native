@@ -114,6 +114,7 @@ export const SPACING = {
   SM: 8,
   SMD: 12,  // SM과 MD 사이의 중간값
   MD: 16,
+  LMD: 20, // LG와 MD 사이의 중간값
   LG: 24,
   XL: 32,
   XXL: 48,
