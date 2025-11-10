@@ -13,7 +13,9 @@ import {
   UnreadChatCountResponse,
   CreatePrivateChatResponse,
   CreateGroupChatResponse,
-  ChatImageUploadResponse
+  ChatImageUploadResponse,
+  UpdateChatRoomRequest,
+  UpdateChatRoomResponse
 } from '../types/chat';
 
 /**
@@ -57,10 +59,9 @@ export class ChatService {
   }
 
   // 채팅방 정보 수정 (그룹 채팅만)
-  static async updateChatRoom(chatRoomId: number, name: string, avatarUrl?: string): Promise<ChatRoom> {
-    const requestData = { name, ...(avatarUrl && { avatarUrl }) };
-    const response = await apiClient.put<SingleChatRoomResponse>(`/chats/${chatRoomId}`, requestData);
-    return response.data; // apiClient가 이미 data를 추출해서 반환
+  static async updateChatRoom(chatRoomId: number, request: UpdateChatRoomRequest): Promise<{ success: boolean }> {
+    const response = await apiClient.put<UpdateChatRoomResponse>(`/chats/${chatRoomId}`, request);
+    return response.data; // { success: boolean }
   }
 
   // 채팅 메시지 목록 조회 (페이지네이션)

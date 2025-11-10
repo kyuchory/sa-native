@@ -208,3 +208,14 @@ export interface ChatImageUploadResponse {
   filename: string;
   size: number;
 }
+
+// 채팅방 수정 요청
+export interface UpdateChatRoomRequest {
+  name?: string;
+  avatar_url?: string;
+}
+
+// 채팅방 수정 응답
+export interface UpdateChatRoomResponse extends ApiResponse<{
+  success: boolean;
+}> {}
