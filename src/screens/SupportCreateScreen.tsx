@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  Platform
+  Platform,
+  ActivityIndicator
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
@@ -175,9 +176,35 @@ export default function SupportCreateScreen() {
     }
   };
 
+  const getSaveButton = () => (
+    <TouchableOpacity
+      style={[
+        styles.saveButton,
+        (!title.trim() || !content.trim() || !category || loading) && styles.disabledButton
+      ]}
+      onPress={handleSubmit}
+      disabled={loading || !title.trim() || !content.trim() || !category}
+      activeOpacity={0.7}
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color={colors.WHITE} />
+      ) : (
+        <Text style={[
+          styles.saveButtonText,
+          (!title.trim() || !content.trim() || !category) && styles.disabledButtonText
+        ]}>
+          저장
+        </Text>
+      )}
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <CommonHeader title="문의 작성" />
+      <CommonHeader
+        title="문의 작성"
+        rightComponent={getSaveButton()}
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -306,17 +333,7 @@ export default function SupportCreateScreen() {
           )}
         </View>
 
-        {/* 작성 버튼 */}
-        <TouchableOpacity
-          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={loading}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.submitButtonText}>
-            {loading ? '등록 중...' : '문의 등록'}
-          </Text>
-        </TouchableOpacity>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -465,19 +482,24 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     marginLeft: SPACING.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
-  submitButton: {
-    backgroundColor: colors.PRIMARY,
+
+  saveButton: {
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.SM,
     borderRadius: BORDER_RADIUS.MD,
-    padding: SPACING.MD,
-    alignItems: 'center',
-    marginTop: SPACING.MD,
+    backgroundColor: colors.PRIMARY,
+    minWidth: 60,
+    alignItems: 'center' as const,
   },
-  submitButtonDisabled: {
-    backgroundColor: colors.GRAY_400,
+  disabledButton: {
+    backgroundColor: colors.GRAY_300,
   },
-  submitButtonText: {
-    fontSize: TYPOGRAPHY.SIZE.MD,
+  saveButtonText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
     color: colors.WHITE,
+  },
+  disabledButtonText: {
+    color: colors.GRAY_500,
   },
 });

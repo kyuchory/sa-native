@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../types/navigation';
@@ -77,12 +77,16 @@ export default function NicknameEditScreen() {
       disabled={loading || !nickname.trim() || nickname === originalNickname}
       activeOpacity={0.7}
     >
-      <Text style={[
-        styles.saveButtonText,
-        (!nickname.trim() || nickname === originalNickname) && styles.disabledButtonText
-      ]}>
-        {loading ? '저장 중' : '완료'}
-      </Text>
+      {loading ? (
+        <ActivityIndicator size="small" color={colors.WHITE} />
+      ) : (
+        <Text style={[
+          styles.saveButtonText,
+          (!nickname.trim() || nickname === originalNickname) && styles.disabledButtonText
+        ]}>
+          완료
+        </Text>
+      )}
     </TouchableOpacity>
   );
 
