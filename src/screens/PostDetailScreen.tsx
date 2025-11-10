@@ -367,22 +367,38 @@ export default function PostDetailScreen() {
 
   // 댓글 삭제
   const handleDeleteComment = async (commentId: number) => {
-    try {
-      setIsCommentLoading(true);
+    Alert.alert(
+      '댓글 삭제',
+      '댓글을 삭제하시겠습니까? 삭제된 댓글은 복구할 수 없습니다.',
+      [
+        {
+          text: '취소',
+          style: 'cancel',
+        },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsCommentLoading(true);
 
-      // API 호출
-      await PostService.deleteComment(commentId);
+              // API 호출
+              await PostService.deleteComment(commentId);
 
-      // 댓글 목록 새로고침
-      const updatedComments = await PostService.getComments(postId);
-      setComments(updatedComments);
+              // 댓글 목록 새로고침
+              const updatedComments = await PostService.getComments(postId);
+              setComments(updatedComments);
 
-    } catch (error) {
-      Alert.alert('오류', '댓글 삭제에 실패했습니다.');
-      console.error('댓글 삭제 실패:', error);
-    } finally {
-      setIsCommentLoading(false);
-    }
+            } catch (error) {
+              Alert.alert('오류', '댓글 삭제에 실패했습니다.');
+              console.error('댓글 삭제 실패:', error);
+            } finally {
+              setIsCommentLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   // 게시물 삭제
