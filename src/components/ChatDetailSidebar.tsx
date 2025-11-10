@@ -13,9 +13,11 @@ import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
-import { MediaIcon, NoticeIcon, MembersIcon, ChevronRightIcon } from './SidebarIcons';
+import { MediaIcon, NoticeIcon, MembersIcon, ChevronRightIcon, EditIcon } from './SidebarIcons';
 import { ChatRoomMember, ChatRoomNotice, ChatRoomMedia, ChatRoomDetail } from '../types/chat';
 import { ChatService } from '../services/chatService';
+import GroupChatNameInputModal from './GroupChatNameInputModal';
+import ChatRoomImageEditModal from './ChatRoomImageEditModal';
 
 // UI 컴포넌트용 내부 인터페이스들
 interface ChatMember {
@@ -49,6 +51,8 @@ interface ChatDetailSidebarProps {
   onAddMember: () => void;
   onViewAllMedia: () => void;
   onViewNotice: (notice: NoticeItem) => void;
+  onEditChatName?: () => void;
+  onChatNameUpdate?: (newName: string) => void;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -56,11 +60,13 @@ const { width: screenWidth } = Dimensions.get('window');
 const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
   isVisible,
   onClose,
-  chatRoomName,
+  chatRoomName: initialChatRoomName,
   chatRoomId,
   onAddMember,
   onViewAllMedia,
   onViewNotice,
+  onEditChatName,
+  onChatNameUpdate,
 }) => {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
@@ -71,6 +77,10 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
   // 로컬 상태 - 사이드바에서 직접 관리
   const [chatRoomDetail, setChatRoomDetail] = React.useState<ChatRoomDetail | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [localChatRoomName, setLocalChatRoomName] = React.useState(initialChatRoomName);
+  const [previousChatRoomName, setPreviousChatRoomName] = React.useState(initialChatRoomName);
+  const [isEditChatNameModalVisible, setIsEditChatNameModalVisible] = React.useState(false);
+  const [isImageEditModalVisible, setIsImageEditModalVisible] = React.useState(false);
 
   // API 데이터를 UI 데이터로 변환
   const {
@@ -131,7 +141,13 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
         try {
           setLoading(true);
           const detail = await ChatService.getChatRoomDetail(chatRoomId);
+          console.log('📝 사이드바 채팅방 상세 정보 로드 중:', detail);
           setChatRoomDetail(detail);
+
+          // API 응답의 name을 우선적으로 사용
+          if (detail.name) {
+            setLocalChatRoomName(detail.name);
+          }
 
           console.log('📝 사이드바에서 채팅방 상세 정보 로드 완료:', {
             members: detail.members.length,
@@ -206,6 +222,50 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
     </TouchableOpacity>
   );
 
+  // 채팅방 이름 수정 핸들러 (낙관적 업데이트)
+  const handleChatNameUpdate = async (newName: string) => {
+    // 이전 이름 저장 (롤백용)
+    setPreviousChatRoomName(localChatRoomName);
+
+    // 낙관적 업데이트 - 즉시 UI 반영
+    setLocalChatRoomName(newName);
+
+    try {
+      // API 호출
+      await ChatService.updateChatRoom(chatRoomId, { name: newName });
+
+      // 성공 시 부모 컴포넌트에도 알림
+      onChatNameUpdate?.(newName);
+
+      // 모달 닫기
+      setIsEditChatNameModalVisible(false);
+
+      console.log('✅ 채팅방 이름 수정 성공:', newName);
+    } catch (error) {
+      // 실패 시 롤백
+      setLocalChatRoomName(previousChatRoomName);
+
+      console.error('❌ 채팅방 이름 수정 실패:', error);
+      // 여기서는 에러 처리를 하지 않고, 모달에서 처리하도록 함
+    }
+  };
+
+  // 채팅방 아바타 터치 핸들러
+  const handleChatRoomAvatarPress = () => {
+    setIsImageEditModalVisible(true);
+  };
+
+  // 채팅방 이미지 업데이트 핸들러
+  const handleImageUpdate = (newImageUrl: string) => {
+    // chatRoomDetail 상태 업데이트
+    if (chatRoomDetail) {
+      setChatRoomDetail({
+        ...chatRoomDetail,
+        avatar_url: newImageUrl,
+      });
+    }
+  };
+
   return (
     <Modal
       visible={isVisible}
@@ -213,6 +273,7 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
       presentationStyle="overFullScreen"
       transparent={true}
       onRequestClose={onClose}
+      style={{ zIndex: 1000 }}
     >
       <View style={styles.overlay}>
         <Animated.View
@@ -238,12 +299,53 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
 
               {/* 헤더 */}
               <View style={styles.header}>
-                <Text style={styles.chatRoomTitle} numberOfLines={1}>
-                  {chatRoomName}
-                </Text>
-                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                  <Text style={styles.closeButtonText}>✕</Text>
+                {/* 채팅방 아바타 */}
+                <TouchableOpacity style={styles.chatRoomAvatarContainer} onPress={handleChatRoomAvatarPress}>
+                  {chatRoomDetail?.avatar_url ? (
+                    <Image
+                      source={{ uri: chatRoomDetail.avatar_url }}
+                      style={styles.chatRoomAvatar}
+                      contentFit="cover"
+                      cachePolicy={'memory-disk'}
+                      transition={200}
+                    />
+                  ) : (
+                    <View style={styles.chatRoomAvatarPlaceholder}>
+                      <MediaIcon size={24} color={colors.WHITE} />
+                    </View>
+                  )}
+                  {/* 수정 가능 힌트 아이콘 */}
+                  <View style={styles.avatarEditHint}>
+                    <EditIcon size={12} color={colors.WHITE} />
+                  </View>
                 </TouchableOpacity>
+
+                {/* 채팅방 정보 */}
+                <View style={styles.chatRoomInfo}>
+                  <Text style={styles.chatRoomTitle} numberOfLines={1}>
+                    {localChatRoomName}
+                  </Text>
+                  {chatRoomDetail && (
+                    <Text style={styles.chatRoomSubtitle}>
+                      {chatRoomDetail.type === 'group'
+                        ? `${chatRoomDetail.members.length}명의 멤버`
+                        : '개인 채팅'
+                      }
+                    </Text>
+                  )}
+                </View>
+
+                {/* 헤더 버튼들 */}
+                <View style={styles.headerButtons}>
+                  {chatRoomDetail?.type === 'group' && (
+                    <TouchableOpacity style={styles.editButton} onPress={() => setIsEditChatNameModalVisible(true)}>
+                      <EditIcon size={20} color={colors.WHITE} />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                    <Text style={styles.closeButtonText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* 공유된 미디어 섹션 */}
@@ -321,6 +423,24 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
           </SafeAreaView>
         </Animated.View>
       </View>
+
+      {/* 채팅방 이름 수정 모달 - 사이드바 위에 표시 */}
+      <GroupChatNameInputModal
+        visible={isEditChatNameModalVisible}
+        onClose={() => setIsEditChatNameModalVisible(false)}
+        onSubmit={handleChatNameUpdate}
+        selectedUsersCount={1} // 그룹 채팅방 이름 수정이므로 1로 설정
+        firstUserName={localChatRoomName} // 현재 채팅방 이름을 기본값으로
+      />
+
+      {/* 채팅방 이미지 수정 모달 - 사이드바 위에 표시 */}
+      <ChatRoomImageEditModal
+        visible={isImageEditModalVisible}
+        onClose={() => setIsImageEditModalVisible(false)}
+        onImageUpdate={handleImageUpdate}
+        chatRoomId={chatRoomId}
+        currentImageUrl={chatRoomDetail?.avatar_url || undefined}
+      />
     </Modal>
   );
 };
@@ -362,16 +482,64 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.LG,
+    paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.MD,
     backgroundColor: colors.PRIMARY,
+  },
+  chatRoomAvatarContainer: {
+    marginRight: SPACING.SM,
+    position: 'relative',
+  },
+  chatRoomAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.GRAY_100,
+  },
+  chatRoomAvatarPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarEditHint: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.PRIMARY,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chatRoomInfo: {
+    flex: 1,
   },
   chatRoomTitle: {
     fontSize: TYPOGRAPHY.SIZE.LG,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
     color: colors.WHITE,
-    flex: 1,
+  },
+  chatRoomSubtitle: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 2,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.SM,
+  },
+  editButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   closeButton: {
     width: 32,

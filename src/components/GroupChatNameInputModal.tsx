@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Modal,
 } from 'react-native';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
@@ -31,9 +32,15 @@ export default function GroupChatNameInputModal({
 
   // 모달 표시 시 초기 이름 설정
   useEffect(() => {
-    if (visible && selectedUsersCount > 1) {
-      const defaultName = `${firstUserName} 외 ${selectedUsersCount - 1}명의 그룹`;
-      setChatName(defaultName);
+    if (visible) {
+      if (selectedUsersCount > 1) {
+        // 그룹 채팅방 생성
+        const defaultName = `${firstUserName} 외 ${selectedUsersCount - 1}명의 그룹`;
+        setChatName(defaultName);
+      } else {
+        // 채팅방 이름 수정
+        setChatName(firstUserName);
+      }
     }
   }, [visible, selectedUsersCount, firstUserName]);
 
@@ -55,47 +62,64 @@ export default function GroupChatNameInputModal({
     onClose();
   };
 
+  const isEditMode = selectedUsersCount === 1;
+
   return (
-    <View style={styles.overlay}>
-      <View style={styles.container}>
-        <Text style={styles.title}>그룹 채팅방 만들기</Text>
-        <Text style={styles.subtitle}>
-          {firstUserName}님 외 {selectedUsersCount - 1}명의 그룹 채팅
-        </Text>
+    <Modal
+      visible={visible}
+      animationType="fade"
+      presentationStyle="overFullScreen"
+      transparent={true}
+      style={{ zIndex: 99999 }}
+    >
+      <View style={styles.overlay}>
+        <View style={styles.container}>
+          <Text style={styles.title}>
+            {isEditMode ? '채팅방 이름 수정' : '그룹 채팅방 만들기'}
+          </Text>
+          <Text style={styles.subtitle}>
+            {isEditMode
+              ? '새로운 채팅방 이름을 입력하세요'
+              : `${firstUserName}님 외 ${selectedUsersCount - 1}명의 그룹 채팅`
+            }
+          </Text>
 
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.textInput}
-            value={chatName}
-            onChangeText={setChatName}
-            placeholder="채팅방 이름을 입력하세요"
-            placeholderTextColor={colors.GRAY_400}
-            autoFocus
-            maxLength={50}
-            returnKeyType="done"
-            onSubmitEditing={handleSubmit}
-          />
-        </View>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.textInput}
+              value={chatName}
+              onChangeText={setChatName}
+              placeholder="채팅방 이름을 입력하세요"
+              placeholderTextColor={colors.GRAY_400}
+              autoFocus
+              maxLength={50}
+              returnKeyType="done"
+              onSubmitEditing={handleSubmit}
+            />
+          </View>
 
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={[styles.button, styles.cancelButton]}
-            onPress={handleCancel}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.cancelButtonText}>취소</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={[styles.button, styles.cancelButton]}
+              onPress={handleCancel}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.cancelButtonText}>취소</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.createButton]}
-            onPress={handleSubmit}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.createButtonText}>생성</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.createButton]}
+              onPress={handleSubmit}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.createButtonText}>
+                {isEditMode ? '수정' : '생성'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
+    </Modal>
   );
 }
 
@@ -109,7 +133,8 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    zIndex: 9999,
+    zIndex: 99999,
+    elevation: 99999,
   },
   container: {
     backgroundColor: colors.WHITE,
