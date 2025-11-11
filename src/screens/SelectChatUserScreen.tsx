@@ -11,7 +11,7 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
 // Components
@@ -41,8 +41,12 @@ type SelectChatUserScreenNavigationProp = StackNavigationProp<AuthStackParamList
 
 export default function SelectChatUserScreen() {
   const navigation = useNavigation<SelectChatUserScreenNavigationProp>();
+  const route = useRoute<RouteProp<AuthStackParamList, 'SelectChatUser'>>();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
+
+  // Route params
+  const { mode = 'create', chatRoomId, excludeUserIds = [] } = route.params || {};
 
   // 상태 관리
   const [followingList, setFollowingList] = useState<FollowUser[]>([]);
@@ -78,17 +82,25 @@ export default function SelectChatUserScreen() {
     }
   };
 
-  // 검색 필터링 (실시간)
+  // 검색 필터링 및 제외 사용자 필터링 (실시간)
   const filteredUsers = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return followingList;
+    let filtered = followingList;
+
+    // 제외할 사용자 필터링
+    if (excludeUserIds.length > 0) {
+      filtered = filtered.filter(user => !excludeUserIds.includes(user.id));
     }
 
-    const query = searchQuery.toLowerCase();
-    return followingList.filter(user =>
-      user.nickname.toLowerCase().includes(query)
-    );
-  }, [followingList, searchQuery]);
+    // 검색어 필터링
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(user =>
+        user.nickname.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [followingList, searchQuery, excludeUserIds]);
 
   // 검색어 지우기
   const clearSearch = () => {
@@ -116,28 +128,34 @@ export default function SelectChatUserScreen() {
     });
   };
 
-  // 채팅방 생성 핸들러 (선택된 사용자들로)
+  // 선택 완료 핸들러 (모드에 따라 다른 동작)
   const handleCreateChatWithSelected = async () => {
     if (selectedUserList.length === 0) return;
 
-    if (selectedUserList.length === 1) {
-      // 1:1 채팅
-      const user = selectedUserList[0];
-      Alert.alert(
-        '채팅방 생성',
-        `${user.nickname}님과 1:1 채팅방을 생성하시겠습니까?`,
-        [
-          { text: '취소', style: 'cancel' },
-          {
-            text: '생성',
-            onPress: () => createPrivateChat(user),
-            style: 'default'
-          }
-        ]
-      );
+    if (mode === 'invite') {
+      // 초대 모드
+      await inviteUsersToChatRoom(selectedUserList);
     } else {
-      // 그룹 채팅 모달 표시
-      setShowGroupChatModal(true);
+      // 생성 모드
+      if (selectedUserList.length === 1) {
+        // 1:1 채팅
+        const user = selectedUserList[0];
+        Alert.alert(
+          '채팅방 생성',
+          `${user.nickname}님과 1:1 채팅방을 생성하시겠습니까?`,
+          [
+            { text: '취소', style: 'cancel' },
+            {
+              text: '생성',
+              onPress: () => createPrivateChat(user),
+              style: 'default'
+            }
+          ]
+        );
+      } else {
+        // 그룹 채팅 모달 표시
+        setShowGroupChatModal(true);
+      }
     }
   };
 
@@ -216,6 +234,30 @@ export default function SelectChatUserScreen() {
     await createGroupChat(chatRoomName, selectedUserList);
   };
 
+  // 채팅방에 사용자 초대
+  const inviteUsersToChatRoom = async (users: FollowUser[]) => {
+    if (!chatRoomId) return;
+
+    try {
+      setIsLoading(true);
+
+      // 선택된 사용자들을 순차적으로 초대
+      const invitePromises = users.map(user =>
+        ChatService.inviteUser(chatRoomId, user.id)
+      );
+
+      await Promise.all(invitePromises);
+
+      Alert.alert('성공', `${users.length}명의 사용자를 채팅방에 초대했습니다.`);
+      navigation.goBack(); // 초대 완료 후 이전 화면으로 돌아감
+    } catch (error: any) {
+      console.error('사용자 초대 실패:', error);
+      Alert.alert('오류', '사용자 초대에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   // 사용자 아이템 렌더링
   const renderUserItem = ({ item }: { item: FollowUser }) => (
@@ -272,7 +314,7 @@ export default function SelectChatUserScreen() {
     <View style={styles.container}>
       {/* 헤더 */}
       <CommonHeader
-        title="채팅 상대 선택"
+        title={mode === 'invite' ? '멤버 초대' : '채팅 상대 선택'}
         onBackPress={handleBack}
         showBackButton={true}
         rightComponent={
