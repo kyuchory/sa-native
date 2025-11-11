@@ -8,13 +8,16 @@ import {
   Modal,
   Animated,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NavigationProp } from '@react-navigation/native';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
-import { MediaIcon, NoticeIcon, MembersIcon, ChevronRightIcon, EditIcon } from './SidebarIcons';
+import { MediaIcon, NoticeIcon, MembersIcon, ChevronRightIcon, EditIcon, LeaveIcon } from './SidebarIcons';
 import { ChatRoomMember, ChatRoomNotice, ChatRoomMedia, ChatRoomDetail } from '../types/chat';
+import { AuthStackParamList } from '../types/navigation';
 import { ChatService } from '../services/chatService';
 import GroupChatNameInputModal from './GroupChatNameInputModal';
 import ChatRoomImageEditModal from './ChatRoomImageEditModal';
@@ -53,6 +56,7 @@ interface ChatDetailSidebarProps {
   onViewNotice: (notice: NoticeItem) => void;
   onEditChatName?: () => void;
   onChatNameUpdate?: (newName: string) => void;
+  navigation: NavigationProp<AuthStackParamList>;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -67,6 +71,7 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
   onViewNotice,
   onEditChatName,
   onChatNameUpdate,
+  navigation,
 }) => {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
@@ -171,7 +176,11 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
   }, [isVisible, chatRoomId, slideAnim, opacityAnim, screenWidth]);
 
   const renderMemberItem = (member: ChatMember) => (
-    <View key={member.id} style={styles.memberItem}>
+    <TouchableOpacity
+      key={member.id}
+      style={styles.memberItem}
+      onPress={() => navigation.navigate('UserProfile', { userId: member.id.toString() })}
+    >
       <View style={styles.memberAvatarContainer}>
         {member.avatar_url ? (
           <Image source={{ uri: member.avatar_url }} style={styles.memberAvatar} contentFit="cover" cachePolicy={'memory-disk'} transition={200}/>
@@ -187,7 +196,7 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
       <Text style={styles.memberName} numberOfLines={1}>
         {member.nickname}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 
   const renderMediaItem = (item: MediaItem, index: number) => (
@@ -264,6 +273,36 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
         avatar_url: newImageUrl,
       });
     }
+  };
+
+  // 채팅방 나가기 핸들러
+  const handleLeaveChatRoom = () => {
+    Alert.alert(
+      '채팅방 나가기',
+      '정말로 이 채팅방을 나가시겠습니까?',
+      [
+        {
+          text: '취소',
+          style: 'cancel',
+        },
+        {
+          text: '나가기',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await ChatService.leaveChatRoom(chatRoomId);
+              // 사이드바 닫기
+              onClose();
+              // 채팅방 목록으로 돌아가기
+              navigation.goBack();
+            } catch (error) {
+              console.error('❌ 채팅방 나가기 실패:', error);
+              Alert.alert('오류', '채팅방을 나가는 중 오류가 발생했습니다.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -417,6 +456,18 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
                     <Text style={styles.emptyStateText}>멤버 정보가 없습니다</Text>
                   </View>
                 )}
+              </View>
+
+              {/* 채팅방 나가기 섹션 */}
+              <View style={styles.section}>
+                <TouchableOpacity
+                  style={styles.leaveButton}
+                  onPress={handleLeaveChatRoom}
+                  activeOpacity={0.7}
+                >
+                  <LeaveIcon size={20} color={colors.PRIMARY} />
+                  <Text style={styles.leaveButtonText}>채팅방 나가기</Text>
+                </TouchableOpacity>
               </View>
 
             </ScrollView>
@@ -732,6 +783,23 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   emptyStateText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     color: colors.GRAY_500,
+  },
+
+  // 나가기 버튼
+  leaveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.MD,
+    paddingHorizontal: SPACING.LG,
+    backgroundColor: colors.GRAY_100,
+    borderRadius: BORDER_RADIUS.MD,
+    gap: SPACING.SM,
+  },
+  leaveButtonText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.REGULAR,
+    color: colors.GRAY_900,
   },
 });
 
