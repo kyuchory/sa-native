@@ -15,7 +15,8 @@ import {
   CreateGroupChatResponse,
   ChatImageUploadResponse,
   UpdateChatRoomRequest,
-  UpdateChatRoomResponse
+  UpdateChatRoomResponse,
+  InviteUserResponse
 } from '../types/chat';
 
 /**
@@ -64,11 +65,17 @@ export class ChatService {
     return response.data; // { success: boolean }
   }
 
+  // 채팅방에 사용자 초대
+  static async inviteUser(chatRoomId: number, userId: number): Promise<{ success: boolean }> {
+    const response = await apiClient.post<InviteUserResponse>(`/chats/${chatRoomId}/invite`, { user_id: userId });
+    return response.data; // { success: boolean }
+  }
+
   // 채팅 메시지 목록 조회 (페이지네이션)
   static async getMessages(
     chatRoomId: number,
     cursor?: number,
-    limit: number = 30
+    limit: number = 50
   ): Promise<{ messages: any[]; hasNext: boolean; nextCursor: number | null }> {
     const params = new URLSearchParams();
     if (cursor) params.append('cursor', cursor.toString());

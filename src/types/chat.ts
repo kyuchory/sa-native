@@ -4,7 +4,7 @@
 export type ChatType = 'private' | 'group'; // API 명세에 맞게 수정
 
 // 메시지 타입
-export type MessageType = 'text' | 'image' | 'video'; // API 명세에 맞게 수정
+export type MessageType = 'text' | 'image' | 'video' | 'system'; // API 명세에 맞게 수정
 
 // 채팅방 상세 정보 타입
 export interface ChatRoomDetail {
@@ -217,5 +217,15 @@ export interface UpdateChatRoomRequest {
 
 // 채팅방 수정 응답
 export interface UpdateChatRoomResponse extends ApiResponse<{
+  success: boolean;
+}> {}
+
+// 채팅방 사용자 초대 요청
+export interface InviteUserRequest {
+  user_id: number;
+}
+
+// 채팅방 사용자 초대 응답
+export interface InviteUserResponse extends ApiResponse<{
   success: boolean;
 }> {}
