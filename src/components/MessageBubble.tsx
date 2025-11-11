@@ -28,6 +28,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
   const styles = createStyles(colors);
 
   const renderMessageContent = () => {
+    // 시스템 메시지: 중앙 정렬 텍스트
+    if (message.type === 'system') {
+      return (
+        <View style={styles.systemMessageContainer}>
+          <Text style={styles.systemMessageText}>
+            {message.content}
+          </Text>
+        </View>
+      );
+    }
+
     if (message.type === 'image' && message.isSending) {
       // 이미지 전송 중: 이미지 표시 + 오버레이
       return (
@@ -77,6 +88,19 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
       </TouchableOpacity>
     );
   };
+
+  // 시스템 메시지의 경우 완전히 다른 레이아웃
+  if (message.type === 'system') {
+    return (
+      <View style={styles.systemMessageWrapper}>
+        <View style={styles.systemMessageContainer}>
+          <Text style={styles.systemMessageText}>
+            {message.content}
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, isMyMessage ? styles.myMessageContainer : styles.otherMessageContainer]}>
@@ -241,6 +265,26 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.MD,
     lineHeight: 20,
     color: colors.GRAY_900,
+  },
+  // 시스템 메시지 스타일
+  systemMessageWrapper: {
+    alignItems: 'center',
+    marginVertical: SPACING.SM,
+  },
+  systemMessageContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.SM,
+    paddingHorizontal: SPACING.MD,
+    backgroundColor: colors.GRAY_100,
+    borderRadius: BORDER_RADIUS.MD,
+    maxWidth: '80%',
+  },
+  systemMessageText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.GRAY_600,
+    textAlign: 'center',
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 });
 

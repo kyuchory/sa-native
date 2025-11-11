@@ -312,6 +312,30 @@ export default function ChatDetailScreen() {
     // ChatDetailSidebar에서 직접 처리하므로 빈 함수
   }, []);
 
+  const handleAddMember = useCallback(async () => {
+    // 먼저 사이드바 즉시 닫기
+    setIsSidebarVisible(false);
+
+    // 사이드바 애니메이션 완료까지 대기 (50ms + 여유 시간)
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // 현재 채팅방 멤버들의 ID를 가져와서 제외 리스트 생성
+    try {
+      const chatRoomDetail = await ChatService.getChatRoomDetail(chatRoomId);
+      const excludeUserIds = chatRoomDetail.members.map(member => member.user.id);
+
+      // SelectChatUserScreen으로 이동 (초대 모드)
+      navigation.navigate('SelectChatUser', {
+        mode: 'invite',
+        chatRoomId: chatRoomId,
+        excludeUserIds: excludeUserIds,
+      });
+    } catch (error) {
+      console.error('채팅방 멤버 정보 로드 실패:', error);
+      Alert.alert('오류', '멤버 정보를 불러오는데 실패했습니다.');
+    }
+  }, [chatRoomId, navigation]);
+
   const handleChatNameUpdate = useCallback((newName: string) => {
     // 채팅방 이름이 변경되었을 때 헤더 등에 반영 (낙관적 업데이트)
     setLocalChatRoomName(newName);
@@ -563,11 +587,12 @@ export default function ChatDetailScreen() {
         onClose={handleCloseSidebar}
         chatRoomName={chatRoomName}
         chatRoomId={chatRoomId}
-        onAddMember={() => {}}
+        onAddMember={handleAddMember}
         onViewAllMedia={() => {}}
         onViewNotice={() => {}}
         onEditChatName={handleEditChatName}
         onChatNameUpdate={handleChatNameUpdate}
+        navigation={navigation}
       />
 
 

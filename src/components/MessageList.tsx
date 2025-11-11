@@ -36,19 +36,16 @@ const MessageList: React.FC<MessageListProps> = React.memo(({
     // displayMessages에서 이전 메시지(화면상 위쪽, 더 최근)를 확인해서 연속 메시지/시간 표시 판별
     const prevMessage = index > 0 ? messages[index - 1] : null;
     const isContinuous = isContinuousMessage(item, prevMessage);
-    // 날짜 구분자 표시 (다음 메시지와 비교)
-    const showDateSeparator = shouldShowDateSeparator(
+    // 날짜 구분자 표시 (다음 메시지와 비교, inverted FlatList용)
+    const showDateSeparator = nextMessage && shouldShowDateSeparator(
       item.created_at,
-      nextMessage?.created_at || null
+      nextMessage.created_at
     );
     // 시간 표시 여부 결정 (이전 메시지와 비교)
     const showTime = shouldShowMessageTime(item, prevMessage);
 
     return (
       <React.Fragment>
-        {/* 날짜 구분선 (날짜가 바뀔 때만 표시) */}
-        {showDateSeparator && <MessageDateSeparator dateString={item.created_at} />}
-
         {/* 메시지 */}
         <View style={styles.messageContainer}>
           <MessageBubble
@@ -59,6 +56,9 @@ const MessageList: React.FC<MessageListProps> = React.memo(({
             onLongPress={onMessageLongPress}
           />
         </View>
+
+        {/* 날짜 구분선 (날짜가 바뀔 때만 표시) */}
+        {showDateSeparator && <MessageDateSeparator dateString={item.created_at} />}
       </React.Fragment>
     );
   }, [messages, user?.id, onMessageLongPress]);
