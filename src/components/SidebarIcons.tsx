@@ -201,3 +201,28 @@ export const ChatRoomIcon: React.FC<IconProps> = ({
     />
   </Svg>
 );
+
+// 채팅방 나가기 아이콘 (오른쪽 화살표)
+export const LeaveIcon: React.FC<IconProps> = ({
+  size = 20,
+  color = '#666666'
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M7 17L17 7"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <Path
+      d="M7 7H17V17"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </Svg>
+);
