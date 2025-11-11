@@ -32,6 +32,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 import ChatScreen from '../screens/ChatScreen';
 import SelectChatUserScreen from '../screens/SelectChatUserScreen';
 import ChatDetailScreen from '../screens/ChatDetailScreen';
+import ChatRoomMediaScreen from '../screens/ChatRoomMediaScreen';
 import NotificationScreen from '../screens/NotificationScreen';
 import BlockedUsersScreen from '../screens/BlockedUsersScreen';
 import ProfileVisibilityScreen from '../screens/ProfileVisibilityScreen';
@@ -171,6 +172,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="ChatDetail"
           component={ChatDetailScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ChatRoomMedia"
+          component={ChatRoomMediaScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen

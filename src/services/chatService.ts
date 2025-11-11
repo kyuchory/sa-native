@@ -16,7 +16,9 @@ import {
   ChatImageUploadResponse,
   UpdateChatRoomRequest,
   UpdateChatRoomResponse,
-  InviteUserResponse
+  InviteUserResponse,
+  ChatRoomMediaResponse,
+  ChatRoomMediaItem
 } from '../types/chat';
 
 /**
@@ -133,5 +135,22 @@ export class ChatService {
     const response = await apiClient.postFormData<ApiResponse<ChatImageUploadResponse>>('/chats/image-upload', formData);
 
     return response.data; // { image_path, url, filename, size }
+  }
+
+  // 채팅방 미디어 조회 (최근 30일 이내, 최대 30개)
+  static async getChatRoomMedia(chatRoomId: number, limit: number = 30): Promise<{
+    media: ChatRoomMediaItem[];
+    total_count: number;
+  }> {
+    const params = new URLSearchParams();
+    if (limit && limit !== 30) {
+      params.append('limit', Math.min(Math.max(limit, 1), 30).toString());
+    }
+
+    const queryString = params.toString();
+    const url = `/chats/${chatRoomId}/media${queryString ? `?${queryString}` : ''}`;
+
+    const response = await apiClient.get<ChatRoomMediaResponse>(url);
+    return response.data; // { media, total_count }
   }
 }

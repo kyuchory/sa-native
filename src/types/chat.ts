@@ -26,13 +26,31 @@ export interface ChatRoomNotice {
   created_at: string;
 }
 
-// 채팅방 미디어 정보
+// 채팅방 미디어 정보 (기존)
 export interface ChatRoomMedia {
   message_id: number;
   type: 'image' | 'video';
   content: string; // 이미지/비디오 URL
   created_at: string;
 }
+
+// 채팅방 미디어 조회 응답용 미디어 아이템
+export interface ChatRoomMediaItem {
+  message_id: number;
+  type: 'image' | 'video';
+  content: string; // 미디어 파일 URL (base URL 포함)
+  created_at: string; // 메시지 발신 시간 (ISO 8601)
+  sender: {
+    id: number;
+    nickname: string;
+  };
+}
+
+// 채팅방 미디어 조회 응답
+export interface ChatRoomMediaResponse extends ApiResponse<{
+  media: ChatRoomMediaItem[];
+  total_count: number;
+}> {}
 
 // 채팅방 멤버 정보 (API 형태)
 export interface ChatRoomMember {

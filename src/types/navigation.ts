@@ -31,6 +31,10 @@ export type AuthStackParamList = {
     chatPartnerId?: number;
     unreadCount?: number;  // 옵셔널로 변경
   };
+  ChatRoomMedia: {
+    chatRoomId: number;
+    chatRoomName: string;
+  };
   BlockedUsers: undefined;
   ProfileVisibility: undefined;
   ThemeModeSettings: undefined;
