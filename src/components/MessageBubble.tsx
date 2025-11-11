@@ -14,6 +14,7 @@ interface MessageBubbleProps {
   isContinuous: boolean;
   showTime: boolean;
   onLongPress?: (message: Message) => void;
+  onPressImage?: (imageUri: string) => void;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
@@ -22,6 +23,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
   isContinuous,
   showTime,
   onLongPress,
+  onPressImage,
 }) => {
   const { colors } = useThemeStore();
   const { user } = useAuthStore();
@@ -66,13 +68,18 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
 
     // 일반 메시지 내용 (텍스트 또는 전송 완료된 이미지)
     const content = message.type === 'image' ? (
-      <Image
-        source={{ uri: message.content }}
-        style={styles.image}
-        contentFit="cover"
-        cachePolicy={'memory-disk'}
-        transition={200}
-      />
+      <TouchableOpacity
+        onPress={() => onPressImage?.(message.content)}
+        activeOpacity={0.7}
+      >
+        <Image
+          source={{ uri: message.content }}
+          style={styles.image}
+          contentFit="cover"
+          cachePolicy={'memory-disk'}
+          transition={200}
+        />
+      </TouchableOpacity>
     ) : (
       <Text style={isMyMessage ? styles.myMessageText : styles.otherMessageText}>
         {message.content}

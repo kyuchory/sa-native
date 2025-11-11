@@ -20,6 +20,7 @@ import { SearchIcon, MenuIcon, PlusCircleIcon, SendIcon } from '../components/Ch
 import { MenuIcon as AddImageIcon, NoticeIcon, CameraIcon } from '../components/CommonIcons';
 import ChatDetailSidebar from '../components/ChatDetailSidebar';
 import MenuActionSheet from '../components/MenuActionSheet';
+import { ImageViewerModal } from '../components/ImageViewerModal';
 
 
 // Local Components
@@ -78,6 +79,8 @@ export default function ChatDetailScreen() {
   const [attachmentActionSheetVisible, setAttachmentActionSheetVisible] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [localChatRoomName, setLocalChatRoomName] = useState(chatRoomName);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedImageUri, setSelectedImageUri] = useState<string>('');
 
 
   // Keyboard height for input adjustments
@@ -342,6 +345,29 @@ export default function ChatDetailScreen() {
     console.log('📝 채팅방 이름 업데이트:', newName);
   }, []);
 
+  const handlePressImage = useCallback((imageUri: string) => {
+    setSelectedImageUri(imageUri);
+    setImageViewerVisible(true);
+  }, []);
+
+  const handleCloseImageViewer = useCallback(() => {
+    setImageViewerVisible(false);
+    setSelectedImageUri('');
+  }, []);
+
+  const handleViewAllMedia = useCallback(() => {
+    // 사이드바 즉시 닫기
+    setIsSidebarVisible(false);
+
+    // 사이드바 애니메이션 완료까지 대기
+    setTimeout(() => {
+      navigation.navigate('ChatRoomMedia', {
+        chatRoomId,
+        chatRoomName: localChatRoomName,
+      });
+    }, 50);
+  }, [chatRoomId, localChatRoomName, navigation]);
+
   // Effects
   useEffect(() => {
     // 읽음 처리
@@ -476,6 +502,7 @@ export default function ChatDetailScreen() {
             isInitialLoading={isInitialLoading}
             onLoadMore={loadMoreMessages}
             onMessageLongPress={handleMessageLongPress}
+            onPressImage={handlePressImage}
           />
 
           {/* 구독 상태 표시 */}
@@ -588,13 +615,19 @@ export default function ChatDetailScreen() {
         chatRoomName={chatRoomName}
         chatRoomId={chatRoomId}
         onAddMember={handleAddMember}
-        onViewAllMedia={() => {}}
+        onViewAllMedia={handleViewAllMedia}
         onViewNotice={() => {}}
         onEditChatName={handleEditChatName}
         onChatNameUpdate={handleChatNameUpdate}
         navigation={navigation}
       />
 
+      {/* 이미지 뷰어 모달 */}
+      <ImageViewerModal
+        visible={imageViewerVisible}
+        images={selectedImageUri ? [selectedImageUri] : []}
+        onClose={handleCloseImageViewer}
+      />
 
     </SafeAreaView>
   );

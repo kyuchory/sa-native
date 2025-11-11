@@ -15,6 +15,7 @@ interface MessageListProps {
   isInitialLoading: boolean;
   onLoadMore: () => Promise<void>;
   onMessageLongPress?: (message: Message) => void;
+  onPressImage?: (imageUri: string) => void;
 }
 
 const MessageList: React.FC<MessageListProps> = React.memo(({
@@ -24,6 +25,7 @@ const MessageList: React.FC<MessageListProps> = React.memo(({
   isInitialLoading,
   onLoadMore,
   onMessageLongPress,
+  onPressImage,
 }) => {
   const { colors } = useThemeStore();
   const { user } = useAuthStore();
@@ -54,6 +56,7 @@ const MessageList: React.FC<MessageListProps> = React.memo(({
             isContinuous={isContinuous}
             showTime={showTime}
             onLongPress={onMessageLongPress}
+            onPressImage={onPressImage}
           />
         </View>
 

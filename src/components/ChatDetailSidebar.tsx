@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { AuthStackParamList } from '../types/navigation';
 import { ChatService } from '../services/chatService';
 import GroupChatNameInputModal from './GroupChatNameInputModal';
 import ChatRoomImageEditModal from './ChatRoomImageEditModal';
+import { ImageViewerModal } from './ImageViewerModal';
 
 // UI 컴포넌트용 내부 인터페이스들
 interface ChatMember {
@@ -86,6 +87,8 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
   const [previousChatRoomName, setPreviousChatRoomName] = React.useState(initialChatRoomName);
   const [isEditChatNameModalVisible, setIsEditChatNameModalVisible] = React.useState(false);
   const [isImageEditModalVisible, setIsImageEditModalVisible] = React.useState(false);
+  const [isImageViewerVisible, setIsImageViewerVisible] = React.useState(false);
+  const [imageViewerInitialIndex, setImageViewerInitialIndex] = React.useState(0);
 
   // API 데이터를 UI 데이터로 변환
   const {
@@ -200,7 +203,16 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
   );
 
   const renderMediaItem = (item: MediaItem, index: number) => (
-    <TouchableOpacity key={item.id} style={styles.mediaItem}>
+    <TouchableOpacity
+      key={item.id}
+      style={styles.mediaItem}
+      onPress={() => {
+        if (item.type === 'image') {
+          setImageViewerInitialIndex(index);
+          setIsImageViewerVisible(true);
+        }
+      }}
+    >
       <Image source={{ uri: item.thumbnail || item.url }} style={styles.mediaThumbnail} contentFit="cover" cachePolicy={'memory-disk'} transition={200}/>
       {item.type === 'video' && (
         <View style={styles.videoOverlay}>
@@ -394,7 +406,7 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
                     <MediaIcon size={20} color={colors.PRIMARY} />
                     <Text style={styles.sectionTitle}>사진/동영상</Text>
                   </View>
-                  {sharedMedia.length > 4 && (
+                  {sharedMedia.length > 0 && (
                     <TouchableOpacity onPress={onViewAllMedia} style={styles.viewAllContainer}>
                       <Text style={styles.viewAllButton}>더보기</Text>
                       <ChevronRightIcon size={14} color={colors.PRIMARY} />
@@ -491,6 +503,15 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
         onImageUpdate={handleImageUpdate}
         chatRoomId={chatRoomId}
         currentImageUrl={chatRoomDetail?.avatar_url || undefined}
+      />
+
+      {/* 이미지 뷰어 모달 */}
+      <ImageViewerModal
+        visible={isImageViewerVisible}
+        images={sharedMedia.filter(item => item.type === 'image').map(item => item.url)}
+        initialIndex={imageViewerInitialIndex}
+        title={localChatRoomName}
+        onClose={() => setIsImageViewerVisible(false)}
       />
     </Modal>
   );

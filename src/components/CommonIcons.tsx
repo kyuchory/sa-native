@@ -384,41 +384,6 @@ const ChatIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
   </View>
 );
 
-// 저장 아이콘 (디스크/플로피 디스크 모양)
-const SaveIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
-  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* 디스크 본체 */}
-      <Rect
-        x="4"
-        y="6"
-        width="16"
-        height="12"
-        rx="2"
-        stroke={color}
-        strokeWidth="2"
-        fill="none"
-      />
-      {/* 디스크 내부 원 */}
-      <Circle
-        cx="12"
-        cy="12"
-        r="3"
-        stroke={color}
-        strokeWidth="2"
-        fill="none"
-      />
-      {/* 디스크 중앙 점 */}
-      <Circle
-        cx="12"
-        cy="12"
-        r="0.5"
-        fill={color}
-      />
-    </Svg>
-  </View>
-);
-
 // 음소거 아이콘 (스피커 + X 표시)
 const MuteIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
@@ -490,4 +455,50 @@ const UnmuteIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
   </View>
 );
 
-export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, EditIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon, NoticeIcon, ReportEyeSlashIcon, FollowersOnlyIcon, CameraIcon, ChatIcon, SaveIcon, MuteIcon, UnmuteIcon };
+// 저장 아이콘 (디스켓 모양)
+const SaveIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H16L21 8V19C21 20.1046 20.1046 21 19 21Z"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M17 21V13H7V21"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M7 3V8H15"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </View>
+);
+
+// 공유 아이콘 (연결된 점들)
+const ShareIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="18" cy="5" r="3" stroke={color} strokeWidth="2" />
+      <Circle cx="6" cy="12" r="3" stroke={color} strokeWidth="2" />
+      <Circle cx="18" cy="19" r="3" stroke={color} strokeWidth="2" />
+      <Path
+        d="M8.59 13.51L15.42 17.49M15.41 6.51L8.59 10.49"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </Svg>
+  </View>
+);
+
+export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, EditIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon, NoticeIcon, ReportEyeSlashIcon, FollowersOnlyIcon, CameraIcon, ChatIcon, SaveIcon, MuteIcon, UnmuteIcon, ShareIcon };
