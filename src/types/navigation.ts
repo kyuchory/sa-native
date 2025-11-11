@@ -20,7 +20,11 @@ export type AuthStackParamList = {
   Settings: undefined;
   Notifications: undefined;
   Chat: undefined;
-  SelectChatUser: undefined;
+  SelectChatUser: {
+    mode?: 'create' | 'invite';
+    chatRoomId?: number;
+    excludeUserIds?: number[];
+  };
   ChatDetail: {
     chatRoomId: number;
     chatRoomName: string;
