@@ -39,6 +39,7 @@ export interface ChatRoomMediaItem {
   message_id: number;
   type: 'image' | 'video';
   content: string; // 미디어 파일 URL (base URL 포함)
+  thumbnail_url?: string; // 비디오 썸네일 URL (비디오일 때만)
   created_at: string; // 메시지 발신 시간 (ISO 8601)
   sender: {
     id: number;
@@ -224,6 +225,15 @@ export interface ChatImageUploadResponse {
   image_path: string;
   url: string;
   filename: string;
+  size: number;
+}
+
+// 채팅 비디오 업로드 응답 타입
+export interface ChatVideoUploadResponse {
+  video_path: string;
+  thumbnail_path: string;
+  video_url: string;
+  thumbnail_url: string;
   size: number;
 }
 

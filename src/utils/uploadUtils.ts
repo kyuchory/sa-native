@@ -79,6 +79,36 @@ export const selectPhotoFromGallery = async (): Promise<ImagePicker.ImagePickerA
 };
 
 /**
+ * 갤러리에서 비디오 선택
+ * @returns 선택된 비디오 asset 또는 null
+ */
+export const selectVideoFromGallery = async (): Promise<ImagePicker.ImagePickerAsset | null> => {
+  try {
+    const permissionGranted = await requestGalleryPermission();
+    if (!permissionGranted) {
+      throw new Error('갤러리 접근 권한이 필요합니다.');
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['videos'],
+      allowsEditing: false, // 채팅에서는 편집 없이 바로 선택
+      quality: 0.8, // 적절한 품질로 압축
+      exif: false,
+      allowsMultipleSelection: false, // 한 개씩만 선택
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      return result.assets[0];
+    }
+
+    return null;
+  } catch (error) {
+    console.error('갤러리 비디오 선택 실패:', error);
+    throw error;
+  }
+};
+
+/**
  * 채팅 이미지 업로드
  * @param imageUri - 업로드할 이미지 URI
  * @returns 업로드된 이미지 정보
@@ -91,6 +121,28 @@ export const uploadChatImage = async (imageUri: string) => {
     return uploadResponse;
   } catch (error) {
     console.error('📷 이미지 업로드 실패:', error);
+    throw error;
+  }
+};
+
+/**
+ * 채팅 비디오 업로드
+ * @param videoUri - 업로드할 비디오 URI
+ * @param options - 편집 옵션 (선택)
+ * @returns 업로드된 비디오 정보
+ */
+export const uploadChatVideo = async (videoUri: string, options?: {
+  trimStart?: number;
+  trimEnd?: number;
+  cropArea?: { x: number; y: number; width: number; height: number };
+}) => {
+  try {
+    console.log('📤 비디오 업로드 시작...');
+    const uploadResponse = await ChatService.uploadChatVideo(videoUri, options);
+    console.log('✅ 비디오 업로드 완료:', uploadResponse);
+    return uploadResponse;
+  } catch (error) {
+    console.error('🎥 비디오 업로드 실패:', error);
     throw error;
   }
 };

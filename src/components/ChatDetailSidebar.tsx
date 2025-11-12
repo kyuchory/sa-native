@@ -115,13 +115,26 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
     const sharedMedia: MediaItem[] = chatRoomDetail.chat_room_images_videos
       .slice()
       .reverse() // 최신 순으로 정렬
-      .map(media => ({
-        id: media.message_id.toString(),
-        type: media.type,
-        url: media.content,
-        thumbnail: media.type === 'video' ? media.content : undefined,
-        date: media.created_at.split('T')[0], // 날짜만 표시
-      }));
+      .map(media => {
+        let thumbnailUrl = '';
+        if (media.type === 'video') {
+          try {
+            const videoData = JSON.parse(media.content);
+            thumbnailUrl = videoData.thumbnail_url || '';
+          } catch (error) {
+            console.error('비디오 content 파싱 실패:', error);
+            thumbnailUrl = '';
+          }
+        }
+
+        return {
+          id: media.message_id.toString(),
+          type: media.type,
+          url: media.content,
+          thumbnail: thumbnailUrl,
+          date: media.created_at.split('T')[0], // 날짜만 표시
+        };
+      });
 
     const notices: NoticeItem[] = chatRoomDetail.latest_notices
       .slice()
@@ -207,10 +220,8 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
       key={item.id}
       style={styles.mediaItem}
       onPress={() => {
-        if (item.type === 'image') {
-          setImageViewerInitialIndex(index);
-          setIsImageViewerVisible(true);
-        }
+        setImageViewerInitialIndex(index);
+        setIsImageViewerVisible(true);
       }}
     >
       <Image source={{ uri: item.thumbnail || item.url }} style={styles.mediaThumbnail} contentFit="cover" cachePolicy={'memory-disk'} transition={200}/>
@@ -505,10 +516,21 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
         currentImageUrl={chatRoomDetail?.avatar_url || undefined}
       />
 
-      {/* 이미지 뷰어 모달 */}
+      {/* 미디어 뷰어 모달 */}
       <ImageViewerModal
         visible={isImageViewerVisible}
-        images={sharedMedia.filter(item => item.type === 'image').map(item => item.url)}
+        mediaItems={sharedMedia.map(item => ({
+          type: item.type as 'image' | 'video',
+          url: item.type === 'video' ? (() => {
+            try {
+              const videoData = JSON.parse(item.url);
+              return videoData.video_url || '';
+            } catch (error) {
+              return '';
+            }
+          })() : item.url,
+          thumbnailUrl: item.thumbnail,
+        }))}
         initialIndex={imageViewerInitialIndex}
         title={localChatRoomName}
         onClose={() => setIsImageViewerVisible(false)}

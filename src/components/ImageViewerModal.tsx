@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,12 @@ import {
   Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { VideoView, useVideoPlayer, VideoSource } from 'expo-video';
+import { useEvent } from 'expo';
 import * as MediaLibrary from 'expo-media-library';
 import { File, Paths } from 'expo-file-system';
+import * as Network from 'expo-network';
+import Svg, { Path } from 'react-native-svg';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -22,25 +26,34 @@ import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-g
 import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SaveIcon, ShareIcon } from './CommonIcons';
+import { useVideoSettingsStore } from '../stores/videoSettingsStore';
+
+
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
 const DOUBLE_TAP_SCALE = 2.5;
 
-interface ImageViewerModalProps {
+interface MediaItem {
+  type: 'image' | 'video';
+  url: string;
+  thumbnailUrl?: string;
+}
+
+interface MediaViewerModalProps {
   visible: boolean;
-  images: string[];
+  mediaItems: MediaItem[];
   initialIndex?: number;
   title?: string;
   onClose: () => void;
 }
 
-export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
+export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
   visible,
-  images,
+  mediaItems,
   initialIndex = 0,
-  title = '이미지 뷰어',
+  title = '미디어 뷰어',
   onClose,
 }) => {
   const insets = useSafeAreaInsets();
@@ -204,7 +217,7 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
     .failOffsetY([-15, 15])
     .onUpdate((event) => {
       const newTranslate = savedPageTranslateX.value + event.translationX;
-      const minTranslate = -(images.length - 1) * SCREEN_WIDTH;
+      const minTranslate = -(mediaItems.length - 1) * SCREEN_WIDTH;
       pageTranslateX.value = Math.max(minTranslate, Math.min(0, newTranslate));
     })
     .onEnd((event) => {
@@ -212,14 +225,14 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
       let nextIdx = currentIdx;
 
       // 속도 기반 페이지 전환
-      if (event.velocityX < -800 && currentIdx < images.length - 1) {
+      if (event.velocityX < -800 && currentIdx < mediaItems.length - 1) {
         nextIdx = currentIdx + 1;
       } else if (event.velocityX > 800 && currentIdx > 0) {
         nextIdx = currentIdx - 1;
       } else {
         // 이동 거리 기반
         const threshold = SCREEN_WIDTH * 0.3;
-        if (event.translationX < -threshold && currentIdx < images.length - 1) {
+        if (event.translationX < -threshold && currentIdx < mediaItems.length - 1) {
           nextIdx = currentIdx + 1;
         } else if (event.translationX > threshold && currentIdx > 0) {
           nextIdx = currentIdx - 1;
@@ -273,12 +286,12 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
     [isZoomed]
   );
 
-  // 이미지 저장 함수
+  // 미디어 저장 함수
   const handleSave = useCallback(async () => {
     if (isSaving) return;
 
-    const imageUri = images[currentPage];
-    if (!imageUri) return;
+    const mediaItem = mediaItems[currentPage];
+    if (!mediaItem) return;
 
     try {
       setIsSaving(true);
@@ -289,11 +302,11 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
         return;
       }
 
-      let localUri = imageUri;
-      if (imageUri.startsWith('http')) {
-        const filename = imageUri.split('/').pop() || `image_${Date.now()}.jpg`;
+      let localUri = mediaItem.url;
+      if (mediaItem.url.startsWith('http')) {
+        const filename = mediaItem.url.split('/').pop() || `media_${Date.now()}.${mediaItem.type === 'video' ? 'mp4' : 'jpg'}`;
         const file = new File(Paths.cache, filename);
-        await File.downloadFileAsync(imageUri, file);
+        await File.downloadFileAsync(mediaItem.url, file);
         localUri = file.uri;
       }
 
@@ -308,14 +321,14 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
         }
       }
 
-      alert('이미지가 갤러리에 저장되었습니다.');
+      alert(`${mediaItem.type === 'video' ? '비디오' : '이미지'}가 갤러리에 저장되었습니다.`);
     } catch (error) {
-      console.error('이미지 저장 실패:', error);
-      alert('이미지 저장에 실패했습니다.');
+      console.error('미디어 저장 실패:', error);
+      alert('미디어 저장에 실패했습니다.');
     } finally {
       setIsSaving(false);
     }
-  }, [images, currentPage, isSaving]);
+  }, [mediaItems, currentPage, isSaving]);
 
   // 모달 열릴 때 초기화
   useEffect(() => {
@@ -367,23 +380,31 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* 이미지 영역 */}
+          {/* 미디어 영역 */}
           <GestureDetector gesture={composed}>
             <Animated.View style={[styles.imageScrollContainer, pageStyle]}>
-              {images.map((uri, index) => (
+              {mediaItems.map((mediaItem, index) => (
                 <Animated.View
-                  key={`image-${index}`}
+                  key={`media-${index}`}
                   style={[
                     styles.imageWrapper,
                     currentPage === index && imageStyle,
                   ]}
                 >
-                  <Image
-                    source={{ uri }}
-                    style={styles.image}
-                    contentFit="contain"
-                    cachePolicy="memory-disk"
-                  />
+                  {mediaItem.type === 'video' ? (
+                    <VideoPlayer
+                      videoUrl={mediaItem.url}
+                      thumbnailUrl={mediaItem.thumbnailUrl}
+                      isVisible={currentPage === index}
+                    />
+                  ) : (
+                    <Image
+                      source={{ uri: mediaItem.url }}
+                      style={styles.image}
+                      contentFit="contain"
+                      cachePolicy="memory-disk"
+                    />
+                  )}
                 </Animated.View>
               ))}
             </Animated.View>
@@ -402,16 +423,108 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
           </View>
 
           {/* 페이지 인디케이터 */}
-          {images.length > 1 && (
+          {mediaItems.length > 1 && (
             <View style={styles.pageIndicator}>
               <Text style={styles.pageIndicatorText}>
-                {currentPage + 1} / {images.length}
+                {currentPage + 1} / {mediaItems.length}
               </Text>
             </View>
           )}
         </View>
       </GestureHandlerRootView>
     </Modal>
+  );
+};
+
+// VideoPlayer 컴포넌트
+const VideoPlayer: React.FC<{
+  videoUrl: string;
+  thumbnailUrl?: string;
+  isVisible: boolean;
+}> = ({ videoUrl, thumbnailUrl, isVisible }) => {
+  const { autoPlayMode } = useVideoSettingsStore();
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showControls, setShowControls] = useState(false);
+
+  // 네트워크 상태 확인
+  const [networkState, setNetworkState] = useState<'wifi' | 'cellular' | 'none'>('none');
+
+  useEffect(() => {
+    const checkNetwork = async () => {
+      const networkState = await Network.getNetworkStateAsync();
+      if (networkState.isConnected) {
+        if (networkState.type === Network.NetworkStateType.WIFI) {
+          setNetworkState('wifi');
+        } else {
+          setNetworkState('cellular');
+        }
+      } else {
+        setNetworkState('none');
+      }
+    };
+    checkNetwork();
+  }, []);
+
+  // 자동 재생 여부 결정
+  const shouldAutoPlay = useMemo(() => {
+    if (!isVisible) return false;
+
+    switch (autoPlayMode) {
+      case 'always':
+        return true;
+      case 'wifi_only':
+        return networkState === 'wifi';
+      case 'cellular_only':
+        return networkState === 'cellular';
+      case 'manual':
+      default:
+        return false;
+    }
+  }, [autoPlayMode, networkState, isVisible]);
+
+  const player = useVideoPlayer(videoUrl ? { uri: videoUrl } : null, (player) => {
+    player.loop = false;
+    if (shouldAutoPlay) {
+      player.play();
+    }
+  });
+
+  const { isPlaying: playerIsPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
+
+  useEffect(() => {
+    setIsPlaying(playerIsPlaying);
+  }, [playerIsPlaying]);
+
+  // 화면 표시 상태 변경 시 자동 재생/정지
+  useEffect(() => {
+    if (isVisible && shouldAutoPlay) {
+      player.play();
+    } else {
+      player.pause();
+    }
+  }, [isVisible, shouldAutoPlay, player]);
+
+  const togglePlayPause = useCallback(() => {
+    if (isPlaying) {
+      player.pause();
+    } else {
+      player.play();
+    }
+  }, [isPlaying, player]);
+
+  return (
+    <TouchableOpacity
+      style={styles.videoContainer}
+      activeOpacity={1}
+      onPress={togglePlayPause}
+    >
+      <VideoView
+        player={player}
+        style={styles.video}
+        contentFit="contain"
+        nativeControls={true}
+      />
+    </TouchableOpacity>
   );
 };
 
@@ -467,6 +580,35 @@ const styles = StyleSheet.create({
   image: {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
+  },
+  videoContainer: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  video: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+  },
+  videoThumbnail: {
+    position: 'absolute',
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+  },
+  videoControls: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playButton: {
+    padding: 20,
+    borderRadius: 50,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   bottomMenu: {
     position: 'absolute',

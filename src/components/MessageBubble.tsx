@@ -6,6 +6,7 @@ import { formatMessageTime } from '../utils/timeUtils';
 import { useThemeStore } from '../stores/themeStore';
 import { useAuthStore } from '../stores/authStore';
 import UserAvatar from '../components/UserAvatar';
+import { PlayIcon } from '../components/CutIcons';
 import { SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../constants/theme';
 
 interface MessageBubbleProps {
@@ -15,6 +16,7 @@ interface MessageBubbleProps {
   showTime: boolean;
   onLongPress?: (message: Message) => void;
   onPressImage?: (imageUri: string) => void;
+  onPressMedia?: (mediaItem: { type: 'image' | 'video'; url: string; thumbnailUrl?: string }) => void;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
@@ -24,6 +26,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
   showTime,
   onLongPress,
   onPressImage,
+  onPressMedia,
 }) => {
   const { colors } = useThemeStore();
   const { user } = useAuthStore();
@@ -66,25 +69,87 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
       );
     }
 
-    // 일반 메시지 내용 (텍스트 또는 전송 완료된 이미지)
-    const content = message.type === 'image' ? (
-      <TouchableOpacity
-        onPress={() => onPressImage?.(message.content)}
-        activeOpacity={0.7}
-      >
-        <Image
-          source={{ uri: message.content }}
-          style={styles.image}
-          contentFit="cover"
-          cachePolicy={'memory-disk'}
-          transition={200}
-        />
-      </TouchableOpacity>
-    ) : (
-      <Text style={isMyMessage ? styles.myMessageText : styles.otherMessageText}>
-        {message.content}
-      </Text>
-    );
+    if (message.type === 'video' && message.isSending) {
+      // 비디오 전송 중: 썸네일 표시 + 오버레이
+      return (
+        <View style={styles.imageContainer}>
+          <Image
+            source={{ uri: message.content }}
+            style={styles.image}
+            contentFit="cover"
+            cachePolicy={'memory-disk'}
+            transition={200}
+          />
+          {/* 반투명 오버레이 */}
+          <View style={styles.imageOverlay}>
+            <ActivityIndicator
+              size="small"
+              color={colors.WHITE}
+            />
+            <Text style={styles.imageOverlayText}>
+              전송 중...
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
+    // 일반 메시지 내용 (텍스트, 이미지, 또는 비디오)
+    let content;
+    if (message.type === 'image') {
+      content = (
+        <TouchableOpacity
+          onPress={() => onPressMedia?.({ type: 'image', url: message.content })}
+          activeOpacity={0.7}
+        >
+          <Image
+            source={{ uri: message.content }}
+            style={styles.image}
+            contentFit="cover"
+            cachePolicy={'memory-disk'}
+            transition={200}
+          />
+        </TouchableOpacity>
+      );
+    } else if (message.type === 'video') {
+      // 비디오: JSON 파싱해서 thumbnail_url 추출
+      let thumbnailUrl = '';
+      let videoData: any = null;
+      try {
+        videoData = JSON.parse(message.content);
+        thumbnailUrl = videoData.thumbnail_url || '';
+      } catch (error) {
+        console.error('비디오 content 파싱 실패:', error);
+        thumbnailUrl = '';
+      }
+
+      content = (
+        <TouchableOpacity
+          onPress={() => onPressMedia?.({ type: 'video', url: videoData?.video_url || '', thumbnailUrl })}
+          activeOpacity={0.7}
+        >
+          <View style={styles.imageContainer}>
+            <Image
+              source={{ uri: thumbnailUrl }}
+              style={styles.image}
+              contentFit="cover"
+              cachePolicy={'memory-disk'}
+              transition={200}
+            />
+            {/* 플레이 버튼 오버레이 */}
+            <View style={styles.videoOverlay}>
+              <PlayIcon size={48} color={colors.WHITE} />
+            </View>
+          </View>
+        </TouchableOpacity>
+      );
+    } else {
+      content = (
+        <Text style={isMyMessage ? styles.myMessageText : styles.otherMessageText}>
+          {message.content}
+        </Text>
+      );
+    }
 
     return (
       <TouchableOpacity
@@ -262,6 +327,17 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     color: colors.WHITE,
+  },
+  videoOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: BORDER_RADIUS.MD,
   },
   myMessageText: {
     fontSize: TYPOGRAPHY.SIZE.MD,

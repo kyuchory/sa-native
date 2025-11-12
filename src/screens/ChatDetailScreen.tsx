@@ -54,7 +54,7 @@ import { useChatMessages } from '../hooks/useChatMessages';
 import { useChatSocket } from '../hooks/useChatSocket';
 
 // Utils
-import { takePhotoFromCamera, selectPhotoFromGallery, uploadChatImage } from '../utils/uploadUtils';
+import { takePhotoFromCamera, selectPhotoFromGallery, selectVideoFromGallery, uploadChatImage, uploadChatVideo } from '../utils/uploadUtils';
 
 type ChatDetailScreenRouteProp = RouteProp<AuthStackParamList, 'ChatDetail'>;
 type ChatDetailScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ChatDetail'>;
@@ -67,7 +67,7 @@ export default function ChatDetailScreen() {
   const route = useRoute<ChatDetailScreenRouteProp>();
 
   // Route params
-  const { chatRoomId, chatRoomName, chatPartnerId, unreadCount } = route.params;
+  const { chatRoomId, chatRoomName, chatPartnerId, unreadCount, isVideoEditResult, videoUri: editedVideoUri, trimStart, trimEnd } = route.params;
 
   // Auth store
   const { user } = useAuthStore();
@@ -81,6 +81,7 @@ export default function ChatDetailScreen() {
   const [localChatRoomName, setLocalChatRoomName] = useState(chatRoomName);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageUri, setSelectedImageUri] = useState<string>('');
+  const [selectedMediaItem, setSelectedMediaItem] = useState<{ type: 'image' | 'video'; url: string; thumbnailUrl?: string } | null>(null);
 
 
   // Keyboard height for input adjustments
@@ -248,7 +249,7 @@ export default function ChatDetailScreen() {
     setAttachmentActionSheetVisible(false);
   }, [user]);
 
-  const handleSelectGallery = useCallback(async () => {
+  const handleSelectGalleryImage = useCallback(async () => {
     try {
       const asset = await selectPhotoFromGallery();
       if (asset && user) {
@@ -259,6 +260,26 @@ export default function ChatDetailScreen() {
     }
     setAttachmentActionSheetVisible(false);
   }, [user]);
+
+  const handleSelectGalleryVideo = useCallback(async () => {
+    try {
+      const asset = await selectVideoFromGallery();
+      if (asset && user) {
+        // VideoTrimCropScreen으로 이동 (trim 전용, 2분 제한)
+        navigation.navigate('VideoTrimCrop', {
+          videoUri: asset.uri,
+          videoDuration: asset.duration ? asset.duration * 1000 : undefined,
+          editMode: 'trim',
+          maxDuration: 120000, // 2분
+          uploadService: 'chat',
+          chatRoomId: chatRoomId // 채팅방 ID 전달
+        });
+      }
+    } catch (error) {
+      Alert.alert('오류', '비디오 선택에 실패했습니다.');
+    }
+    setAttachmentActionSheetVisible(false);
+  }, [user, navigation]);
 
   const handleSendImageMessage = useCallback(async (asset: any) => {
     if (!user) return;
@@ -294,6 +315,45 @@ export default function ChatDetailScreen() {
       Alert.alert('전송 실패', '이미지를 전송할 수 없습니다. 다시 시도해주세요.');
     }
   }, [user, chatRoomId, addPendingMessage, removePendingMessage, uploadChatImage, sendMessage]);
+
+  const handleSendVideoMessage = useCallback(async (asset: any) => {
+    if (!user) return;
+
+    const tempMessageId = `temp_video_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    const optimisticMessage: Message = {
+      id: -Date.now() - Math.floor(Math.random() * 1000),
+      chat_room_id: chatRoomId,
+      sender_id: user.id,
+      content: asset.uri,
+      type: 'video' as const,
+      sender: {
+        id: user.id,
+        nickname: user.nickname || '',
+        profile_img: user.profile_img || null,
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      mentions: [],
+      mention_user_ids: [],
+      isSending: true,
+      tempId: tempMessageId
+    };
+
+    addPendingMessage(optimisticMessage);
+
+    try {
+      const uploadResponse = await uploadChatVideo(asset.uri);
+      const content = JSON.stringify({
+        video_path: uploadResponse.video_path,
+        thumbnail_path: uploadResponse.thumbnail_path
+      });
+      await sendMessage(tempMessageId, chatRoomId, 'video', content, []);
+    } catch (error) {
+      removePendingMessage(tempMessageId);
+      Alert.alert('전송 실패', '비디오를 전송할 수 없습니다. 다시 시도해주세요.');
+    }
+  }, [user, chatRoomId, addPendingMessage, removePendingMessage, uploadChatVideo, sendMessage]);
 
   const handleRegisterNotice = useCallback(async () => {
     if (!selectedMessage) return;
@@ -345,14 +405,19 @@ export default function ChatDetailScreen() {
     console.log('📝 채팅방 이름 업데이트:', newName);
   }, []);
 
-  const handlePressImage = useCallback((imageUri: string) => {
-    setSelectedImageUri(imageUri);
+  const handlePressMedia = useCallback((mediaItem: { type: 'image' | 'video'; url: string; thumbnailUrl?: string }) => {
+    setSelectedMediaItem(mediaItem);
     setImageViewerVisible(true);
   }, []);
+
+  const handlePressImage = useCallback((imageUri: string) => {
+    handlePressMedia({ type: 'image', url: imageUri });
+  }, [handlePressMedia]);
 
   const handleCloseImageViewer = useCallback(() => {
     setImageViewerVisible(false);
     setSelectedImageUri('');
+    setSelectedMediaItem(null);
   }, []);
 
   const handleViewAllMedia = useCallback(() => {
@@ -409,6 +474,27 @@ export default function ChatDetailScreen() {
       };
     }, [subscribeToChat, unsubscribeFromChat])
   );
+
+  // VideoTrimCropScreen 결과 처리
+  useEffect(() => {
+    if (isVideoEditResult && editedVideoUri && user) {
+      console.log('🎬 VideoTrimCrop 결과 처리:', { editedVideoUri, trimStart, trimEnd });
+
+      // 비디오 전송 처리
+      handleSendVideoMessage({
+        uri: editedVideoUri,
+        duration: trimEnd && trimStart ? (trimEnd - trimStart) / 1000 : undefined
+      });
+
+      // URL에서 결과 파라미터 제거 (화면 리프레시 방지)
+      navigation.setParams({
+        isVideoEditResult: undefined,
+        videoUri: undefined,
+        trimStart: undefined,
+        trimEnd: undefined
+      });
+    }
+  }, [isVideoEditResult, editedVideoUri, trimStart, trimEnd, user, handleSendVideoMessage, navigation]);
 
   // 키보드 이벤트 리스너
   useEffect(() => {
@@ -503,6 +589,7 @@ export default function ChatDetailScreen() {
             onLoadMore={loadMoreMessages}
             onMessageLongPress={handleMessageLongPress}
             onPressImage={handlePressImage}
+            onPressMedia={handlePressMedia}
           />
 
           {/* 구독 상태 표시 */}
@@ -599,11 +686,18 @@ export default function ChatDetailScreen() {
             onPress: handleSelectCamera,
           },
           {
-            id: 'gallery',
-            title: '갤러리에서 선택',
+            id: 'gallery_image',
+            title: '갤러리에서 이미지 선택',
             icon: <AddImageIcon size={24} color={colors.PRIMARY} />,
             color: colors.PRIMARY,
-            onPress: handleSelectGallery,
+            onPress: handleSelectGalleryImage,
+          },
+          {
+            id: 'gallery_video',
+            title: '갤러리에서 비디오 선택',
+            icon: <AddImageIcon size={24} color={colors.PRIMARY} />,
+            color: colors.PRIMARY,
+            onPress: handleSelectGalleryVideo,
           },
         ]}
       />
@@ -622,10 +716,10 @@ export default function ChatDetailScreen() {
         navigation={navigation}
       />
 
-      {/* 이미지 뷰어 모달 */}
+      {/* 미디어 뷰어 모달 */}
       <ImageViewerModal
         visible={imageViewerVisible}
-        images={selectedImageUri ? [selectedImageUri] : []}
+        mediaItems={selectedMediaItem ? [selectedMediaItem] : []}
         onClose={handleCloseImageViewer}
       />
 

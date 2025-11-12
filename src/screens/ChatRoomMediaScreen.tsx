@@ -53,30 +53,59 @@ export default function ChatRoomMediaScreen() {
     setIsImageViewerVisible(true);
   };
 
-  const renderMediaItem = ({ item, index }: { item: ChatRoomMediaItem; index: number }) => (
-    <TouchableOpacity
-      style={styles.mediaItem}
-      onPress={() => handleMediaPress(index)}
-      activeOpacity={0.7}
-    >
-      <Image
-        source={{ uri: item.content }}
-        style={styles.mediaImage}
-        contentFit="cover"
-        cachePolicy="memory-disk"
-        transition={200}
-      />
-      {item.type === 'video' && (
-        <View style={styles.videoOverlay}>
-          <Text style={styles.videoIcon}>▶</Text>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
+  const renderMediaItem = ({ item, index }: { item: ChatRoomMediaItem; index: number }) => {
+    // 비디오의 경우 썸네일 URL 추출
+    let displayUrl = item.content;
+    if (item.type === 'video') {
+      try {
+        const videoData = JSON.parse(item.content);
+        displayUrl = videoData.thumbnail_url || item.content;
+      } catch (error) {
+        console.error('비디오 content 파싱 실패:', error);
+      }
+    }
 
-  const imageUrls = mediaItems
-    .filter(item => item.type === 'image')
-    .map(item => item.content);
+    return (
+      <TouchableOpacity
+        style={styles.mediaItem}
+        onPress={() => handleMediaPress(index)}
+        activeOpacity={0.7}
+      >
+        <Image
+          source={{ uri: displayUrl }}
+          style={styles.mediaImage}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          transition={200}
+        />
+        {item.type === 'video' && (
+          <View style={styles.videoOverlay}>
+            <Text style={styles.videoIcon}>▶</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  const mediaItemsForViewer = mediaItems.map(item => ({
+    type: item.type as 'image' | 'video',
+    url: item.type === 'video' ? (() => {
+      try {
+        const videoData = JSON.parse(item.content);
+        return videoData.video_url || '';
+      } catch (error) {
+        return '';
+      }
+    })() : item.content,
+    thumbnailUrl: item.type === 'video' ? (() => {
+      try {
+        const videoData = JSON.parse(item.content);
+        return videoData.thumbnail_url || '';
+      } catch (error) {
+        return '';
+      }
+    })() : undefined,
+  }));
 
   return (
     <View style={styles.container}>
@@ -108,7 +137,7 @@ export default function ChatRoomMediaScreen() {
 
       <ImageViewerModal
         visible={isImageViewerVisible}
-        images={imageUrls}
+        mediaItems={mediaItemsForViewer}
         initialIndex={imageViewerInitialIndex}
         title={chatRoomName}
         onClose={() => setIsImageViewerVisible(false)}

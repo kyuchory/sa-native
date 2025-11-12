@@ -30,6 +30,10 @@ export type AuthStackParamList = {
     chatRoomName: string;
     chatPartnerId?: number;
     unreadCount?: number;  // 옵셔널로 변경
+    isVideoEditResult?: boolean;
+    videoUri?: string;
+    trimStart?: number;
+    trimEnd?: number;
   };
   ChatRoomMedia: {
     chatRoomId: number;
@@ -55,6 +59,9 @@ export type AuthStackParamList = {
     videoDuration?: number;
     aspectRatio?: string;
     uploadService?: string;
+    editMode?: 'both' | 'crop' | 'trim';
+    maxDuration?: number;
+    chatRoomId?: number;
   };
 };
 

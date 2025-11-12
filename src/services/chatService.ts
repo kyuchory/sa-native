@@ -14,6 +14,7 @@ import {
   CreatePrivateChatResponse,
   CreateGroupChatResponse,
   ChatImageUploadResponse,
+  ChatVideoUploadResponse,
   UpdateChatRoomRequest,
   UpdateChatRoomResponse,
   InviteUserResponse,
@@ -135,6 +136,44 @@ export class ChatService {
     const response = await apiClient.postFormData<ApiResponse<ChatImageUploadResponse>>('/chats/image-upload', formData);
 
     return response.data; // { image_path, url, filename, size }
+  }
+
+  // 채팅 비디오 업로드
+  static async uploadChatVideo(
+    videoUri: string,
+    options?: {
+      trimStart?: number;
+      trimEnd?: number;
+      cropArea?: { x: number; y: number; width: number; height: number };
+    }
+  ): Promise<ChatVideoUploadResponse> {
+    // React Native의 ImagePicker에서 얻은 URI를 FormData로 변환
+    const formData = new FormData();
+
+    // URI에서 파일 확장자 추출
+    const uriParts = videoUri.split('.');
+    const fileType = uriParts[uriParts.length - 1].toLowerCase();
+
+    formData.append('video', {
+      uri: videoUri,
+      type: `video/${fileType}`,
+      name: `chat_video_${Date.now()}.${fileType}`,
+    } as any);
+
+    // 선택적 편집 파라미터들
+    if (options?.trimStart !== undefined) {
+      formData.append('trimStart', options.trimStart.toString());
+    }
+    if (options?.trimEnd !== undefined) {
+      formData.append('trimEnd', options.trimEnd.toString());
+    }
+    if (options?.cropArea) {
+      formData.append('cropArea', JSON.stringify(options.cropArea));
+    }
+
+    const response = await apiClient.postFormData<ApiResponse<ChatVideoUploadResponse>>('/chats/video-upload', formData);
+
+    return response.data; // { video_path, thumbnail_path, video_url, thumbnail_url, size }
   }
 
   // 채팅방 미디어 조회 (최근 30일 이내, 최대 30개)

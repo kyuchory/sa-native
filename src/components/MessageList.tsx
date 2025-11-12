@@ -16,6 +16,7 @@ interface MessageListProps {
   onLoadMore: () => Promise<void>;
   onMessageLongPress?: (message: Message) => void;
   onPressImage?: (imageUri: string) => void;
+  onPressMedia?: (mediaItem: { type: 'image' | 'video'; url: string; thumbnailUrl?: string }) => void;
 }
 
 const MessageList: React.FC<MessageListProps> = React.memo(({
@@ -26,6 +27,7 @@ const MessageList: React.FC<MessageListProps> = React.memo(({
   onLoadMore,
   onMessageLongPress,
   onPressImage,
+  onPressMedia,
 }) => {
   const { colors } = useThemeStore();
   const { user } = useAuthStore();
@@ -57,6 +59,7 @@ const MessageList: React.FC<MessageListProps> = React.memo(({
             showTime={showTime}
             onLongPress={onMessageLongPress}
             onPressImage={onPressImage}
+            onPressMedia={onPressMedia}
           />
         </View>
 
