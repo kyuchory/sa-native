@@ -391,6 +391,13 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
 
           <View style={styles.header}>
             <Text style={styles.headerTitle}>{title}</Text>
+            {mediaItems.length > 1 && (
+              <View style={styles.headerPageIndicator}>
+                <Text style={styles.headerPageIndicatorText}>
+                  {currentPage + 1} / {mediaItems.length}
+                </Text>
+              </View>
+            )}
             <TouchableOpacity
               style={styles.closeButton}
               onPress={onClose}
@@ -425,14 +432,6 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
               <Text style={styles.menuText}>공유</Text>
             </TouchableOpacity>
           </View>
-
-          {mediaItems.length > 1 && (
-            <View style={styles.pageIndicator}>
-              <Text style={styles.pageIndicatorText}>
-                {currentPage + 1} / {mediaItems.length}
-              </Text>
-            </View>
-          )}
         </Animated.View>
       </GestureHandlerRootView>
     </Modal>
@@ -809,7 +808,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 80,
+    height: 60,
     paddingHorizontal: 24,
     flexDirection: 'row',
     alignItems: 'center',
@@ -828,19 +827,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '500',
   },
-  pageIndicator: {
-    position: 'absolute',
-    bottom: 100,
-    alignSelf: 'center',
+  headerPageIndicator: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 12,
-    zIndex: 5,
   },
-  pageIndicatorText: {
+  headerPageIndicatorText: {
     fontSize: 13,
     color: '#fff',
     fontWeight: '500',
   },
+
 });
