@@ -1,10 +1,10 @@
 import 'react-native-reanimated';
 import 'react-native-gesture-handler';
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
+import Animated, { useSharedValue, useAnimatedStyle, useAnimatedProps, runOnJS } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Dimensions, Alert, Modal, ScrollView } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
 import { captureRef } from 'react-native-view-shot';
 import Svg, { Path } from 'react-native-svg';
@@ -13,9 +13,490 @@ import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
 import { useThemeStore } from '../stores/themeStore';
 import { StoryService } from '../services/storyService';
-import { SPACING, BORDER_RADIUS, BG_COLORS, COLORS } from '../constants/theme';
+import { SPACING, BORDER_RADIUS } from '../constants/theme';
 import CommonHeader from '../components/CommonHeader';
 import LoadingOverlay from '../components/LoadingOverlay';
+
+// Sub-components for performance optimization
+type CanvasSurfaceProps = {
+  elements: (StickerElement | TextElement)[];
+  strokes: Stroke[];
+  drawColor: string;
+  drawWidth: number;
+  isDrawing: boolean;
+  canvasRef: React.RefObject<View | null>;
+  colors: Record<string, string>;
+  onStrokeAdd: (stroke: Stroke) => void;
+  canvasSize: { width: number; height: number };
+  onCanvasSizeChange: (size: { width: number; height: number }) => void;
+  onUpdatePos: (id: string, pos: PercentPos) => void;
+  onUpdateScale: (id: string, scale: number) => void;
+  onUpdateRotation: (id: string, rotation: number) => void;
+  onSelectElement: (id: string) => void;
+  onEditText: (id: string, text: string) => void;
+  selectedId: string | null;
+};
+
+type BottomToolbarProps = {
+  strokesCount: number;
+  hasSelectedElement: boolean;
+  onPressSave: () => void;
+  onPressDraw: () => void;
+  onPressText: () => void;
+  onPressSticker: () => void;
+  onPressClear: () => void;
+  onBringForward: () => void;
+  onSendBackward: () => void;
+  onDeleteSelected: () => void;
+};
+
+type DrawingToolbarProps = {
+  drawColor: string;
+  drawWidth: number;
+  strokesCount: number;
+  onChangeColor: (color: string) => void;
+  onChangeWidth: (width: number) => void;
+  onUndo: () => void;
+  onDone: () => void;
+};
+
+type TextModalProps = {
+  visible: boolean;
+  value: string;
+  placeholder: string;
+  onChangeText: (text: string) => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+};
+
+const CanvasSurface = React.memo<CanvasSurfaceProps>(function CanvasSurface(props) {
+  const {
+    elements,
+    strokes,
+    drawColor,
+    drawWidth,
+    isDrawing,
+    canvasRef,
+    colors,
+    onStrokeAdd,
+    canvasSize,
+    onCanvasSizeChange,
+    onUpdatePos,
+    onUpdateScale,
+    onUpdateRotation,
+    onSelectElement,
+    onEditText,
+    selectedId,
+  } = props;
+
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const currentStroke = useSharedValue<Stroke | null>(null);
+  const drawingPoints = useSharedValue<{ x: number; y: number }[]>([]);
+
+  // Undo/Clear 감지하여 drawingPoints 동기화
+  const prevStrokeCountRef = useRef(strokes.length);
+  useEffect(() => {
+    // strokes 개수가 줄어들었다 = undo 또는 clear
+    if (strokes.length < prevStrokeCountRef.current) {
+      drawingPoints.value = [];
+      currentStroke.value = null;
+    }
+    prevStrokeCountRef.current = strokes.length;
+  }, [strokes.length]);
+
+  const panForDrawing = Gesture.Pan()
+    .enabled(isDrawing)
+    .onBegin(e => {
+      // Flush any incomplete previous stroke
+      if (currentStroke.value && currentStroke.value.points.length > 1) {
+        runOnJS(onStrokeAdd)(currentStroke.value);
+      }
+
+      // Clear previous drawing points before starting new stroke
+      drawingPoints.value = [];
+
+      // Start new stroke
+      const stroke: Stroke = {
+        id: `s-${Date.now()}`,
+        points: [{ x: e.x, y: e.y }],
+        color: drawColor,
+        width: drawWidth,
+      };
+      currentStroke.value = stroke;
+      drawingPoints.value = stroke.points;
+    })
+    .onUpdate(e => {
+      if (!currentStroke.value) return;
+
+      const newPoints = [
+        ...currentStroke.value.points,
+        { x: e.x, y: e.y },
+      ];
+      currentStroke.value = {
+        ...currentStroke.value,
+        points: newPoints,
+      };
+      drawingPoints.value = newPoints;
+    })
+    .onEnd(() => {
+      // Finish current stroke
+      if (currentStroke.value && currentStroke.value.points.length > 1) {
+        runOnJS(onStrokeAdd)(currentStroke.value);  // Send final stroke to JS thread
+      }
+
+      // Keep drawingPoints intact until next stroke begins
+      currentStroke.value = null;
+      // drawingPoints.value = []; // Removed
+    })
+    .onFinalize(() => {
+      // Keep drawingPoints intact until next stroke begins
+      currentStroke.value = null;
+      // drawingPoints.value = []; // Removed
+    });
+
+  const pointsToPath = (pts: { x: number; y: number }[]) => {
+    'worklet';
+    if (!pts.length) return '';
+    return pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  };
+
+  useEffect(() => {
+    if (!isDrawing) {
+      drawingPoints.value = [];
+      currentStroke.value = null;
+    }
+  }, [isDrawing]);
+
+  const AnimatedPath = Animated.createAnimatedComponent(Path);
+  const animatedPathProps = useAnimatedProps(() => ({
+    d: pointsToPath(drawingPoints.value),
+  }));
+
+  const updateElementPosition = useCallback((id: string, newPos: PercentPos) => {
+    onUpdatePos(id, newPos);
+  }, [onUpdatePos]);
+
+  const updateElementScale = useCallback((id: string, newScale: number) => {
+    onUpdateScale(id, newScale);
+  }, [onUpdateScale]);
+
+  const updateElementRotation = useCallback((id: string, newRotation: number) => {
+    onUpdateRotation(id, newRotation);
+  }, [onUpdateRotation]);
+
+  const setSelectedIdJS = useCallback((id: string) => {
+    onSelectElement(id);
+  }, [onSelectElement]);
+  const openEditModalJS = useCallback((id: string, currentText: string) => {
+    onEditText(id, currentText);
+  }, [onEditText]);
+
+  // 🔹 공통 콘텐츠
+  const content = (
+    <View ref={canvasRef} style={styles.canvas}>
+      <View
+        style={styles.canvasInner}
+        onLayout={e => {
+          const { width, height } = e.nativeEvent.layout;
+          onCanvasSizeChange({ width, height });
+        }}
+      >
+        {/* ✅ 1. 먼저 스티커/텍스트 - 터치 받을 놈들 */}
+        {elements.map(el => (
+          <ElementWrapper
+            key={el.id}
+            el={el}
+            colors={colors}
+            isDrawing={isDrawing}
+            canvasSize={canvasSize}
+            onUpdatePos={updateElementPosition}
+            onUpdateScale={updateElementScale}
+            onUpdateRotation={updateElementRotation}
+            onSelect={setSelectedIdJS}
+            onEditText={openEditModalJS}
+            isSelected={selectedId === el.id}
+          />
+        ))}
+
+        {/* ✅ 2. 그 위에 드로잉 레이어 - 완전 터치 비활성, 항상 위에 보임 */}
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Svg style={StyleSheet.absoluteFill}>
+            {strokes.map(s => (
+              <Path
+                key={s.id}
+                d={pointsToPath(s.points)}
+                strokeWidth={s.width}
+                stroke={s.color}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            ))}
+            <AnimatedPath
+              animatedProps={animatedPathProps}
+              strokeWidth={drawWidth}
+              stroke={drawColor}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+        </View>
+      </View>
+    </View>
+  );
+
+  // 🔥 isDrawing일 때만 부모 제스처 활성
+  if (isDrawing) {
+    return (
+      <GestureDetector gesture={panForDrawing}>
+        {content}
+      </GestureDetector>
+    );
+  }
+
+  // 일반 모드에서는 ElementWrapper 제스처만 사용
+  return content;
+});
+
+const BottomToolbar = React.memo<BottomToolbarProps>(function BottomToolbar({
+  strokesCount,
+  hasSelectedElement,
+  onPressSave,
+  onPressDraw,
+  onPressText,
+  onPressSticker,
+  onPressClear,
+  onBringForward,
+  onSendBackward,
+  onDeleteSelected,
+}) {
+  const { colors } = useThemeStore();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
+    <View style={styles.bottomToolbarContainer}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.bottomToolbar}
+        bounces={false}
+      >
+        <TouchableOpacity style={styles.toolItem} onPress={onPressSave}>
+          <View style={styles.saveIconWrapper}>
+            <ExportIcon size={24} color={colors.WHITE} />
+          </View>
+          <Text style={styles.saveLabel}>저장</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.toolItem} onPress={onPressDraw}>
+          <View style={styles.toolIconWrapper}>
+            <PencilIcon size={26} color={colors.GRAY_900} />
+          </View>
+          <Text style={styles.toolLabel}>그리기</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.toolItem} onPress={onPressText}>
+          <View style={styles.toolIconWrapper}>
+            <TextIcon size={26} color={colors.GRAY_900} />
+          </View>
+          <Text style={styles.toolLabel}>텍스트</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.toolItem} onPress={onPressSticker}>
+          <View style={styles.toolIconWrapper}>
+            <ImageIcon size={26} color={colors.GRAY_900} />
+          </View>
+          <Text style={styles.toolLabel}>스티커</Text>
+        </TouchableOpacity>
+
+        {strokesCount > 0 && (
+          <TouchableOpacity style={styles.toolItem} onPress={onPressClear}>
+            <View style={styles.toolIconWrapper}>
+              <TrashIcon size={22} color={colors.ERROR} />
+            </View>
+            <Text style={[styles.toolLabel, { color: colors.ERROR }]}>초기화</Text>
+          </TouchableOpacity>
+        )}
+
+        {hasSelectedElement && (
+          <>
+            <TouchableOpacity style={styles.toolItem} onPress={onBringForward}>
+              <View style={styles.toolIconWrapper}>
+                <LayerUpIcon size={22} color={colors.GRAY_900} />
+              </View>
+              <Text style={styles.toolLabel}>앞으로</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.toolItem} onPress={onSendBackward}>
+              <View style={styles.toolIconWrapper}>
+                <LayerDownIcon size={22} color={colors.GRAY_900} />
+              </View>
+              <Text style={styles.toolLabel}>뒤로</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.toolItem} onPress={onDeleteSelected}>
+              <View style={styles.toolIconWrapper}>
+                <TrashIcon size={22} color={colors.ERROR} />
+              </View>
+              <Text style={[styles.toolLabel, { color: colors.ERROR }]}>삭제</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </ScrollView>
+    </View>
+  );
+});
+
+const DrawingToolbar = React.memo<DrawingToolbarProps>(function DrawingToolbar({
+  drawColor,
+  drawWidth,
+  strokesCount,
+  onChangeColor,
+  onChangeWidth,
+  onUndo,
+  onDone,
+}) {
+  const { colors } = useThemeStore();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const colorPresets = ['#000000', '#FFFFFF', '#FF0000', '#00AA00', '#0000FF', '#FFFF00', '#FF1493'];
+
+  return (
+    <View style={styles.drawingToolbar}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.drawingTopScroll}>
+        <View style={styles.colorPaletteRow}>
+          {colorPresets.map(c => (
+            <TouchableOpacity
+              key={c}
+              onPress={() => onChangeColor(c)}
+              style={[
+                styles.colorCircle,
+                { backgroundColor: c },
+                drawColor === c && styles.colorCircleActive,
+                c === '#FFFFFF' && { borderWidth: 1, borderColor: colors.GRAY_600 }
+              ]}
+            />
+          ))}
+        </View>
+
+        <View style={styles.widthPaletteRow}>
+          <Text style={styles.widthLabel}>굵기:</Text>
+          {[2, 4, 6, 8, 10].map(size => (
+            <TouchableOpacity
+              key={size}
+              onPress={() => onChangeWidth(size)}
+              style={[
+                styles.widthCircle,
+                { width: size * 4, height: size * 4, backgroundColor: colors.GRAY_200 },
+                drawWidth === size && styles.widthCircleActive
+              ]}
+            />
+          ))}
+        </View>
+      </ScrollView>
+
+      <View style={styles.drawingActions}>
+        <TouchableOpacity
+          style={[styles.drawingButton, strokesCount === 0 && styles.drawingButtonDisabled]}
+          onPress={onUndo}
+          disabled={strokesCount === 0}
+        >
+          <UndoIcon size={22} color={strokesCount > 0 ? colors.GRAY_900 : colors.GRAY_600} />
+          <Text style={[styles.drawingButtonText, strokesCount === 0 && styles.drawingButtonTextDisabled]}>
+            취소
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.drawingButton}
+          onPress={onDone}
+        >
+          <CloseIcon size={22} color={colors.GRAY_900} />
+          <Text style={styles.drawingButtonText}>완료</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
+
+const TextModal = React.memo<TextModalProps>(function TextModal({
+  visible,
+  value,
+  placeholder,
+  onChangeText,
+  onConfirm,
+  onCancel,
+}) {
+  const { colors } = useThemeStore();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
+      <TouchableOpacity
+        style={styles.simpleModalOverlay}
+        activeOpacity={1}
+        onPress={onConfirm}
+      >
+        <View style={styles.simpleModalInputWrapper}>
+          <TextInput
+            autoFocus
+            multiline
+            placeholder={placeholder}
+            placeholderTextColor={colors.GRAY_400}
+            value={value}
+            onChangeText={onChangeText}
+            style={styles.simpleModalInput}
+          />
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+});
+
+// Types
+type PercentPos = { left: number; top: number };
+
+type StickerElement = {
+  id: string;
+  type: 'sticker';
+  uri: string;
+  pos: PercentPos;
+  rotation: number;
+  scale: number;
+  aspect?: number;
+  baseW?: number;
+};
+
+type TextElement = {
+  id: string;
+  type: 'text';
+  text: string;
+  pos: PercentPos;
+  rotation: number;
+  scale: number;
+};
+
+type Stroke = { id: string; points: { x: number; y: number }[]; color: string; width: number };
+
+type ElementWrapperProps = {
+  el: StickerElement | TextElement;
+  colors: Record<string, string>;
+  isDrawing: boolean;
+  canvasSize: { width: number; height: number };
+  onUpdatePos: (id: string, pos: PercentPos) => void;
+  onUpdateScale: (id: string, scale: number) => void;
+  onUpdateRotation: (id: string, rotation: number) => void;
+  onSelect: (id: string) => void;
+  onEditText: (id: string, text: string) => void;
+  isSelected: boolean;
+};
 
 // Modern SVG Icons
 const TextIcon = ({ size = 24, color = '#000' }) => (
@@ -75,31 +556,6 @@ const TrashIcon = ({ size = 20, color = '#000' }) => (
   </Svg>
 );
 
-// Types
-type PercentPos = { left: number; top: number };
-
-type StickerElement = {
-  id: string;
-  type: 'sticker';
-  uri: string;
-  pos: PercentPos;
-  rotation: number;
-  scale: number;
-  aspect?: number;
-  baseW?: number;
-};
-
-type TextElement = {
-  id: string;
-  type: 'text';
-  text: string;
-  pos: PercentPos;
-  rotation: number;
-  scale: number;
-};
-
-type Stroke = { id: string; points: { x: number; y: number }[]; color: string; width: number };
-
 type Props = {
   route?: { params?: { imageUri?: string } };
   navigation?: any;
@@ -112,31 +568,58 @@ const CANVAS_MARGIN = 0;
 
 export default function CanvasEditorScreen({ route, navigation }: Props) {
   const { colors } = useThemeStore();
-  const styles = createStyles(colors);
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const initialImage = route?.params?.imageUri ?? null;
   const canvasRef = useRef<View>(null);
 
   const [elements, setElements] = useState<Array<StickerElement | TextElement>>([]);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
-  const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
   const [drawColor, setDrawColor] = useState('#000000');
   const [drawWidth, setDrawWidth] = useState(4);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // 🔥 선택 상태를 기억하는 ref
+  const selectedIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
+
+  // 🔥 선택 테두리를 숨기고 캔버스를 캡처하는 헬퍼
+  const captureCanvasWithoutSelection = useCallback(async () => {
+    if (!canvasRef.current) return null;
+
+    const prevSelected = selectedIdRef.current;
+
+    // 1) 선택 해제해서 테두리 숨기기
+    if (prevSelected) {
+      setSelectedId(null);
+      // 한 프레임 정도 기다렸다가 캡처 (UI 업데이트 반영용)
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+
+    try {
+      // 2) 실제 캡처
+      const uri = await captureRef(canvasRef, { format: 'png', quality: 0.9 });
+      return uri;
+    } finally {
+      // 3) 선택 상태 복구
+      if (prevSelected) {
+        setSelectedId(prevSelected);
+      }
+    }
+  }, []);
+
   const [showTextModal, setShowTextModal] = useState(false);
   const [modalTextInput, setModalTextInput] = useState('');
   const [editingElementId, setEditingElementId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  const drawingPoints = useSharedValue<{ x: number; y: number }[]>([]);
   const [canvasSize, setCanvasSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
-  const percentToPx = (p: PercentPos) => ({ left: p.left * SCREEN_W, top: p.top * SCREEN_H });
-
-  const addSticker = (uri: string) => {
+  const addSticker = (uri: string, aspect?: number) => {
     setElements(prev => [
       ...prev,
       {
@@ -147,6 +630,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
         rotation: 0,
         scale: 1,
         baseW: STICKER_BASE_W,
+        aspect, // 🔹 비율 정보 저장
       } as StickerElement,
     ]);
   };
@@ -158,8 +642,16 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      const uri = result.assets[0].uri;
-      addSticker(uri);
+      const asset = result.assets[0];
+      const uri = asset.uri;
+
+      // 🔹 이미지 비율 계산 (없으면 1 fallback)
+      const aspect =
+        asset.width && asset.height
+          ? asset.height / asset.width
+          : 1;
+
+      addSticker(uri, aspect);
     }
   };
 
@@ -221,11 +713,16 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
     });
   };
 
+  const deleteSelected = useCallback(() => {
+    if (!selectedId) return;
+    setElements(prev => prev.filter(el => el.id !== selectedId));
+    setSelectedId(null);
+  }, [selectedId]);
+
   const exportAsImage = async () => {
     try {
-      if (!canvasRef.current) return;
-
-      const uri = await captureRef(canvasRef, { format: 'png', quality: 0.9 });
+      const uri = await captureCanvasWithoutSelection();
+      if (!uri) return;
 
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
@@ -246,10 +743,10 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
 
   const submitAsStory = async () => {
     try {
-      if (!canvasRef.current) return;
-
       setIsUploading(true);
-      const uri = await captureRef(canvasRef, { format: 'png', quality: 0.9 });
+
+      const uri = await captureCanvasWithoutSelection();
+      if (!uri) return;
 
       // 스토리 생성 API 호출
       const response = await StoryService.createStory({
@@ -266,47 +763,13 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
     }
   };
 
-  const startDrawing = useCallback((x: number, y: number, color: string, width: number) => {
-    const stroke: Stroke = {
-      id: `s-${Date.now()}`,
-      points: [{ x, y }],
-      color,
-      width,
-    };
-    setCurrentStroke(stroke);
-  }, []);
-
-  const updateDrawing = useCallback((points: { x: number; y: number }[]) => {
-    setCurrentStroke(prev => prev ? { ...prev, points } : null);
-  }, []);
-
-  const finishDrawing = useCallback(() => {
-    setCurrentStroke(prev => {
-      if (prev && prev.points.length > 1) setStrokes(s => [...s, prev]);
-      return null;
-    });
-  }, []);
-
   const undoLastStroke = useCallback(() => {
     setStrokes(prev => prev.slice(0, -1));
   }, []);
 
-  const panForDrawing = Gesture.Pan()
-    .enabled(isDrawing)
-    .onBegin(e => {
-      drawingPoints.value = [{ x: e.x, y: e.y }];
-      scheduleOnRN(startDrawing, e.x, e.y, drawColor, drawWidth);
-    })
-    .onUpdate(e => {
-      const newPoints = [...drawingPoints.value, { x: e.x, y: e.y }];
-      drawingPoints.value = newPoints;
-      scheduleOnRN(updateDrawing, newPoints);
-    })
-    .onEnd(() => {
-      scheduleOnRN(finishDrawing);
-      drawingPoints.value = [];
-    })
-    .onFinalize(() => { drawingPoints.value = []; });
+  const addStrokeJS = useCallback((stroke: Stroke) => {
+    setStrokes(prev => [...prev, stroke]);
+  }, []);
 
   const updateElementPosition = useCallback((id: string, newPos: PercentPos) => {
     setElements(prev => prev.map(el => el.id === id ? { ...el, pos: newPos } : el));
@@ -321,6 +784,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
   }, []);
 
   const setSelectedIdJS = useCallback((id: string) => { setSelectedId(id); }, []);
+
   const openEditModalJS = useCallback((id: string, currentText: string) => {
     setEditingElementId(id);
     setModalTextInput(currentText);
@@ -337,21 +801,47 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
     Image.getSize(
       initialImage,
       (w, h) => {
-        const aspect = h / w;
-        const baseW = canvasSize.width;
-        const baseH = baseW * aspect;
+        const imgAspect = h / w;
+        const canvasAspect = canvasSize.height / canvasSize.width;
 
-        const leftPx = CANVAS_MARGIN;
-        const topPx = Math.max(0, (canvasSize.height - baseH) / 2);
+        let baseW: number;
+        let baseH: number;
+        let leftPx: number;
+        let topPx: number;
 
-        const leftPercent = leftPx / SCREEN_W;
-        const topPercent  = topPx / SCREEN_H;
+        if (imgAspect > canvasAspect) {
+          // 🔥 세로가 더 긴 이미지
+          // 약간 더 크게 스케일해서 위/아래를 캔버스 밖으로 밀어버림
+          const SAFE = 1.02; // 필요하면 1.01 ~ 1.03 사이에서 조절
+
+          const scale = (canvasSize.height / h) * SAFE;
+
+          baseW = w * scale;
+          baseH = h * scale;
+
+          // 중앙 정렬 (baseH가 캔버스보다 크기 때문에 topPx는 음수가 됨)
+          topPx  = (canvasSize.height - baseH) / 2;
+          leftPx = (canvasSize.width  - baseW) / 2;
+        } else {
+          // 🔹 가로가 더 넓거나 비슷한 이미지
+          // 가로를 캔버스에 맞추고, 세로는 가운데 정렬
+          const scale = canvasSize.width / w;
+
+          baseW = canvasSize.width;
+          baseH = h * scale;
+
+          leftPx = 0;
+          topPx = (canvasSize.height - baseH) / 2;
+        }
+
+        const leftPercent = leftPx / canvasSize.width;
+        const topPercent  = topPx / canvasSize.height;
 
         setElements([{
           id: 'sticker-0',
           type: 'sticker',
           uri: initialImage,
-          aspect,
+          aspect: imgAspect,
           baseW,
           pos: { left: leftPercent, top: topPercent },
           rotation: 0,
@@ -375,136 +865,9 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
     );
   }, [initialImage, canvasSize]);
 
-  const ElementWrapper: React.FC<{ el: StickerElement | TextElement; colors: Record<string, string> }> = ({ el, colors }) => {
-    const elementId = el.id;
-    const elementType = el.type;
-    const initialPos = el.pos;
-    const initialScale = el.scale ?? 1;
-    const initialRotation = (el.rotation ?? 0) * (Math.PI / 180);
-
-    const translateX = useSharedValue(0);
-    const translateY = useSharedValue(0);
-    const scale = useSharedValue(1);
-    const rotation = useSharedValue(0);
-
-    const baseScale = useSharedValue(initialScale);
-    const baseRotation = useSharedValue(initialRotation);
-    const startPosX = useSharedValue(0);
-    const startPosY = useSharedValue(0);
-    const isActive = useSharedValue(false);
-
-    const tap = Gesture.Tap()
-      .enabled(!isDrawing && elementType === 'text')
-      .maxDuration(200)
-      .onEnd(() => {
-        if (elementType === 'text') {
-          const textEl = el as TextElement;
-          scheduleOnRN(openEditModalJS, elementId, textEl.text);
-        }
-      });
-
-    const pan = Gesture.Pan()
-      .enabled(!isDrawing)
-      .minDistance(1)
-      .onBegin(() => {
-        isActive.value = true;
-        scheduleOnRN(setSelectedIdJS, elementId);
-        startPosX.value = initialPos.left * SCREEN_W;
-        startPosY.value = initialPos.top * SCREEN_H;
-      })
-      .onUpdate(e => { translateX.value = e.translationX; translateY.value = e.translationY; })
-      .onEnd(() => {
-        const newLeftPx = startPosX.value + translateX.value;
-        const newTopPx = startPosY.value + translateY.value;
-        scheduleOnRN(updateElementPosition, elementId, { left: newLeftPx / SCREEN_W, top: newTopPx / SCREEN_H });
-        translateX.value = 0;
-        translateY.value = 0;
-      })
-      .onFinalize(() => { isActive.value = false; });
-
-    const pinch = Gesture.Pinch()
-      .enabled(!isDrawing)
-      .onBegin(() => { isActive.value = true; scheduleOnRN(setSelectedIdJS, elementId); })
-      .onUpdate(e => { scale.value = e.scale; })
-      .onEnd(() => {
-        const newScale = baseScale.value * scale.value;
-        scheduleOnRN(updateElementScale, elementId, newScale);
-        baseScale.value = newScale;
-        scale.value = 1;
-      })
-      .onFinalize(() => { isActive.value = false; });
-
-    const rotationGesture = Gesture.Rotation()
-      .enabled(!isDrawing)
-      .onBegin(() => { isActive.value = true; scheduleOnRN(setSelectedIdJS, elementId); })
-      .onUpdate(e => { rotation.value = e.rotation; })
-      .onEnd(() => {
-        const newRotation = baseRotation.value + rotation.value;
-        scheduleOnRN(updateElementRotation, elementId, (newRotation * 180) / Math.PI);
-        baseRotation.value = newRotation;
-        rotation.value = 0;
-      })
-      .onFinalize(() => { isActive.value = false; });
-
-    const panPinchRotate = Gesture.Simultaneous(pan, pinch, rotationGesture);
-    const composed = Gesture.Exclusive(tap, panPinchRotate);
-
-    const animatedStyle = useAnimatedStyle(() => ({
-      transform: [
-        { translateX: translateX.value },
-        { translateY: translateY.value },
-        { rotate: `${baseRotation.value + rotation.value}rad` },
-        { scale: baseScale.value * scale.value },
-      ],
-    }));
-
-    const borderStyle = useAnimatedStyle(() => ({
-      borderColor: isActive.value ? colors.PRIMARY : 'transparent',
-    }));
-
-    const posPx = percentToPx(initialPos);
-
-    if (elementType === 'sticker') {
-      const sticker = el as StickerElement;
-      const aspect = sticker.aspect ?? 1;
-      const baseW = sticker.baseW ?? STICKER_BASE_W;
-
-      return (
-        <GestureDetector gesture={composed} key={elementId}>
-          <Animated.View style={[styles.elementWrapper, { left: posPx.left, top: posPx.top }, animatedStyle]}>
-            <Animated.View style={[styles.stickerBorder, borderStyle]}>
-              <Image
-                source={{ uri: sticker.uri }}
-                style={{ width: baseW, height: baseW * aspect }}
-                resizeMode="contain"
-              />
-            </Animated.View>
-          </Animated.View>
-        </GestureDetector>
-      );
-    }
-
-    const textEl = el as TextElement;
-    return (
-      <GestureDetector gesture={composed} key={elementId}>
-        <Animated.View style={[styles.elementWrapper, { left: posPx.left, top: posPx.top }, animatedStyle]}>
-          <Animated.View style={[styles.textBox, borderStyle]}>
-            <Text style={styles.textDisplay}>{textEl.text}</Text>
-          </Animated.View>
-        </Animated.View>
-      </GestureDetector>
-    );
-  };
-
-  const pointsToPath = (pts: { x: number; y: number }[]) => {
-    if (!pts.length) return '';
-    return pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-  };
-
-  const colorPresets = ['#000000', '#FFFFFF', '#FF0000', '#00AA00', '#0000FF', '#FFFF00', '#FF1493'];
-
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.GRAY_50 }} edges={['bottom']}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.GRAY_50 }} edges={['bottom']}>
       <CommonHeader
         title="Edit"
         onBackPress={() => navigation?.goBack?.()}
@@ -516,212 +879,321 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
       />
       <View style={styles.container}>
 
-        <GestureDetector gesture={panForDrawing}>
-          <View ref={canvasRef} collapsable={false} style={styles.canvas}>
-            <View
-              style={styles.canvasInner}
-              onLayout={e => {
-                const { width, height } = e.nativeEvent.layout;
-                setCanvasSize({ width, height });
-              }}
-            >
-              {elements.map(el => <ElementWrapper el={el} colors={colors} key={el.id} />)}
+        <CanvasSurface
+          elements={elements}
+          strokes={strokes}
+          drawColor={drawColor}
+          drawWidth={drawWidth}
+          isDrawing={isDrawing}
+          canvasRef={canvasRef}
+          colors={colors}
+          onStrokeAdd={addStrokeJS}
+          canvasSize={canvasSize}
+          onCanvasSizeChange={setCanvasSize}
+          onUpdatePos={updateElementPosition}
+          onUpdateScale={updateElementScale}
+          onUpdateRotation={updateElementRotation}
+          onSelectElement={setSelectedIdJS}
+          onEditText={openEditModalJS}
+          selectedId={selectedId}
+        />
 
-              <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-                {strokes.map(s => (
-                  <Path
-                    key={s.id}
-                    d={pointsToPath(s.points)}
-                    strokeWidth={s.width}
-                    stroke={s.color}
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                ))}
-                {currentStroke && currentStroke.points.length > 0 && (
-                  <Path
-                    d={pointsToPath(currentStroke.points)}
-                    strokeWidth={currentStroke.width}
-                    stroke={currentStroke.color}
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                )}
-              </Svg>
-            </View>
-          </View>
-        </GestureDetector>
-
-        {/* Instagram Style Bottom Toolbar */}
         {!isDrawing ? (
-          <View style={styles.bottomToolbarContainer}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.bottomToolbar}
-              bounces={false}
-            >
-              <TouchableOpacity style={styles.toolItem} onPress={exportAsImage}>
-                <View style={styles.saveIconWrapper}>
-                  <ExportIcon size={24} color={colors.WHITE} />
-                </View>
-                <Text style={styles.saveLabel}>Save</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.toolItem} onPress={() => setIsDrawing(true)}>
-                <View style={styles.toolIconWrapper}>
-                  <PencilIcon size={26} color={colors.GRAY_900} />
-                </View>
-                <Text style={styles.toolLabel}>Draw</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.toolItem} onPress={addTextBox}>
-                <View style={styles.toolIconWrapper}>
-                  <TextIcon size={26} color={colors.GRAY_900} />
-                </View>
-                <Text style={styles.toolLabel}>Text</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.toolItem} onPress={pickImage}>
-                <View style={styles.toolIconWrapper}>
-                  <ImageIcon size={26} color={colors.GRAY_900} />
-                </View>
-                <Text style={styles.toolLabel}>Sticker</Text>
-              </TouchableOpacity>
-
-              {strokes.length > 0 && (
-                <TouchableOpacity style={styles.toolItem} onPress={() => setStrokes([])}>
-                  <View style={styles.toolIconWrapper}>
-                    <TrashIcon size={22} color={colors.ERROR} />
-                  </View>
-                  <Text style={[styles.toolLabel, { color: colors.ERROR }]}>Clear</Text>
-                </TouchableOpacity>
-              )}
-
-              {selectedId && (
-                <>
-                  <TouchableOpacity style={styles.toolItem} onPress={() => bringForward(selectedId)}>
-                    <View style={styles.toolIconWrapper}>
-                      <LayerUpIcon size={22} color={colors.GRAY_900} />
-                    </View>
-                    <Text style={styles.toolLabel}>Forward</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.toolItem} onPress={() => sendBackward(selectedId)}>
-                    <View style={styles.toolIconWrapper}>
-                      <LayerDownIcon size={22} color={colors.GRAY_900} />
-                    </View>
-                    <Text style={styles.toolLabel}>Backward</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </ScrollView>
-          </View>
+          <BottomToolbar
+            strokesCount={strokes.length}
+            hasSelectedElement={!!selectedId}
+            onPressSave={exportAsImage}
+            onPressDraw={() => setIsDrawing(true)}
+            onPressText={addTextBox}
+            onPressSticker={pickImage}
+            onPressClear={() => setStrokes([])}
+            onBringForward={() => selectedId && bringForward(selectedId)}
+            onSendBackward={() => selectedId && sendBackward(selectedId)}
+            onDeleteSelected={deleteSelected}
+          />
         ) : (
-          <View style={styles.drawingToolbar}>
-            <View style={styles.drawingTop}>
-              <View style={styles.colorPaletteRow}>
-                {colorPresets.map(c => (
-                  <TouchableOpacity
-                    key={c}
-                    onPress={() => setDrawColor(c)}
-                    style={[
-                      styles.colorCircle,
-                      { backgroundColor: c },
-                      drawColor === c && styles.colorCircleActive,
-                      c === '#FFFFFF' && { borderWidth: 1, borderColor: colors.GRAY_600 }
-                    ]}
-                  />
-                ))}
-              </View>
-              
-              <View style={styles.widthPaletteRow}>
-                <Text style={styles.widthLabel}>Size:</Text>
-                {[2, 4, 6, 8, 10].map(size => (
-                  <TouchableOpacity
-                    key={size}
-                    onPress={() => setDrawWidth(size)}
-                    style={[
-                      styles.widthCircle,
-                      { width: size * 4, height: size * 4, backgroundColor: colors.WHITE },
-                      drawWidth === size && styles.widthCircleActive
-                    ]}
-                  />
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.drawingActions}>
-              <TouchableOpacity
-                style={[styles.drawingButton, strokes.length === 0 && styles.drawingButtonDisabled]}
-                onPress={undoLastStroke}
-                disabled={strokes.length === 0}
-              >
-                <UndoIcon size={22} color={strokes.length > 0 ? colors.GRAY_900 : colors.GRAY_600} />
-                <Text style={[styles.drawingButtonText, strokes.length === 0 && styles.drawingButtonTextDisabled]}>
-                  Undo
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.drawingButton}
-                onPress={() => setIsDrawing(false)}
-              >
-                <CloseIcon size={22} color={colors.GRAY_900} />
-                <Text style={styles.drawingButtonText}>Done</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          <DrawingToolbar
+            drawColor={drawColor}
+            drawWidth={drawWidth}
+            strokesCount={strokes.length}
+            onChangeColor={setDrawColor}
+            onChangeWidth={setDrawWidth}
+            onUndo={undoLastStroke}
+            onDone={() => setIsDrawing(false)}
+          />
         )}
 
-        {/* Simplified Text Modal */}
-        <Modal
+        <TextModal
           visible={showTextModal}
-          transparent
-          animationType="fade"
-          onRequestClose={() => {
+          value={modalTextInput}
+          placeholder="Type something..."
+          onChangeText={setModalTextInput}
+          onConfirm={confirmAddText}
+          onCancel={() => {
             setShowTextModal(false);
             setEditingElementId(null);
             setModalTextInput('');
           }}
-        >
-          <TouchableOpacity
-            style={styles.simpleModalOverlay}
-            activeOpacity={1}
-            onPress={() => {
-              if (modalTextInput.trim()) {
-                confirmAddText();
-              } else {
-                setShowTextModal(false);
-                setEditingElementId(null);
-                setModalTextInput('');
-              }
-            }}
-          >
-            <View style={styles.simpleModalInputWrapper}>
-              <TextInput
-                autoFocus
-                multiline
-                placeholder="Type something..."
-                placeholderTextColor={colors.GRAY_400}
-                value={modalTextInput}
-                onChangeText={setModalTextInput}
-                style={styles.simpleModalInput}
-              />
-            </View>
-          </TouchableOpacity>
-        </Modal>
+        />
       </View>
 
-      <LoadingOverlay
+      {/* <LoadingOverlay
         visible={isUploading}
         message="스토리를 생성하고 있습니다..."
-      />
+      /> */}
     </SafeAreaView>
+  </GestureHandlerRootView>
   );
 }
+
+const ElementWrapper = React.memo<ElementWrapperProps>(function ElementWrapper(props) {
+  const {
+    el,
+    colors,
+    canvasSize,
+    onSelect,
+    onEditText,
+    isDrawing,
+    isSelected,
+    onUpdatePos,
+    onUpdateScale,
+    onUpdateRotation,
+  } = props;
+
+  if (canvasSize.width <= 0 || canvasSize.height <= 0) {
+    return null;
+  }
+
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const elementId = el.id;
+  const elementType = el.type;
+  const initialPos = el.pos;
+  const initialScale = el.scale ?? 1;
+  const initialRotation = el.rotation ?? 0;
+
+  // 처음 렌더 시 props 기반 px 위치
+  const percentToPx = (p: PercentPos) => ({
+    x: p.left * canvasSize.width,
+    y: p.top * canvasSize.height,
+  });
+  const initialPosPx = percentToPx(initialPos);
+
+  // ✅ shared values
+  const baseX = useSharedValue(initialPosPx.x); // 항상 "기준 위치"를 들고 있음
+  const baseY = useSharedValue(initialPosPx.y);
+
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+
+  const baseScale = useSharedValue(initialScale);
+  const pinchScale = useSharedValue(1);
+
+  const baseRotation = useSharedValue(initialRotation);
+  const rotateZ = useSharedValue(0);
+
+  // props가 바뀌었을 때도 shared value 동기화 (예: 초기 이미지 배치 변경)
+  useEffect(() => {
+    const px = percentToPx(initialPos);
+    baseX.value = px.x;
+    baseY.value = px.y;
+  }, [initialPos.left, initialPos.top, baseX, baseY, canvasSize.width, canvasSize.height]);
+
+  useEffect(() => {
+    baseScale.value = initialScale;
+  }, [initialScale, baseScale]);
+
+  useEffect(() => {
+    baseRotation.value = initialRotation;
+  }, [initialRotation, baseRotation]);
+
+  // 🟡 Pan: 이동
+  const pan = Gesture.Pan()
+    .enabled(!isDrawing)
+    .onUpdate(e => {
+      translateX.value = e.translationX;
+      translateY.value = e.translationY;
+    })
+    .onEnd(() => {
+      // 최종 px 위치 = base + translation
+      const finalX = baseX.value + translateX.value;
+      const finalY = baseY.value + translateY.value;
+
+      // 먼저 shared value 기준 위치를 바꿔주고
+      baseX.value = finalX;
+      baseY.value = finalY;
+
+      // 제스처 offset은 0으로
+      translateX.value = 0;
+      translateY.value = 0;
+
+      // JS용 PercentPos 저장
+      const newPos: PercentPos = {
+        left: finalX / canvasSize.width,
+        top: finalY / canvasSize.height,
+      };
+      runOnJS(onUpdatePos)(elementId, newPos);
+    });
+
+  // 🟡 Pinch: 확대/축소
+  const pinch = Gesture.Pinch()
+    .enabled(!isDrawing)
+    .onUpdate(e => {
+      pinchScale.value = e.scale;
+    })
+    .onEnd(() => {
+      const newScale = baseScale.value * pinchScale.value;
+      baseScale.value = newScale;
+      pinchScale.value = 1;
+      runOnJS(onUpdateScale)(elementId, newScale);
+    });
+
+  // 🟡 Rotation: 회전
+  const rotation = Gesture.Rotation()
+    .enabled(!isDrawing)
+    .onUpdate(e => {
+      const deg = (e.rotation * 180) / Math.PI;
+      rotateZ.value = deg;
+    })
+    .onEnd(() => {
+      const newRotation = baseRotation.value + rotateZ.value;
+      baseRotation.value = newRotation;
+      rotateZ.value = 0;
+      runOnJS(onUpdateRotation)(elementId, newRotation);
+    });
+
+  const composedGesture = Gesture.Simultaneous(pan, pinch, rotation);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      // ✅ baseX/baseY + translation 으로 최종 위치
+      { translateX: baseX.value + translateX.value },
+      { translateY: baseY.value + translateY.value },
+      { scale: baseScale.value * pinchScale.value },
+      { rotateZ: `${baseRotation.value + rotateZ.value}deg` },
+    ],
+  }));
+
+  const handlePress = () => {
+    if (isDrawing) return;
+    onSelect(elementId);
+
+    if (elementType === 'text') {
+      const textEl = el as TextElement;
+      onEditText(elementId, textEl.text);
+    }
+  };
+
+  if (elementType === 'sticker') {
+    const sticker = el as StickerElement;
+    const aspect = sticker.aspect ?? 1;
+    const baseW = sticker.baseW ?? STICKER_BASE_W;
+
+    const content = (
+      <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
+        <Image
+          source={{ uri: sticker.uri }}
+          style={{ width: baseW, height: baseW * aspect }}
+          resizeMode="contain"
+        />
+      </TouchableOpacity>
+    );
+
+    if (isDrawing) {
+      // 그리는 중에는 제스처 없이, baseX/baseY만 사용
+      return (
+        <Animated.View
+          style={[
+            styles.elementWrapper,
+            {
+              borderWidth: 2,
+              borderColor: isSelected ? colors.PRIMARY : 'transparent',
+              borderRadius: 8,
+            },
+            // 그리는 중에도 위치는 baseX/baseY 기준
+            {
+              transform: [
+                { translateX: baseX.value },
+                { translateY: baseY.value },
+              ],
+            },
+          ]}
+        >
+          {content}
+        </Animated.View>
+      );
+    }
+
+    return (
+      <GestureDetector gesture={composedGesture}>
+        <Animated.View
+          style={[
+            styles.elementWrapper,
+            {
+              borderWidth: 2,
+              borderColor: isSelected ? colors.PRIMARY : 'transparent',
+              borderRadius: 8,
+            },
+            animatedStyle,
+          ]}
+        >
+          {content}
+        </Animated.View>
+      </GestureDetector>
+    );
+  }
+
+  const textEl = el as TextElement;
+
+  const textContent = (
+    <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
+      <View style={styles.textBox}>
+        <Text style={styles.textDisplay}>{textEl.text}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  if (isDrawing) {
+    return (
+      <Animated.View
+        style={[
+          styles.elementWrapper,
+          {
+            borderWidth: 2,
+            borderColor: isSelected ? colors.PRIMARY : 'transparent',
+            borderRadius: 12,
+          },
+          {
+            transform: [
+              { translateX: baseX.value },
+              { translateY: baseY.value },
+            ],
+          },
+        ]}
+      >
+        {textContent}
+      </Animated.View>
+    );
+  }
+
+  return (
+    <GestureDetector gesture={composedGesture}>
+      <Animated.View
+        style={[
+          styles.elementWrapper,
+          {
+            borderWidth: 2,
+            borderColor: isSelected ? colors.PRIMARY : 'transparent',
+            borderRadius: 12,
+          },
+          animatedStyle,
+        ]}
+      >
+        {textContent}
+      </Animated.View>
+    </GestureDetector>
+  );
+});
 
 const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
@@ -862,6 +1334,12 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     opacity: 1,
     borderWidth: 2,
     borderColor: colors.GRAY_900,
+  },
+  drawingTopScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: SPACING.MD,
   },
   drawingActions: {
     flexDirection: 'row',
