@@ -15,6 +15,7 @@ import { useEvent } from 'expo';
 import * as MediaLibrary from 'expo-media-library';
 import { File, Paths } from 'expo-file-system';
 import * as Network from 'expo-network';
+import * as Sharing from 'expo-sharing';
 import Svg, { Path } from 'react-native-svg';
 import Animated, {
   useSharedValue,
@@ -332,32 +333,165 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
       }
 
       let localUri = mediaItem.url;
+
+      // HTTPS URL 처리 시 URL 유효성 검증 추가
       if (mediaItem.url.startsWith('http')) {
-        const filename = mediaItem.url.split('/').pop() || `media_${Date.now()}.${mediaItem.type === 'video' ? 'mp4' : 'jpg'}`;
-        const file = new File(Paths.cache, filename);
-        await File.downloadFileAsync(mediaItem.url, file);
-        localUri = file.uri;
+        // URL이 유효한지 먼저 확인 (404 방지)
+        try {
+          const response = await fetch(mediaItem.url, {
+            method: 'HEAD',
+            headers: {
+              // 타임아웃 설정을 위한 AbortController 우선 사용
+              // iOS HTTPS 요청에 대한 안전한 헤더
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+        } catch (urlError) {
+          console.error('URL 검증 실패:', urlError);
+          alert('이미지가 유효하지 않습니다. 링크가 만료되었을 수 있습니다.');
+          throw urlError;
+        }
+
+        // 안전한 파일명 생성
+        const originalFilename = mediaItem.url.split('/').pop() || 'media';
+        const extension = mediaItem.type === 'video' ? 'mp4' : 'jpg';
+        // 특수문자 및 공백 처리
+        const safeFilename = `${originalFilename.replace(/[^a-zA-Z0-9\-_.]/g, '_')}_${Date.now()}.${extension}`;
+
+        try {
+          const file = new File(Paths.cache, safeFilename);
+
+          // 타임아웃이 내장 지원되지 않으므로 Promise.race 사용 (30초 타임아웃)
+          await Promise.race([
+            File.downloadFileAsync(mediaItem.url, file),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('다운로드 타임아웃')), 30000)
+            )
+          ]);
+
+          localUri = file.uri;
+        } catch (downloadError) {
+          console.error('다운로드 실패:', downloadError);
+          alert(`다운로드에 실패했습니다. 네트워크 상태를 확인해주세요.`);
+          throw downloadError;
+        }
       }
 
       const asset = await MediaLibrary.createAssetAsync(localUri);
 
       if (Platform.OS === 'android') {
-        const album = await MediaLibrary.getAlbumAsync('Download');
-        if (album == null) {
-          await MediaLibrary.createAlbumAsync('Download', asset, false);
-        } else {
-          await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+        try {
+          const album = await MediaLibrary.getAlbumAsync('Download');
+          if (album == null) {
+            await MediaLibrary.createAlbumAsync('Download', asset, false);
+          } else {
+            await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+          }
+        } catch (albumError) {
+          console.warn('앨범 생성 실패:', albumError);
+          // 앨범 생성 실패해도 저장은 성공할 수 있음
         }
       }
 
       alert(`${mediaItem.type === 'video' ? '비디오' : '이미지'}가 갤러리에 저장되었습니다.`);
     } catch (error) {
       console.error('미디어 저장 실패:', error);
-      alert('미디어 저장에 실패했습니다.');
+      // 더 구체적인 에러 메시지
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage?.includes('404')) {
+        alert('이미지를 찾을 수 없습니다. 링크가 만료되었거나 삭제되었을 수 있습니다.');
+      } else if (errorMessage?.includes('타임아웃')) {
+        alert('다운로드가 너무 오래 걸립니다. 네트워크 상태를 확인해주세요.');
+      } else {
+        alert('미디어 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      }
     } finally {
       setIsSaving(false);
     }
   }, [mediaItems, currentPage, isSaving]);
+
+  const handleShare = useCallback(async () => {
+    const mediaItem = mediaItems[currentPage];
+    if (!mediaItem) return;
+
+    try {
+      // 공유 가능 여부 확인
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        alert('이 기기에서는 공유 기능을 사용할 수 없습니다.');
+        return;
+      }
+
+      let localUri = mediaItem.url;
+
+      // HTTPS URL 처리를 위한 URL 유효성 검증 및 다운로드
+      if (mediaItem.url.startsWith('http')) {
+        // URL이 유효한지 먼저 확인 (404 방지)
+        try {
+          const response = await fetch(mediaItem.url, {
+            method: 'HEAD',
+            headers: {
+              // iOS HTTPS 요청에 대한 안전한 헤더
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+        } catch (urlError) {
+          console.error('URL 검증 실패:', urlError);
+          alert('이미지가 유효하지 않습니다. 링크가 만료되었을 수 있습니다.');
+          return;
+        }
+
+        // 안전한 파일명 생성
+        const originalFilename = mediaItem.url.split('/').pop() || 'share_media';
+        const extension = mediaItem.type === 'video' ? 'mp4' : 'jpg';
+        const safeFilename = `${originalFilename.replace(/[^a-zA-Z0-9\-_.]/g, '_')}_${Date.now()}.${extension}`;
+
+        try {
+          const file = new File(Paths.cache, safeFilename);
+
+          // 타임아웃 설정 (30초)
+          await Promise.race([
+            File.downloadFileAsync(mediaItem.url, file),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('다운로드 타임아웃')), 30000)
+            )
+          ]);
+
+          localUri = file.uri;
+        } catch (downloadError) {
+          console.error('다운로드 실패:', downloadError);
+          alert(`다운로드에 실패했습니다. 네트워크 상태를 확인해주세요.`);
+          return;
+        }
+      }
+
+      // MIME 타입 설정
+      const mimeType = mediaItem.type === 'video' ? 'video/mp4' : 'image/jpeg';
+
+      // 공유 시트 열기
+      await Sharing.shareAsync(localUri, {
+        mimeType,
+        dialogTitle: `${mediaItem.type === 'video' ? '비디오' : '이미지'} 공유`,
+      });
+
+    } catch (error) {
+      console.error('미디어 공유 실패:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage?.includes('404')) {
+        alert('이미지를 찾을 수 없습니다. 링크가 만료되었거나 삭제되었을 수 있습니다.');
+      } else if (errorMessage?.includes('타임아웃')) {
+        alert('다운로드가 너무 오래 걸립니다. 네트워크 상태를 확인해주세요.');
+      } else {
+        alert('미디어 공유에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      }
+    }
+  }, [mediaItems, currentPage]);
 
   useEffect(() => {
     if (visible) {
@@ -427,7 +561,7 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
               <SaveIcon size={24} color="#fff" />
               <Text style={styles.menuText}>저장</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.menuButton} activeOpacity={0.7} onPress={handleShare}>
               <ShareIcon size={24} color="#fff" />
               <Text style={styles.menuText}>공유</Text>
             </TouchableOpacity>

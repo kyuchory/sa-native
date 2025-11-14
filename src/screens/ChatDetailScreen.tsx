@@ -82,6 +82,8 @@ export default function ChatDetailScreen() {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageUri, setSelectedImageUri] = useState<string>('');
   const [selectedMediaItem, setSelectedMediaItem] = useState<{ type: 'image' | 'video'; url: string; thumbnailUrl?: string } | null>(null);
+  const [allMediaItems, setAllMediaItems] = useState<Array<{ type: 'image' | 'video'; url: string; thumbnailUrl?: string }>>([]);
+  const [initialMediaIndex, setInitialMediaIndex] = useState(0);
 
 
   // Keyboard height for input adjustments
@@ -405,10 +407,47 @@ export default function ChatDetailScreen() {
     console.log('📝 채팅방 이름 업데이트:', newName);
   }, []);
 
-  const handlePressMedia = useCallback((mediaItem: { type: 'image' | 'video'; url: string; thumbnailUrl?: string }) => {
-    setSelectedMediaItem(mediaItem);
-    setImageViewerVisible(true);
+  // displayMessages에서 모든 미디어 아이템 추출
+  const extractAllMediaItems = useCallback((messages: Message[]) => {
+    const mediaItems: Array<{ type: 'image' | 'video'; url: string; thumbnailUrl?: string }> = [];
+
+    messages.forEach(message => {
+      if (message.type === 'image') {
+        mediaItems.push({
+          type: 'image',
+          url: message.content,
+        });
+      } else if (message.type === 'video') {
+        try {
+          const videoData = JSON.parse(message.content);
+          mediaItems.push({
+            type: 'video',
+            url: videoData.video_url || videoData.video_path || '',
+            thumbnailUrl: videoData.thumbnail_url || videoData.thumbnail_path || '',
+          });
+        } catch (error) {
+          console.error('비디오 content 파싱 실패:', error);
+        }
+      }
+    });
+
+    return mediaItems;
   }, []);
+
+  const handlePressMedia = useCallback((mediaItem: { type: 'image' | 'video'; url: string; thumbnailUrl?: string }) => {
+    const allItems = extractAllMediaItems(displayMessages);
+    const initialIndex = allItems.findIndex(item =>
+      item.type === mediaItem.type &&
+      item.url === mediaItem.url &&
+      item.thumbnailUrl === mediaItem.thumbnailUrl
+    );
+
+    if (initialIndex !== -1) {
+      setAllMediaItems(allItems);
+      setInitialMediaIndex(initialIndex);
+      setImageViewerVisible(true);
+    }
+  }, [displayMessages, extractAllMediaItems]);
 
   const handlePressImage = useCallback((imageUri: string) => {
     handlePressMedia({ type: 'image', url: imageUri });
@@ -719,7 +758,9 @@ export default function ChatDetailScreen() {
       {/* 미디어 뷰어 모달 */}
       <ImageViewerModal
         visible={imageViewerVisible}
-        mediaItems={selectedMediaItem ? [selectedMediaItem] : []}
+        mediaItems={allMediaItems}
+        initialIndex={initialMediaIndex}
+        title={localChatRoomName}
         onClose={handleCloseImageViewer}
       />
 

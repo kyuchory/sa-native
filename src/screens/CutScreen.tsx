@@ -296,16 +296,18 @@ export default function CutScreen() {
   }).current;
 
   const renderCutItem = ({ item, index }: { item: Cut; index: number }) => (
-    <CutItem
-      cut={item}
-      isActive={index === currentIndex}
-      onLike={handleLike}
-      onComment={handleComment}
-      onShare={handleShare}
-      onToggleDescription={handleToggleDescription}
-      isDescriptionExpanded={expandedDescriptions.has(item.id)}
-      tabBarHeight={tabBarHeight}
-    />
+    <View style={{ height: SCREEN_HEIGHT }}>
+      <CutItem
+        cut={item}
+        isActive={index === currentIndex}
+        onLike={handleLike}
+        onComment={handleComment}
+        onShare={handleShare}
+        onToggleDescription={handleToggleDescription}
+        isDescriptionExpanded={expandedDescriptions.has(item.id)}
+        tabBarHeight={tabBarHeight}
+      />
+    </View>
   );
 
   return (
@@ -330,6 +332,10 @@ export default function CutScreen() {
         renderItem={renderCutItem}
         keyExtractor={(item) => item.id.toString()}
         pagingEnabled
+        snapToInterval={SCREEN_HEIGHT}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        removeClippedSubviews={false}
         showsVerticalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
