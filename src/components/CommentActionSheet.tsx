@@ -361,7 +361,7 @@ export default function CommentActionSheet({
             styles.inputContainer,
             {
               marginBottom: Platform.OS === 'ios'
-                ? Math.max(0, keyboardHeight)
+                ? Math.max(0, keyboardHeight - insets.bottom)
                 : keyboardHeight
             }
           ]}>
