@@ -36,7 +36,6 @@ import CommentList from '../components/CommentList';
 import { CommentInput } from '../components/CommentInput';
 import { ReplyInput } from '../components/ReplyInput';
 import { CommentEditInput } from '../components/CommentEditInput';
-import { CommentActions } from '../components/CommentActions';
 import MenuActionSheet from '../components/MenuActionSheet';
 import { MenuIcon, ReportIcon, EditIcon, DeleteIcon } from '../components/CommonIcons';
 
@@ -58,8 +57,6 @@ export default function PostDetailScreen() {
   const { postId } = route.params;
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
-
-  const headerHeight = 56 + insets.top;
 
   // 키보드 높이 상태
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -103,8 +100,7 @@ export default function PostDetailScreen() {
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
   const { user } = useAuthStore();
-  const currentUserId = user?.id;
-  const { setShouldRefreshPosts } = usePostStore(); 
+  const { setShouldRefreshPosts } = usePostStore();
   const { setShouldRefreshProfilePosts } = useProfileStore(); 
 
   useFocusEffect(
@@ -939,74 +935,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   videoPlayer: {
     width: '100%',
     borderRadius: BORDER_RADIUS.MD,
-  },
-  videoPlaceholder: {
-    backgroundColor: colors.GRAY_100,
-    padding: SPACING.LG,
-    borderRadius: BORDER_RADIUS.MD,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.GRAY_200,
-  },
-  videoPlaceholderText: {
-    fontSize: TYPOGRAPHY.SIZE.LG,
-    marginBottom: SPACING.SM,
-  },
-  videoUrl: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_600,
-  },
-
-  // 아이템 스냅샷
-  itemSnapshotsContainer: {
-    backgroundColor: colors.WHITE,
-    margin: SPACING.MD,
-    borderRadius: BORDER_RADIUS.MD,
-    padding: SPACING.MD,
-    ...SHADOWS.SMALL,
-  },
-  sectionTitle: {
-    fontSize: TYPOGRAPHY.SIZE.LG,
-    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: colors.GRAY_900,
-    marginBottom: SPACING.MD,
-  },
-  snapshotContainer: {
-    marginBottom: SPACING.MD,
-  },
-  snapshotTitle: {
-    fontSize: TYPOGRAPHY.SIZE.MD,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: colors.PRIMARY,
-    marginBottom: SPACING.SM,
-  },
-  itemContainer: {
-    backgroundColor: colors.GRAY_50,
-    padding: SPACING.SM,
-    borderRadius: BORDER_RADIUS.SM,
-    marginBottom: SPACING.SM,
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: SPACING.XS,
-  },
-  itemSlot: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: colors.PRIMARY,
-  },
-  itemName: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: colors.GRAY_900,
-  },
-  itemOptions: {
-    gap: SPACING.XS,
-  },
-  itemOption: {
-    fontSize: TYPOGRAPHY.SIZE.XS,
-    color: colors.GRAY_600,
   },
 
   // 태그
