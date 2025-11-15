@@ -6,11 +6,10 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   Keyboard,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
@@ -65,6 +64,7 @@ export default function ChatDetailScreen() {
 
   const navigation = useNavigation<ChatDetailScreenNavigationProp>();
   const route = useRoute<ChatDetailScreenRouteProp>();
+  const insets = useSafeAreaInsets();
 
   // Route params
   const { chatRoomId, chatRoomName, chatPartnerId, unreadCount, isVideoEditResult, videoUri: editedVideoUri, trimStart, trimEnd } = route.params;
@@ -605,11 +605,7 @@ export default function ChatDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
+      <View style={{ flex: 1 }}>
         {/* 상단 고정 헤더 */}
         <CommonHeader
           title={localChatRoomName}
@@ -618,7 +614,7 @@ export default function ChatDetailScreen() {
           rightComponent={renderHeaderRight()}
         />
 
-        {/* 채팅 컨텐츠 영역 */}
+        {/* 스크롤 가능한 채팅 컨텐츠 */}
         <View style={styles.contentContainer}>
           <MessageList
             messages={displayMessages}
@@ -650,37 +646,45 @@ export default function ChatDetailScreen() {
           )}
 
           <TypingIndicator typingUsers={typingUsers as Array<{ user_id: number; nickname: string; timestamp: number }>} />
+        </View>
 
-          {/* 메시지 입력 영역 */}
-          <View style={[styles.inputContainer]}>
+        {/* 채팅 입력창 */}
+        <View style={[
+          styles.chatInputWrapper,
+          {
+            marginBottom: Platform.OS === 'ios'
+              ? Math.max(0, keyboardHeight - insets.bottom)
+              : keyboardHeight
+          }
+        ]}>
+          {/* 실제 입력 컨테이너 */}
+          <View style={styles.chatInputContainer}>
             <TouchableOpacity
-              style={styles.attachButton}
+              style={styles.chatIconButton}
               activeOpacity={0.7}
               onPress={handleAttachmentPress}
             >
               <PlusCircleIcon size={24} color={colors.GRAY_700} />
             </TouchableOpacity>
 
-            <View style={styles.textInputContainer}>
-              <TextInput
-                style={styles.textInput}
-                placeholder="메시지를 입력하세요..."
-                placeholderTextColor={colors.GRAY_500}
-                value={inputText}
-                onChangeText={handleInputChange}
-                multiline={true}
-                maxLength={1000}
-                returnKeyType="send"
-                onSubmitEditing={handleSendMessage}
-                blurOnSubmit={false}
-                editable={true}
-              />
-            </View>
+            <TextInput
+              style={styles.chatTextInput}
+              placeholder="메시지를 입력하세요..."
+              placeholderTextColor={colors.GRAY_500}
+              value={inputText}
+              onChangeText={handleInputChange}
+              multiline={true}
+              maxLength={1000}
+              returnKeyType="send"
+              onSubmitEditing={handleSendMessage}
+              blurOnSubmit={false}
+              editable={true}
+            />
 
             <TouchableOpacity
               style={[
-                styles.sendButton,
-                inputText.trim() ? styles.sendButtonActive : styles.sendButtonInactive
+                styles.chatSendButton,
+                inputText.trim() ? styles.chatSendButtonActive : styles.chatSendButtonInactive
               ]}
               onPress={handleSendMessage}
               activeOpacity={0.7}
@@ -688,12 +692,12 @@ export default function ChatDetailScreen() {
             >
               <SendIcon
                 size={24}
-                color={inputText.trim() ? colors.WHITE : colors.GRAY_500}
+                color={inputText.trim() ? colors.PRIMARY : colors.GRAY_400}
               />
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
 
       {/* 메뉴 액션 시트 */}
       <MenuActionSheet
@@ -784,15 +788,55 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   headerIconButton: {
     padding: SPACING.XS,
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.SM,
-    paddingVertical: SPACING.SM,
+  chatInputWrapper: {
     backgroundColor: colors.WHITE,
     borderTopWidth: 1,
     borderTopColor: colors.GRAY_200,
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.SM,
+  },
+  chatInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.GRAY_50,
+    borderRadius: BORDER_RADIUS.XL,
+    paddingHorizontal: SPACING.SM,
+    paddingVertical: SPACING.XS,
+    minHeight: 44,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: SPACING.SM,
+  },
+  chatIconButton: {
+    padding: SPACING.XS,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chatTextInput: {
+    flex: 1,
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: colors.GRAY_900,
+    paddingHorizontal: SPACING.SM,
+    paddingVertical: SPACING.XS,
+    maxHeight: 100,
+    minHeight: 24,
+  },
+  chatSendButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: SPACING.XS,
+  },
+  chatSendButtonActive: {
+    backgroundColor: 'transparent',
+  },
+  chatSendButtonInactive: {
+    backgroundColor: 'transparent',
   },
   attachButton: {
     width: INPUT_SIZES.CHAT_ATTACH_BUTTON_SIZE,
