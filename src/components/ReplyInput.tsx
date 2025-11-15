@@ -6,8 +6,9 @@ import {
   StyleSheet,
   Text,
 } from 'react-native';
-import { COLORS, BG_COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants/theme';
+import { SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants/theme';
 import { SendIcon } from './CommentInputIcons';
+import { useThemeStore } from '../stores/themeStore';
 
 interface ReplyInputProps {
   onSendReply: (text: string) => void;
@@ -24,6 +25,8 @@ export function ReplyInput({
 }: ReplyInputProps) {
   const [replyText, setReplyText] = useState(`@${replyToUser} `);
   const textInputRef = useRef<TextInput>(null);
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
 
   useEffect(() => {
     // 컴포넌트 마운트 시 자동 포커스
@@ -57,7 +60,7 @@ export function ReplyInput({
           value={replyText}
           onChangeText={setReplyText}
           placeholder="답글을 입력하세요..."
-          placeholderTextColor={COLORS.GRAY_400}
+          placeholderTextColor={colors.GRAY_400}
           multiline
           maxLength={500}
           editable={!isLoading}
@@ -73,7 +76,7 @@ export function ReplyInput({
         >
           <SendIcon
             size={20}
-            color={canSend ? COLORS.PRIMARY : COLORS.GRAY_400}
+            color={canSend ? colors.PRIMARY : colors.GRAY_400}
           />
         </TouchableOpacity>
       </View>
@@ -81,14 +84,15 @@ export function ReplyInput({
   );
 }
 
-const styles = StyleSheet.create({
+// 스타일 생성 함수
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   keyboardAvoidingView: {
-    backgroundColor: BG_COLORS.PRIMARY,
+    backgroundColor: colors.WHITE, // BG_COLORS.PRIMARY
   },
   container: {
-    backgroundColor: BG_COLORS.PRIMARY,
+    backgroundColor: colors.WHITE, // BG_COLORS.PRIMARY
     borderTopWidth: 1,
-    borderTopColor: COLORS.GRAY_200,
+    borderTopColor: colors.GRAY_200,
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
   },
@@ -101,19 +105,19 @@ const styles = StyleSheet.create({
   replyLabel: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-    color: COLORS.PRIMARY,
+    color: colors.PRIMARY,
   },
   cancelButton: {
     padding: SPACING.XS,
   },
   cancelText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: COLORS.GRAY_500,
+    color: colors.GRAY_500,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BG_COLORS.SECONDARY,
+    backgroundColor: colors.GRAY_50, // BG_COLORS.SECONDARY
     borderRadius: BORDER_RADIUS.XL,
     paddingHorizontal: SPACING.SM,
     paddingVertical: SPACING.XS,
@@ -122,7 +126,7 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: COLORS.BLACK,
+    color: colors.GRAY_900, // COLORS.BLACK
     paddingHorizontal: SPACING.SM,
     paddingVertical: SPACING.XS,
     maxHeight: 100,
