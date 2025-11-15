@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  KeyboardAvoidingView,
   Platform,
   Keyboard,
 } from 'react-native';
@@ -61,6 +60,30 @@ export default function PostDetailScreen() {
   const styles = createStyles(colors);
 
   const headerHeight = 56 + insets.top;
+
+  // 키보드 높이 상태
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const hideSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
 
 
@@ -601,11 +624,7 @@ export default function PostDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
+      <View style={{ flex: 1 }}>
         {/* 상단 고정 헤더 */}
         <CommonHeader
           title="게시물"
@@ -736,7 +755,14 @@ export default function PostDetailScreen() {
         </ScrollView>
 
         {/* 댓글 입력창 */}
-        <View style={[styles.commentInputWrapper]}>
+        <View style={[
+          styles.commentInputWrapper,
+          {
+            marginBottom: Platform.OS === 'ios'
+              ? Math.max(0, keyboardHeight - insets.bottom)
+              : keyboardHeight
+          }
+        ]}>
           {replyingTo ? (
             <ReplyInput
               onSendReply={handleSendReply}
@@ -796,7 +822,7 @@ export default function PostDetailScreen() {
             },
           ]}
         />
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
