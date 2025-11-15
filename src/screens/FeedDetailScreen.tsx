@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, Pressable, TouchableOpacity, TouchableWithoutFeedback, Alert, Platform, KeyboardAvoidingView, Keyboard, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, Pressable, TouchableOpacity, TouchableWithoutFeedback, Alert, Platform, Keyboard, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import Animated, { useSharedValue, useAnimatedStyle, interpolate, Extrapolation, useAnimatedScrollHandler, SharedValue } from 'react-native-reanimated';
@@ -147,8 +147,8 @@ export default function FeedDetailScreen() {
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
 
+
   const feedId = route.params?.feedId || 15;
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // expand/collapse 상태 관리
   const [isExpanded, setIsExpanded] = useState(false);
@@ -187,19 +187,27 @@ export default function FeedDetailScreen() {
     },
   });
 
-  // 키보드 이벤트 리스너 (양쪽 플랫폼 모두 키보드 높이 추적)
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e: any) => {
-      setKeyboardHeight(e.endCoordinates.height);
-    });
+  // 키보드 높이 상태
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardHeight(0);
-    });
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const hideSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
 
     return () => {
-      keyboardDidShowListener?.remove();
-      keyboardDidHideListener?.remove();
+      showSubscription.remove();
+      hideSubscription.remove();
     };
   }, []);
 
@@ -698,12 +706,6 @@ export default function FeedDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      {/* 헤더 */}
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
       <CommonHeader
         title="피드"
         showBackButton={true}
@@ -871,7 +873,14 @@ export default function FeedDetailScreen() {
       </ScrollView>
 
         {/* 댓글 입력창 */}
-        <View style={[styles.commentInputWrapper]}>
+        <View style={[
+          styles.commentInputWrapper,
+          {
+            marginBottom: Platform.OS === 'ios'
+              ? Math.max(0, keyboardHeight - insets.bottom)
+              : keyboardHeight
+          }
+        ]}>
           {editingComment ? (
             <CommentEditInput
               initialText={editingComment.content}
@@ -930,8 +939,7 @@ export default function FeedDetailScreen() {
             },
           },
         ]}
-      />
-      </KeyboardAvoidingView>
+        />
     </SafeAreaView>
   );
 }
@@ -942,9 +950,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.GRAY_50, // BG_COLORS.SECONDARY
   },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
+
   scrollContainer: {
     flex: 1,
   },
@@ -1080,6 +1086,8 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   // 댓글 입력창 wrapper
   commentInputWrapper: {
     backgroundColor: colors.WHITE,
+    borderTopWidth: 1,
+    borderTopColor: colors.GRAY_200,
   },
 
   // 메뉴 버튼

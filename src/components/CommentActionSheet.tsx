@@ -8,7 +8,6 @@ import {
   Animated,
   Dimensions,
   ScrollView,
-  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Alert,
@@ -298,21 +297,25 @@ export default function CommentActionSheet({
 
   return (
     <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <Animated.View
-          style={[styles.overlay, { opacity: overlayOpacity }]}
-        />
-      </TouchableOpacity>
+        {/* 오버레이 */}
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={onClose}
+        >
+          <Animated.View
+            style={[styles.overlay, { opacity: overlayOpacity }]}
+          />
+        </TouchableOpacity>
 
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <Animated.View style={[styles.actionSheet, { transform: [{ translateY: slideAnim }] }]}>
+        {/* 액션시트 */}
+        <Animated.View style={[
+          styles.actionSheet,
+          {
+            transform: [{ translateY: slideAnim }],
+            paddingBottom: insets.bottom // 하단 safe area
+          }
+        ]}>
           {/* 핸들 바 */}
           <View style={styles.handle} />
 
@@ -354,7 +357,14 @@ export default function CommentActionSheet({
           </ScrollView>
 
           {/* 댓글 입력 영역 */}
-          <View style={[styles.inputContainer, { paddingBottom: (keyboardHeight || SPACING.MD) + insets.bottom }]}>
+          <View style={[
+            styles.inputContainer,
+            {
+              marginBottom: Platform.OS === 'ios'
+                ? Math.max(0, keyboardHeight)
+                : keyboardHeight
+            }
+          ]}>
             {editingComment ? (
               <CommentEditInput
                 initialText={editingComment.content}
@@ -378,7 +388,6 @@ export default function CommentActionSheet({
             )}
           </View>
         </Animated.View>
-      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -387,9 +396,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  keyboardAvoidingView: {
-    flex: 1,
   },
   actionSheet: {
     position: 'absolute',
