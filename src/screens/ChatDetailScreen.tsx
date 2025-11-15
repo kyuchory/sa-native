@@ -789,7 +789,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     padding: SPACING.XS,
   },
   chatInputWrapper: {
-    backgroundColor: colors.WHITE,
+    backgroundColor: colors.GRAY_50,
     borderTopWidth: 1,
     borderTopColor: colors.GRAY_200,
     paddingHorizontal: SPACING.MD,
@@ -798,7 +798,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   chatInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.GRAY_50,
+    backgroundColor: colors.WHITE,
     borderRadius: BORDER_RADIUS.XL,
     paddingHorizontal: SPACING.SM,
     paddingVertical: SPACING.XS,

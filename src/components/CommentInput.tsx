@@ -79,11 +79,8 @@ export function CommentInput({
 
 // 스타일 생성 함수
 const createStyles = (colors: Record<string, string>) => StyleSheet.create({
-  keyboardAvoidingView: {
-    backgroundColor: colors.GRAY_50, // BG_COLORS.PRIMARY
-  },
   container: {
-    backgroundColor: colors.WHITE, // BG_COLORS.PRIMARY
+    backgroundColor: colors.GRAY_50, // BG_COLORS.PRIMARY
     borderTopWidth: 1,
     borderTopColor: colors.GRAY_200,
     paddingHorizontal: SPACING.MD,
@@ -92,7 +89,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.GRAY_50, // BG_COLORS.SECONDARY
+    backgroundColor: colors.WHITE, // BG_COLORS.SECONDARY
     borderRadius: BORDER_RADIUS.XL,
     paddingHorizontal: SPACING.SM,
     paddingVertical: SPACING.XS,
