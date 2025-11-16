@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { EmptyHeartIcon, FilledHeartIcon, CommentIcon } from './PostCardIcons';
 import { VideoIcon } from './PostIcons';
 import type { ProfilePostItem } from '../types/profile';
+import { PostService } from '../services/postService';
 
 interface ProfilePostCardProps {
   post: ProfilePostItem;
@@ -22,10 +23,11 @@ export default function ProfilePostCard({
 }: ProfilePostCardProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
-  
-  // 로컬 좋아요 상태 관리
+
+  // 로컬 상태 관리
   const [isLiked, setIsLiked] = useState(post.is_liked || false);
   const [likeCount, setLikeCount] = useState(post.like_count);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
 
   // post prop이 변경될 때 상태 초기화
   useEffect(() => {
@@ -33,20 +35,39 @@ export default function ProfilePostCard({
     setLikeCount(post.like_count);
   }, [post.is_liked, post.like_count]);
 
-  // 좋아요 토글 핸들러
-  const handleLikeToggle = () => {
+  // 좋아요 토글 핸들러 (낙관적 UI 적용)
+  const handleLikeToggle = async () => {
+    if (isLikeLoading) return; // 이미 요청 중이면 무시
+
+    // 낙관적 UI: 즉시 상태 업데이트
+    const originalIsLiked = isLiked;
+    const originalLikeCount = likeCount;
     const newLikeState = !isLiked;
+
     setIsLiked(newLikeState);
-    
-    // 좋아요 수 업데이트
-    if (newLikeState) {
-      setLikeCount(prev => prev + 1);
-    } else {
-      setLikeCount(prev => Math.max(0, prev - 1));
+    setLikeCount(prev => newLikeState ? prev + 1 : Math.max(0, prev - 1));
+    setIsLikeLoading(true);
+
+    try {
+      // API 호출
+      const response = await PostService.togglePostLike(post.id);
+
+      // 서버 응답으로 최종 상태 동기화
+      setIsLiked(response.is_liked);
+      setLikeCount(response.like_count);
+
+    } catch (error) {
+      console.error('좋아요 토글 실패:', error);
+
+      // 실패 시 원래 상태로 롤백
+      setIsLiked(originalIsLiked);
+      setLikeCount(originalLikeCount);
+
+      // TODO: 에러 토스트 메시지 표시
+
+    } finally {
+      setIsLikeLoading(false);
     }
-    
-    // 부모 컴포넌트에 알림
-    onLikePress?.();
   };
   
   // 시간 포맷팅 함수
@@ -122,17 +143,22 @@ export default function ProfilePostCard({
       {/* 하단: 상호작용 버튼들 */}
       <View style={styles.footer}>
         <View style={styles.interactionButtons}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.interactionButton}
             onPress={handleLikeToggle}
             activeOpacity={0.7}
+            disabled={isLikeLoading}
           >
-            {isLiked ? (
-              <FilledHeartIcon size={18} color={colors.ERROR} />
-            ) : (
-              <EmptyHeartIcon size={18} color={colors.GRAY_400} />
-            )}
-            <Text style={styles.interactionText}>{formatNumber(likeCount)}</Text>
+            <View style={styles.iconContainer}>
+              {isLikeLoading ? (
+                <ActivityIndicator size="small" color={colors.ERROR} />
+              ) : isLiked ? (
+                <FilledHeartIcon size={18} color={colors.ERROR} />
+              ) : (
+                <EmptyHeartIcon size={18} color={colors.GRAY_400} />
+              )}
+            </View>
+            <Text style={[styles.interactionText, isLikeLoading && styles.loadingText]}>{formatNumber(likeCount)}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -235,10 +261,19 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     marginHorizontal: SPACING.XS,
     paddingVertical: SPACING.XS,
   },
+  iconContainer: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   interactionText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     marginLeft: SPACING.XS,
+  },
+  loadingText: {
+    opacity: 0.6,
   },
 });

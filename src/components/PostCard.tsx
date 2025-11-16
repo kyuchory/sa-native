@@ -208,19 +208,21 @@ export default function PostCard({
       {/* 하단: 상호작용 버튼들 */}
       <View style={styles.footer}>
         <View style={styles.interactionButtons}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.interactionButton}
             onPress={handleLikeToggle}
             activeOpacity={0.7}
             disabled={isLikeLoading}
           >
-            {isLikeLoading ? (
-              <ActivityIndicator size="small" color={colors.ERROR} />
-            ) : isLiked ? (
-              <FilledHeartIcon size={18} color={colors.ERROR} />
-            ) : (
-              <EmptyHeartIcon size={18} color={colors.GRAY_400} />
-            )}
+            <View style={styles.iconContainer}>
+              {isLikeLoading ? (
+                <ActivityIndicator size="small" color={colors.ERROR} />
+              ) : isLiked ? (
+                <FilledHeartIcon size={18} color={colors.ERROR} />
+              ) : (
+                <EmptyHeartIcon size={18} color={colors.GRAY_400} />
+              )}
+            </View>
             <Text style={[styles.interactionText, isLikeLoading && styles.loadingText]}>
               {formatNumber(likeCount)}
             </Text>
@@ -241,15 +243,17 @@ export default function PostCard({
             activeOpacity={0.7}
             disabled={isBookmarkLoading}
           >
-            {isBookmarkLoading ? (
-              <ActivityIndicator size="small" color={colors.PRIMARY} />
-            ) : (
-              <BookmarkIcon
-                size={18}
-                filled={isBookmarked}
-                color={isBookmarked ? colors.PRIMARY : colors.GRAY_400}
-              />
-            )}
+            <View style={styles.iconContainer}>
+              {isBookmarkLoading ? (
+                <ActivityIndicator size="small" color={colors.PRIMARY} />
+              ) : (
+                <BookmarkIcon
+                  size={18}
+                  filled={isBookmarked}
+                  color={isBookmarked ? colors.PRIMARY : colors.GRAY_400}
+                />
+              )}
+            </View>
             <Text style={[styles.interactionText, isBookmarkLoading && styles.loadingText]}>
               {formatNumber(bookmarkCount)}
             </Text>
@@ -398,6 +402,12 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: SPACING.XS,
     paddingVertical: SPACING.XS,
+  },
+  iconContainer: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   interactionText: {
     fontSize: TYPOGRAPHY.SIZE.SM,

@@ -49,6 +49,94 @@ import { useVideoSettingsStore } from '../stores/videoSettingsStore';
 type PostDetailRouteProp = RouteProp<AuthStackParamList, 'PostDetail'>;
 type PostDetailNavigationProp = StackNavigationProp<AuthStackParamList, 'PostDetail'>;
 
+type ImageBlockProps = {
+  imageUri: string;
+  colors: Record<string, string>;
+  styles: ReturnType<typeof createStyles>;
+};
+
+const ImageBlock: React.FC<ImageBlockProps> = React.memo(({ imageUri, colors, styles }) => {
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  return (
+    <View style={styles.imageBlock}>
+      {isLoading && (
+        <View style={styles.imageLoadingContainer}>
+          <ActivityIndicator size="large" color={colors.PRIMARY} />
+        </View>
+      )}
+      <Image
+        source={{ uri: imageUri }}
+        cachePolicy="memory-disk"
+        style={[
+          styles.contentImage,
+          aspectRatio ? { aspectRatio } : { height: 250 },
+        ]}
+        onLoad={(e) => {
+          const { width, height } = e.source;
+          if (width && height) setAspectRatio(width / height);
+          setIsLoading(false);
+        }}
+        transition={200}
+        contentFit="contain"
+      />
+    </View>
+  );
+});
+
+type VideoBlockProps = {
+  videoUri: string;
+  styles: ReturnType<typeof createStyles>;
+};
+
+const VideoBlock: React.FC<VideoBlockProps> = React.memo(({ videoUri, styles }) => {
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+  const networkState = useNetworkState();
+  const { autoPlayMode } = useVideoSettingsStore();
+  const shouldAutoPlay = shouldAutoPlayVideo(networkState.type, autoPlayMode);
+
+  const player = useVideoPlayer(videoUri, (player) => {
+    player.loop = true;
+    player.muted = true;
+    if (shouldAutoPlay) {
+      player.play();
+    }
+  });
+
+  useEventListener(player, 'videoTrackChange', ({ videoTrack }) => {
+    if (videoTrack?.size) {
+      const { width, height } = videoTrack.size;
+      if (width && height) {
+        setAspectRatio(width / height);
+      }
+    }
+  });
+
+  React.useEffect(() => {
+    if (!player) return;
+    if (shouldAutoPlay && player.playing === false) {
+      player.play();
+    } else if (!shouldAutoPlay && player.playing === true) {
+      player.pause();
+    }
+  }, [shouldAutoPlay, player]);
+
+  return (
+    <View style={styles.videoBlock}>
+      <VideoView
+        player={player}
+        style={[
+          styles.videoPlayer,
+          ...(aspectRatio && aspectRatio > 0 ? [{ aspectRatio }] : [])
+        ]}
+        nativeControls
+        contentFit="contain"
+      />
+    </View>
+  );
+});
+
 export default function PostDetailScreen() {
   const route = useRoute<PostDetailRouteProp>();
   const navigation = useNavigation<PostDetailNavigationProp>();
@@ -56,7 +144,7 @@ export default function PostDetailScreen() {
 
   const { postId } = route.params;
   const { colors } = useThemeStore();
-  const styles = createStyles(colors);
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
 
   // 키보드 높이 상태
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -479,87 +567,6 @@ export default function PostDetailScreen() {
     return date.toLocaleDateString('ko-KR');
   };
 
-  // ✅ expo-image 적용 ImageBlock
-  const ImageBlock = ({ imageUri }: { imageUri: string }) => {
-    const [aspectRatio, setAspectRatio] = useState<number | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    return (
-      <View style={styles.imageBlock}>
-        {isLoading && (
-          <View style={styles.imageLoadingContainer}>
-            <ActivityIndicator size="large" color={colors.PRIMARY} />
-          </View>
-        )}
-        <Image
-          source={{ uri: imageUri }}
-          cachePolicy="memory-disk"
-          style={[
-            styles.contentImage,
-            aspectRatio ? { aspectRatio } : { height: 250 },
-          ]}
-          onLoad={(e) => {
-            const { width, height } = e.source;
-            if (width && height) setAspectRatio(width / height);
-            setIsLoading(false);
-          }}
-          transition={200}
-          contentFit="contain"
-        />
-      </View>
-    );
-  };
-
-  // VideoBlock 컴포넌트 추가
-  const VideoBlock = ({ videoUri }: { videoUri: string }) => {
-    const [aspectRatio, setAspectRatio] = useState<number | null>(null);
-    const networkState = useNetworkState();
-    const { autoPlayMode } = useVideoSettingsStore();
-    const shouldAutoPlay = shouldAutoPlayVideo(networkState.type, autoPlayMode);
-
-    const player = useVideoPlayer(videoUri, player => {
-      player.loop = true;
-      player.muted = true;
-      if (shouldAutoPlay) {
-        player.play();
-      }
-    });
-
-    // 영상 크기 정보를 받아서 aspect ratio 계산
-    useEventListener(player, 'videoTrackChange', ({ videoTrack }) => {
-      if (videoTrack?.size) {
-        const { width, height } = videoTrack.size;
-        if (width && height) {
-          setAspectRatio(width / height);
-        }
-      }
-    });
-
-    useEffect(() => {
-      if (!player) return;
-
-      if (shouldAutoPlay && player.playing === false) {
-        player.play();
-      } else if (!shouldAutoPlay && player.playing === true) {
-        player.pause();
-      }
-    }, [shouldAutoPlay, player]);
-
-    return (
-      <View style={styles.videoBlock}>
-        <VideoView
-          player={player}
-          style={[
-            styles.videoPlayer,
-            ...(aspectRatio && aspectRatio > 0 ? [{ aspectRatio }] : [])
-          ]}
-          nativeControls
-          contentFit="contain"
-        />
-      </View>
-    );
-  };
-
 
   // 콘텐츠 블록 렌더링
   const renderContentBlock = (block: PostDetailContentBlock, index: number) => {
@@ -572,11 +579,20 @@ export default function PostDetailScreen() {
         );
       case 'image':
         return (
-          <ImageBlock key={index} imageUri={block.value || ''} />
+          <ImageBlock
+            key={index}
+            imageUri={block.value || ''}
+            colors={colors}
+            styles={styles}
+          />
         );
       case 'video':
         return (
-          <VideoBlock key={index} videoUri={block.value || ''} />
+          <VideoBlock
+            key={index}
+            videoUri={block.value || ''}
+            styles={styles}
+          />
         );
       default:
         return null;
@@ -689,15 +705,17 @@ export default function PostDetailScreen() {
               activeOpacity={0.7}
               disabled={isLikeLoading}
             >
-              {isLikeLoading ? (
-                <ActivityIndicator size="small" color={colors.ERROR} />
-              ) : (
-                <LikeIcon
-                  size={18}
-                  filled={isLiked}
-                  color={isLiked ? colors.ERROR : colors.GRAY_500}
-                />
-              )}
+              <View style={styles.iconContainer}>
+                {isLikeLoading ? (
+                  <ActivityIndicator size="small" color={colors.ERROR} />
+                ) : (
+                  <LikeIcon
+                    size={18}
+                    filled={isLiked}
+                    color={isLiked ? colors.ERROR : colors.GRAY_500}
+                  />
+                )}
+              </View>
               <Text style={[styles.compactStatText, isLiked && styles.likedText, isLikeLoading && styles.loadingText]}>
                 {likeCount}
               </Text>
@@ -724,15 +742,17 @@ export default function PostDetailScreen() {
               activeOpacity={0.7}
               disabled={isBookmarkLoading}
             >
-              {isBookmarkLoading ? (
-                <ActivityIndicator size="small" color={colors.PRIMARY} />
-              ) : (
-                <BookmarkIcon
-                  size={18}
-                  filled={isBookmarked}
-                  color={isBookmarked ? colors.PRIMARY : colors.GRAY_500}
-                />
-              )}
+              <View style={styles.iconContainer}>
+                {isBookmarkLoading ? (
+                  <ActivityIndicator size="small" color={colors.PRIMARY} />
+                ) : (
+                  <BookmarkIcon
+                    size={18}
+                    filled={isBookmarked}
+                    color={isBookmarked ? colors.PRIMARY : colors.GRAY_500}
+                  />
+                )}
+              </View>
               <Text style={[styles.compactStatText, isBookmarked && styles.bookmarkedText, isBookmarkLoading && styles.loadingText]}>
                 {bookmarkCount}
               </Text>
@@ -974,6 +994,12 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     paddingVertical: SPACING.XS,
     paddingHorizontal: SPACING.XS,
     gap: SPACING.XS,
+  },
+  iconContainer: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   compactStatText: {
     fontSize: TYPOGRAPHY.SIZE.XS,
