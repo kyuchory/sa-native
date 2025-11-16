@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
@@ -16,12 +16,12 @@ interface PostCardProps {
   onAuthorPress?: () => void;
 }
 
-export default function PostCard({
+const PostCard = ({
   post,
   onPress,
   onCommentPress,
   onAuthorPress
-}: PostCardProps) {
+}: PostCardProps) => {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
   
@@ -112,33 +112,33 @@ export default function PostCard({
       setIsBookmarkLoading(false);
     }
   };
-  
-  // 시간 포맷팅 함수
-  const formatTime = (dateString: string) => {
+
+  // 시간 포맷팅 함수 - useMemo 메모이제이션
+  const formatTime = useMemo(() => (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInMs = now.getTime() - date.getTime();
     const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
     const diffInHours = Math.floor(diffInMinutes / 60);
     const diffInDays = Math.floor(diffInHours / 24);
-    
+
     if (diffInMinutes < 1) return '방금 전';
     if (diffInMinutes < 60) return `${diffInMinutes}분 전`;
     if (diffInHours < 24) return `${diffInHours}시간 전`;
     if (diffInDays < 7) return `${diffInDays}일 전`;
-    
+
     return date.toLocaleDateString('ko-KR', {
       month: 'short',
       day: 'numeric'
     });
-  };
+  }, []); // 빈 deps → 컴포넌트 생명주기 동안 동일한 함수 참조
 
-  // 숫자 포맷팅 함수 (1000 -> 1K)
-  const formatNumber = (num: number) => {
+  // 숫자 포맷팅 함수 - useMemo 메모이제이션 (1000 -> 1K)
+  const formatNumber = useMemo(() => (num: number) => {
     if (num >= 1000000) return `${Math.floor(num / 100000) / 10}M`;
     if (num >= 1000) return `${Math.floor(num / 100) / 10}K`;
     return num.toString();
-  };
+  }, []); // 빈 deps → 컴포넌트 생명주기 동안 동일한 함수 참조
 
   return (
     <TouchableOpacity 
@@ -262,7 +262,25 @@ export default function PostCard({
       </View>
     </TouchableOpacity>
   );
-}
+};
+
+// React.memo 적용 for 성능 최적화
+export default React.memo(PostCard, (prevProps, nextProps) => {
+  // post 객체의 중요한 속성들 비교
+  return (
+    prevProps.post.id === nextProps.post.id &&
+    prevProps.post.title === nextProps.post.title &&
+    prevProps.post.content === nextProps.post.content &&
+    prevProps.post.like_count === nextProps.post.like_count &&
+    prevProps.post.bookmark_count === nextProps.post.bookmark_count &&
+    prevProps.post.comment_count === nextProps.post.comment_count &&
+    prevProps.post.is_liked === nextProps.post.is_liked &&
+    prevProps.post.is_bookmarked === nextProps.post.is_bookmarked &&
+    prevProps.onPress === nextProps.onPress &&
+    prevProps.onCommentPress === nextProps.onCommentPress &&
+    prevProps.onAuthorPress === nextProps.onAuthorPress
+  );
+});
 
 // 스타일 생성 함수
 const createStyles = (colors: Record<string, string>) => StyleSheet.create({

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions, Pressable, TouchableOpacity, TouchableWithoutFeedback, Alert, Platform, Keyboard, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { VideoView, useVideoPlayer, VideoSource } from 'expo-video';
+import { getThumbnailAsync } from 'expo-video-thumbnails';
 import Animated, { useSharedValue, useAnimatedStyle, interpolate, Extrapolation, useAnimatedScrollHandler, SharedValue } from 'react-native-reanimated';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -140,6 +141,112 @@ const formatTimeAgo = (dateString: string): string => {
   }
 };
 
+// Enhanced VideoBlock 컴포넌트 - FeedCard의 최적화된 비디오 컴포넌트 적용
+interface EnhancedVideoBlockProps {
+  videoUri: string;
+  feedId: number;
+  styles: any;
+  isVisible?: boolean;
+}
+
+const EnhancedVideoBlock = React.memo(({
+  videoUri,
+  feedId,
+  styles,
+  isVisible = true
+}: EnhancedVideoBlockProps) => {
+  const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const playerRef = useRef<any>(null);
+
+  const videoSource = useMemo<VideoSource>(() => ({
+    uri: videoUri,
+    useCaching: true,
+    headers: Platform.OS === 'ios' && videoUri.includes('.m3u8') ? undefined : {}
+  }), [videoUri]);
+
+  useEffect(() => {
+    const preloadThumbnail = async () => {
+      try {
+        const thumbnail = await getThumbnailAsync(videoUri, {
+          time: 0.0,
+          quality: 0.5
+        });
+        setThumbnailUri(thumbnail.uri);
+      } catch (error) {
+        console.warn('썸네일 생성 실패:', error);
+      }
+    };
+
+    preloadThumbnail();
+  }, [videoUri]);
+
+  const player = useVideoPlayer(videoSource, player => {
+    player.loop = true;
+    player.muted = true;
+    if (isVisible) {
+      player.play();
+    }
+    setIsPlayerReady(true);
+    playerRef.current = player;
+  });
+
+  useEffect(() => {
+    if (!player || !isPlayerReady) return;
+
+    if (isVisible && player.playing === false) {
+      player.play();
+    } else if (!isVisible && player.playing === true) {
+      player.pause();
+    }
+  }, [isVisible, player, isPlayerReady]);
+
+  return (
+    <View style={styles.videoContainer}>
+      {!isPlayerReady && thumbnailUri && (
+        <Image
+          source={{ uri: thumbnailUri }}
+          style={styles.mainImage}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+        />
+      )}
+
+      <VideoView
+        player={player}
+        style={styles.mainImage}
+        nativeControls={false}
+        contentFit="contain"
+        surfaceType={Platform.OS === 'android' ? 'textureView' : 'surfaceView'}
+        onFirstFrameRender={() => setThumbnailUri(null)}
+      />
+
+      {/* 음소거 토글 버튼 */}
+      <TouchableOpacity
+        onPress={() => {
+          if (player) {
+            player.muted = !player.muted;
+          }
+        }}
+        activeOpacity={0.9}
+        style={videoStyles.muteButton}
+      >
+        {
+          player?.muted ? (
+            <MuteIcon size={20} color="#FFFFFF" />
+          ) : (
+            <UnmuteIcon size={20} color="#FFFFFF" />
+          )
+        }
+      </TouchableOpacity>
+    </View>
+  );
+}, (prevProps, nextProps) => {
+  return prevProps.feedId === nextProps.feedId &&
+         prevProps.videoUri === nextProps.videoUri &&
+         prevProps.isVisible === nextProps.isVisible;
+});
+
 export default function FeedDetailScreen() {
   const route = useRoute<FeedDetailRouteProp>();
   const navigation = useNavigation<FeedDetailNavigationProp>();
@@ -176,9 +283,9 @@ export default function FeedDetailScreen() {
   const { setShouldRefreshFeeds } = useFeedStore(); // 피드 목록 새로고침 플래그 설정용
   const { setShouldRefreshProfileFeeds } = useProfileStore(); // 프로필 플래그 설정용
 
-  // 데이터 필터링 (feed가 null일 수 있음)
-  const mediaBlocks = feed ? feed.content_blocks.filter(block => block.type === 'image' || block.type === 'video') : [];
-  const textBlock = feed ? feed.content_blocks.find(block => block.type === 'text') : null;
+  // 데이터 필터링 및 메모이제이션
+  const mediaBlocks = useMemo(() => feed ? feed.content_blocks.filter(block => block.type === 'image' || block.type === 'video') : [], [feed]);
+  const textBlock = useMemo(() => feed ? feed.content_blocks.find(block => block.type === 'text') : null, [feed]);
 
   // 스크롤 핸들러
   const scrollHandler = useAnimatedScrollHandler({
@@ -636,8 +743,8 @@ export default function FeedDetailScreen() {
     );
   };
 
-  // 텍스트 더보기/접기 처리
-  const renderContent = () => {
+  // 텍스트 더보기/접기 처리 - useCallback으로 메모이제이션
+  const renderContent = useCallback(() => {
     if (!textBlock) return null;
 
     const content = textBlock.value;
@@ -668,7 +775,7 @@ export default function FeedDetailScreen() {
         </TouchableOpacity>
       </View>
     );
-  };
+  }, [textBlock, isExpanded, styles.contentText, styles.moreText]);
 
   // 로딩 상태 (PostDetailScreen과 같은 패턴으로 분리)
   if (loading) {
@@ -760,7 +867,12 @@ export default function FeedDetailScreen() {
                       </Text>
                     )}
                     {block.type === 'video' ? (
-                      <TapPauseVideo videoUri={block.value} />
+                      <EnhancedVideoBlock
+                        videoUri={block.value}
+                        feedId={feed.id}
+                        styles={{ mainImage: styles.mainImage, videoContainer: videoStyles.container }}
+                        isVisible={true}
+                      />
                     ) : (
                       <Image
                         source={{ uri: block.value }}

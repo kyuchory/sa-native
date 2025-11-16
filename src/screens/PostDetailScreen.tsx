@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,10 @@ import {
   Keyboard,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import { VideoView, useVideoPlayer, VideoSource } from 'expo-video';
 import { useEventListener } from 'expo';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getThumbnailAsync } from 'expo-video-thumbnails';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
@@ -37,7 +38,7 @@ import { CommentInput } from '../components/CommentInput';
 import { ReplyInput } from '../components/ReplyInput';
 import { CommentEditInput } from '../components/CommentEditInput';
 import MenuActionSheet from '../components/MenuActionSheet';
-import { MenuIcon, ReportIcon, EditIcon, DeleteIcon } from '../components/CommonIcons';
+import { MenuIcon, ReportIcon, EditIcon, DeleteIcon, MuteIcon, UnmuteIcon } from '../components/CommonIcons';
 
 import { Comment } from '../types/post';
 import { useAuthStore } from '../stores/authStore';
@@ -135,6 +136,112 @@ const VideoBlock: React.FC<VideoBlockProps> = React.memo(({ videoUri, styles }) 
       />
     </View>
   );
+});
+
+// Enhanced VideoBlock 컴포넌트 - FeedCard의 최적화된 비디오 컴포넌트 적용
+interface EnhancedVideoBlockProps {
+  videoUri: string;
+  postId: number;
+  styles: any;
+  isVisible?: boolean;
+}
+
+const EnhancedVideoBlock = React.memo(({
+  videoUri,
+  postId,
+  styles,
+  isVisible = true
+}: EnhancedVideoBlockProps) => {
+  const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const playerRef = useRef<any>(null);
+
+  const videoSource = useMemo<VideoSource>(() => ({
+    uri: videoUri,
+    useCaching: true,
+    headers: Platform.OS === 'ios' && videoUri.includes('.m3u8') ? undefined : {}
+  }), [videoUri]);
+
+  useEffect(() => {
+    const preloadThumbnail = async () => {
+      try {
+        const thumbnail = await getThumbnailAsync(videoUri, {
+          time: 0.0,
+          quality: 0.5
+        });
+        setThumbnailUri(thumbnail.uri);
+      } catch (error) {
+        console.warn('썸네일 생성 실패:', error);
+      }
+    };
+
+    preloadThumbnail();
+  }, [videoUri]);
+
+  const player = useVideoPlayer(videoSource, player => {
+    player.loop = true;
+    player.muted = true;
+    if (isVisible) {
+      player.play();
+    }
+    setIsPlayerReady(true);
+    playerRef.current = player;
+  });
+
+  useEffect(() => {
+    if (!player || !isPlayerReady) return;
+
+    if (isVisible && player.playing === false) {
+      player.play();
+    } else if (!isVisible && player.playing === true) {
+      player.pause();
+    }
+  }, [isVisible, player, isPlayerReady]);
+
+  return (
+    <View style={styles.videoBlock}>
+      {!isPlayerReady && thumbnailUri && (
+        <Image
+          source={{ uri: thumbnailUri }}
+          style={styles.videoPlayer}
+          contentFit="contain"
+          cachePolicy="memory-disk"
+        />
+      )}
+
+      <VideoView
+        player={player}
+        style={styles.videoPlayer}
+        nativeControls
+        contentFit="contain"
+        surfaceType={Platform.OS === 'android' ? 'textureView' : 'surfaceView'}
+        onFirstFrameRender={() => setThumbnailUri(null)}
+      />
+
+      {/* 음소거 토글 버튼 */}
+      <TouchableOpacity
+        onPress={() => {
+          if (player) {
+            player.muted = !player.muted;
+          }
+        }}
+        activeOpacity={0.9}
+        style={videoStyles.muteButton}
+      >
+        {
+          player?.muted ? (
+            <MuteIcon size={20} color="#FFFFFF" />
+          ) : (
+            <UnmuteIcon size={20} color="#FFFFFF" />
+          )
+        }
+      </TouchableOpacity>
+    </View>
+  );
+}, (prevProps, nextProps) => {
+  return prevProps.postId === nextProps.postId &&
+         prevProps.videoUri === nextProps.videoUri &&
+         prevProps.isVisible === nextProps.isVisible;
 });
 
 export default function PostDetailScreen() {
@@ -308,8 +415,8 @@ export default function PostDetailScreen() {
     }
   };
 
-  // 댓글 좋아요 토글
-  const handleCommentLike = async (commentId: number) => {
+  // 댓글 좋아요 토글 - useCallback 메모이제이션
+  const handleCommentLike = useCallback(async (commentId: number) => {
     // 낙관적 UI 업데이트
     const originalComments = [...comments];
 
@@ -365,10 +472,10 @@ export default function PostDetailScreen() {
       Alert.alert('오류', '좋아요 처리에 실패했습니다.');
       console.error('댓글 좋아요 토글 실패:', error);
     }
-  };
+  }, [comments, postId]); // comments와 postId가 바뀔 때만 재생성
 
-  // 댓글 작성
-  const handleSendComment = async (text: string) => {
+  // 댓글 작성 - useCallback 메모이제이션
+  const handleSendComment = useCallback(async (text: string) => {
     if (!text.trim() || isCommentLoading) return;
 
     try {
@@ -390,7 +497,7 @@ export default function PostDetailScreen() {
     } finally {
       setIsCommentLoading(false);
     }
-  };
+  }, [isCommentLoading, postId, setShouldRefreshPosts]);
 
   // 답글 작성
   const handleReplyPress = (comment: Comment) => {
@@ -588,10 +695,15 @@ export default function PostDetailScreen() {
         );
       case 'video':
         return (
-          <VideoBlock
+          <EnhancedVideoBlock
             key={index}
             videoUri={block.value || ''}
-            styles={styles}
+            postId={postId}
+            styles={{
+              videoBlock: styles.videoBlock,
+              videoPlayer: styles.videoPlayer
+            }}
+            isVisible={true}
           />
         );
       default:
@@ -939,6 +1051,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   contentImage: {
     width: '100%',
     borderRadius: BORDER_RADIUS.MD,
+    backgroundColor: colors.GRAY_200, // 로딩 시 배경색 표시 최적화
   },
   imageLoadingContainer: {
     width: '100%',
@@ -1019,5 +1132,30 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   // 메뉴 버튼
   menuButton: {
     padding: SPACING.SM,
+  },
+});
+
+// 비디오 컴포넌트용 스타일
+const videoStyles = StyleSheet.create({
+  container: {
+    width: '100%',
+    height: 'auto',
+    position: 'relative' as const,
+  },
+  videoView: {
+    width: '100%',
+    height: 'auto',
+  },
+  muteButton: {
+    position: 'absolute',
+    top: SPACING.SM,
+    right: SPACING.SM,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
   },
 });

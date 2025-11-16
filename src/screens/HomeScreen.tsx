@@ -138,21 +138,21 @@ export default function HomeScreen() {
     }
   };
 
-  // 게시물 상호작용 핸들러들
-  const handlePostPress = (post: PostListItem) => {
+  // 게시물 상호작용 핸들러들 - useCallback 메모이제이션
+  const handlePostPress = useCallback((post: PostListItem) => {
     console.log('Post pressed:', post.title);
     navigation.navigate('PostDetail', { postId: post.id });
-  };
+  }, [navigation]);
 
-  const handleCommentPress = (post: PostListItem) => {
+  const handleCommentPress = useCallback((post: PostListItem) => {
     console.log('Comment pressed:', post.title);
     // TODO: 댓글 화면으로 이동
-  };
+  }, []);
 
-  const handleAuthorPress = (post: PostListItem) => {
+  const handleAuthorPress = useCallback((post: PostListItem) => {
     console.log('Author pressed:', post.user.nickname);
     navigation.navigate('UserProfile', { userId: String(post.user.id) });
-  };
+  }, [navigation]);
 
   const handleWritePress = () => {
     navigation.navigate('CreatePost');
@@ -167,15 +167,15 @@ export default function HomeScreen() {
     },
   ];
 
-  // 게시물 렌더링
-  const renderPost = ({ item }: { item: PostListItem }) => (
+  // 게시물 렌더링 - useCallback 메모이제이션
+  const renderPost = useCallback(({ item }: { item: PostListItem }) => (
     <PostCard
       post={item}
       onPress={() => handlePostPress(item)}
       onCommentPress={() => handleCommentPress(item)}
       onAuthorPress={() => handleAuthorPress(item)}
     />
-  );
+  ), [handlePostPress, handleCommentPress, handleAuthorPress]);
 
   return (
     <View style={styles.container}>
