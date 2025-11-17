@@ -322,6 +322,18 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         ...result,
         isVideoEditResult: true, // 편집 결과임을 표시
       });
+    } else if (uploadService === 'cuts') {
+      // cut upload final screen navigation
+      const result = {
+        videoUri,
+        trimStart,
+        trimEnd,
+        cropArea: correctedCropArea,
+        thumbnailUri: undefined, // thumbnail not generated yet
+      };
+      console.log('cuts edit result:', result);
+
+      navigation.navigate('CutUploadFinalize', result);
     } else {
       const result = {
         videoUri,

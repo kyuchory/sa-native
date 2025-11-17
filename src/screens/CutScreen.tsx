@@ -34,6 +34,7 @@ import {
   ShareIcon,
   BackIcon,
   MoreVerticalIcon,
+  UploadIcon,
 } from '../components/CutIcons';
 
 // Mock Data
@@ -49,6 +50,7 @@ interface CutItemProps {
   onLike: (cutId: number) => void;
   onComment: (cutId: number) => void;
   onShare: (cutId: number) => void;
+  onUpload: () => void;
   onToggleDescription: (cutId: number) => void;
   isDescriptionExpanded: boolean;
   tabBarHeight: number;
@@ -61,6 +63,7 @@ const CutItem: React.FC<CutItemProps> = ({
   onLike,
   onComment,
   onShare,
+  onUpload,
   onToggleDescription,
   isDescriptionExpanded,
   tabBarHeight,
@@ -163,11 +166,21 @@ const CutItem: React.FC<CutItemProps> = ({
 
         {/* 프로필 */}
         <TouchableOpacity style={styles.profileContainer} activeOpacity={0.8}>
-          <UserAvatar 
-            profileImg={cut.user.profile_img} 
+          <UserAvatar
+            profileImg={cut.user.profile_img}
             nickname={cut.user.nickname}
             size={60}
           />
+        </TouchableOpacity>
+
+        {/* 업로드 */}
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={onUpload}
+          activeOpacity={0.8}
+        >
+          <UploadIcon size={28} color={COLORS.WHITE} />
+          <Text style={styles.actionText}>업로드</Text>
         </TouchableOpacity>
       </View>
 
@@ -284,6 +297,11 @@ export default function CutScreen() {
     navigation.goBack();
   };
 
+  // 업로드 버튼 클릭
+  const handleUpload = () => {
+    navigation.navigate('CutUploadSelect');
+  };
+
   // 스크롤 이벤트 처리
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
@@ -303,6 +321,7 @@ export default function CutScreen() {
         onLike={handleLike}
         onComment={handleComment}
         onShare={handleShare}
+        onUpload={handleUpload}
         onToggleDescription={handleToggleDescription}
         isDescriptionExpanded={expandedDescriptions.has(item.id)}
         tabBarHeight={tabBarHeight}
@@ -403,7 +422,7 @@ const styles = StyleSheet.create({
   // 오른쪽 액션 버튼들
   rightActions: {
     position: 'absolute',
-    right: SPACING.MD,
+    right: SPACING.XS,  // MD에서 SM으로 변경해 더 오른쪽으로 붙임
     bottom: 200,
     alignItems: 'center',
     gap: SPACING.LG,

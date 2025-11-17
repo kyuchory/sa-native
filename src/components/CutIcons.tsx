@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import Svg, { Path, Circle, Line, Polygon } from 'react-native-svg';
+import Svg, { Path, Circle, Line, Polygon, Rect } from 'react-native-svg';
 
 interface IconProps {
   size?: number;
@@ -205,6 +205,97 @@ export const VolumeOnIcon = ({ size = 24, color = '#000' }: IconProps) => (
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+    </Svg>
+  </View>
+);
+
+// 업로드 아이콘 (카메라 스타일)
+export const UploadIcon = ({ size = 24, color = '#000' }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size * 0.9} height={size * 0.9} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0118.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </View>
+);
+
+// 카메라 아이콘 (업로드용)
+export const CameraIcon = ({ size = 24, color = '#000' }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size * 0.9} height={size * 0.9} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0118.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </View>
+);
+
+// 갤러리 아이콘 (업로드용)
+export const GalleryIcon = ({ size = 24, color = '#000' }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size * 0.9} height={size * 0.9} viewBox="0 0 24 24" fill="none">
+      <Rect
+        x="3"
+        y="3"
+        width="18"
+        height="18"
+        rx="2"
+        ry="2"
+        stroke={color}
+        strokeWidth="2"
+        fill="none"
+      />
+      <Path
+        d="M9 9L15 15L21 9"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <Circle
+        cx="8.5"
+        cy="8.5"
+        r="1.5"
+        stroke={color}
+        strokeWidth="2"
+        fill="none"
+      />
+    </Svg>
+  </View>
+);
+
+// 느낌표 아이콘 (업로드 팁용)
+export const AlertIcon = ({ size = 24, color = '#000' }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size * 0.9} height={size * 0.9} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM13 17h-2v-2h2v2zm0-4h-2V7h2v6z"
+        fill={color}
       />
     </Svg>
   </View>

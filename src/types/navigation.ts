@@ -63,6 +63,19 @@ export type AuthStackParamList = {
     maxDuration?: number;
     chatRoomId?: number;
   };
+  CutUploadSelect: undefined;
+  CutUploadFinalize: {
+    videoUri: string;
+    trimStart: number;
+    trimEnd: number;
+    cropArea: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
+    thumbnailUri?: string;
+  };
 };
 
 export type TabParamList = {

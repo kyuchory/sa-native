@@ -161,6 +161,19 @@ export const MOCK_CUTS: Cut[] = [
   ),
 ];
 
+// 컷츠 카테고리 목데이터
+export interface CutCategory {
+  id: number;
+  name: string;
+}
+
+export const CUT_CATEGORIES: CutCategory[] = [
+  { id: 1, name: '동물' },
+  { id: 2, name: '자연' },
+  { id: 3, name: '여행' },
+  { id: 4, name: '패션' },
+];
+
 // Mock 컷 댓글 데이터
 export const MOCK_CUT_COMMENTS: { [cutId: number]: CutComment[] } = {
   1: [
