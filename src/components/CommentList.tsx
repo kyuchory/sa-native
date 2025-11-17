@@ -276,7 +276,10 @@ const CommentItem = ({
         <View style={styles.commentContent}>
           <View style={styles.commentMeta}>
             {renderUsername()}
-            <Text style={styles.timeText}>{formatTime(comment.created_at)}</Text>
+            <Text style={styles.timeText}>
+              {formatTime(comment.created_at)}
+              {comment.created_at !== comment.updated_at && ' (수정됨)'}
+            </Text>
           </View>
 
           {renderCommentContent()}

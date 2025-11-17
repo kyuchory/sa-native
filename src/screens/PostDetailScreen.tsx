@@ -198,12 +198,17 @@ const EnhancedVideoBlock = React.memo(({
     }
   }, [isVisible, player, isPlayerReady]);
 
+  const videoStyle = [
+    styles.videoPlayer,
+    { height: 250 },
+  ];
+
   return (
     <View style={styles.videoBlock}>
       {!isPlayerReady && thumbnailUri && (
         <Image
           source={{ uri: thumbnailUri }}
-          style={styles.videoPlayer}
+          style={videoStyle}
           contentFit="contain"
           cachePolicy="memory-disk"
         />
@@ -211,7 +216,7 @@ const EnhancedVideoBlock = React.memo(({
 
       <VideoView
         player={player}
-        style={styles.videoPlayer}
+        style={videoStyle}
         nativeControls
         contentFit="contain"
         surfaceType={Platform.OS === 'android' ? 'textureView' : 'surfaceView'}

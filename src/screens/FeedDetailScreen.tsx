@@ -525,10 +525,16 @@ export default function FeedDetailScreen() {
     try {
       setIsCommentLoading(true);
 
+      // 멘션된 사용자 ID 찾기
+      const mentionUserId = comments
+        .flatMap(c => [c, ...(c.replies || [])])
+        .find(c => c.user.nickname === replyingTo.userName)?.user.id;
+
       // API 호출
       await FeedService.createComment(feedId, {
         content: text,
-        parent_comment_id: replyingTo.commentId
+        parent_comment_id: replyingTo.commentId,
+        mention_user_id: mentionUserId || null
       });
 
       // 댓글 목록 새로고침
@@ -552,8 +558,12 @@ export default function FeedDetailScreen() {
 
   // 답글 입력 시작
   const onReplyPress = (commentId: number, userName: string) => {
+    // 해당 댓글 정보를 찾아 최상위 부모 ID로 몰아넣음 (Post 방식과 동일)
+    const targetComment = comments.flatMap(c => [c, ...(c.replies || [])]).find(c => c.id === commentId);
+    const parentCommentId = targetComment?.parent_comment_id || commentId;
+
     setReplyingTo({
-      commentId,
+      commentId: parentCommentId,
       userName
     });
   };
@@ -1011,6 +1021,7 @@ export default function FeedDetailScreen() {
             <CommentInput
               onSendComment={onSendComment}
               placeholder="댓글을 작성해 보세요."
+              isLoading={isCommentLoading}
             />
           )}
         </View>

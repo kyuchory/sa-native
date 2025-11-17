@@ -201,9 +201,16 @@ export default function CommentActionSheet({
 
     try {
       setIsCommentLoading(true);
+
+      // 멘션된 사용자 ID 찾기
+      const mentionUserId = comments
+        .flatMap(c => [c, ...(c.replies || [])])
+        .find(c => c.user.nickname === replyingTo.userName)?.user.id;
+
       await FeedService.createComment(feed.id, {
         content: text,
-        parent_comment_id: replyingTo.commentId
+        parent_comment_id: replyingTo.commentId,
+        mention_user_id: mentionUserId || null
       });
 
       // 댓글 목록 새로고침
@@ -222,8 +229,12 @@ export default function CommentActionSheet({
 
   // 답글 입력 시작
   const onReplyPress = (commentId: number, userName: string) => {
+    // 해당 댓글 정보를 찾아 최상위 부모 ID로 몰아넣음
+    const targetComment = comments.flatMap(c => [c, ...(c.replies || [])]).find(c => c.id === commentId);
+    const parentCommentId = targetComment?.parent_comment_id || commentId;
+
     setReplyingTo({
-      commentId,
+      commentId: parentCommentId,
       userName
     });
   };
