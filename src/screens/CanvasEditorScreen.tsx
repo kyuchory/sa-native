@@ -3,7 +3,7 @@ import 'react-native-gesture-handler';
 import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedProps, runOnJS } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Dimensions, Alert, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Dimensions, Alert, Modal, ScrollView, ActivityIndicator } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
 import { captureRef } from 'react-native-view-shot';
@@ -742,6 +742,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
   };
 
   const submitAsStory = async () => {
+    if (isUploading) return;
     try {
       setIsUploading(true);
 
@@ -872,8 +873,12 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
         title="Edit"
         onBackPress={() => navigation?.goBack?.()}
         rightComponent={
-          <TouchableOpacity onPress={submitAsStory} style={styles.submitButton}>
-            <CheckIcon size={24} color={colors.PRIMARY} />
+          <TouchableOpacity onPress={submitAsStory} style={styles.submitButton} disabled={isUploading}>
+            {isUploading ? (
+              <ActivityIndicator size="small" color={colors.PRIMARY} />
+            ) : (
+              <CheckIcon size={24} color={colors.PRIMARY} />
+            )}
           </TouchableOpacity>
         }
       />
