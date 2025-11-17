@@ -77,3 +77,37 @@ export interface CreateCutCommentRequest {
 export interface ShareCutRequest {
   platform: 'kakao' | 'instagram' | 'facebook' | 'twitter' | 'link';
 }
+
+// 컷 업로드 요청
+export interface ShortUploadRequest {
+  file: any; // File object
+  type: 'image' | 'video';
+  category_ids: number[];
+  description?: string;
+  tag_ids?: number[];
+  trimStart?: number; // milliseconds (video only)
+  trimEnd?: number; // milliseconds (video only)
+  cropArea?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
+
+// 컷 업로드 응답
+export interface ShortUploadResponse {
+  id: number;
+  content_url: string;
+  type: 'image' | 'video';
+  thumbnail_url?: string;
+  description?: string;
+  created_at: string;
+}
+
+// 컷 업로드 API 응답
+export interface ShortUploadApiResponse {
+  code: number;
+  message: string;
+  data: ShortUploadResponse;
+}
