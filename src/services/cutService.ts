@@ -1,9 +1,9 @@
 import { apiClient } from './apiClient';
 import {
-  CutsResponse,
-  CutLikeResponse,
-  CutCommentsResponse,
-  CreateCutCommentRequest,
+  ShortsFeedResponse,
+  ShortLikeResponse,
+  ShortCommentsResponse,
+  CreateShortCommentRequest,
   ShortUploadRequest,
   ShortUploadApiResponse,
   ShortUploadResponse,
@@ -74,11 +74,11 @@ export class CutService {
     }
   }
 
-  // 컷 목록 조회 (커서 기반 페이지네이션)
-  static async getCuts(
+  // 쇼츠 피드 조회 (커서 기반 페이지네이션)
+  static async getShortsFeed(
     cursor?: string,
-    limit: number = 20
-  ): Promise<CutsResponse> {
+    limit: number = 4 // 쇼츠 피드 기본 limit = 4
+  ): Promise<ShortsFeedResponse> {
     try {
       const queryParams = new URLSearchParams();
 
@@ -86,53 +86,54 @@ export class CutService {
         queryParams.append('cursor', cursor);
       }
       queryParams.append('limit', limit.toString());
+      queryParams.append('recommended', 'true'); // 기본적으로 추천 모드
 
-      const response = await apiClient.get<CutsResponse>(
-        `/cuts?${queryParams.toString()}`
+      const response = await apiClient.get<ShortsFeedResponse>(
+        `/shorts/feed?${queryParams.toString()}`
       );
 
       return response;
     } catch (error) {
-      console.error('컷 목록 조회 실패:', error);
+      console.error('쇼츠 피드 조회 실패:', error);
       throw error;
     }
   }
 
-  // 컷 좋아요 토글
-  static async toggleCutLike(cutId: number): Promise<CutLikeResponse> {
+  // 쇼츠 좋아요 토글
+  static async toggleShortLike(shortId: number): Promise<ShortLikeResponse> {
     try {
-      const response = await apiClient.post<CutLikeResponse>(`/cuts/${cutId}/like`, {});
+      const response = await apiClient.post<ShortLikeResponse>(`/shorts/${shortId}/like`, {});
       return response;
     } catch (error) {
-      console.error('컷 좋아요 토글 실패:', error);
+      console.error('쇼츠 좋아요 토글 실패:', error);
       throw error;
     }
   }
 
-  // 컷 댓글 목록 조회
-  static async getCutComments(cutId: number): Promise<CutCommentsResponse> {
+  // 쇼츠 댓글 목록 조회
+  static async getShortComments(shortId: number): Promise<ShortCommentsResponse> {
     try {
-      const response = await apiClient.get<CutCommentsResponse>(`/cuts/${cutId}/comments`);
+      const response = await apiClient.get<ShortCommentsResponse>(`/shorts/${shortId}/comments`);
       return response;
     } catch (error) {
-      console.error('컷 댓글 목록 조회 실패:', error);
+      console.error('쇼츠 댓글 목록 조회 실패:', error);
       throw error;
     }
   }
 
-  // 컷 댓글 작성
-  static async createCutComment(
-    cutId: number,
-    commentData: CreateCutCommentRequest
+  // 쇼츠 댓글 작성
+  static async createShortComment(
+    shortId: number,
+    commentData: CreateShortCommentRequest
   ): Promise<ApiResponse<any>> {
     try {
       const response = await apiClient.post<ApiResponse<any>>(
-        `/cuts/${cutId}/comments`,
+        `/shorts/${shortId}/comments`,
         commentData
       );
       return response;
     } catch (error) {
-      console.error('컷 댓글 작성 실패:', error);
+      console.error('쇼츠 댓글 작성 실패:', error);
       throw error;
     }
   }

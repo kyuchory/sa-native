@@ -1,44 +1,43 @@
-// 컷(세로형 쇼츠) 관련 타입 정의
+// 쇼츠(세로형 영상) 관련 타입 정의 - 실제 API 명세 기반
 
-// 컷 사용자 정보
-export interface CutUser {
+// 쇼츠 카테고리 정보
+export interface ShortCategory {
   id: number;
-  nickname: string;
-  profile_img: string | null;
+  name: string;
 }
 
-// 컷 정보
-export interface Cut {
+// 쇼츠 개별 아이템 (API 명세 기반)
+export interface ShortItem {
   id: number;
-  title: string;
-  description: string;
-  image_url: string; // 임시로 이미지 사용 (추후 video_url로 변경)
-  thumbnail_url?: string;
-  created_at: string;
-  updated_at: string;
-  user: CutUser;
+  user_id: number;
+  username: string;
+  profile_img: string | null;
+  type: 'image' | 'video';
+  content_url: string;        // 서버에서 이미 baseUrl 합쳐서 제공
+  thumbnail_url?: string;     // 서버에서 이미 baseUrl 합쳐서 제공
+  description?: string;
+  view_count: number;
   like_count: number;
   comment_count: number;
-  share_count: number;
-  view_count: number;
-  is_liked?: boolean;
-  duration?: number; // 영상 길이 (초)
-  tags?: string[];
+  created_at: string;         // ISO 8601 문자열
+  categories: ShortCategory[];
+  is_liked: boolean;
+  is_bookmarked: boolean;
+  is_owner: boolean;
 }
 
-// 컷 목록 조회 응답
-export interface CutsResponse {
+// 쇼츠 피드 조회 응답
+export interface ShortsFeedResponse {
   code: number;
   message: string;
   data: {
-    cuts: Cut[];
-    has_next: boolean;
-    next_cursor?: string;
+    items: ShortItem[];       // 쇼츠 아이템 배열
+    next_cursor: string | null; // 다음 페이지 커서
   };
 }
 
-// 컷 좋아요 응답
-export interface CutLikeResponse {
+// 쇼츠 좋아요 응답
+export interface ShortLikeResponse {
   code: number;
   message: string;
   data: {
@@ -47,38 +46,51 @@ export interface CutLikeResponse {
   };
 }
 
-// 컷 댓글 정보
-export interface CutComment {
+// 쇼츠 북마크 응답
+export interface ShortBookmarkResponse {
+  code: number;
+  message: string;
+  data: {
+    is_bookmarked: boolean;
+    bookmark_count: number;
+  };
+}
+
+// 쇼츠 댓글 정보
+export interface ShortComment {
   id: number;
   content: string;
   created_at: string;
-  updated_at: string;
-  user: CutUser;
+  user: {
+    id: number;
+    nickname: string;
+    profile_img: string | null;
+  };
   like_count: number;
-  is_liked?: boolean;
+  is_liked: boolean;
   parent_comment_id?: number | null;
-  replies?: CutComment[];
+  replies?: ShortComment[];
 }
 
-// 컷 댓글 목록 조회 응답
-export interface CutCommentsResponse {
+// 쇼츠 댓글 목록 조회 응답
+export interface ShortCommentsResponse {
   code: number;
   message: string;
-  data: CutComment[];
+  data: ShortComment[];
 }
 
-// 컷 댓글 작성 요청
-export interface CreateCutCommentRequest {
+// 쇼츠 댓글 작성 요청
+export interface CreateShortCommentRequest {
   content: string;
   parent_comment_id?: number | null;
 }
 
-// 컷 공유 요청
-export interface ShareCutRequest {
+// 쇼츠 공유 요청
+export interface ShareShortRequest {
   platform: 'kakao' | 'instagram' | 'facebook' | 'twitter' | 'link';
 }
 
-// 컷 업로드 요청
+// 쇼츠 업로드 요청 (기존 유지)
 export interface ShortUploadRequest {
   file: any; // File object
   type: 'image' | 'video';
@@ -95,7 +107,7 @@ export interface ShortUploadRequest {
   };
 }
 
-// 컷 업로드 응답
+// 쇼츠 업로드 응답 (기존 유지)
 export interface ShortUploadResponse {
   id: number;
   content_url: string;
@@ -105,7 +117,7 @@ export interface ShortUploadResponse {
   created_at: string;
 }
 
-// 컷 업로드 API 응답
+// 쇼츠 업로드 API 응답 (기존 유지)
 export interface ShortUploadApiResponse {
   code: number;
   message: string;

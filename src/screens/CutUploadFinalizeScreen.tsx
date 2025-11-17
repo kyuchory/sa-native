@@ -19,7 +19,23 @@ import { CutService } from '../services/cutService';
 import CommonHeader from '../components/CommonHeader';
 import LoadingOverlay from '../components/LoadingOverlay';
 import UserAvatar from '../components/UserAvatar';
-import { CUT_CATEGORIES, CutCategory } from '../data/cutMockData';
+import { ShortCategory } from '../types/cut';
+
+// 임시 쇼츠 카테고리 데이터 (실제로는 API 호출로 가져와야 함)
+const SHORT_CATEGORIES: ShortCategory[] = [
+  { id: 1, name: '일상' },
+  { id: 2, name: '게임' },
+  { id: 3, name: '댄스' },
+  { id: 4, name: '음악' },
+  { id: 5, name: '스포츠' },
+  { id: 6, name: '배움' },
+  { id: 7, name: '요리' },
+  { id: 8, name: '뷰티' },
+  { id: 9, name: '패션' },
+  { id: 10, name: '여행' },
+  { id: 11, name: '동물' },
+  { id: 12, name: '코미디' },
+];
 import { HeartIcon, CommentIcon, ShareIcon, UploadIcon, BackIcon, MoreVerticalIcon } from '../components/CutIcons';
 import { SPACING, TYPOGRAPHY, COLORS, BORDER_RADIUS } from '../constants/theme';
 
@@ -51,12 +67,12 @@ export default function CutUploadFinalizeScreen() {
   const { videoUri, trimStart, trimEnd, cropArea, thumbnailUri } = route.params;
 
   const [description, setDescription] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<CutCategory[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<ShortCategory[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
   const styles = createStyles(colors);
 
-  const handleCategorySelect = useCallback((category: CutCategory) => {
+  const handleCategorySelect = useCallback((category: ShortCategory) => {
     setSelectedCategories(prev => {
       const isSelected = prev.some(cat => cat.id === category.id);
       if (isSelected) {
@@ -254,7 +270,7 @@ export default function CutUploadFinalizeScreen() {
               카테고리 (최소 1개, 최대 3개)
             </Text>
             <View style={styles.categoryContainer}>
-              {CUT_CATEGORIES.map(category => (
+              {SHORT_CATEGORIES.map(category => (
                 <TouchableOpacity
                   key={category.id}
                   style={[
