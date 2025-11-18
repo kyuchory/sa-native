@@ -23,6 +23,7 @@ import {
   SPACING,
   BORDER_RADIUS,
 } from '../constants/theme';
+import { useThemeStore } from '../stores/themeStore';
 import { AuthStackParamList } from '../types/navigation';
 import { ShortItem } from '../types/cut';
 import { CutService } from '../services/cutService';
@@ -39,16 +40,17 @@ import {
   UploadIcon,
   PlayIcon,
   PauseIcon,
+  CutEmptyIcon,
 } from '../components/CutIcons';
 
-// 실제 쇼츠 API 사용
+// 실제 컷츠 API 사용
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 type CutScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'MainApp'>;
 
 interface ShortItemProps {
-  item: ShortItem;
+  item: ShortItem; 
   isActive: boolean;
   onLike: (shortId: number) => void;
   onComment: (shortId: number) => void;
@@ -56,7 +58,7 @@ interface ShortItemProps {
   onUpload: () => void;
 }
 
-// 쇼츠 개별 아이템 컴포넌트
+// 컷츠 개별 아이템 컴포넌트
 const ShortItemComponent: React.FC<ShortItemProps> = ({
   item,
   isActive,
@@ -332,6 +334,7 @@ const ShortItemComponent: React.FC<ShortItemProps> = ({
 
 export default function CutScreen() {
   const navigation = useNavigation<CutScreenNavigationProp>();
+  const { colors } = useThemeStore();
   const [shorts, setShorts] = useState<ShortItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(false);
@@ -354,8 +357,8 @@ export default function CutScreen() {
       setNextCursor(response.data.next_cursor);
       setCurrentIndex(0);
     } catch (e) {
-      console.error('쇼츠 피드 초기 로딩 실패:', e);
-      setError('쇼츠를 불러오는 중 오류가 발생했습니다.');
+      console.error('컷츠 피드 초기 로딩 실패:', e);
+      setError('컷츠를 불러오는 중 오류가 발생했습니다.');
     } finally {
       setIsInitialLoading(false);
     }
@@ -372,7 +375,7 @@ export default function CutScreen() {
       setShorts((prev) => [...prev, ...response.data.items]);
       setNextCursor(response.data.next_cursor);
     } catch (e) {
-      console.warn('쇼츠 추가 로딩 실패:', e);
+      console.warn('컷츠 추가 로딩 실패:', e);
     } finally {
       setIsFetchingMore(false);
     }
@@ -417,7 +420,7 @@ export default function CutScreen() {
 
   // 댓글 보기
   const handleComment = (shortId: number) => {
-    Alert.alert('댓글', `쇼츠 ${shortId}의 댓글을 보시겠습니까?`, [
+    Alert.alert('댓글', `컷츠 ${shortId}의 댓글을 보시겠습니까?`, [
       { text: '취소', style: 'cancel' },
       { text: '보기', onPress: () => console.log('댓글 보기:', shortId) },
     ]);
@@ -475,7 +478,7 @@ export default function CutScreen() {
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.PRIMARY} />
-          <Text style={styles.loadingText}>쇼츠 불러오는 중...</Text>
+          <Text style={styles.loadingText}>컷츠 불러오는 중...</Text>
         </View>
       </View>
     );
@@ -497,6 +500,36 @@ export default function CutScreen() {
     );
   }
 
+  // ✅ 빈 상태 처리
+  if (!isInitialLoading && shorts.length === 0) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.WHITE }]}>
+        <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+
+        {/* 헤더 */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={handleGoBack} activeOpacity={0.8}>
+            <BackIcon size={24} color={colors.GRAY_900} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.GRAY_900 }]}>Cuts</Text>
+          <TouchableOpacity style={styles.moreButton} activeOpacity={0.8}>
+            <MoreVerticalIcon size={32} color={colors.GRAY_900} />
+          </TouchableOpacity>
+        </View>
+
+        {/* 빈 상태 뷰 */}
+        <View style={[styles.emptyContainer, { flex: 1 }]}>
+          <CutEmptyIcon size={64} color={colors.GRAY_600} />
+          <Text style={[styles.emptyTitle, { color: colors.GRAY_900 }]}>시청 가능한 컷츠가 없습니다</Text>
+          <Text style={[styles.emptyMessage, { color: colors.GRAY_500 }]}>첫 번째 컷츠를 올려보세요!</Text>
+          <TouchableOpacity style={[styles.emptyButton, { backgroundColor: colors.PRIMARY }]} onPress={handleUpload}>
+            <Text style={[styles.emptyButtonText, { color: colors.WHITE }]}>컷츠 제작하기</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -512,7 +545,7 @@ export default function CutScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 쇼츠 리스트 */}
+      {/* 컷츠 리스트 */}
       <FlatList
         ref={flatListRef}
         data={shorts}
@@ -536,22 +569,11 @@ export default function CutScreen() {
           isFetchingMore ? (
             <View style={styles.footerLoader}>
               <ActivityIndicator size="small" color={COLORS.WHITE} />
-              <Text style={styles.footerLoaderText}>더 많은 쇼츠 불러오는 중...</Text>
+              <Text style={styles.footerLoaderText}>더 많은 컷츠 불러오는 중...</Text>
             </View>
           ) : null
         }
-        ListEmptyComponent={
-          shorts.length === 0 && !isInitialLoading ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyEmoji}>🎬</Text>
-              <Text style={styles.emptyTitle}>시청 가능한 쇼츠가 없습니다</Text>
-              <Text style={styles.emptyMessage}>첫 번째 쇼츠를 올려보세요!</Text>
-              <TouchableOpacity style={styles.emptyButton} onPress={handleUpload}>
-                <Text style={styles.emptyButtonText}>쇼츠 제작하기</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null
-        }
+
       />
     </View>
   );
@@ -755,33 +777,22 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   emptyContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: COLORS.BLACK,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     gap: SPACING.LG,
     paddingHorizontal: SPACING.XL,
   },
-  emptyEmoji: {
-    fontSize: 64,
-  },
   emptyTitle: {
     fontSize: TYPOGRAPHY.SIZE.XL,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: COLORS.WHITE,
     textAlign: 'center',
   },
   emptyMessage: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
   },
   emptyButton: {
-    backgroundColor: COLORS.PRIMARY,
     paddingHorizontal: SPACING.XL,
     paddingVertical: SPACING.MD,
     borderRadius: BORDER_RADIUS.MD,
@@ -790,7 +801,6 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: COLORS.WHITE,
   },
   playOverlayContainer: {
     flex: 1,

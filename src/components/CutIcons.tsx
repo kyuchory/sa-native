@@ -300,3 +300,32 @@ export const AlertIcon = ({ size = 24, color = '#000' }: IconProps) => (
     </Svg>
   </View>
 );
+
+// 빈 컷츠 상태 아이콘 (영화 플레이 버튼 스타일)
+export const CutEmptyIcon = ({ size = 24, color = '#000' }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* 사각형 테두리 */}
+      <Rect
+        x="2"
+        y="2"
+        width="20"
+        height="20"
+        rx="4"
+        ry="4"
+        stroke={color}
+        strokeWidth="2"
+        fill="none"
+      />
+      {/* 플레이 버튼 */}
+      <Polygon
+        points="8.5,6.5 15.5,12 8.5,17.5"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill={color}
+      />
+    </Svg>
+  </View>
+);

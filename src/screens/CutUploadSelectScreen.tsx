@@ -38,7 +38,7 @@ export default function CutUploadSelectScreen() {
 
       // 카메라로 비디오 촬영 (기본 촬영 시간 제한 없음)
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        mediaTypes: ['videos'],
         quality: 0.8,
         videoMaxDuration: 0, // 제한 없음 (VideoTrimCrop에서 30초 이하로 편집)
         allowsEditing: false,
@@ -77,7 +77,7 @@ export default function CutUploadSelectScreen() {
 
       // 갤러리에서 비디오 선택 (기본 제한 없음)
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        mediaTypes: ['videos'],
         quality: 0.8,
         videoMaxDuration: 0, // 제한 없음
         allowsEditing: false,
