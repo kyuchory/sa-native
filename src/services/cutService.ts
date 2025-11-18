@@ -2,6 +2,7 @@ import { apiClient } from './apiClient';
 import {
   ShortsFeedResponse,
   ShortLikeResponse,
+  ShortBookmarkResponse,
   ShortCommentsResponse,
   CreateShortCommentRequest,
   ShortUploadRequest,
@@ -106,6 +107,17 @@ export class CutService {
       return response;
     } catch (error) {
       console.error('쇼츠 좋아요 토글 실패:', error);
+      throw error;
+    }
+  }
+
+  // 쇼츠 북마크 토글
+  static async toggleShortBookmark(shortId: number): Promise<ShortBookmarkResponse> {
+    try {
+      const response = await apiClient.post<ShortBookmarkResponse>(`/shorts/${shortId}/bookmark`, {});
+      return response;
+    } catch (error) {
+      console.error('쇼츠 북마크 토글 실패:', error);
       throw error;
     }
   }

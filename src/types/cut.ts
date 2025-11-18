@@ -52,7 +52,6 @@ export interface ShortBookmarkResponse {
   message: string;
   data: {
     is_bookmarked: boolean;
-    bookmark_count: number;
   };
 }
 
