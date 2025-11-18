@@ -300,3 +300,33 @@ export const AlertIcon = ({ size = 24, color = '#000' }: IconProps) => (
     </Svg>
   </View>
 );
+
+//// 아래 화살표 아이콘 (접기, collapse)
+export const ChevronDownIcon = ({ size = 24, color = '#000' }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size * 0.8} height={size * 0.8} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M6 9l6 6 6-6"
+        stroke={color}
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </View>
+);
+
+// 위 화살표 아이콘 (펼치기, expand)
+export const ChevronUpIcon = ({ size = 24, color = '#000' }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size * 0.8} height={size * 0.8} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M18 15l-6-6-6 6"
+        stroke={color}
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </View>
+);

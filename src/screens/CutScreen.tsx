@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
   Image,
   Animated,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import {
@@ -39,9 +39,11 @@ import {
   UploadIcon,
   PlayIcon,
   PauseIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
 } from '../components/CutIcons';
 
-// 실제 쇼츠 API 사용
+// 실제 컷츠 API 사용
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -56,7 +58,7 @@ interface ShortItemProps {
   onUpload: () => void;
 }
 
-// 쇼츠 개별 아이템 컴포넌트
+// 컷츠 개별 아이템 컴포넌트
 const ShortItemComponent: React.FC<ShortItemProps> = ({
   item,
   isActive,
@@ -75,6 +77,9 @@ const ShortItemComponent: React.FC<ShortItemProps> = ({
   const [showOverlayIcon, setShowOverlayIcon] = useState(false);
   const [overlayIsPlaying, setOverlayIsPlaying] = useState(false);
   const overlayOpacity = useRef(new Animated.Value(0)).current;
+
+  // 설명 접기/펼치기 상태
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
 
   const triggerOverlay = (isPlayingNow: boolean) => {
     setOverlayIsPlaying(isPlayingNow);
@@ -100,14 +105,14 @@ const ShortItemComponent: React.FC<ShortItemProps> = ({
 
   // isActive 변경될 때마다 재생/정지 컨트롤
   useEffect(() => {
-    if (item.type === 'video') {
-      if (isActive) {
-        player.play();
-      } else {
-        player.pause();
-      }
+    if (item.type !== 'video') return;
+
+    if (isActive) {
+      player.play();
+    } else {
+      player.pause();
     }
-  }, [isActive, item.type]);
+  }, [isActive, item.type, player]);
 
   const handleTogglePlay = () => {
     if (item.type !== 'video') return;
@@ -187,25 +192,42 @@ const ShortItemComponent: React.FC<ShortItemProps> = ({
 
         {/* 하단 콘텐츠 오버레이 */}
         <View style={styles.bottomOverlay}>
+          {/* 토글 버튼 */}
+          <TouchableOpacity
+            style={styles.expandToggleButton}
+            onPress={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+            activeOpacity={0.8}
+          >
+            {isDescriptionExpanded ? (
+              <ChevronDownIcon size={40} color={COLORS.WHITE} />
+            ) : (
+              <ChevronUpIcon size={40} color={COLORS.WHITE} />
+            )}
+          </TouchableOpacity>
+
           <View style={styles.contentArea}>
             <View style={styles.userInfo}>
               <Text style={styles.username}>@{item.username}</Text>
               <Text style={styles.timeText}>{formatRelativeTime(item.created_at)}</Text>
             </View>
 
-            <View style={styles.descriptionContainer}>
-              <Text style={styles.description} numberOfLines={2}>
-                {item.description}
-              </Text>
-            </View>
+            {isDescriptionExpanded && (
+              <>
+                <View style={styles.descriptionContainer}>
+                  <Text style={styles.description} numberOfLines={2}>
+                    {item.description}
+                  </Text>
+                </View>
 
-            <View style={styles.tagsContainer}>
-              {item.categories.map((category) => (
-                <Text key={category.id} style={styles.tag}>
-                  #{category.name}
-                </Text>
-              ))}
-            </View>
+                <View style={styles.tagsContainer}>
+                  {item.categories.map((category) => (
+                    <Text key={category.id} style={styles.tag}>
+                      #{category.name}
+                    </Text>
+                  ))}
+                </View>
+              </>
+            )}
           </View>
         </View>
       </View>
@@ -219,8 +241,6 @@ const ShortItemComponent: React.FC<ShortItemProps> = ({
       <VideoView
         style={styles.backgroundImage}
         player={player}
-        allowsFullscreen={false}
-        allowsPictureInPicture={false}
         contentFit="cover"
         nativeControls={false}
         pointerEvents="none"
@@ -305,33 +325,57 @@ const ShortItemComponent: React.FC<ShortItemProps> = ({
 
       {/* 하단 콘텐츠 오버레이 */}
       <View style={styles.bottomOverlay}>
+        {/* 토글 버튼 */}
+        <TouchableOpacity
+          style={styles.expandToggleButton}
+          onPress={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+          activeOpacity={0.8}
+        >
+          {isDescriptionExpanded ? (
+            <ChevronDownIcon size={20} color={COLORS.WHITE} />
+          ) : (
+            <ChevronUpIcon size={20} color={COLORS.WHITE} />
+          )}
+        </TouchableOpacity>
+
         <View style={styles.contentArea}>
           <View style={styles.userInfo}>
             <Text style={styles.username}>@{item.username}</Text>
             <Text style={styles.timeText}>{formatRelativeTime(item.created_at)}</Text>
           </View>
 
-          <View style={styles.descriptionContainer}>
-            <Text style={styles.description} numberOfLines={2}>
-              {item.description}
-            </Text>
-          </View>
+          {isDescriptionExpanded && (
+            <>
+              <View style={styles.descriptionContainer}>
+                <Text style={styles.description} numberOfLines={2}>
+                  {item.description}
+                </Text>
+              </View>
 
-          <View style={styles.tagsContainer}>
-            {item.categories.map((category) => (
-              <Text key={category.id} style={styles.tag}>
-                #{category.name}
-              </Text>
-            ))}
-          </View>
+              <View style={styles.tagsContainer}>
+                {item.categories.map((category) => (
+                  <Text key={category.id} style={styles.tag}>
+                    #{category.name}
+                  </Text>
+                ))}
+              </View>
+            </>
+          )}
         </View>
       </View>
     </View>
   );
 };
 
+const ShortItemComponentMemo = React.memo(ShortItemComponent);
+
 export default function CutScreen() {
   const navigation = useNavigation<CutScreenNavigationProp>();
+  const isFocused = useIsFocused();
+
+  const [containerHeight, setContainerHeight] = useState<number | null>(null);
+  const ITEM_HEIGHT = containerHeight ?? SCREEN_HEIGHT;
+
   const [shorts, setShorts] = useState<ShortItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(false);
@@ -354,8 +398,8 @@ export default function CutScreen() {
       setNextCursor(response.data.next_cursor);
       setCurrentIndex(0);
     } catch (e) {
-      console.error('쇼츠 피드 초기 로딩 실패:', e);
-      setError('쇼츠를 불러오는 중 오류가 발생했습니다.');
+      console.error('컷츠 피드 초기 로딩 실패:', e);
+      setError('컷츠를 불러오는 중 오류가 발생했습니다.');
     } finally {
       setIsInitialLoading(false);
     }
@@ -372,7 +416,7 @@ export default function CutScreen() {
       setShorts((prev) => [...prev, ...response.data.items]);
       setNextCursor(response.data.next_cursor);
     } catch (e) {
-      console.warn('쇼츠 추가 로딩 실패:', e);
+      console.warn('컷츠 추가 로딩 실패:', e);
     } finally {
       setIsFetchingMore(false);
     }
@@ -396,7 +440,7 @@ export default function CutScreen() {
   }, []);
 
   // 좋아요 토글
-  const handleLike = async (shortId: number) => {
+  const handleLike = useCallback(async (shortId: number) => {
     try {
       const response = await CutService.toggleShortLike(shortId);
       setShorts(prev =>
@@ -413,18 +457,18 @@ export default function CutScreen() {
     } catch (error) {
       console.error('좋아요 실패:', error);
     }
-  };
+  }, []);
 
   // 댓글 보기
-  const handleComment = (shortId: number) => {
-    Alert.alert('댓글', `쇼츠 ${shortId}의 댓글을 보시겠습니까?`, [
+  const handleComment = useCallback((shortId: number) => {
+    Alert.alert('댓글', `컷츠 ${shortId}의 댓글을 보시겠습니까?`, [
       { text: '취소', style: 'cancel' },
       { text: '보기', onPress: () => console.log('댓글 보기:', shortId) },
     ]);
-  };
+  }, []);
 
   // 공유하기
-  const handleShare = (shortId: number) => {
+  const handleShare = useCallback((shortId: number) => {
     const short = shorts.find(s => s.id === shortId);
     Alert.alert('공유하기', '어디로 공유하시겠습니까?', [
       { text: '취소', style: 'cancel' },
@@ -432,17 +476,17 @@ export default function CutScreen() {
       { text: '인스타그램', onPress: () => console.log('인스타그램 공유:', shortId) },
       { text: '링크 복사', onPress: () => console.log('링크 복사:', shortId, short?.content_url) },
     ]);
-  };
+  }, [shorts]);
 
   // 뒤로가기
-  const handleGoBack = () => {
+  const handleGoBack = useCallback(() => {
     navigation.goBack();
-  };
+  }, [navigation]);
 
   // 업로드 버튼 클릭
-  const handleUpload = () => {
+  const handleUpload = useCallback(() => {
     navigation.navigate('CutUploadSelect');
-  };
+  }, [navigation]);
 
   // FlatList 뷰어빌리티 설정
   const viewabilityConfig = useRef({
@@ -455,50 +499,30 @@ export default function CutScreen() {
     }
   }).current;
 
-  const renderShortItem = ({ item, index }: { item: ShortItem; index: number }) => (
-    <View style={{ height: SCREEN_HEIGHT }}>
-      <ShortItemComponent
-        item={item}
-        isActive={index === currentIndex}
-        onLike={handleLike}
-        onComment={handleComment}
-        onShare={handleShare}
-        onUpload={handleUpload}
-      />
-    </View>
+  const renderShortItem = useCallback(
+    ({ item, index }: { item: ShortItem; index: number }) => (
+      <View style={{ height: ITEM_HEIGHT }}>
+        <ShortItemComponentMemo
+          item={item}
+          isActive={isFocused && index === currentIndex}
+          onLike={handleLike}
+          onComment={handleComment}
+          onShare={handleShare}
+          onUpload={handleUpload}
+        />
+      </View>
+    ),
+    [ITEM_HEIGHT, isFocused, currentIndex, handleLike, handleComment, handleShare, handleUpload]
   );
 
-  // 로딩 중
-  if (isInitialLoading) {
-    return (
-      <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.PRIMARY} />
-          <Text style={styles.loadingText}>쇼츠 불러오는 중...</Text>
-        </View>
-      </View>
-    );
-  }
-
-  // 에러 상태
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>🎬</Text>
-          <Text style={styles.errorMessage}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={fetchInitial}>
-            <Text style={styles.retryText}>다시 시도</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      onLayout={e => {
+        const { height } = e.nativeEvent.layout;
+        setContainerHeight(height);
+      }}
+    >
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* 투명 헤더 */}
@@ -512,47 +536,64 @@ export default function CutScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 쇼츠 리스트 */}
-      <FlatList
-        ref={flatListRef}
-        data={shorts}
-        renderItem={renderShortItem}
-        keyExtractor={(item) => item.id.toString()}
-        pagingEnabled
-        showsVerticalScrollIndicator={false}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        onEndReached={fetchMore}
-        onEndReachedThreshold={0.5}
-        getItemLayout={(data, index) => ({
-          length: SCREEN_HEIGHT,
-          offset: SCREEN_HEIGHT * index,
-          index,
-        })}
-        initialNumToRender={3}
-        maxToRenderPerBatch={3}
-        windowSize={3}
-        ListFooterComponent={
-          isFetchingMore ? (
-            <View style={styles.footerLoader}>
-              <ActivityIndicator size="small" color={COLORS.WHITE} />
-              <Text style={styles.footerLoaderText}>더 많은 쇼츠 불러오는 중...</Text>
-            </View>
-          ) : null
-        }
-        ListEmptyComponent={
-          shorts.length === 0 && !isInitialLoading ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyEmoji}>🎬</Text>
-              <Text style={styles.emptyTitle}>시청 가능한 쇼츠가 없습니다</Text>
-              <Text style={styles.emptyMessage}>첫 번째 쇼츠를 올려보세요!</Text>
-              <TouchableOpacity style={styles.emptyButton} onPress={handleUpload}>
-                <Text style={styles.emptyButtonText}>쇼츠 제작하기</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null
-        }
-      />
+      {/* 로딩 중 */}
+      {isInitialLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+          <Text style={styles.loadingText}>컷츠 불러오는 중...</Text>
+        </View>
+      ) : error ? (
+        // 에러 상태
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>🎬</Text>
+          <Text style={styles.errorMessage}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={fetchInitial}>
+            <Text style={styles.retryText}>다시 시도</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        // 정상 컷츠 리스트
+        <FlatList
+          ref={flatListRef}
+          data={shorts}
+          renderItem={renderShortItem}
+          keyExtractor={(item) => item.id.toString()}
+          pagingEnabled
+          showsVerticalScrollIndicator={false}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          onEndReached={fetchMore}
+          onEndReachedThreshold={0.5}
+          getItemLayout={(data, index) => ({
+            length: ITEM_HEIGHT,
+            offset: ITEM_HEIGHT * index,
+            index,
+          })}
+          initialNumToRender={3}
+          maxToRenderPerBatch={3}
+          windowSize={3}
+          ListFooterComponent={
+            isFetchingMore ? (
+              <View style={styles.footerLoader}>
+                <ActivityIndicator size="small" color={COLORS.WHITE} />
+                <Text style={styles.footerLoaderText}>더 많은 컷츠 불러오는 중...</Text>
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            shorts.length === 0 && !isInitialLoading ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyEmoji}>🎬</Text>
+                <Text style={styles.emptyTitle}>시청 가능한 컷츠가 없습니다</Text>
+                <Text style={styles.emptyMessage}>첫 번째 컷츠를 올려보세요!</Text>
+                <TouchableOpacity style={styles.emptyButton} onPress={handleUpload}>
+                  <Text style={styles.emptyButtonText}>컷츠 제작하기</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null
+          }
+        />
+      )}
     </View>
   );
 }
@@ -599,7 +640,7 @@ const styles = StyleSheet.create({
   // 컷 컨테이너
   cutContainer: {
     width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    height: '100%',
     position: 'relative',
   },
   backgroundImage: {
@@ -637,10 +678,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     paddingHorizontal: SPACING.MD,
     paddingTop: SPACING.MD, // XL에서 MD로 줄임
     paddingBottom: SPACING.LG,
+  },
+  expandToggleButton: {
+    position: 'absolute',
+    top: SPACING.SM,
+    right: SPACING.SM,
+    padding: SPACING.XS,
+    borderRadius: BORDER_RADIUS.SM,
   },
   contentArea: {
     flex: 1,
