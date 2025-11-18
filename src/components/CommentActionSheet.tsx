@@ -18,6 +18,7 @@ import { useThemeStore } from '../stores/themeStore';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { FeedListItem, CommentItem } from '../types/feed';
 import { FeedService } from '../services/feedService';
+import { formatRelativeTime } from '../utils/timeUtils';
 import UserAvatar from './UserAvatar';
 import CommentList from './CommentList';
 import { CommentInput } from './CommentInput';
@@ -33,20 +34,7 @@ interface CommentActionSheetProps {
   onCommentCountUpdate?: (feedId: number, newCount: number) => void;
 }
 
-// 시간 포맷 함수
-const formatTimeAgo = (dateString: string): string => {
-  const now = new Date();
-  const postDate = new Date(dateString);
-  const diffInMinutes = Math.floor((now.getTime() - postDate.getTime()) / (1000 * 60));
 
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes}분 전`;
-  } else if (diffInMinutes < 1440) {
-    return `${Math.floor(diffInMinutes / 60)}시간 전`;
-  } else {
-    return `${Math.floor(diffInMinutes / 1440)}일 전`;
-  }
-};
 
 export default function CommentActionSheet({
   visible,
@@ -362,7 +350,7 @@ export default function CommentActionSheet({
             />
             <View style={styles.feedContent}>
               <Text style={styles.feedUsername}>{feed.user.nickname}</Text>
-              <Text style={styles.feedTime}>{formatTimeAgo(feed.created_at)}</Text>
+              <Text style={styles.feedTime}>{formatRelativeTime(feed.created_at)}</Text>
               <Text style={styles.feedText} numberOfLines={2}>
                 {feed.content_blocks.find(block => block.type === 'text')?.value || ''}
               </Text>
