@@ -60,22 +60,32 @@ export interface ShortComment {
   id: number;
   content: string;
   created_at: string;
+  updated_at: string;
   user: {
     id: number;
     nickname: string;
     profile_img: string | null;
   };
+  parent_comment_id: number | null;
+  mention_user: {
+    id: number;
+    nickname: string;
+  } | null;
   like_count: number;
   is_liked: boolean;
-  parent_comment_id?: number | null;
-  replies?: ShortComment[];
+  is_author: boolean;
+  is_deleted: boolean;
+  replies: ShortComment[];
 }
 
 // 쇼츠 댓글 목록 조회 응답
 export interface ShortCommentsResponse {
   code: number;
   message: string;
-  data: ShortComment[];
+  data: {
+    items: ShortComment[];
+    next_cursor: string | null;
+  };
 }
 
 // 쇼츠 댓글 작성 요청

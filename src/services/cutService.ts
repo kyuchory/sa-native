@@ -122,10 +122,24 @@ export class CutService {
     }
   }
 
-  // 쇼츠 댓글 목록 조회
-  static async getShortComments(shortId: number): Promise<ShortCommentsResponse> {
+  // 쇼츠 댓글 목록 조회 (커서 기반 페이지네이션)
+  static async getShortComments(
+    shortId: number,
+    cursor?: string,
+    limit: number = 20
+  ): Promise<ShortCommentsResponse> {
     try {
-      const response = await apiClient.get<ShortCommentsResponse>(`/shorts/${shortId}/comments`);
+      const queryParams = new URLSearchParams();
+
+      if (cursor) {
+        queryParams.append('cursor', cursor);
+      }
+      queryParams.append('limit', limit.toString());
+
+      const response = await apiClient.get<ShortCommentsResponse>(
+        `/shorts/${shortId}/comments?${queryParams.toString()}`
+      );
+
       return response;
     } catch (error) {
       console.error('쇼츠 댓글 목록 조회 실패:', error);

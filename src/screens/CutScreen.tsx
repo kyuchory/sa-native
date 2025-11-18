@@ -29,6 +29,7 @@ import { ShortItem } from '../types/cut';
 import { CutService } from '../services/cutService';
 import { formatRelativeTime } from '../utils/timeUtils';
 import UserAvatar from '../components/UserAvatar';
+import CutCommentActionSheet from '../components/CutCommentActionSheet';
 
 // Components
 import {
@@ -519,6 +520,8 @@ export default function CutScreen() {
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [commentSheetVisible, setCommentSheetVisible] = useState(false);
+  const [selectedShort, setSelectedShort] = useState<ShortItem | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   const LIMIT = 4;
@@ -580,11 +583,12 @@ export default function CutScreen() {
 
   // 댓글 보기
   const handleComment = useCallback((shortId: number) => {
-    Alert.alert('댓글', `컷츠 ${shortId}의 댓글을 보시겠습니까?`, [
-      { text: '취소', style: 'cancel' },
-      { text: '보기', onPress: () => console.log('댓글 보기:', shortId) },
-    ]);
-  }, []);
+    const short = shorts.find(s => s.id === shortId);
+    if (short) {
+      setSelectedShort(short);
+      setCommentSheetVisible(true);
+    }
+  }, [shorts]);
 
   // 북마크 토글
   const handleBookmark = useCallback(async (shortId: number) => {
@@ -755,6 +759,18 @@ export default function CutScreen() {
         }
 
       />
+
+      {/* 댓글 액션시트 */}
+      {selectedShort && (
+        <CutCommentActionSheet
+          visible={commentSheetVisible}
+          onClose={() => {
+            setCommentSheetVisible(false);
+            setSelectedShort(null);
+          }}
+          short={selectedShort}
+        />
+      )}
     </View>
   );
 }
