@@ -330,3 +330,19 @@ export const ChevronUpIcon = ({ size = 24, color = '#000' }: IconProps) => (
     </Svg>
   </View>
 );
+
+// 북마크 아이콘
+export const BookmarkIcon = ({ size = 28, color = '#FFFFFF', filled = false }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size * 0.9} height={size * 0.9} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill={filled ? color : "none"}
+      />
+    </Svg>
+  </View>
+);

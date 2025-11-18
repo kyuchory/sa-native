@@ -33,6 +33,7 @@ import UserAvatar from '../components/UserAvatar';
 import {
   HeartIcon,
   CommentIcon,
+  BookmarkIcon,
   ShareIcon,
   BackIcon,
   MoreVerticalIcon,
@@ -52,8 +53,8 @@ type CutScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'MainApp'
 interface ShortItemProps {
   item: ShortItem;
   isActive: boolean;
-  onLike: (shortId: number) => void;
   onComment: (shortId: number) => void;
+  onBookmark: (shortId: number) => void;
   onShare: (shortId: number) => void;
   onUpload: () => void;
 }
@@ -62,8 +63,8 @@ interface ShortItemProps {
 const ShortItemComponent: React.FC<ShortItemProps> = ({
   item,
   isActive,
-  onLike,
   onComment,
+  onBookmark,
   onShare,
   onUpload,
 }) => {
@@ -80,6 +81,91 @@ const ShortItemComponent: React.FC<ShortItemProps> = ({
 
   // 설명 접기/펼치기 상태
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
+
+  // 로컬 좋아요 상태 관리 (낙관적 UI 적용)
+  const [isLiked, setIsLiked] = useState(item.is_liked || false);
+  const [likeCount, setLikeCount] = useState(item.like_count);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
+
+  // 로컬 북마크 상태 관리 (낙관적 UI 적용)
+  const [isBookmarked, setIsBookmarked] = useState(item.is_bookmarked || false);
+  const [isBookmarkLoading, setIsBookmarkLoading] = useState(false);
+
+  // item prop이 변경될 때 상태 초기화
+  useEffect(() => {
+    setIsLiked(item.is_liked || false);
+    setLikeCount(item.like_count);
+  }, [item.is_liked, item.like_count]);
+
+  useEffect(() => {
+    setIsBookmarked(item.is_bookmarked || false);
+  }, [item.is_bookmarked]);
+
+  // 좋아요 토글 핸들러 (낙관적 UI 적용)
+  const handleLikeToggle = async () => {
+    if (isLikeLoading) return; // 이미 요청 중이면 무시
+
+    // 낙관적 UI: 즉시 상태 업데이트
+    const originalIsLiked = isLiked;
+    const originalLikeCount = likeCount;
+    const newLikeState = !isLiked;
+
+    setIsLiked(newLikeState);
+    setLikeCount(prev => newLikeState ? prev + 1 : Math.max(0, prev - 1));
+    setIsLikeLoading(true);
+
+    try {
+      // API 호출
+      const response = await CutService.toggleShortLike(item.id);
+
+      // 서버 응답으로 최종 상태 동기화
+      setIsLiked(response.data.is_liked);
+      setLikeCount(response.data.like_count);
+
+    } catch (error) {
+      console.error('좋아요 토글 실패:', error);
+
+      // 실패 시 원래 상태로 롤백
+      setIsLiked(originalIsLiked);
+      setLikeCount(originalLikeCount);
+
+      // TODO: 에러 토스트 메시지 표시
+
+    } finally {
+      setIsLikeLoading(false);
+    }
+  };
+
+  // 북마크 토글 핸들러 (낙관적 UI 적용)
+  const handleBookmarkToggle = async () => {
+    if (isBookmarkLoading) return; // 이미 요청 중이면 무시
+
+    // 낙관적 UI: 즉시 상태 업데이트
+    const originalIsBookmarked = isBookmarked;
+    const newBookmarkState = !isBookmarked;
+
+    setIsBookmarked(newBookmarkState);
+    setIsBookmarkLoading(true);
+
+    try {
+      // API 호출
+      const response = await CutService.toggleShortBookmark(item.id);
+
+      // 서버 응답으로 최종 상태 동기화
+      setIsBookmarked(response.data.is_bookmarked);
+
+    } catch (error) {
+      console.error('북마크 토글 실패:', error);
+
+      // 실패 시 원래 상태로 롤백
+      setIsBookmarked(originalIsBookmarked);
+
+      // TODO: 에러 토스트 메시지 표시
+
+    } finally {
+      setIsBookmarkLoading(false);
+    }
+  };
 
   const triggerOverlay = (isPlayingNow: boolean) => {
     setOverlayIsPlaying(isPlayingNow);
@@ -143,15 +229,24 @@ const ShortItemComponent: React.FC<ShortItemProps> = ({
         <View style={styles.rightActions}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => onLike(item.id)}
+            onPress={handleLikeToggle}
             activeOpacity={0.8}
+            disabled={isLikeLoading}
           >
-            <HeartIcon
-              size={28}
-              color={item.is_liked ? COLORS.ERROR : COLORS.WHITE}
-              filled={item.is_liked}
-            />
-            <Text style={styles.actionText}>{formatCount(item.like_count)}</Text>
+            <View style={styles.iconContainer}>
+              {isLikeLoading ? (
+                <ActivityIndicator size="small" color={COLORS.ERROR} />
+              ) : (
+                <HeartIcon
+                  size={28}
+                  color={isLiked ? COLORS.ERROR : COLORS.WHITE}
+                  filled={isLiked}
+                />
+              )}
+            </View>
+            <Text style={[styles.actionText, isLikeLoading && styles.actionLoadingText]}>
+              {formatCount(likeCount)}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -165,19 +260,29 @@ const ShortItemComponent: React.FC<ShortItemProps> = ({
 
           <TouchableOpacity
             style={styles.actionButton}
+            onPress={handleBookmarkToggle}
+            activeOpacity={0.8}
+            disabled={isBookmarkLoading}
+          >
+            <View style={styles.iconContainer}>
+              {isBookmarkLoading ? (
+                <ActivityIndicator size="small" color={COLORS.PRIMARY} />
+              ) : (
+                <BookmarkIcon size={28} color={isBookmarked ? COLORS.PRIMARY : COLORS.WHITE} filled={isBookmarked} />
+              )}
+            </View>
+            <Text style={[styles.actionText, isBookmarkLoading && styles.actionLoadingText]}>
+              저장
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
             onPress={() => onShare(item.id)}
             activeOpacity={0.8}
           >
             <ShareIcon size={28} color={COLORS.WHITE} />
             <Text style={styles.actionText}>{formatCount(item.view_count)}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.profileContainer} activeOpacity={0.8}>
-            <UserAvatar
-              profileImg={item.profile_img}
-              nickname={item.username}
-              size={60}
-            />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -207,7 +312,12 @@ const ShortItemComponent: React.FC<ShortItemProps> = ({
 
           <View style={styles.contentArea}>
             <View style={styles.userInfo}>
-              <Text style={styles.username}>@{item.username}</Text>
+              <UserAvatar
+                profileImg={item.profile_img}
+                nickname={item.username}
+                size={30}
+              />
+              <Text style={styles.username}>{item.username}</Text>
               <Text style={styles.timeText}>{formatRelativeTime(item.created_at)}</Text>
             </View>
 
@@ -276,42 +386,61 @@ const ShortItemComponent: React.FC<ShortItemProps> = ({
       <View style={styles.rightActions}>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => onLike(item.id)}
+          onPress={handleLikeToggle}
           activeOpacity={0.8}
+          disabled={isLikeLoading}
         >
-          <HeartIcon
-            size={28}
-            color={item.is_liked ? COLORS.ERROR : COLORS.WHITE}
-            filled={item.is_liked}
-          />
-          <Text style={styles.actionText}>{formatCount(item.like_count)}</Text>
+          <View style={styles.iconContainer}>
+            {isLikeLoading ? (
+              <ActivityIndicator size="small" color={COLORS.ERROR} />
+            ) : (
+              <HeartIcon
+                size={28}
+                color={isLiked ? COLORS.ERROR : COLORS.WHITE}
+                filled={isLiked}
+              />
+            )}
+          </View>
+<Text style={[styles.actionText, isLikeLoading && styles.actionLoadingText]}>
+              {formatCount(likeCount)}
+            </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => onComment(item.id)}
-          activeOpacity={0.8}
-        >
-          <CommentIcon size={28} color={COLORS.WHITE} />
-          <Text style={styles.actionText}>{formatCount(item.comment_count)}</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => onComment(item.id)}
+            activeOpacity={0.8}
+          >
+            <CommentIcon size={28} color={COLORS.WHITE} />
+            <Text style={styles.actionText}>{formatCount(item.comment_count)}</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => onShare(item.id)}
-          activeOpacity={0.8}
-        >
-          <ShareIcon size={28} color={COLORS.WHITE} />
-          <Text style={styles.actionText}>{formatCount(item.view_count)}</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleBookmarkToggle}
+            activeOpacity={0.8}
+            disabled={isBookmarkLoading}
+          >
+            <View style={styles.iconContainer}>
+              {isBookmarkLoading ? (
+                <ActivityIndicator size="small" color={COLORS.PRIMARY} />
+              ) : (
+                <BookmarkIcon size={28} color={isBookmarked ? COLORS.PRIMARY : COLORS.WHITE} filled={isBookmarked} />
+              )}
+            </View>
+            <Text style={[styles.actionText, isBookmarkLoading && styles.actionLoadingText]}>
+              저장
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.profileContainer} activeOpacity={0.8}>
-          <UserAvatar
-            profileImg={item.profile_img}
-            nickname={item.username}
-            size={60}
-          />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => onShare(item.id)}
+            activeOpacity={0.8}
+          >
+            <ShareIcon size={28} color={COLORS.WHITE} />
+            <Text style={styles.actionText}>{formatCount(item.view_count)}</Text>
+          </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.actionButton}
@@ -340,7 +469,12 @@ const ShortItemComponent: React.FC<ShortItemProps> = ({
 
         <View style={styles.contentArea}>
           <View style={styles.userInfo}>
-            <Text style={styles.username}>@{item.username}</Text>
+            <UserAvatar
+              profileImg={item.profile_img}
+              nickname={item.username}
+              size={30}
+            />
+            <Text style={styles.username}>{item.username}</Text>
             <Text style={styles.timeText}>{formatRelativeTime(item.created_at)}</Text>
           </View>
 
@@ -439,25 +573,7 @@ export default function CutScreen() {
     fetchInitial();
   }, []);
 
-  // 좋아요 토글
-  const handleLike = useCallback(async (shortId: number) => {
-    try {
-      const response = await CutService.toggleShortLike(shortId);
-      setShorts(prev =>
-        prev.map(short =>
-          short.id === shortId
-            ? {
-                ...short,
-                is_liked: response.data.is_liked,
-                like_count: response.data.like_count,
-              }
-            : short
-        )
-      );
-    } catch (error) {
-      console.error('좋아요 실패:', error);
-    }
-  }, []);
+
 
   // 댓글 보기
   const handleComment = useCallback((shortId: number) => {
@@ -465,6 +581,17 @@ export default function CutScreen() {
       { text: '취소', style: 'cancel' },
       { text: '보기', onPress: () => console.log('댓글 보기:', shortId) },
     ]);
+  }, []);
+
+  // 북마크 토글
+  const handleBookmark = useCallback(async (shortId: number) => {
+    try {
+      const response = await CutService.toggleShortBookmark(shortId);
+      console.log('북마크 상태 변경:', response.data.is_bookmarked);
+      // TODO: UI 업데이트 또는 피드 새로고침
+    } catch (error) {
+      console.error('북마크 토글 실패:', error);
+    }
   }, []);
 
   // 공유하기
@@ -505,14 +632,14 @@ export default function CutScreen() {
         <ShortItemComponentMemo
           item={item}
           isActive={isFocused && index === currentIndex}
-          onLike={handleLike}
           onComment={handleComment}
+          onBookmark={handleBookmark}
           onShare={handleShare}
           onUpload={handleUpload}
         />
       </View>
     ),
-    [ITEM_HEIGHT, isFocused, currentIndex, handleLike, handleComment, handleShare, handleUpload]
+    [ITEM_HEIGHT, isFocused, currentIndex, handleComment, handleBookmark, handleShare, handleUpload]
   );
 
   return (
@@ -652,7 +779,7 @@ const styles = StyleSheet.create({
   // 오른쪽 액션 버튼들
   rightActions: {
     position: 'absolute',
-    right: SPACING.XS,  // MD에서 SM으로 변경해 더 오른쪽으로 붙임
+    right: SPACING.SM,  // MD에서 SM으로 변경해 더 오른쪽으로 붙임
     bottom: 200,
     alignItems: 'center',
     gap: SPACING.LG,
@@ -669,6 +796,15 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
+  actionLoadingText: {
+    opacity: 0.6,
+  },
+  iconContainer: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   profileContainer: {
     marginTop: SPACING.MD,
   },
@@ -679,7 +815,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
     paddingHorizontal: SPACING.MD,
     paddingTop: SPACING.MD, // XL에서 MD로 줄임
     paddingBottom: SPACING.LG,
