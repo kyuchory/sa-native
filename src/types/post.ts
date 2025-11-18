@@ -131,9 +131,8 @@ export interface Comment {
 
 // 댓글 목록 조회 응답
 export interface CommentsResponse {
-  code: number;
-  message: string;
-  data: Comment[];
+  items: Comment[];
+  next_cursor: string | null;
 }
 
 // 댓글 작성 요청

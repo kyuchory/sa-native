@@ -295,7 +295,9 @@ export default function PostDetailScreen() {
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [isBookmarkLoading, setIsBookmarkLoading] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isCommentLoading, setIsCommentLoading] = useState(false);
+  const [isLoadMoreLoading, setIsLoadMoreLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
@@ -335,12 +337,29 @@ export default function PostDetailScreen() {
       setLikeCount(postData.like_count);
       setBookmarkCount(postData.bookmark_count);
       const commentsData = await PostService.getComments(postId);
-      setComments(commentsData);
+      setComments(commentsData.items);
+      setNextCursor(commentsData.next_cursor);
     } catch (error) {
       Alert.alert('오류', '게시물을 불러오는데 실패했습니다.');
       navigation.goBack();
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 더 많은 댓글 로드
+  const loadMoreComments = async () => {
+    if (isLoadMoreLoading || !nextCursor) return;
+
+    try {
+      setIsLoadMoreLoading(true);
+      const response = await PostService.getComments(postId, nextCursor);
+      setComments(prev => [...prev, ...response.items]);
+      setNextCursor(response.next_cursor);
+    } catch (error) {
+      console.error('댓글 더 불러오기 실패:', error);
+    } finally {
+      setIsLoadMoreLoading(false);
     }
   };
 
@@ -491,7 +510,8 @@ export default function PostDetailScreen() {
 
       // 댓글 목록 새로고침
       const updatedComments = await PostService.getComments(postId);
-      setComments(updatedComments);
+      setComments(updatedComments.items);
+      setNextCursor(updatedComments.next_cursor);
 
       // 게시물 목록 새로고침 플래그 설정
       setShouldRefreshPosts(true);
@@ -532,7 +552,8 @@ export default function PostDetailScreen() {
 
       // 댓글 목록 새로고침
       const updatedComments = await PostService.getComments(postId);
-      setComments(updatedComments);
+      setComments(updatedComments.items);
+      setNextCursor(updatedComments.next_cursor);
 
       // 답글 입력 모드 종료
       setReplyingTo(null);
@@ -571,7 +592,8 @@ export default function PostDetailScreen() {
 
       // 댓글 목록 새로고침
       const updatedComments = await PostService.getComments(postId);
-      setComments(updatedComments);
+      setComments(updatedComments.items);
+      setNextCursor(updatedComments.next_cursor);
 
       // 수정 모드 종료
       setEditingComment(null);
@@ -606,7 +628,8 @@ export default function PostDetailScreen() {
 
               // 댓글 목록 새로고침
               const updatedComments = await PostService.getComments(postId);
-              setComments(updatedComments);
+              setComments(updatedComments.items);
+              setNextCursor(updatedComments.next_cursor);
 
             } catch (error) {
               Alert.alert('오류', '댓글 삭제에 실패했습니다.');
@@ -879,10 +902,13 @@ export default function PostDetailScreen() {
           {/* 댓글 목록 */}
           <CommentList
             comments={comments}
+            totalCount={post.comment_count}
+            hasNextPage={!!nextCursor}
             onCommentLike={handleCommentLike}
             onReplyPress={handleReplyPress}
             onEditComment={handleEditComment}
             onDeleteComment={handleDeleteComment}
+            onLoadMore={loadMoreComments}
           />
 
         </ScrollView>

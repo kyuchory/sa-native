@@ -64,7 +64,9 @@ export default function CommentActionSheet({
 
   // 상태 관리
   const [comments, setComments] = useState<CommentItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadMoreLoading, setIsLoadMoreLoading] = useState(false);
   const [isCommentLoading, setIsCommentLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
@@ -129,11 +131,28 @@ export default function CommentActionSheet({
     try {
       setIsLoading(true);
       const response = await FeedService.getComments(feed.id);
-      setComments(response);
+      setComments(response.items);
+      setNextCursor(response.next_cursor);
     } catch (error) {
       console.error('댓글 로드 실패:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 더 많은 댓글 로드
+  const loadMoreComments = async () => {
+    if (isLoadMoreLoading || !nextCursor) return;
+
+    try {
+      setIsLoadMoreLoading(true);
+      const response = await FeedService.getComments(feed.id, nextCursor);
+      setComments(prev => [...prev, ...response.items]);
+      setNextCursor(response.next_cursor);
+    } catch (error) {
+      console.error('댓글 더 불러오기 실패:', error);
+    } finally {
+      setIsLoadMoreLoading(false);
     }
   };
 
@@ -184,10 +203,11 @@ export default function CommentActionSheet({
 
       // 댓글 목록 새로고침
       const updatedComments = await FeedService.getComments(feed.id);
-      setComments(updatedComments);
+      setComments(updatedComments.items);
+      setNextCursor(updatedComments.next_cursor);
 
-      // 부모에게 댓글 수 업데이트 알림
-      onCommentCountUpdate?.(feed.id, updatedComments.length);
+      // 부모에게 댓글 수 업데이트 알림 (전체 댓글 수는 피드에서 관리하므로 여기서는 임시로 사용)
+      onCommentCountUpdate?.(feed.id, comments.length + 1);
     } catch (error) {
       console.error('댓글 작성 실패:', error);
     } finally {
@@ -215,11 +235,12 @@ export default function CommentActionSheet({
 
       // 댓글 목록 새로고침
       const updatedComments = await FeedService.getComments(feed.id);
-      setComments(updatedComments);
+      setComments(updatedComments.items);
+      setNextCursor(updatedComments.next_cursor);
       setReplyingTo(null);
 
       // 부모에게 댓글 수 업데이트 알림
-      onCommentCountUpdate?.(feed.id, updatedComments.length);
+      onCommentCountUpdate?.(feed.id, comments.length + 1);
     } catch (error) {
       console.error('답글 작성 실패:', error);
     } finally {
@@ -263,7 +284,8 @@ export default function CommentActionSheet({
 
       // 댓글 목록 새로고침
       const updatedComments = await FeedService.getComments(feed.id);
-      setComments(updatedComments);
+      setComments(updatedComments.items);
+      setNextCursor(updatedComments.next_cursor);
       setEditingComment(null);
     } catch (error) {
       console.error('댓글 수정 실패:', error);
@@ -289,10 +311,11 @@ export default function CommentActionSheet({
 
               // 댓글 목록 새로고침
               const updatedComments = await FeedService.getComments(feed.id);
-              setComments(updatedComments);
+              setComments(updatedComments.items);
+              setNextCursor(updatedComments.next_cursor);
 
               // 부모에게 댓글 수 업데이트 알림
-              onCommentCountUpdate?.(feed.id, updatedComments.length);
+              onCommentCountUpdate?.(feed.id, comments.length - 1);
             } catch (error) {
               console.error('댓글 삭제 실패:', error);
             } finally {
@@ -359,10 +382,13 @@ export default function CommentActionSheet({
             ) : (
               <CommentList
                 comments={comments}
+                totalCount={feed.comment_count}
+                hasNextPage={!!nextCursor}
                 onCommentLike={onCommentLikePress}
                 onReplyPress={(comment: any) => onReplyPress(comment.id, comment.user?.nickname || 'Unknown')}
                 onEditComment={onEditComment}
                 onDeleteComment={onDeleteComment}
+                onLoadMore={loadMoreComments}
               />
             )}
           </ScrollView>

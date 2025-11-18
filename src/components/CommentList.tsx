@@ -143,14 +143,36 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.SM,
     color: colors.GRAY_400,
   },
+
+  // 더 불러오기
+  loadMoreContainer: {
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.MD,
+    alignItems: 'center',
+  },
+  loadMoreButton: {
+    paddingHorizontal: SPACING.LG,
+    paddingVertical: SPACING.SM,
+    borderWidth: 1,
+    borderColor: colors.PRIMARY,
+    borderRadius: BORDER_RADIUS.MD,
+  },
+  loadMoreText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.PRIMARY,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+  },
 });
 
 interface CommentListProps {
   comments: (FeedComment | Comment)[];
+  totalCount?: number;
+  hasNextPage?: boolean;
   onCommentLike?: (commentId: number) => void;
   onReplyPress?: (comment: FeedComment | Comment) => void;
   onEditComment?: (commentId: number) => void;
   onDeleteComment?: (commentId: number) => void;
+  onLoadMore?: () => void;
 }
 
 interface CommentItemProps {
@@ -346,10 +368,13 @@ const CommentItem = ({
 // 댓글 리스트 메인 컴포넌트
 export default function CommentList({
   comments,
+  totalCount,
+  hasNextPage = false,
   onCommentLike,
   onReplyPress,
   onEditComment,
-  onDeleteComment
+  onDeleteComment,
+  onLoadMore
 }: CommentListProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
@@ -365,7 +390,7 @@ export default function CommentList({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>댓글 {comments.length}개</Text>
+        <Text style={styles.title}>댓글 {totalCount || comments.length}개</Text>
       </View>
 
       {comments.map((comment) => (
@@ -396,6 +421,19 @@ export default function CommentList({
           )}
         </View>
       ))}
+
+      {/* 더 불러오기 버튼 */}
+      {hasNextPage && (
+        <View style={styles.loadMoreContainer}>
+          <TouchableOpacity
+            style={styles.loadMoreButton}
+            onPress={onLoadMore}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.loadMoreText}>댓글 불러오기</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }

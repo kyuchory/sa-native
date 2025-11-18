@@ -135,11 +135,12 @@ export interface CommentItem {
 
 // 댓글 목록 조회 응답 데이터
 export interface CommentListResponse {
-  data: CommentItem[];
+  items: CommentItem[];
+  next_cursor: string | null;
 }
 
 // 댓글 목록 조회 API 응답
-export type CommentListApiResponse = ApiResponse<CommentItem[]>;
+export type CommentListApiResponse = ApiResponse<CommentListResponse>;
 
 // 피드 단일 조회 응답 데이터 (상세 조회용, 모든 이미지 포함)
 export interface FeedDetailResponse {

@@ -16,6 +16,7 @@ import {
   CreateFeedCommentResponse,
   CreateFeedResponse,
   CommentListApiResponse,
+  CommentListResponse,
   CommentItem,
   ToggleCommentLikeResponse,
   ToggleCommentLikeApiResponse,
@@ -97,10 +98,17 @@ export class FeedService {
   }
 
   // 댓글 목록 조회
-  static async getComments(feedId: number): Promise<CommentItem[]> {
+  static async getComments(feedId: number, cursor?: string, limit: number = 20): Promise<CommentListResponse> {
     try {
+      const queryParams = new URLSearchParams();
+
+      if (cursor) {
+        queryParams.append('cursor', cursor);
+      }
+      queryParams.append('limit', limit.toString());
+
       const response = await apiClient.get<CommentListApiResponse>(
-        `/feeds/${feedId}/comments`
+        `/feeds/${feedId}/comments?${queryParams.toString()}`
       );
       return response.data!;
     } catch (error) {

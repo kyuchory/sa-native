@@ -270,7 +270,9 @@ export default function FeedDetailScreen() {
 
   // 댓글 관련 상태 관리
   const [comments, setComments] = useState<CommentItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isCommentLoading, setIsCommentLoading] = useState(false);
+  const [isLoadMoreLoading, setIsLoadMoreLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
@@ -335,13 +337,30 @@ export default function FeedDetailScreen() {
 
       // 댓글 데이터 로드
       const commentsResponse = await FeedService.getComments(feedId);
-      setComments(commentsResponse);
+      setComments(commentsResponse.items);
+      setNextCursor(commentsResponse.next_cursor);
     } catch (error) {
       console.error('피드 상세 조회 실패:', error);
       setError('피드를 불러오는데 실패했습니다.');
       navigation.goBack();
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 더 많은 댓글 로드
+  const loadMoreComments = async () => {
+    if (isLoadMoreLoading || !nextCursor) return;
+
+    try {
+      setIsLoadMoreLoading(true);
+      const response = await FeedService.getComments(feedId, nextCursor);
+      setComments(prev => [...prev, ...response.items]);
+      setNextCursor(response.next_cursor);
+    } catch (error) {
+      console.error('댓글 더 불러오기 실패:', error);
+    } finally {
+      setIsLoadMoreLoading(false);
     }
   };
 
@@ -503,7 +522,8 @@ export default function FeedDetailScreen() {
 
       // 댓글 목록 새로고침
       const updatedComments = await FeedService.getComments(feedId);
-      setComments(updatedComments);
+      setComments(updatedComments.items);
+      setNextCursor(updatedComments.next_cursor);
 
       // 피드 목록 새로고침 플래그 설정 (댓글 작성 반영)
       setShouldRefreshFeeds(true);
@@ -539,7 +559,8 @@ export default function FeedDetailScreen() {
 
       // 댓글 목록 새로고침
       const updatedComments = await FeedService.getComments(feedId);
-      setComments(updatedComments);
+      setComments(updatedComments.items);
+      setNextCursor(updatedComments.next_cursor);
 
       // 피드 목록 새로고침 플래그 설정 (답글 작성 반영)
       setShouldRefreshFeeds(true);
@@ -594,7 +615,8 @@ export default function FeedDetailScreen() {
 
       // 댓글 목록 새로고침
       const updatedComments = await FeedService.getComments(feedId);
-      setComments(updatedComments);
+      setComments(updatedComments.items);
+      setNextCursor(updatedComments.next_cursor);
 
       // 수정 모드 종료
       setEditingComment(null);
@@ -619,7 +641,8 @@ export default function FeedDetailScreen() {
 
       // 댓글 목록 새로고침
       const updatedComments = await FeedService.getComments(feedId);
-      setComments(updatedComments);
+      setComments(updatedComments.items);
+      setNextCursor(updatedComments.next_cursor);
 
       console.log('댓글 삭제 성공:', commentId);
 
@@ -987,10 +1010,13 @@ export default function FeedDetailScreen() {
         {/* 댓글 섹션 */}
         <CommentList
           comments={comments}
+          totalCount={feed.comment_count}
+          hasNextPage={!!nextCursor}
           onCommentLike={onCommentLikePress}
           onReplyPress={(comment: any) => onReplyPress(comment.id, comment.user?.nickname || 'Unknown')}
           onEditComment={onEditComment}
           onDeleteComment={onDeleteComment}
+          onLoadMore={loadMoreComments}
         />
       </ScrollView>
 

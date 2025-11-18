@@ -196,10 +196,19 @@ export class PostService {
   // === 댓글 관련 API ===
 
   // 댓글 목록 조회
-  static async getComments(postId: number): Promise<Comment[]> {
+  static async getComments(postId: number, cursor?: string, limit: number = 20): Promise<CommentsResponse> {
     try {
-      const response = await apiClient.get<ApiResponse<Comment[]>>(`/posts/${postId}/comments`);
-      return response.data || [];
+      const queryParams = new URLSearchParams();
+
+      if (cursor) {
+        queryParams.append('cursor', cursor);
+      }
+      queryParams.append('limit', limit.toString());
+
+      const response = await apiClient.get<ApiResponse<CommentsResponse>>(
+        `/posts/${postId}/comments?${queryParams.toString()}`
+      );
+      return response.data!;
     } catch (error) {
       console.error('댓글 목록 조회 실패:', error);
       throw error;
