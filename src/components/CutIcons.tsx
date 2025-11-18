@@ -301,8 +301,7 @@ export const AlertIcon = ({ size = 24, color = '#000' }: IconProps) => (
   </View>
 );
 
-<<<<<<< HEAD
-//// 아래 화살표 아이콘 (접기, collapse)
+// 아래 화살표 아이콘 (접기, collapse)
 export const ChevronDownIcon = ({ size = 24, color = '#000' }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size * 0.8} height={size * 0.8} viewBox="0 0 24 24" fill="none">
@@ -342,13 +341,16 @@ export const BookmarkIcon = ({ size = 28, color = '#FFFFFF', filled = false }: I
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
-        fill={filled ? color : "none"}
-=======
+        fill={filled ? color : 'none'}
+      />
+    </Svg>
+  </View>
+);
+
 // 빈 컷츠 상태 아이콘 (영화 플레이 버튼 스타일)
 export const CutEmptyIcon = ({ size = 24, color = '#000' }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* 사각형 테두리 */}
       <Rect
         x="2"
         y="2"
@@ -360,7 +362,6 @@ export const CutEmptyIcon = ({ size = 24, color = '#000' }: IconProps) => (
         strokeWidth="2"
         fill="none"
       />
-      {/* 플레이 버튼 */}
       <Polygon
         points="8.5,6.5 15.5,12 8.5,17.5"
         stroke={color}
@@ -368,7 +369,6 @@ export const CutEmptyIcon = ({ size = 24, color = '#000' }: IconProps) => (
         strokeLinecap="round"
         strokeLinejoin="round"
         fill={color}
->>>>>>> 45dd923aae9551437caaad9230961f60593fd882
       />
     </Svg>
   </View>

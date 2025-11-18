@@ -41,12 +41,9 @@ import {
   UploadIcon,
   PlayIcon,
   PauseIcon,
-<<<<<<< HEAD
   ChevronDownIcon,
   ChevronUpIcon,
-=======
   CutEmptyIcon,
->>>>>>> 45dd923aae9551437caaad9230961f60593fd882
 } from '../components/CutIcons';
 
 // 실제 컷츠 API 사용
@@ -510,15 +507,12 @@ const ShortItemComponentMemo = React.memo(ShortItemComponent);
 
 export default function CutScreen() {
   const navigation = useNavigation<CutScreenNavigationProp>();
-<<<<<<< HEAD
   const isFocused = useIsFocused();
 
   const [containerHeight, setContainerHeight] = useState<number | null>(null);
   const ITEM_HEIGHT = containerHeight ?? SCREEN_HEIGHT;
 
-=======
   const { colors } = useThemeStore();
->>>>>>> 45dd923aae9551437caaad9230961f60593fd882
   const [shorts, setShorts] = useState<ShortItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(false);
@@ -585,11 +579,7 @@ export default function CutScreen() {
 
 
   // 댓글 보기
-<<<<<<< HEAD
   const handleComment = useCallback((shortId: number) => {
-=======
-  const handleComment = (shortId: number) => {
->>>>>>> 45dd923aae9551437caaad9230961f60593fd882
     Alert.alert('댓글', `컷츠 ${shortId}의 댓글을 보시겠습니까?`, [
       { text: '취소', style: 'cancel' },
       { text: '보기', onPress: () => console.log('댓글 보기:', shortId) },
@@ -655,8 +645,6 @@ export default function CutScreen() {
     [ITEM_HEIGHT, isFocused, currentIndex, handleComment, handleBookmark, handleShare, handleUpload]
   );
 
-<<<<<<< HEAD
-=======
   // 로딩 중
   if (isInitialLoading) {
     return (
@@ -716,7 +704,6 @@ export default function CutScreen() {
     );
   }
 
->>>>>>> 45dd923aae9551437caaad9230961f60593fd882
   return (
     <View
       style={styles.container}
@@ -738,66 +725,6 @@ export default function CutScreen() {
         </TouchableOpacity>
       </View>
 
-<<<<<<< HEAD
-      {/* 로딩 중 */}
-      {isInitialLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.PRIMARY} />
-          <Text style={styles.loadingText}>컷츠 불러오는 중...</Text>
-        </View>
-      ) : error ? (
-        // 에러 상태
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>🎬</Text>
-          <Text style={styles.errorMessage}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={fetchInitial}>
-            <Text style={styles.retryText}>다시 시도</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        // 정상 컷츠 리스트
-        <FlatList
-          ref={flatListRef}
-          data={shorts}
-          renderItem={renderShortItem}
-          keyExtractor={(item) => item.id.toString()}
-          pagingEnabled
-          showsVerticalScrollIndicator={false}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewabilityConfig}
-          onEndReached={fetchMore}
-          onEndReachedThreshold={0.5}
-          getItemLayout={(data, index) => ({
-            length: ITEM_HEIGHT,
-            offset: ITEM_HEIGHT * index,
-            index,
-          })}
-          initialNumToRender={3}
-          maxToRenderPerBatch={3}
-          windowSize={3}
-          ListFooterComponent={
-            isFetchingMore ? (
-              <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color={COLORS.WHITE} />
-                <Text style={styles.footerLoaderText}>더 많은 컷츠 불러오는 중...</Text>
-              </View>
-            ) : null
-          }
-          ListEmptyComponent={
-            shorts.length === 0 && !isInitialLoading ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyEmoji}>🎬</Text>
-                <Text style={styles.emptyTitle}>시청 가능한 컷츠가 없습니다</Text>
-                <Text style={styles.emptyMessage}>첫 번째 컷츠를 올려보세요!</Text>
-                <TouchableOpacity style={styles.emptyButton} onPress={handleUpload}>
-                  <Text style={styles.emptyButtonText}>컷츠 제작하기</Text>
-                </TouchableOpacity>
-              </View>
-            ) : null
-          }
-        />
-      )}
-=======
       {/* 컷츠 리스트 */}
       <FlatList
         ref={flatListRef}
@@ -828,7 +755,6 @@ export default function CutScreen() {
         }
 
       />
->>>>>>> 45dd923aae9551437caaad9230961f60593fd882
     </View>
   );
 }
