@@ -188,33 +188,46 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
   }, []);
 
   const generateThumbnails = useCallback(async (uri: string, dur: number) => {
+    const thumbnailCount = 10;
+    const interval = dur / thumbnailCount;
+    const thumbs: string[] = [];
+    let orientationSet = false;
+
     try {
-      const thumbnailCount = 10;
-      const interval = dur / thumbnailCount;
-      const thumbs: string[] = [];
-
       for (let i = 0; i < thumbnailCount; i++) {
-        const time = Math.floor(i * interval); // 소수점 제거
-        const result = await VideoThumbnails.getThumbnailAsync(uri, {
-          time,
-          quality: 0.5,
-        });
-        thumbs.push(result.uri);
+        // 끝 프레임 근처에서 깨지는 걸 방지하려고 약간 여유를 둠
+        const rawTime = i * interval;
+        const time = Math.max(0, Math.min(dur - 200, Math.floor(rawTime)));
 
-        // 첫 번째 썸네일로 실제 방향 확인
-        if (i === 0 && result.width && result.height) {
-          const thumbnailAspectRatio = result.width / result.height;
-          const orientation = thumbnailAspectRatio > 1 ? 'landscape' : 'portrait';
-          setActualVideoOrientation(orientation);
-          setIsVideoReady(true);
-          console.log('🖼️ 썸네일 크기:', result.width, result.height, '방향:', orientation);
+        try {
+          const result = await VideoThumbnails.getThumbnailAsync(uri, {
+            time,
+            quality: 0.5,
+          });
+
+          thumbs.push(result.uri);
+
+          if (!orientationSet && result.width && result.height) {
+            const thumbnailAspectRatio = result.width / result.height;
+            const orientation = thumbnailAspectRatio > 1 ? 'landscape' : 'portrait';
+            setActualVideoOrientation(orientation);
+            setIsVideoReady(true);
+            orientationSet = true;
+
+            console.log('🖼️ 썸네일 크기:', result.width, result.height, '방향:', orientation);
+          }
+        } catch (err) {
+          console.warn('⚠️ 썸네일 1개 생성 실패 (time ms:', time, '):', err);
+          // 여기서는 그냥 스킵하고 다음 프레임으로 진행
         }
       }
 
       setThumbnails(thumbs);
     } catch (error) {
-      console.error('❌ 썸네일 생성 실패:', error);
-      setIsVideoReady(true); // 실패해도 계속 진행
+      console.error('❌ 전체 썸네일 생성 중 예상치 못한 에러:', error);
+    } finally {
+      // 썸네일 몇 개만 성공해도 크롭/트림 UI는 쓸 수 있게 true 처리
+      setIsVideoReady(true);
     }
   }, []);
 

@@ -15,6 +15,7 @@ import { useThemeStore } from '../stores/themeStore';
 import CommonHeader from '../components/CommonHeader';
 import { CameraIcon, GalleryIcon, AlertIcon } from '../components/CutIcons';
 import { SPACING, TYPOGRAPHY, COLORS, BORDER_RADIUS } from '../constants/theme';
+import { normalizeVideoUri } from '../utils/normalizeVideoUri';
 
 type CutUploadSelectNavigationProp = StackNavigationProp<any, any>;
 
@@ -45,7 +46,8 @@ export default function CutUploadSelectScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        const videoUri = result.assets[0].uri;
+        // ✅ iOS 썸네일 생성 문제 해결:URI 정규화
+        const videoUri = await normalizeVideoUri(result.assets[0]);
 
         // VideoTrimCropScreen으로 이동
         navigation.navigate('VideoTrimCrop', {
@@ -84,7 +86,8 @@ export default function CutUploadSelectScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        const videoUri = result.assets[0].uri;
+        // ✅ iOS 썸네일 생성 문제 해결:URI 정규화
+        const videoUri = await normalizeVideoUri(result.assets[0]);
 
         // VideoTrimCropScreen으로 이동
         navigation.navigate('VideoTrimCrop', {
