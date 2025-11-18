@@ -15,6 +15,7 @@ import { useThemeStore } from '../stores/themeStore';
 import CommonHeader from '../components/CommonHeader';
 import { CameraIcon, GalleryIcon, AlertIcon } from '../components/CutIcons';
 import { SPACING, TYPOGRAPHY, COLORS, BORDER_RADIUS } from '../constants/theme';
+import { normalizeVideoUri } from '../utils/normalizeVideoUri';
 
 type CutUploadSelectNavigationProp = StackNavigationProp<any, any>;
 
@@ -38,14 +39,15 @@ export default function CutUploadSelectScreen() {
 
       // 카메라로 비디오 촬영 (기본 촬영 시간 제한 없음)
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        mediaTypes: ['videos'],
         quality: 0.8,
         videoMaxDuration: 0, // 제한 없음 (VideoTrimCrop에서 30초 이하로 편집)
         allowsEditing: false,
       });
 
       if (!result.canceled && result.assets[0]) {
-        const videoUri = result.assets[0].uri;
+        // ✅ iOS 썸네일 생성 문제 해결:URI 정규화
+        const videoUri = await normalizeVideoUri(result.assets[0]);
 
         // VideoTrimCropScreen으로 이동
         navigation.navigate('VideoTrimCrop', {
@@ -77,14 +79,15 @@ export default function CutUploadSelectScreen() {
 
       // 갤러리에서 비디오 선택 (기본 제한 없음)
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        mediaTypes: ['videos'],
         quality: 0.8,
         videoMaxDuration: 0, // 제한 없음
         allowsEditing: false,
       });
 
       if (!result.canceled && result.assets[0]) {
-        const videoUri = result.assets[0].uri;
+        // ✅ iOS 썸네일 생성 문제 해결:URI 정규화
+        const videoUri = await normalizeVideoUri(result.assets[0]);
 
         // VideoTrimCropScreen으로 이동
         navigation.navigate('VideoTrimCrop', {

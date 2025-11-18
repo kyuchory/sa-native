@@ -9,6 +9,7 @@ import {
   Dimensions,
   TextInput,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -148,7 +149,7 @@ export default function CutUploadFinalizeScreen() {
               style={styles.uploadButton}
             >
               {isUploading ? (
-                <Text style={styles.uploadButtonText}>업로드 중...</Text>
+                <ActivityIndicator size="small" color={colors.WHITE} />
               ) : (
                 <Text style={styles.uploadButtonText}>게시</Text>
               )}
