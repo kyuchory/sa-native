@@ -92,6 +92,31 @@ export interface ShortCommentsResponse {
 export interface CreateShortCommentRequest {
   content: string;
   parent_comment_id?: number | null;
+  mention_user_id?: number | null;
+}
+
+// 쇼츠 댓글 작성 응답
+export interface CreateShortCommentResponse {
+  code: number;
+  message: string;
+  data: {
+    commentId: number;
+  };
+}
+
+// 쇼츠 댓글 수정 요청
+export interface UpdateShortCommentRequest {
+  content: string;
+}
+
+// 쇼츠 댓글 수정 응답
+export interface UpdateShortCommentResponse {
+  code: number;
+  message: string;
+  data: {
+    id: number;
+    updated_at: string;
+  };
 }
 
 // 쇼츠 공유 요청

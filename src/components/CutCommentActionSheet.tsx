@@ -31,12 +31,14 @@ interface CutCommentActionSheetProps {
   visible: boolean;
   onClose: () => void;
   short: ShortItem;
+  onCommentCountUpdate?: (shortId: number, newCount: number) => void;
 }
 
 export default function CutCommentActionSheet({
   visible,
   onClose,
   short,
+  onCommentCountUpdate,
 }: CutCommentActionSheetProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
@@ -115,6 +117,7 @@ export default function CutCommentActionSheet({
     try {
       setIsLoading(true);
       const response = await CutService.getShortComments(short.id);
+      console.log('로드된 댓글:', response.data.items);
       setComments(response.data.items);
       setNextCursor(response.data.next_cursor);
     } catch (error) {
@@ -186,17 +189,20 @@ export default function CutCommentActionSheet({
     try {
       setIsCommentLoading(true);
 
-      // TODO: 쇼츠 댓글 작성 API 호출
-      // await CutService.createShortComment(short.id, { content: text });
+      // 쇼츠 댓글 작성 API 호출
+      await CutService.createShortComment(short.id, { content: text });
 
-      // 성공했다고 가정하고 로그만 출력 + 목록 새로고침
-      console.log('쇼츠 댓글 작성 TO DO:', text);
+      // 댓글 목록 새로고침
       const updatedComments = await CutService.getShortComments(short.id);
       setComments(updatedComments.data.items);
       setNextCursor(updatedComments.data.next_cursor);
 
+      // 부모에게 댓글 수 업데이트 알림
+      onCommentCountUpdate?.(short.id, comments.length + 1);
+
     } catch (error) {
       console.error('댓글 작성 실패:', error);
+      Alert.alert('오류', '댓글 작성에 실패했습니다.');
     } finally {
       setIsCommentLoading(false);
     }
@@ -214,23 +220,27 @@ export default function CutCommentActionSheet({
         .flatMap(c => [c, ...(c.replies || [])])
         .find(c => c.user.nickname === replyingTo.userName)?.user.id;
 
-      // TODO: 쇼츠 답글 작성 API 호출
-      // await CutService.createShortComment(short.id, {
-      //   content: text,
-      //   parent_comment_id: replyingTo.commentId,
-      //   mention_user_id: mentionUserId || null
-      // });
+      // 쇼츠 답글 작성 API 호출
+      await CutService.createShortComment(short.id, {
+        content: text,
+        parent_comment_id: replyingTo.commentId,
+        mention_user_id: mentionUserId || null
+      });
 
-      // 성공했다고 가정하고 로그만 출력 + 목록 새로고침
-      console.log('쇼츠 답글 작성 TO DO:', text);
+      // 댓글 목록 새로고침
       const updatedComments = await CutService.getShortComments(short.id);
       setComments(updatedComments.data.items);
       setNextCursor(updatedComments.data.next_cursor);
 
+      // 답글 입력 모드 종료
       setReplyingTo(null);
+
+      // 부모에게 댓글 수 업데이트 알림
+      onCommentCountUpdate?.(short.id, comments.length + 1);
 
     } catch (error) {
       console.error('답글 작성 실패:', error);
+      Alert.alert('오류', '답글 작성에 실패했습니다.');
     } finally {
       setIsCommentLoading(false);
     }
@@ -269,19 +279,20 @@ export default function CutCommentActionSheet({
     try {
       setIsCommentLoading(true);
 
-      // TODO: 쇼츠 댓글 수정 API 호출
-      // const response = await CutService.updateShortComment(short.id, editingComment.commentId, { content: text });
+      // 쇼츠 댓글 수정 API 호출
+      await CutService.updateShortComment(short.id, editingComment.commentId, { content: text });
 
-      // 성공했다고 가정하고 로그만 출력 + 목록 새로고침
-      console.log('쇼츠 댓글 수정 TO DO:', text);
+      // 댓글 목록 새로고침
       const updatedComments = await CutService.getShortComments(short.id);
       setComments(updatedComments.data.items);
       setNextCursor(updatedComments.data.next_cursor);
 
+      // 수정 모드 종료
       setEditingComment(null);
 
     } catch (error) {
       console.error('댓글 수정 실패:', error);
+      Alert.alert('오류', '댓글 수정에 실패했습니다.');
     } finally {
       setIsCommentLoading(false);
     }

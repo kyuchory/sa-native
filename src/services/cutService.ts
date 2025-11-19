@@ -5,6 +5,9 @@ import {
   ShortBookmarkResponse,
   ShortCommentsResponse,
   CreateShortCommentRequest,
+  CreateShortCommentResponse,
+  UpdateShortCommentRequest,
+  UpdateShortCommentResponse,
   ShortUploadRequest,
   ShortUploadApiResponse,
   ShortUploadResponse,
@@ -151,15 +154,33 @@ export class CutService {
   static async createShortComment(
     shortId: number,
     commentData: CreateShortCommentRequest
-  ): Promise<ApiResponse<any>> {
+  ): Promise<CreateShortCommentResponse> {
     try {
-      const response = await apiClient.post<ApiResponse<any>>(
+      const response = await apiClient.post<CreateShortCommentResponse>(
         `/shorts/${shortId}/comments`,
         commentData
       );
       return response;
     } catch (error) {
       console.error('쇼츠 댓글 작성 실패:', error);
+      throw error;
+    }
+  }
+
+  // 쇼츠 댓글 수정
+  static async updateShortComment(
+    shortId: number,
+    commentId: number,
+    commentData: UpdateShortCommentRequest
+  ): Promise<UpdateShortCommentResponse> {
+    try {
+      const response = await apiClient.patch<UpdateShortCommentResponse>(
+        `/shorts/${shortId}/comments/${commentId}`,
+        commentData
+      );
+      return response;
+    } catch (error) {
+      console.error('쇼츠 댓글 수정 실패:', error);
       throw error;
     }
   }
