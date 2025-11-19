@@ -242,7 +242,9 @@ export default function ChatScreen() {
 
   // 채팅방 생성 핸들러
   const handleCreateChat = () => {
-    navigation.navigate('SelectChatUser');
+    navigation.navigate('SelectChatUser', {
+      mode: 'create',
+    });
   };
 
   // 채팅방 선택 핸들러
