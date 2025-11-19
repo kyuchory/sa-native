@@ -168,6 +168,19 @@ export interface ShortUploadResponse {
   created_at: string;
 }
 
+// 쇼츠 시청 기록 저장 요청
+export interface RecordShortViewRequest {
+  watched_seconds: number;
+  is_completed: boolean;
+}
+
+// 쇼츠 시청 기록 저장 응답
+export interface RecordShortViewResponse {
+  code: number;
+  message: string;
+  data: null;
+}
+
 // 쇼츠 카테고리 목록 조회 응답
 export interface ShortCategoryListResponse {
   code: number;

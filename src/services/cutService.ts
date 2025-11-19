@@ -10,6 +10,8 @@ import {
   UpdateShortCommentResponse,
   DeleteShortCommentResponse,
   ToggleShortCommentLikeResponse,
+  RecordShortViewRequest,
+  RecordShortViewResponse,
   ShortUploadRequest,
   ShortUploadApiResponse,
   ShortUploadResponse,
@@ -211,6 +213,23 @@ export class CutService {
       return response;
     } catch (error) {
       console.error('쇼츠 댓글 좋아요 토글 실패:', error);
+      throw error;
+    }
+  }
+
+  // 쇼츠 시청 기록 저장
+  static async recordShortView(
+    shortId: number,
+    viewData: RecordShortViewRequest
+  ): Promise<RecordShortViewResponse> {
+    try {
+      const response = await apiClient.post<RecordShortViewResponse>(
+        `/shorts/${shortId}/view`,
+        viewData
+      );
+      return response;
+    } catch (error) {
+      console.error('쇼츠 시청 기록 저장 실패:', error);
       throw error;
     }
   }

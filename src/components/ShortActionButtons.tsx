@@ -1,0 +1,157 @@
+import React from 'react';
+import { View, TouchableOpacity, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import {
+  HeartIcon,
+  CommentIcon,
+  BookmarkIcon,
+  ShareIcon,
+  UploadIcon,
+} from './CutIcons';
+import { COLORS, TYPOGRAPHY, SPACING } from '../constants/theme';
+
+interface ShortActionButtonsProps {
+  isLiked: boolean;
+  likeCount: number;
+  isLikeLoading: boolean;
+  commentCount: number;
+  isBookmarked: boolean;
+  isBookmarkLoading: boolean;
+  viewCount: number;
+  onLike: () => void;
+  onComment: () => void;
+  onBookmark: () => void;
+  onShare: () => void;
+  onUpload: () => void;
+}
+
+const formatCount = (count: number): string => {
+  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+  return count.toString();
+};
+
+export const ShortActionButtons = React.memo<ShortActionButtonsProps>(({
+  isLiked,
+  likeCount,
+  isLikeLoading,
+  commentCount,
+  isBookmarked,
+  isBookmarkLoading,
+  viewCount,
+  onLike,
+  onComment,
+  onBookmark,
+  onShare,
+  onUpload,
+}) => {
+  return (
+    <View style={styles.container}>
+      {/* 좋아요 */}
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={onLike}
+        activeOpacity={0.8}
+        disabled={isLikeLoading}
+      >
+        <View style={styles.iconContainer}>
+          {isLikeLoading ? (
+            <ActivityIndicator size="small" color={COLORS.ERROR} />
+          ) : (
+            <HeartIcon
+              size={28}
+              color={isLiked ? COLORS.ERROR : COLORS.WHITE}
+              filled={isLiked}
+            />
+          )}
+        </View>
+        <Text style={[styles.actionText, isLikeLoading && styles.actionLoadingText]}>
+          {formatCount(likeCount)}
+        </Text>
+      </TouchableOpacity>
+
+      {/* 댓글 */}
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={onComment}
+        activeOpacity={0.8}
+      >
+        <CommentIcon size={28} color={COLORS.WHITE} />
+        <Text style={styles.actionText}>{formatCount(commentCount)}</Text>
+      </TouchableOpacity>
+
+      {/* 북마크 */}
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={onBookmark}
+        activeOpacity={0.8}
+        disabled={isBookmarkLoading}
+      >
+        <View style={styles.iconContainer}>
+          {isBookmarkLoading ? (
+            <ActivityIndicator size="small" color={COLORS.PRIMARY} />
+          ) : (
+            <BookmarkIcon
+              size={28}
+              color={isBookmarked ? COLORS.PRIMARY : COLORS.WHITE}
+              filled={isBookmarked}
+            />
+          )}
+        </View>
+        <Text style={[styles.actionText, isBookmarkLoading && styles.actionLoadingText]}>
+          저장
+        </Text>
+      </TouchableOpacity>
+
+      {/* 공유 */}
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={onShare}
+        activeOpacity={0.8}
+      >
+        <ShareIcon size={28} color={COLORS.WHITE} />
+        <Text style={styles.actionText}>{formatCount(viewCount)}</Text>
+      </TouchableOpacity>
+
+      {/* 업로드 */}
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={onUpload}
+        activeOpacity={0.8}
+      >
+        <UploadIcon size={28} color={COLORS.WHITE} />
+        <Text style={styles.actionText}>업로드</Text>
+      </TouchableOpacity>
+    </View>
+  );
+});
+
+const styles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    right: SPACING.SM,
+    bottom: 200,
+    alignItems: 'center',
+    gap: SPACING.LG,
+  },
+  actionButton: {
+    alignItems: 'center',
+    gap: SPACING.XS,
+  },
+  actionText: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: COLORS.WHITE,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  actionLoadingText: {
+    opacity: 0.6,
+  },
+  iconContainer: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
