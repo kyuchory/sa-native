@@ -13,6 +13,7 @@ import {
   ShortUploadRequest,
   ShortUploadApiResponse,
   ShortUploadResponse,
+  ShortCategoryListResponse,
 } from '../types/cut';
 import type { ApiResponse } from '../types/api';
 
@@ -210,6 +211,17 @@ export class CutService {
       return response;
     } catch (error) {
       console.error('쇼츠 댓글 좋아요 토글 실패:', error);
+      throw error;
+    }
+  }
+
+  // 쇼츠 카테고리 목록 조회
+  static async getShortCategories(): Promise<ShortCategoryListResponse> {
+    try {
+      const response = await apiClient.get<ShortCategoryListResponse>('/shorts/categories');
+      return response;
+    } catch (error) {
+      console.error('쇼츠 카테고리 목록 조회 실패:', error);
       throw error;
     }
   }

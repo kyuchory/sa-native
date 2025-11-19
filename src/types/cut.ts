@@ -168,6 +168,13 @@ export interface ShortUploadResponse {
   created_at: string;
 }
 
+// 쇼츠 카테고리 목록 조회 응답
+export interface ShortCategoryListResponse {
+  code: number;
+  message: string;
+  data: ShortCategory[];
+}
+
 // 쇼츠 업로드 API 응답 (기존 유지)
 export interface ShortUploadApiResponse {
   code: number;

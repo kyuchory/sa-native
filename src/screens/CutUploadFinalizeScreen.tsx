@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,27 +16,14 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Image } from 'expo-image';
 import { useThemeStore } from '../stores/themeStore';
+import { useCutStore } from '../stores/cutStore';
 import { CutService } from '../services/cutService';
 import CommonHeader from '../components/CommonHeader';
 import LoadingOverlay from '../components/LoadingOverlay';
 import UserAvatar from '../components/UserAvatar';
 import { ShortCategory } from '../types/cut';
 
-// 임시 쇼츠 카테고리 데이터 (실제로는 API 호출로 가져와야 함)
-const SHORT_CATEGORIES: ShortCategory[] = [
-  { id: 1, name: '일상' },
-  { id: 2, name: '게임' },
-  { id: 3, name: '댄스' },
-  { id: 4, name: '음악' },
-  { id: 5, name: '스포츠' },
-  { id: 6, name: '배움' },
-  { id: 7, name: '요리' },
-  { id: 8, name: '뷰티' },
-  { id: 9, name: '패션' },
-  { id: 10, name: '여행' },
-  { id: 11, name: '동물' },
-  { id: 12, name: '코미디' },
-];
+
 import { HeartIcon, CommentIcon, ShareIcon, UploadIcon, BackIcon, MoreVerticalIcon } from '../components/CutIcons';
 import { SPACING, TYPOGRAPHY, COLORS, BORDER_RADIUS } from '../constants/theme';
 
@@ -65,6 +52,8 @@ export default function CutUploadFinalizeScreen() {
   const navigation = useNavigation<CutUploadFinalizeNavigationProp>();
   const route = useRoute<CutUploadFinalizeRouteProp>();
 
+  const { categories, isLoadingCategories, error, fetchCategories } = useCutStore();
+
   const { videoUri, trimStart, trimEnd, cropArea, thumbnailUri } = route.params;
 
   const [description, setDescription] = useState('');
@@ -72,6 +61,11 @@ export default function CutUploadFinalizeScreen() {
   const [isUploading, setIsUploading] = useState(false);
 
   const styles = createStyles(colors);
+
+  // 카테고리 로드
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   const handleCategorySelect = useCallback((category: ShortCategory) => {
     setSelectedCategories(prev => {
@@ -270,27 +264,41 @@ export default function CutUploadFinalizeScreen() {
             <Text style={styles.sectionLabel}>
               카테고리 (최소 1개, 최대 3개)
             </Text>
-            <View style={styles.categoryContainer}>
-              {SHORT_CATEGORIES.map(category => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={[
-                    styles.categoryChip,
-                    selectedCategories.some(cat => cat.id === category.id) && styles.categoryChipSelected
-                  ]}
-                  onPress={() => handleCategorySelect(category)}
-                >
-                  <Text
-                    style={[
-                      styles.categoryText,
-                      selectedCategories.some(cat => cat.id === category.id) && styles.categoryTextSelected
-                    ]}
-                  >
-                    {category.name}
-                  </Text>
+            {isLoadingCategories ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={colors.PRIMARY} />
+                <Text style={styles.loadingText}>카테고리를 불러오는 중...</Text>
+              </View>
+            ) : error ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+                <TouchableOpacity onPress={fetchCategories} style={styles.retryButton}>
+                  <Text style={styles.retryText}>다시 시도</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
+              </View>
+            ) : (
+              <View style={styles.categoryContainer}>
+                {categories.map(category => (
+                  <TouchableOpacity
+                    key={category.id}
+                    style={[
+                      styles.categoryChip,
+                      selectedCategories.some(cat => cat.id === category.id) && styles.categoryChipSelected
+                    ]}
+                    onPress={() => handleCategorySelect(category)}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryText,
+                        selectedCategories.some(cat => cat.id === category.id) && styles.categoryTextSelected
+                      ]}
+                    >
+                      {category.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -394,6 +402,40 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   categoryTextSelected: {
     color: colors.WHITE,
+  },
+
+  // 로딩 및 에러 상태
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.LG,
+    gap: SPACING.SM,
+  },
+  loadingText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.GRAY_600,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    paddingVertical: SPACING.LG,
+    gap: SPACING.SM,
+  },
+  errorText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.ERROR || colors.GRAY_700,
+    textAlign: 'center',
+  },
+  retryButton: {
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.XS,
+    backgroundColor: colors.PRIMARY,
+    borderRadius: BORDER_RADIUS.MD,
+  },
+  retryText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.WHITE,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 
   // CutScreen 스타일 (미리보기용)
