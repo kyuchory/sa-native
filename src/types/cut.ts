@@ -119,6 +119,23 @@ export interface UpdateShortCommentResponse {
   };
 }
 
+// 쇼츠 댓글 삭제 응답
+export interface DeleteShortCommentResponse {
+  code: number;
+  message: string;
+  data: null;
+}
+
+// 쇼츠 댓글 좋아요 토글 응답
+export interface ToggleShortCommentLikeResponse {
+  code: number;
+  message: string;
+  data: {
+    is_liked: boolean;
+    like_count: number;
+  };
+}
+
 // 쇼츠 공유 요청
 export interface ShareShortRequest {
   platform: 'kakao' | 'instagram' | 'facebook' | 'twitter' | 'link';

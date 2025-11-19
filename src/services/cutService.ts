@@ -8,6 +8,8 @@ import {
   CreateShortCommentResponse,
   UpdateShortCommentRequest,
   UpdateShortCommentResponse,
+  DeleteShortCommentResponse,
+  ToggleShortCommentLikeResponse,
   ShortUploadRequest,
   ShortUploadApiResponse,
   ShortUploadResponse,
@@ -181,6 +183,33 @@ export class CutService {
       return response;
     } catch (error) {
       console.error('쇼츠 댓글 수정 실패:', error);
+      throw error;
+    }
+  }
+
+  // 쇼츠 댓글 삭제
+  static async deleteShortComment(commentId: number): Promise<DeleteShortCommentResponse> {
+    try {
+      const response = await apiClient.delete<DeleteShortCommentResponse>(
+        `/shorts/short_comments/${commentId}`
+      );
+      return response;
+    } catch (error) {
+      console.error('쇼츠 댓글 삭제 실패:', error);
+      throw error;
+    }
+  }
+
+  // 쇼츠 댓글 좋아요 토글
+  static async toggleShortCommentLike(commentId: number): Promise<ToggleShortCommentLikeResponse> {
+    try {
+      const response = await apiClient.post<ToggleShortCommentLikeResponse>(
+        `/shorts/short_comments/${commentId}/like`,
+        {}
+      );
+      return response;
+    } catch (error) {
+      console.error('쇼츠 댓글 좋아요 토글 실패:', error);
       throw error;
     }
   }

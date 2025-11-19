@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import UserAvatar from './UserAvatar';
@@ -92,7 +93,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.SM,
     color: colors.GRAY_900,
     lineHeight: 20,
-    marginBottom: SPACING.SM,
+    marginBottom: SPACING.XS,
   },
   mentionText: {
     color: colors.PRIMARY,
@@ -110,6 +111,12 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.XS,
     paddingVertical: SPACING.XS,
+  },
+  iconContainer: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   likeCount: {
     fontSize: TYPOGRAPHY.SIZE.XS,
@@ -173,6 +180,7 @@ interface CommentListProps {
   onEditComment?: (commentId: number) => void;
   onDeleteComment?: (commentId: number) => void;
   onLoadMore?: () => void;
+  commentLikeLoading?: Set<number>; // 로딩 중인 댓글 ID들
 }
 
 interface CommentItemProps {
@@ -182,6 +190,7 @@ interface CommentItemProps {
   onReplyPress?: (comment: FeedComment) => void;
   onEditComment?: (commentId: number) => void;
   onDeleteComment?: (commentId: number) => void;
+  isLikeLoading?: boolean; // 좋아요 로딩 상태
 }
 
 // 시간 포맷팅 함수
@@ -209,7 +218,8 @@ const CommentItem = ({
   onCommentLike,
   onReplyPress,
   onEditComment,
-  onDeleteComment
+  onDeleteComment,
+  isLikeLoading = false
 }: CommentItemProps) => {
   const navigation = useNavigation();
   const { colors } = useThemeStore();
@@ -312,12 +322,19 @@ const CommentItem = ({
                 style={styles.likeButton}
                 onPress={() => onCommentLike?.(comment.id)}
                 activeOpacity={0.7}
+                disabled={isLikeLoading}
               >
-                <LikeIcon
-                  size={14}
-                  filled={comment.is_liked || false}
-                  color={comment.is_liked ? colors.ERROR : colors.GRAY_500}
-                />
+                <View style={styles.iconContainer}>
+                  {isLikeLoading ? (
+                    <ActivityIndicator size="small" color={colors.PRIMARY} />
+                  ) : (
+                    <LikeIcon
+                      size={14}
+                      filled={comment.is_liked || false}
+                      color={comment.is_liked ? colors.ERROR : colors.GRAY_500}
+                    />
+                  )}
+                </View>
                 {comment.like_count > 0 && (
                   <Text style={[
                     styles.likeCount,
@@ -374,7 +391,8 @@ export default function CommentList({
   onReplyPress,
   onEditComment,
   onDeleteComment,
-  onLoadMore
+  onLoadMore,
+  commentLikeLoading
 }: CommentListProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
@@ -401,6 +419,7 @@ export default function CommentList({
             onReplyPress={(replyComment) => onReplyPress?.(replyComment as any)}
             onEditComment={onEditComment}
             onDeleteComment={onDeleteComment}
+            isLikeLoading={commentLikeLoading?.has(comment.id) || false}
           />
 
           {/* 대댓글 렌더링 */}
@@ -415,6 +434,7 @@ export default function CommentList({
                   onReplyPress={(replyComment) => onReplyPress?.(replyComment as any)}
                   onEditComment={onEditComment}
                   onDeleteComment={onDeleteComment}
+                  isLikeLoading={commentLikeLoading?.has(reply.id) || false}
                 />
               ))}
             </View>

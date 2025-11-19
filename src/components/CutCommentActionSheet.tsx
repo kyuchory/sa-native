@@ -54,6 +54,7 @@ export default function CutCommentActionSheet({
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadMoreLoading, setIsLoadMoreLoading] = useState(false);
   const [isCommentLoading, setIsCommentLoading] = useState(false);
+  const [commentLikeLoading, setCommentLikeLoading] = useState<Set<number>>(new Set());
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -145,6 +146,12 @@ export default function CutCommentActionSheet({
 
   // 댓글 좋아요 토글
   const onCommentLikePress = useCallback(async (commentId: number) => {
+    // 이미 로딩 중인 경우 중복 호출 방지
+    if (commentLikeLoading.has(commentId)) return;
+
+    // 로딩 상태 시작
+    setCommentLikeLoading(prev => new Set(prev).add(commentId));
+
     // 낙관적 UI 업데이트
     const originalComments = [...comments];
 
@@ -170,17 +177,24 @@ export default function CutCommentActionSheet({
     });
 
     try {
-      // TODO: 쇼츠 댓글 좋아요 API 호출
-      // await CutService.toggleShortCommentLike(short.id, commentId);
+      // 쇼츠 댓글 좋아요 토글 API 호출
+      await CutService.toggleShortCommentLike(commentId);
 
-      // 성공했다고 가정하고 로그만 출력
-      console.log('쇼츠 댓글 좋아요 TO DO:', commentId);
+      // 서버 응답은 내부로 처리하고 UI는 낙관적 업데이트로 반영되므로
+      // 별도 처리 불필요
     } catch (error) {
       console.error('댓글 좋아요 토글 실패:', error);
       // 실패 시 원래 상태로 롤백
       setComments(originalComments);
+    } finally {
+      // 로딩 상태 해제
+      setCommentLikeLoading(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(commentId);
+        return newSet;
+      });
     }
-  }, [comments, short.id]);
+  }, [commentLikeLoading, short.id]); // comments 의존성 제거로 불필요한 리렌더링 방지
 
   // 댓글 작성
   const onSendComment = async (text: string) => {
@@ -312,17 +326,20 @@ export default function CutCommentActionSheet({
             try {
               setIsCommentLoading(true);
 
-              // TODO: 쇼츠 댓글 삭제 API 호출
-              // await CutService.deleteShortComment(short.id, commentId);
+              // 쇼츠 댓글 삭제 API 호출
+              await CutService.deleteShortComment(commentId);
 
-              // 성공했다고 가정하고 로그만 출력 + 목록 새로고침
-              console.log('쇼츠 댓글 삭제 TO DO:', commentId);
+              // 댓글 목록 새로고침
               const updatedComments = await CutService.getShortComments(short.id);
               setComments(updatedComments.data.items);
               setNextCursor(updatedComments.data.next_cursor);
 
+              // 부모에게 댓글 수 업데이트 알림
+              onCommentCountUpdate?.(short.id, comments.length - 1);
+
             } catch (error) {
               console.error('댓글 삭제 실패:', error);
+              Alert.alert('오류', '댓글 삭제에 실패했습니다.');
             } finally {
               setIsCommentLoading(false);
             }
@@ -395,6 +412,7 @@ export default function CutCommentActionSheet({
                 onEditComment={onEditComment}
                 onDeleteComment={onDeleteComment}
                 onLoadMore={loadMoreComments}
+                commentLikeLoading={commentLikeLoading}
               />
             )}
           </ScrollView>
