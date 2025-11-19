@@ -536,6 +536,8 @@ export default function CutScreen() {
       const response = await CutService.getShortsFeed(undefined, LIMIT);
       setShorts(response.data.items);
       setNextCursor(response.data.next_cursor);
+      console.log('컷츠 초기 로딩 완료, 아이템 수:', response.data.items);
+      console.log('다음 커서:', response.data.next_cursor);
       setCurrentIndex(0);
     } catch (e) {
       console.error('컷츠 피드 초기 로딩 실패:', e);
@@ -553,6 +555,7 @@ export default function CutScreen() {
       setIsFetchingMore(true);
 
       const response = await CutService.getShortsFeed(nextCursor!, LIMIT);
+      console.log('컷츠 추가 로딩 완료, 아이템 수:', response.data.items.length);
       setShorts((prev) => [...prev, ...response.data.items]);
       setNextCursor(response.data.next_cursor);
     } catch (e) {
@@ -652,7 +655,13 @@ export default function CutScreen() {
   // 로딩 중
   if (isInitialLoading) {
     return (
-      <View style={styles.container}>
+      <View
+        style={styles.container}
+        onLayout={e => {
+          const { height } = e.nativeEvent.layout;
+          setContainerHeight(height);
+        }}
+      >
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.PRIMARY} />
@@ -665,7 +674,13 @@ export default function CutScreen() {
   // 에러 상태
   if (error) {
     return (
-      <View style={styles.container}>
+      <View
+        style={styles.container}
+        onLayout={e => {
+          const { height } = e.nativeEvent.layout;
+          setContainerHeight(height);
+        }}
+      >
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>🎬</Text>
@@ -681,7 +696,13 @@ export default function CutScreen() {
   // ✅ 빈 상태 처리
   if (!isInitialLoading && shorts.length === 0) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.WHITE }]}>
+      <View
+        style={[styles.container, { backgroundColor: colors.WHITE }]}
+        onLayout={e => {
+          const { height } = e.nativeEvent.layout;
+          setContainerHeight(height);
+        }}
+      >
         <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
         {/* 헤더 */}
@@ -742,8 +763,8 @@ export default function CutScreen() {
         onEndReached={fetchMore}
         onEndReachedThreshold={0.5}
         getItemLayout={(data, index) => ({
-          length: SCREEN_HEIGHT,
-          offset: SCREEN_HEIGHT * index,
+          length: ITEM_HEIGHT,
+          offset: ITEM_HEIGHT * index,
           index,
         })}
         initialNumToRender={3}
