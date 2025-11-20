@@ -17,6 +17,7 @@ import {
   ShortUploadResponse,
   ShortCategoryListResponse,
   ShortDetailResponse,
+  ShortDeleteResponse,
 } from '../types/cut';
 import type { ApiResponse } from '../types/api';
 
@@ -253,6 +254,17 @@ export class CutService {
       return response;
     } catch (error) {
       console.error('쇼츠 상세 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 쇼츠 삭제
+  static async deleteShort(shortId: number): Promise<ShortDeleteResponse> {
+    try {
+      const response = await apiClient.delete<ShortDeleteResponse>(`/shorts/${shortId}`);
+      return response;
+    } catch (error) {
+      console.error('쇼츠 삭제 실패:', error);
       throw error;
     }
   }

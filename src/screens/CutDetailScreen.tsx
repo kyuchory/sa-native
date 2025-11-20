@@ -21,6 +21,7 @@ import { ShortItem, RecordShortViewRequest } from '../types/cut';
 import { CutService } from '../services/cutService';
 import CutCommentActionSheet from '../components/CutCommentActionSheet';
 import { ShortItemComponent } from '../components/ShortItemComponent';
+import MenuActionSheet from '../components/MenuActionSheet';
 
 // Components
 import {
@@ -28,6 +29,7 @@ import {
   MoreVerticalIcon,
 } from '../components/CutIcons';
 import LoadingOverlay from '../components/LoadingOverlay';
+import { DeleteIcon, ReportIcon } from '../components/CommonIcons';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -51,6 +53,7 @@ export default function CutDetailScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [commentSheetVisible, setCommentSheetVisible] = useState(false);
+  const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
 
   // 쇼츠 상세 정보 조회
   const fetchShortDetail = async () => {
@@ -93,34 +96,59 @@ export default function CutDetailScreen() {
     ]);
   }, [short, shortId]);
 
-  // 좋아요 토글
-  const handleLike = useCallback(async () => {
-    if (!short) return;
-
-    try {
-      const response = await CutService.toggleShortLike(short.id);
-      setShort(prev => prev ? { ...prev, is_liked: response.data.is_liked, like_count: response.data.like_count } : null);
-    } catch (error) {
-      console.error('좋아요 토글 실패:', error);
-    }
-  }, [short]);
-
-  // 북마크 토글
-  const handleBookmark = useCallback(async () => {
-    if (!short) return;
-
-    try {
-      const response = await CutService.toggleShortBookmark(short.id);
-      setShort(prev => prev ? { ...prev, is_bookmarked: response.data.is_bookmarked } : null);
-    } catch (error) {
-      console.error('북마크 토글 실패:', error);
-    }
-  }, [short]);
-
   // 뒤로가기
   const handleGoBack = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
+
+  // 메뉴 버튼 핸들러
+  const handleMorePress = useCallback(() => {
+    setMenuActionSheetVisible(true);
+  }, []);
+
+  // 컷 삭제 핸들러
+  const handleDeleteCut = useCallback(() => {
+    if (short) {
+      console.log('컷 삭제 터치:', short.id);
+      setMenuActionSheetVisible(false);
+    }
+  }, [short]);
+
+  // 컷 신고 핸들러
+  const handleReportCut = useCallback(() => {
+    if (short) {
+      console.log('컷 신고 터치:', short.id);
+      setMenuActionSheetVisible(false);
+    }
+  }, [short]);
+
+  // 메뉴 액션 배열 (동적 생성)
+  const menuActions = useCallback(() => {
+    if (!short) return [];
+
+    const actions = [
+      {
+        id: 'report',
+        title: '컷 신고',
+        icon: <ReportIcon size={20} color={colors.ERROR} />,
+        color: colors.ERROR,
+        onPress: handleReportCut,
+      },
+    ];
+
+    // 내가 소유자인 경우에만 삭제 메뉴 추가
+    if (short.is_owner) {
+      actions.unshift({
+        id: 'delete',
+        title: '컷 삭제',
+        icon: <DeleteIcon size={20} color={colors.ERROR} />,
+        color: colors.ERROR,
+        onPress: handleDeleteCut,
+      });
+    }
+
+    return actions;
+  }, [short, colors, handleDeleteCut, handleReportCut]);
 
   // 시청 기록 저장 핸들러 (로깅 추가)
   const handleViewComplete = useCallback(async (
@@ -183,7 +211,9 @@ export default function CutDetailScreen() {
             <BackIcon size={24} color={COLORS.WHITE} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>컷츠 상세</Text>
-          <View style={styles.moreButton} />
+          <TouchableOpacity style={styles.moreButton} activeOpacity={0.8}>
+            <MoreVerticalIcon size={32} color={COLORS.WHITE} />
+          </TouchableOpacity>
         </View>
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>컷츠를 찾을 수 없습니다.</Text>
@@ -207,7 +237,7 @@ export default function CutDetailScreen() {
           <BackIcon size={24} color={COLORS.WHITE} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>컷츠 상세</Text>
-        <TouchableOpacity style={styles.moreButton} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.moreButton} onPress={handleMorePress} activeOpacity={0.8}>
           <MoreVerticalIcon size={32} color={COLORS.WHITE} />
         </TouchableOpacity>
       </View>
@@ -232,6 +262,14 @@ export default function CutDetailScreen() {
           short={short}
         />
       )}
+
+      {/* 메뉴 액션 시트 */}
+      <MenuActionSheet
+        visible={menuActionSheetVisible}
+        onClose={() => setMenuActionSheetVisible(false)}
+        title={'컷츠'}
+        actions={menuActions()}
+      />
     </View>
   );
 }

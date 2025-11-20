@@ -195,6 +195,13 @@ export interface ShortDetailResponse {
   data: ShortItem;
 }
 
+// 쇼츠 삭제 응답
+export interface ShortDeleteResponse {
+  code: number;
+  message: string;
+  data: null;
+}
+
 // 쇼츠 업로드 API 응답 (기존 유지)
 export interface ShortUploadApiResponse {
   code: number;

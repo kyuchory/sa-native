@@ -23,6 +23,8 @@ import { ShortItem, RecordShortViewRequest } from '../types/cut';
 import { CutService } from '../services/cutService';
 import CutCommentActionSheet from '../components/CutCommentActionSheet';
 import { ShortItemComponent } from '../components/ShortItemComponent';
+import MenuActionSheet from '../components/MenuActionSheet';
+import { DeleteIcon, ReportIcon } from '../components/CommonIcons';
 
 // Components
 import {
@@ -53,6 +55,7 @@ export default function CutScreen() {
   const [error, setError] = useState<string | null>(null);
   const [commentSheetVisible, setCommentSheetVisible] = useState(false);
   const [selectedShort, setSelectedShort] = useState<ShortItem | null>(null);
+  const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   const LIMIT = 4;
@@ -139,6 +142,58 @@ export default function CutScreen() {
   const handleUpload = useCallback(() => {
     navigation.navigate('CutUploadSelect');
   }, [navigation]);
+
+  // 메뉴 버튼 핸들러
+  const handleMorePress = useCallback(() => {
+    setMenuActionSheetVisible(true);
+  }, []);
+
+  // 컷 삭제 핸들러
+  const handleDeleteCut = useCallback(() => {
+    const currentShort = shorts[currentIndex];
+    if (currentShort) {
+      console.log('컷 삭제 터치:', currentShort.id);
+      setMenuActionSheetVisible(false);
+    }
+  }, [shorts, currentIndex]);
+
+  // 컷 신고 핸들러
+  const handleReportCut = useCallback(() => {
+    const currentShort = shorts[currentIndex];
+    if (currentShort) {
+      console.log('컷 신고 터치:', currentShort.id);
+      setMenuActionSheetVisible(false);
+    }
+  }, [shorts, currentIndex]);
+
+  // 메뉴 액션 배열 (동적 생성)
+  const menuActions = useCallback(() => {
+    const currentShort = shorts[currentIndex];
+    if (!currentShort) return [];
+
+    const actions = [
+      {
+        id: 'report',
+        title: '컷 신고',
+        icon: <ReportIcon size={20} color={colors.ERROR} />,
+        color: colors.ERROR,
+        onPress: handleReportCut,
+      },
+    ];
+
+    // 내가 소유자인 경우에만 삭제 메뉴 추가
+    if (currentShort.is_owner) {
+      actions.unshift({
+        id: 'delete',
+        title: '컷 삭제',
+        icon: <DeleteIcon size={20} color={colors.ERROR} />,
+        color: colors.ERROR,
+        onPress: handleDeleteCut,
+      });
+    }
+
+    return actions;
+  }, [shorts, currentIndex, colors, handleDeleteCut, handleReportCut]);
 
   // 시청 기록 저장 핸들러 (로깅 추가)
   const handleViewComplete = useCallback(async (
@@ -273,7 +328,7 @@ export default function CutScreen() {
           <BackIcon size={24} color={COLORS.WHITE} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Cuts</Text>
-        <TouchableOpacity style={styles.moreButton} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.moreButton} onPress={handleMorePress} activeOpacity={0.8}>
           <MoreVerticalIcon size={32} color={COLORS.WHITE} />
         </TouchableOpacity>
       </View>
@@ -317,6 +372,14 @@ export default function CutScreen() {
           short={selectedShort}
         />
       )}
+
+      {/* 메뉴 액션 시트 */}
+      <MenuActionSheet
+        visible={menuActionSheetVisible}
+        onClose={() => setMenuActionSheetVisible(false)}
+        title={'컷츠'}
+        actions={menuActions()}
+      />
     </View>
   );
 }
