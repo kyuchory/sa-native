@@ -9,6 +9,7 @@ import { handleApiError } from '../services/apiClient';
 import ProfileHeader from '../components/ProfileHeader';
 import ProfileTabNavigation, { ProfileTabType } from '../components/ProfileTabNavigation';
 import ProfileFeedGrid from '../components/ProfileFeedGrid';
+import ProfileCutGrid from '../components/ProfileCutGrid';
 import ProfilePostsList from '../components/ProfilePostsList';
 import MenuActionSheet from '../components/MenuActionSheet';
 import { ReportEyeSlashIcon } from '../components/CommonIcons';
@@ -24,7 +25,7 @@ import useProfileStore from '../stores/profileStore';
 import useFeedStore from '../stores/feedStore';
 
 // 타입 imports
-import type { Profile, ProfileFeedItem, ProfilePostItem, ProfilePagination } from '../types/profile';
+import type { Profile, ProfileFeedItem, ProfilePostItem, ProfilePagination, ProfileShortItem } from '../types/profile';
 
 export default function ProfileScreen({ route }: { route: RouteProp<AuthStackParamList, 'UserProfile'> | RouteProp<any, 'ProfileTab'> }) {
   const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
@@ -50,11 +51,14 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
     total: 0,
     has_next: false,
   });
+  const [shortsData, setShortsData] = useState<ProfileShortItem[]>([]);
+  const [shortsLoading, setShortsLoading] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
   const isFirstFocusRef = useRef(true);
 
   // 프로필 스토어 상태
-  const { shouldRefreshProfilePosts, shouldRefreshProfileFeeds, setShouldRefreshProfilePosts, setShouldRefreshProfileFeeds } = useProfileStore();
+  const { shouldRefreshProfilePosts, shouldRefreshProfileFeeds, shouldRefreshProfileShorts, setShouldRefreshProfilePosts, setShouldRefreshProfileFeeds, setShouldRefreshProfileShorts } = useProfileStore();
 
   // 프로필 데이터 조회
   const fetchProfile = async (showLoading = true) => {
@@ -141,11 +145,36 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
     }
   };
 
+  // shorts 데이터 조회
+  const fetchShorts = async (reset = false) => {
+    if (!targetUserId) return;
+
+    try {
+      setShortsLoading(true);
+      const response = await ProfileService.getProfileShorts(targetUserId, reset ? undefined : nextCursor, 20);
+
+      if (reset) {
+        setShortsData(response.data.shorts);
+      } else {
+        setShortsData(prev => [...prev, ...response.data.shorts]);
+      }
+
+      setNextCursor(response.data.next_cursor);
+    } catch (error) {
+      console.error('쇼츠 목록 조회 실패:', error);
+    } finally {
+      setShortsLoading(false);
+    }
+  };
+
+
+
   useEffect(() => {
     fetchProfile(true);
-    // 초기 로드 시 피드와 포스트 데이터 모두 한번에 불러오기
+    // 초기 로드 시 피드와 포스트, 쇼츠 데이터 모두 한번에 불러오기
     fetchFeeds(true);
     fetchPosts();
+    fetchShorts(true);
   }, [targetUserId]);
 
   // 화면에 다시 포커스될 때 프로필 데이터 리프레시
@@ -169,11 +198,16 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
           fetchFeeds(true);
           setShouldRefreshProfileFeeds(false); // 플래그 초기화
         }
+        if (shouldRefreshProfileShorts) {
+          fetchShorts(true);
+          setShouldRefreshProfileShorts(false); // 플래그 초기화
+        }
       }
     }, [
       targetUserId,
       shouldRefreshProfilePosts,
       shouldRefreshProfileFeeds,
+      shouldRefreshProfileShorts,
       isOwnProfile,
     ])
   );
@@ -335,7 +369,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
     } else if (activeTab === 'posts') {
       navigation.navigate('PostDetail', { postId: item.id });
     } else if (activeTab === 'videos') {
-      // TODO: 비디오 재생 화면으로 이동
+      console.log('쇼츠 상세 화면으로 이동 예정', item);
     } else if (activeTab === 'character') {
       // TODO: 캐릭터 상세 화면으로 이동
     }
@@ -405,7 +439,20 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
             canViewContent={profileData?.can_view_content ?? true}
           />
         )}
-        {(activeTab === 'videos' || activeTab === 'character') && (
+        {activeTab === 'videos' && (
+          <ProfileCutGrid
+            data={shortsData}
+            loading={shortsLoading}
+            onItemPress={(shortsItem) => handleItemPress(shortsItem)}
+            onEndReached={() => {
+              if (!shortsLoading && nextCursor) {
+                fetchShorts(false);
+              }
+            }}
+            canViewContent={profileData?.can_view_content ?? true}
+          />
+        )}
+        {activeTab === 'character' && (
           <ProfileFeedGrid
             data={feedsData}
             loading={feedsLoading}

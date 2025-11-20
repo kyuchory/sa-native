@@ -17,6 +17,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { Image } from 'expo-image';
 import { useThemeStore } from '../stores/themeStore';
 import { useCutStore } from '../stores/cutStore';
+import useProfileStore from '../stores/profileStore';
 import { CutService } from '../services/cutService';
 import CommonHeader from '../components/CommonHeader';
 import LoadingOverlay from '../components/LoadingOverlay';
@@ -114,6 +115,8 @@ export default function CutUploadFinalizeScreen() {
         {
           text: '확인',
           onPress: () => {
+            // 프로필 숏츠 목록 새로고침 플래그 설정
+            useProfileStore.getState().setShouldRefreshProfileShorts(true);
             // 컷츠 탭으로 돌아가기
             navigation.popToTop();
           },

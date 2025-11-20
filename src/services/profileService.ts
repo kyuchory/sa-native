@@ -7,6 +7,7 @@ import {
   UpdateProfileVisibilityApiResponse,
   ProfilePostsResponse,
   ProfileFeedsResponse,
+  ProfileShortsResponse,
   ProfileImageUploadResponse,
   UploadedImage,
 } from '../types/profile';
@@ -53,8 +54,25 @@ export class ProfileService {
       offset: offset.toString(),
       limit: limit.toString(),
     });
-    
+
     return apiClient.get<ProfileFeedsResponse>(`/profiles/${userId}/feeds?${queryParams}`);
+  }
+
+  // 내가 작성한 쇼츠 목록
+  static async getProfileShorts(
+    userId: number,
+    cursor?: string,
+    limit: number = 20
+  ): Promise<ProfileShortsResponse> {
+    const queryParams = new URLSearchParams({
+      limit: limit.toString(),
+    });
+
+    if (cursor) {
+      queryParams.append('cursor', cursor);
+    }
+
+    return apiClient.get<ProfileShortsResponse>(`/profiles/${userId}/shorts?${queryParams}`);
   }
 
   // 프로필 이미지 업로드

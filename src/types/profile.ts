@@ -105,6 +105,13 @@ export interface ProfilePostItem {
   is_bookmarked?: boolean;
 }
 
+// 쇼츠 목록 아이템 (프로필용)
+export interface ProfileShortItem {
+  id: number;
+  thumbnail_url: string;
+  created_at: string;
+}
+
 // 피드 목록 아이템 (프로필용)
 export interface ProfileFeedItem {
   id: number;
@@ -138,6 +145,16 @@ export interface ProfileFeedsResponse {
   data: {
     feeds: ProfileFeedItem[];
     pagination: ProfilePagination;
+  };
+}
+
+// 쇼츠 목록 조회 응답
+export interface ProfileShortsResponse {
+  code: number;
+  message: string;
+  data: {
+    shorts: ProfileShortItem[];
+    next_cursor: string;
   };
 }
 
