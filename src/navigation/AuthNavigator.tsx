@@ -50,6 +50,7 @@ import MediaTestScreen from '../screens/MediaTestScreen';
 import VideoTrimCropScreen from '../screens/VideoTrimCropScreen';
 import CutUploadSelectScreen from '../screens/CutUploadSelectScreen';
 import CutUploadFinalizeScreen from '../screens/CutUploadFinalizeScreen';
+import CutDetailScreen from '../screens/CutDetailScreen';
 
 // Components for notifications
 import { NotificationBanner } from '../components/NotificationBanner';
@@ -265,6 +266,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="CutUploadFinalize"
           component={CutUploadFinalizeScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="CutDetail"
+          component={CutDetailScreen}
           options={{ headerShown: false }}
         />
           </>

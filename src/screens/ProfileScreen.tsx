@@ -369,7 +369,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
     } else if (activeTab === 'posts') {
       navigation.navigate('PostDetail', { postId: item.id });
     } else if (activeTab === 'videos') {
-      console.log('쇼츠 상세 화면으로 이동 예정', item);
+      navigation.navigate('CutDetail', { shortId: item.id });
     } else if (activeTab === 'character') {
       // TODO: 캐릭터 상세 화면으로 이동
     }

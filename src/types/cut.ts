@@ -188,9 +188,16 @@ export interface ShortCategoryListResponse {
   data: ShortCategory[];
 }
 
+// 쇼츠 단건 상세 조회 응답
+export interface ShortDetailResponse {
+  code: number;
+  message: string;
+  data: ShortItem;
+}
+
 // 쇼츠 업로드 API 응답 (기존 유지)
 export interface ShortUploadApiResponse {
   code: number;
   message: string;
-  data: ShortUploadResponse;
+  data: ShortItem;
 }

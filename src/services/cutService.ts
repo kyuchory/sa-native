@@ -16,6 +16,7 @@ import {
   ShortUploadApiResponse,
   ShortUploadResponse,
   ShortCategoryListResponse,
+  ShortDetailResponse,
 } from '../types/cut';
 import type { ApiResponse } from '../types/api';
 
@@ -241,6 +242,17 @@ export class CutService {
       return response;
     } catch (error) {
       console.error('쇼츠 카테고리 목록 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 쇼츠 단건 상세 조회
+  static async getShortDetail(shortId: number): Promise<ShortDetailResponse> {
+    try {
+      const response = await apiClient.get<ShortDetailResponse>(`/shorts/${shortId}`);
+      return response;
+    } catch (error) {
+      console.error('쇼츠 상세 조회 실패:', error);
       throw error;
     }
   }
