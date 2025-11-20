@@ -16,6 +16,7 @@ import {
   SPACING,
 } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
+import useProfileStore from '../stores/profileStore';
 import { AuthStackParamList } from '../types/navigation';
 import { ShortItem, RecordShortViewRequest } from '../types/cut';
 import { CutService } from '../services/cutService';
@@ -107,12 +108,41 @@ export default function CutDetailScreen() {
   }, []);
 
   // 컷 삭제 핸들러
-  const handleDeleteCut = useCallback(() => {
-    if (short) {
-      console.log('컷 삭제 터치:', short.id);
-      setMenuActionSheetVisible(false);
-    }
-  }, [short]);
+  const handleDeleteCut = useCallback(async () => {
+    if (!short) return;
+
+    Alert.alert(
+      '컷 삭제',
+      '정말 이 컷츠를 삭제하시겠습니까? 삭제된 컷츠는 복구할 수 없습니다.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setMenuActionSheetVisible(false);
+              await CutService.deleteShort(short.id);
+
+              // 프로필 쇼츠 목록 갱신을 위한 플래그 설정
+              useProfileStore.getState().setShouldRefreshProfileShorts(true);
+
+              Alert.alert('성공', '컷츠가 삭제되었습니다.', [
+                {
+                  text: '확인',
+                  onPress: () => navigation.goBack()
+                }
+              ]);
+            } catch (error) {
+              console.error('컷 삭제 실패:', error);
+              const errorMessage = error instanceof Error ? error.message : '삭제에 실패했습니다.';
+              Alert.alert('오류', errorMessage);
+            }
+          }
+        }
+      ]
+    );
+  }, [short, navigation]);
 
   // 컷 신고 핸들러
   const handleReportCut = useCallback(() => {

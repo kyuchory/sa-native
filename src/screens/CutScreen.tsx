@@ -18,6 +18,7 @@ import {
   SPACING,
 } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
+import useProfileStore from '../stores/profileStore';
 import { AuthStackParamList } from '../types/navigation';
 import { ShortItem, RecordShortViewRequest } from '../types/cut';
 import { CutService } from '../services/cutService';
@@ -57,6 +58,7 @@ export default function CutScreen() {
   const [selectedShort, setSelectedShort] = useState<ShortItem | null>(null);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const fetchMoreTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const LIMIT = 4;
   const PREFETCH_OFFSET = 1;
@@ -79,7 +81,7 @@ export default function CutScreen() {
     }
   };
 
-  // 추가 페이지 불러오기
+  // 추가 페이지 불러오기 - 중복 데이터 필터링 추가
   const fetchMore = async () => {
     if (!nextCursor || isFetchingMore) return;
 
@@ -87,7 +89,16 @@ export default function CutScreen() {
       setIsFetchingMore(true);
 
       const response = await CutService.getShortsFeed(nextCursor!, LIMIT);
-      setShorts((prev) => [...prev, ...response.data.items]);
+
+      // 중복 제거: 기존 shorts의 ID와 비교해서 중복된 아이템 필터링
+      setShorts((prev) => {
+        const existingIds = new Set(prev.map(short => short.id));
+        const newItems = response.data.items.filter(
+          item => !existingIds.has(item.id)
+        );
+        return [...prev, ...newItems];
+      });
+
       setNextCursor(response.data.next_cursor);
     } catch (e) {
       console.warn('컷츠 추가 로딩 실패:', e);
@@ -96,15 +107,30 @@ export default function CutScreen() {
     }
   };
 
-  // 프리패칭 로직
+  // 프리패칭 로직 - 디바운싱 추가
   useEffect(() => {
     if (!nextCursor) return;
     if (isFetchingMore) return;
     if (shorts.length === 0) return;
 
     if (currentIndex >= shorts.length - 1 - PREFETCH_OFFSET) {
-      fetchMore();
+      // 이전 타임아웃 클리어 (디바운싱)
+      if (fetchMoreTimeoutRef.current) {
+        clearTimeout(fetchMoreTimeoutRef.current);
+      }
+
+      // 300ms 디바운싱 후 fetchMore 호출
+      fetchMoreTimeoutRef.current = setTimeout(() => {
+        fetchMore();
+      }, 300);
     }
+
+    // cleanup function
+    return () => {
+      if (fetchMoreTimeoutRef.current) {
+        clearTimeout(fetchMoreTimeoutRef.current);
+      }
+    };
   }, [currentIndex, shorts.length, nextCursor, isFetchingMore]);
 
   useEffect(() => {
@@ -149,12 +175,47 @@ export default function CutScreen() {
   }, []);
 
   // 컷 삭제 핸들러
-  const handleDeleteCut = useCallback(() => {
+  const handleDeleteCut = useCallback(async () => {
     const currentShort = shorts[currentIndex];
-    if (currentShort) {
-      console.log('컷 삭제 터치:', currentShort.id);
-      setMenuActionSheetVisible(false);
-    }
+    if (!currentShort) return;
+
+    Alert.alert(
+      '컷 삭제',
+      '정말 이 컷츠를 삭제하시겠습니까? 삭제된 컷츠는 복구할 수 없습니다.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setMenuActionSheetVisible(false);
+              await CutService.deleteShort(currentShort.id);
+
+              // 삭제 성공: 쇼츠 배열에서 제거하고 현재 인덱스 조정
+              const updatedShorts = shorts.filter(short => short.id !== currentShort.id);
+              setShorts(updatedShorts);
+
+              // 만약 마지막 쇼츠가 삭제되었거나 배열이 비었다면 인덱스 리셋
+              if (updatedShorts.length === 0) {
+                setCurrentIndex(0);
+              } else if (currentIndex >= updatedShorts.length) {
+                setCurrentIndex(updatedShorts.length - 1);
+              }
+
+              // 프로필 쇼츠 목록 갱신을 위한 플래그 설정
+              useProfileStore.getState().setShouldRefreshProfileShorts(true);
+
+              Alert.alert('성공', '컷츠가 삭제되었습니다.');
+            } catch (error) {
+              console.error('컷 삭제 실패:', error);
+              const errorMessage = error instanceof Error ? error.message : '삭제에 실패했습니다.';
+              Alert.alert('오류', errorMessage);
+            }
+          }
+        }
+      ]
+    );
   }, [shorts, currentIndex]);
 
   // 컷 신고 핸들러
@@ -337,7 +398,7 @@ export default function CutScreen() {
         ref={flatListRef}
         data={shorts}
         renderItem={renderShortItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) => `${item.id}-${index}`}
         pagingEnabled
         showsVerticalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
