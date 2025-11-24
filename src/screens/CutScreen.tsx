@@ -160,24 +160,11 @@ export default function CutScreen() {
     }
   }, [currentIndex, LIMIT]);
 
-  // Tab re-press 이벤트 핸들러 - 위치와 관계없이 항상 리프레시
-  const handleTabRePress = useCallback(async () => {
-    try {
-      setRefreshing(true);
-      setError(null);
-
-      const response = await CutService.getShortsFeed(undefined, LIMIT);
-      setShorts(response.data.items);
-      setNextCursor(response.data.next_cursor);
-      setCurrentIndex(0);
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    } catch (e) {
-      console.error('컷츠 리프레시 실패:', e);
-      setError('컷츠를 새로고침하는 중 오류가 발생했습니다.');
-    } finally {
-      setRefreshing(false);
-    }
-  }, [LIMIT]);
+  // Tab re-press 이벤트 핸들러 - 첫 번째 쇼츠로 스크롤
+  const handleTabRePress = useCallback(() => {
+    setCurrentIndex(0);
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, []);
 
   // Tab re-press 이벤트 리스너
   useEffect(() => {
@@ -311,6 +298,12 @@ export default function CutScreen() {
   ) => {
     console.log(`📊 시청 기록 전송 시작 - 쇼츠 ID: ${shortId}`);
     console.log('📊 전송 데이터:', viewData);
+
+    // 3초 이상 시청한 경우에만 기록
+    if (viewData.watched_seconds < 3) {
+      console.log(`⏭️ 시청 시간이 3초 미만으로 기록 건너뜀 - 쇼츠 ID: ${shortId} (${viewData.watched_seconds}초)`);
+      return;
+    }
 
     try {
       await CutService.recordShortView(shortId, viewData);

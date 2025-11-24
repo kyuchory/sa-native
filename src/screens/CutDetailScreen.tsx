@@ -188,6 +188,12 @@ export default function CutDetailScreen() {
     console.log(`📊 시청 기록 전송 시작 - 쇼츠 ID: ${shortId}`);
     console.log('📊 전송 데이터:', viewData);
 
+    // 3초 이상 시청한 경우에만 기록
+    if (viewData.watched_seconds < 3) {
+      console.log(`⏭️ 시청 시간이 3초 미만으로 기록 건너뜀 - 쇼츠 ID: ${shortId} (${viewData.watched_seconds}초)`);
+      return;
+    }
+
     try {
       await CutService.recordShortView(shortId, viewData);
       console.log(`✅ 시청 기록 저장 성공 - 쇼츠 ID: ${shortId}`);
