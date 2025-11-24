@@ -36,8 +36,8 @@ export default function FeedScreen() {
     loading: false,
   });
   const [refreshing, setRefreshing] = useState(false);
-  // 비디오 가시성 상태 관리 - 화면에 보이는 피드 아이템 추적
-  const [visibleVideoFeeds, setVisibleVideoFeeds] = useState<Set<number>>(new Set());
+  // 비디오 가시성 상태 관리 - 가장 중앙에 있는 비디오 피드만 추적
+  const [visibleVideoFeed, setVisibleVideoFeed] = useState<number | null>(null);
 
   // 메뉴 관련 상태
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
@@ -249,7 +249,7 @@ export default function FeedScreen() {
   // 피드 렌더링 - 가시성 상태 전달 및 메모이제이션
   const renderFeed = useCallback(({ item }: { item: FeedListItem }) => {
     const hasVideo = item.content_blocks.some(block => block.type === 'video');
-    const isVideoVisible = hasVideo && visibleVideoFeeds.has(item.id);
+    const isVideoVisible = hasVideo && visibleVideoFeed === item.id;
 
     return (
       <FeedCard
@@ -263,7 +263,7 @@ export default function FeedScreen() {
       />
     );
   }, [
-    visibleVideoFeeds,
+    visibleVideoFeed,
     handleLikePress,
     handleCommentPress,
     handleBookmarkPress,
@@ -271,16 +271,31 @@ export default function FeedScreen() {
     handleMenuPress,
   ]);
 
-  // 비디오 가시성 변경 핸들러 - 화면에 보이는 영상만 재생 (useRef로 안정화)
+  // 비디오 가시성 변경 핸들러 - 가장 중앙에 있는 비디오만 재생 (useRef로 안정화)
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-    const visibleFeeds = new Set<number>();
-    viewableItems.forEach((item: any) => {
-      const feed = feedsRef.current.find(f => f.id === item.item.id);
-      if (feed?.content_blocks.some(block => block.type === 'video')) {
-        visibleFeeds.add(feed.id);
-      }
-    });
-    setVisibleVideoFeeds(visibleFeeds);
+    // viewable items 중 비디오가 있는 피드들 찾기
+    const videoFeedsWithIndex = viewableItems
+      .map((item: any) => {
+        const feed = feedsRef.current.find(f => f.id === item.item.id);
+        return feed && feed.content_blocks.some((block: any) => block.type === 'video')
+          ? { id: feed.id, index: item.index }
+          : null;
+      })
+      .filter(Boolean);
+
+    if (videoFeedsWithIndex.length === 0) {
+      setVisibleVideoFeed(null);
+      return;
+    }
+
+    // viewable items의 평균 인덱스 계산하여 가장 중앙에 있는 비디오 선택
+    const avgIndex = viewableItems.reduce((sum: number, item: any) => sum + item.index, 0) / viewableItems.length;
+
+    const mostCentralVideo = videoFeedsWithIndex.reduce((prev: { id: number; index: number }, curr: { id: number; index: number }) =>
+      Math.abs(curr.index - avgIndex) < Math.abs(prev.index - avgIndex) ? curr : prev
+    );
+
+    setVisibleVideoFeed(mostCentralVideo!.id);
   }).current;
 
   // FlatList viewability 설정 - 화면에 50% 이상 보이는 아이템 감지

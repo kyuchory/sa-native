@@ -220,6 +220,7 @@ const formatTimeAgo = (dateString: string): string => {
 // Enhanced VideoBlock 컴포넌트
 interface EnhancedVideoBlockProps {
   videoUri: string;
+  thumbnailUri?: string;  // 서버에서 제공한 썸네일 URL
   feedId: number;
   styles: any;
   isVisible?: boolean;
@@ -227,11 +228,12 @@ interface EnhancedVideoBlockProps {
 
 const EnhancedVideoBlock = React.memo(({
   videoUri,
+  thumbnailUri: serverThumbnailUri,
   feedId,
   styles,
   isVisible = true
 }: EnhancedVideoBlockProps) => {
-  const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
+  const [thumbnailUri, setThumbnailUri] = useState<string | null>(serverThumbnailUri || null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const playerRef = useRef<any>(null);
 
@@ -242,6 +244,13 @@ const EnhancedVideoBlock = React.memo(({
   }), [videoUri]);
 
   useEffect(() => {
+    // 서버 썸네일이 있으면 즉시 사용
+    if (serverThumbnailUri) {
+      setThumbnailUri(serverThumbnailUri);
+      return;
+    }
+
+    // 서버 썸네일이 없으면 클라이언트에서 생성 (폴백)
     const preloadThumbnail = async () => {
       try {
         const thumbnail = await getThumbnailAsync(videoUri, {
@@ -255,7 +264,7 @@ const EnhancedVideoBlock = React.memo(({
     };
 
     preloadThumbnail();
-  }, [videoUri]);
+  }, [videoUri, serverThumbnailUri]);
 
   const player = useVideoPlayer(videoSource, player => {
     player.loop = true;
@@ -509,7 +518,13 @@ function FeedCard({
                     </Text>
                   )}
                   {block.type === 'video' ? (
-                    <TapPauseVideo videoUri={block.value} isVisible={isVisible && currentPage === index} />
+                    <EnhancedVideoBlock
+                      videoUri={block.value}
+                      thumbnailUri={block.thumbnail}
+                      feedId={feed.id}
+                      styles={styles}
+                      isVisible={isVisible && currentPage === index}
+                    />
                   ) : (
                     <Image
                       source={{ uri: block.value }}
