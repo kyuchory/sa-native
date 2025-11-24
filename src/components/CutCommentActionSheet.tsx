@@ -13,6 +13,7 @@ import {
   Alert,
   Keyboard,
 } from 'react-native';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '../stores/themeStore';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
@@ -46,7 +47,16 @@ export default function CutCommentActionSheet({
 
   // 애니메이션 값들
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const dragAnim = useRef(new Animated.Value(0)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
+
+  // 드래그에 따라 배경 투명도 조절 (선택적)
+  const dragOpacity = dragAnim.interpolate({
+    inputRange: [0, SCREEN_HEIGHT],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const combinedOverlayOpacity = Animated.multiply(overlayOpacity, dragOpacity);
 
   // 상태 관리
   const [comments, setComments] = useState<ShortComment[]>([]);
@@ -58,6 +68,8 @@ export default function CutCommentActionSheet({
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // 댓글 로드와 같은 기존 함수들 유지...
 
   // 애니메이션 효과
   useEffect(() => {
@@ -194,7 +206,7 @@ export default function CutCommentActionSheet({
         return newSet;
       });
     }
-  }, [commentLikeLoading, short.id]); // comments 의존성 제거로 불필요한 리렌더링 방지
+  }, [commentLikeLoading, short.id]);
 
   // 댓글 작성
   const onSendComment = async (text: string) => {
@@ -349,30 +361,103 @@ export default function CutCommentActionSheet({
     );
   };
 
+  // 드래그 제스처 핸들러
+  const onGestureEvent = Animated.event(
+    [{ nativeEvent: { translationY: dragAnim } }],
+    { useNativeDriver: false }
+  );
+
+  const onHandlerStateChange = (event: any) => {
+    if (event.nativeEvent.state === State.END) {
+      const { translationY, velocityY } = event.nativeEvent;
+      const dragThreshold = SCREEN_HEIGHT * 0.2; // 20% 화면 높이
+      const velocityThreshold = 500; // 빠른 속도 임계값
+
+      // 아래로 드래그한 경우에만 체크 (양수 값)
+      if (translationY > 0) {
+        // 닫힘 조건: 드래그 거리가 임계값 이상 또는 빠른 속도로 드래그
+        const shouldClose = translationY > dragThreshold || velocityY > velocityThreshold;
+
+        if (shouldClose) {
+          // Modal을 먼저 닫아서 뒤의 화면이 즉시 터치 가능하도록
+          onClose();
+
+          // 닫힘 애니메이션 - 빠른 닫힘 (시각적 효과만)
+          Animated.parallel([
+            Animated.spring(slideAnim, {
+              toValue: SCREEN_HEIGHT,
+              velocity: velocityY,
+              useNativeDriver: true,
+            }),
+            Animated.spring(dragAnim, {
+              toValue: 0,
+              useNativeDriver: true,
+            }),
+            Animated.timing(overlayOpacity, {
+              toValue: 0,
+              duration: 150, // 빠른 페이드아웃
+              useNativeDriver: true,
+            }),
+          ]).start();
+        } else {
+          // 원위치 복귀
+          Animated.spring(dragAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      } else {
+        // 위로 드래그한 경우는 그대로 복귀
+        Animated.spring(dragAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      }
+    }
+  };
+
   if (!visible) return null;
 
   return (
     <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
-        {/* 오버레이 */}
+        {/* 오버레이: TouchableOpacity 자체는 투명. 실제 반투명 배경은 Animated.View에서 제어 */}
         <TouchableOpacity
-          style={styles.overlay}
+          style={[styles.overlayTouchable]}
           activeOpacity={1}
           onPress={onClose}
         >
+          {/* 실제 보이는 오버레이: opacity는 애니메이션 값으로 제어 */}
           <Animated.View
-            style={[styles.overlay, { opacity: overlayOpacity }]}/>
+            pointerEvents="none" // 터치 이벤트는 바깥 TouchableOpacity가 처리
+            style={[
+              styles.overlay,
+              { opacity: combinedOverlayOpacity }
+            ]}
+          />
         </TouchableOpacity>
 
         {/* 액션시트 */}
         <Animated.View style={[
           styles.actionSheet,
           {
-            transform: [{ translateY: slideAnim }],
+            transform: [{ translateY: Animated.add(slideAnim, dragAnim) }],
             paddingBottom: insets.bottom // 하단 safe area
           }
         ]}>
           {/* 핸들 바 */}
-          <View style={styles.handle} />
+          <PanGestureHandler
+            onGestureEvent={onGestureEvent}
+            onHandlerStateChange={onHandlerStateChange}
+            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }} // 터치 영역 확장
+            activeOffsetY={10} // 위아래 10px 이동까지는 취소되지 않음
+            failOffsetY={-10}
+            minPointers={1}
+            maxPointers={1}
+          >
+            <View style={styles.handleContainer}>
+              <Animated.View style={styles.handle} />
+            </View>
+          </PanGestureHandler>
 
           {/* 쇼츠 미리보기 헤더 */}
           <View style={styles.feedPreview}>
@@ -454,9 +539,23 @@ export default function CutCommentActionSheet({
 }
 
 const createStyles = (colors: Record<string, string>) => StyleSheet.create({
+  // TouchableOpacity는 투명하게 덮기만 함
+  overlayTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+  },
+  // 기존 overlay 스타일(배경색 있는 것)은 AnimatedView 용으로 유지
   overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // 실제 반투명 색상은 여기
   },
   actionSheet: {
     position: 'absolute',
@@ -469,14 +568,18 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     borderTopRightRadius: BORDER_RADIUS.LG,
     ...SHADOWS.LARGE,
   },
+  handleContainer: {
+    width: screenWidth,
+    height: 50, // 충분한 터치 높이
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   handle: {
-    width: 40,
-    height: 4,
+    width: 100,
+    height: 8,
     backgroundColor: colors.GRAY_300,
-    borderRadius: 2,
+    borderRadius: 4,
     alignSelf: 'center',
-    marginTop: SPACING.SM,
-    marginBottom: SPACING.SM,
   },
   feedPreview: {
     flexDirection: 'row',
