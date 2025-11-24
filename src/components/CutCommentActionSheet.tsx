@@ -13,7 +13,7 @@ import {
   Alert,
   Keyboard,
 } from 'react-native';
-import { PanGestureHandler, State } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '../stores/themeStore';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
@@ -420,6 +420,7 @@ export default function CutCommentActionSheet({
 
   return (
     <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
         {/* 오버레이: TouchableOpacity 자체는 투명. 실제 반투명 배경은 Animated.View에서 제어 */}
         <TouchableOpacity
           style={[styles.overlayTouchable]}
@@ -534,6 +535,7 @@ export default function CutCommentActionSheet({
             )}
           </View>
         </Animated.View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
