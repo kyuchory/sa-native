@@ -18,6 +18,7 @@ interface ShortBottomOverlayProps {
   categories: Category[];
   isExpanded: boolean;
   onToggleExpand: () => void;
+  onProfilePress?: () => void;
 }
 
 export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
@@ -28,6 +29,7 @@ export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
   categories,
   isExpanded,
   onToggleExpand,
+  onProfilePress,
 }) => {
   return (
     <View style={styles.container}>
@@ -45,8 +47,10 @@ export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
 
       <View style={styles.contentArea}>
         <View style={styles.userInfo}>
-          <UserAvatar profileImg={profileImg} nickname={username} size={30} />
-          <Text style={styles.username}>{username}</Text>
+          <TouchableOpacity style={styles.profileTouchable} onPress={onProfilePress} activeOpacity={0.8}>
+            <UserAvatar profileImg={profileImg} nickname={username} size={30} />
+            <Text style={styles.username}>{username}</Text>
+          </TouchableOpacity>
           <Text style={styles.timeText}>{formatRelativeTime(createdAt)}</Text>
         </View>
 
@@ -82,9 +86,8 @@ const styles = StyleSheet.create({
     bottom: SPACING.MD,
     backgroundColor: 'rgba(0, 0, 0, 0.25)',
     borderRadius: BORDER_RADIUS.LG,
-    paddingHorizontal: SPACING.MD,
-    paddingTop: SPACING.MD,
-    paddingBottom: SPACING.LG,
+    paddingHorizontal: SPACING.SM,
+    paddingVertical: SPACING.SMD,
   },
   toggleButton: {
     position: 'absolute',
@@ -102,6 +105,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: SPACING.SM,
+    gap: SPACING.SM,
+  },
+  profileTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: SPACING.SM,
   },
   username: {
