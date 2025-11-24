@@ -370,8 +370,6 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
       navigation.navigate('PostDetail', { postId: item.id });
     } else if (activeTab === 'videos') {
       navigation.navigate('CutDetail', { shortId: item.id });
-    } else if (activeTab === 'character') {
-      // TODO: 캐릭터 상세 화면으로 이동
     }
   };
 
@@ -449,15 +447,6 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
                 fetchShorts(false);
               }
             }}
-            canViewContent={profileData?.can_view_content ?? true}
-          />
-        )}
-        {activeTab === 'character' && (
-          <ProfileFeedGrid
-            data={feedsData}
-            loading={feedsLoading}
-            onItemPress={handleItemPress}
-            onEndReached={handleFeedsEndReached}
             canViewContent={profileData?.can_view_content ?? true}
           />
         )}
