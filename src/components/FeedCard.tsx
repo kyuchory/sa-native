@@ -785,15 +785,46 @@ const feedCardPropsAreEqual = (prevProps: FeedCardProps, nextProps: FeedCardProp
   const prevFeed = prevProps.feed;
   const nextFeed = nextProps.feed;
 
-  return (
-    prevFeed.id === nextFeed.id &&
-    prevFeed.is_liked === nextFeed.is_liked &&
-    prevFeed.like_count === nextFeed.like_count &&
-    prevFeed.is_bookmarked === nextFeed.is_bookmarked &&
-    prevFeed.bookmark_count === nextFeed.bookmark_count &&
-    prevFeed.comment_count === nextFeed.comment_count &&
-    prevProps.isVisible === nextProps.isVisible
-  );
+  // 기본 정보 비교
+  if (
+    prevFeed.id !== nextFeed.id ||
+    prevFeed.is_liked !== nextFeed.is_liked ||
+    prevFeed.like_count !== nextFeed.like_count ||
+    prevFeed.is_bookmarked !== nextFeed.is_bookmarked ||
+    prevFeed.bookmark_count !== nextFeed.bookmark_count ||
+    prevFeed.comment_count !== nextFeed.comment_count ||
+    prevProps.isVisible !== nextProps.isVisible
+  ) {
+    return false;
+  }
+
+  // content_blocks 비교 - 텍스트 내용
+  const prevTextBlock = prevFeed.content_blocks.find(b => b.type === 'text');
+  const nextTextBlock = nextFeed.content_blocks.find(b => b.type === 'text');
+  if (prevTextBlock?.value !== nextTextBlock?.value) {
+    return false;
+  }
+
+  // content_blocks 비교 - 미디어 개수 및 순서
+  const prevMediaBlocks = prevFeed.content_blocks.filter(b => b.type === 'image' || b.type === 'video');
+  const nextMediaBlocks = nextFeed.content_blocks.filter(b => b.type === 'image' || b.type === 'video');
+
+  if (prevMediaBlocks.length !== nextMediaBlocks.length) {
+    return false;
+  }
+
+  // 각 미디어 블록의 순서와 값 비교
+  for (let i = 0; i < prevMediaBlocks.length; i++) {
+    if (
+      prevMediaBlocks[i].sequence !== nextMediaBlocks[i].sequence ||
+      prevMediaBlocks[i].value !== nextMediaBlocks[i].value ||
+      prevMediaBlocks[i].type !== nextMediaBlocks[i].type
+    ) {
+      return false;
+    }
+  }
+
+  return true;
 };
 
 export default React.memo(FeedCard, feedCardPropsAreEqual);
