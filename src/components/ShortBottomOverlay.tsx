@@ -77,10 +77,11 @@ export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    left: SPACING.MD,
+    right: SPACING.MD,
+    bottom: SPACING.MD,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: BORDER_RADIUS.LG,
     paddingHorizontal: SPACING.MD,
     paddingTop: SPACING.MD,
     paddingBottom: SPACING.LG,
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SPACING.XS,
+    marginBottom: SPACING.SM,
     gap: SPACING.SM,
   },
   username: {
