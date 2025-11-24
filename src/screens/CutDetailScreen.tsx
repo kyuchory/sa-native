@@ -89,11 +89,11 @@ export default function CutDetailScreen() {
   // 공유하기
   const handleShare = useCallback(() => {
     console.log('공유하기:', shortId);
-    Alert.alert('공유하기', '어디로 공유하시겠습니까?', [
+    Alert.alert('공유하기', '기능이 준비중입니다.', [
       { text: '취소', style: 'cancel' },
-      { text: '카카오톡', onPress: () => console.log('카카오톡 공유:', shortId) },
-      { text: '인스타그램', onPress: () => console.log('인스타그램 공유:', shortId) },
-      { text: '링크 복사', onPress: () => console.log('링크 복사:', shortId, short?.content_url) },
+      // { text: '카카오톡', onPress: () => console.log('카카오톡 공유:', shortId) },
+      // { text: '인스타그램', onPress: () => console.log('인스타그램 공유:', shortId) },
+      // { text: '링크 복사', onPress: () => console.log('링크 복사:', shortId, short?.content_url) },
     ]);
   }, [short, shortId]);
 

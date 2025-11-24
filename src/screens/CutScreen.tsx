@@ -186,11 +186,11 @@ export default function CutScreen() {
   const handleShare = useCallback((shortId: number) => {
     console.log('공유하기:', shortId);
     const short = shorts.find(s => s.id === shortId);
-    Alert.alert('공유하기', '어디로 공유하시겠습니까?', [
-      { text: '취소', style: 'cancel' },
-      { text: '카카오톡', onPress: () => console.log('카카오톡 공유:', shortId) },
-      { text: '인스타그램', onPress: () => console.log('인스타그램 공유:', shortId) },
-      { text: '링크 복사', onPress: () => console.log('링크 복사:', shortId, short?.content_url) },
+    Alert.alert('공유하기', '기능 준비중입니다.', [
+      // { text: '취소', style: 'cancel' },
+      // { text: '카카오톡', onPress: () => console.log('카카오톡 공유:', shortId) },
+      // { text: '인스타그램', onPress: () => console.log('인스타그램 공유:', shortId) },
+      // { text: '링크 복사', onPress: () => console.log('링크 복사:', shortId, short?.content_url) },
     ]);
   }, [shorts]);
 
