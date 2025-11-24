@@ -1,6 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Platform, TouchableOpacity } from 'react-native';
+import { Platform, TouchableOpacity, DeviceEventEmitter } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabParamList } from '../types/navigation';
 import { CleanTabIconComponents } from '../components/CleanTabIcons';
@@ -92,10 +92,22 @@ export default function TabNavigator() {
       <Tab.Screen
         name="CutTab"
         component={CutScreen}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            // 이미 CutTab이 active 상태라면
+            const state = navigation.getState();
+            const currentRoute = state.routes[state.index];
+
+            if (currentRoute.name === 'CutTab') {
+              // CutScreen으로 refresh 이벤트 전달
+              DeviceEventEmitter.emit('CutTab:rePress');
+            }
+          },
+        })}
         options={{
           tabBarIcon: ({ focused }) => (
-            <CleanTabIconComponents.CutTab 
-              size={26} 
+            <CleanTabIconComponents.CutTab
+              size={26}
               focused={focused}
             />
           ),

@@ -9,6 +9,8 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
+  RefreshControl,
+  DeviceEventEmitter,
 } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -54,6 +56,7 @@ export default function CutScreen() {
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [commentSheetVisible, setCommentSheetVisible] = useState(false);
   const [selectedShort, setSelectedShort] = useState<ShortItem | null>(null);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
@@ -136,6 +139,51 @@ export default function CutScreen() {
   useEffect(() => {
     fetchInitial();
   }, []);
+
+  // Pull to refresh 데이터 리프레시 함수
+  const onRefresh = useCallback(async () => {
+    if (currentIndex !== 0) return;
+    try {
+      setRefreshing(true);
+      setError(null);
+
+      const response = await CutService.getShortsFeed(undefined, LIMIT);
+      setShorts(response.data.items);
+      setNextCursor(response.data.next_cursor);
+      setCurrentIndex(0);
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    } catch (e) {
+      console.error('컷츠 리프레시 실패:', e);
+      setError('컷츠를 새로고침하는 중 오류가 발생했습니다.');
+    } finally {
+      setRefreshing(false);
+    }
+  }, [currentIndex, LIMIT]);
+
+  // Tab re-press 이벤트 핸들러 - 위치와 관계없이 항상 리프레시
+  const handleTabRePress = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      setError(null);
+
+      const response = await CutService.getShortsFeed(undefined, LIMIT);
+      setShorts(response.data.items);
+      setNextCursor(response.data.next_cursor);
+      setCurrentIndex(0);
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    } catch (e) {
+      console.error('컷츠 리프레시 실패:', e);
+      setError('컷츠를 새로고침하는 중 오류가 발생했습니다.');
+    } finally {
+      setRefreshing(false);
+    }
+  }, [LIMIT]);
+
+  // Tab re-press 이벤트 리스너
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('CutTab:rePress', handleTabRePress);
+    return () => subscription.remove();
+  }, [handleTabRePress]);
 
   // 댓글 보기
   const handleComment = useCallback((shortId: number) => {
@@ -413,6 +461,14 @@ export default function CutScreen() {
         initialNumToRender={3}
         maxToRenderPerBatch={3}
         windowSize={3}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.PRIMARY]}
+            tintColor={colors.PRIMARY}
+          />
+        }
         ListFooterComponent={
           isFetchingMore ? (
             <View style={styles.footerLoader}>
