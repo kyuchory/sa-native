@@ -313,6 +313,11 @@ export default function CutScreen() {
     }
   }, []);
 
+  // 프로필 이동 핸들러
+  const handleProfilePress = useCallback((userId: string) => {
+    navigation.navigate('UserProfile', { userId });
+  }, [navigation]);
+
   // FlatList 뷰어빌리티 설정
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 80,
@@ -334,10 +339,11 @@ export default function CutScreen() {
           onShare={handleShare}
           onUpload={handleUpload}
           onViewComplete={handleViewComplete}
+          onProfilePress={handleProfilePress}
         />
       </View>
     ),
-    [ITEM_HEIGHT, isFocused, currentIndex, handleComment, handleShare, handleUpload, handleViewComplete]
+    [ITEM_HEIGHT, isFocused, currentIndex, handleComment, handleShare, handleUpload, handleViewComplete, handleProfilePress]
   );
 
   // 로딩 중
