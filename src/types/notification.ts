@@ -10,6 +10,24 @@ export interface NotificationSender {
   profile_img: string | null;
 }
 
+// 알림 추가 정보 인터페이스들
+export interface NotificationFeed {
+  id: number;
+  content?: string;
+  title?: string;
+}
+
+export interface NotificationPost {
+  id: number;
+  title?: string;
+  content?: string;
+}
+
+export interface NotificationComment {
+  content: string;
+  preview: string;
+}
+
 // 알림 인터페이스
 export interface Notification {
   id: number;
@@ -19,6 +37,11 @@ export interface Notification {
   reference_id: number | null;
   is_read: boolean;
   created_at: string; // ISO 8601 포맷
+
+  // 추가 정보 (선택적)
+  feed?: NotificationFeed;
+  post?: NotificationPost;
+  comment?: NotificationComment;
 }
 
 // 알림 목록 조회 쿼리 파라미터 인터페이스

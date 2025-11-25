@@ -97,8 +97,8 @@ class NotificationSocketService {
         알림ID: data.id,
         타입: data.type,
         보낸사람: `${data.sender.nickname} (ID: ${data.sender.id})`,
-        피드ID: data.feed.id,
-        댓글내용: data.comment_content.substring(0, 50) + '...',
+        피드ID: data.feed?.id || data.reference_id,
+        댓글내용: data.comment.content.substring(0, 50) + '...',
         읽음여부: data.is_read,
         생성시간: data.created_at
       });
@@ -115,8 +115,8 @@ class NotificationSocketService {
         알림ID: data.id,
         타입: data.type,
         보낸사람: `${data.sender.nickname} (ID: ${data.sender.id})`,
-        포스트ID: data.post.id,
-        댓글내용: data.comment_content.substring(0, 50) + '...',
+        포스트ID: data.post?.id || data.reference_id,
+        댓글내용: data.comment.content.substring(0, 50) + '...',
         읽음여부: data.is_read,
         생성시간: data.created_at
       });
@@ -287,6 +287,32 @@ class NotificationSocketService {
   // 실시간 알림 처리 메서드
   private handleRealtimeNotification(data: any) {
     try {
+      // 알림 타입에 따른 추가 정보 추출
+      const extraData: Partial<Notification> = {};
+
+      if (data.feed && (data.type === 'feed_commented' || data.type === 'feed_liked' || data.type === 'feed_created')) {
+        extraData.feed = {
+          id: data.feed.id,
+          content: data.feed.content,
+          title: data.feed.title
+        };
+      }
+
+      if (data.post && (data.type === 'post_commented' || data.type === 'post_liked' || data.type === 'post_created')) {
+        extraData.post = {
+          id: data.post.id,
+          title: data.post.title,
+          content: data.post.content
+        };
+      }
+
+      if (data.comment && (data.type === 'feed_commented' || data.type === 'post_commented' || data.type === 'short_commented')) {
+        extraData.comment = {
+          content: data.comment.content,
+          preview: data.comment.preview
+        };
+      }
+
       // 소켓 데이터를 Notification 타입으로 변환
       const notification: Notification = {
         id: data.id,
@@ -295,7 +321,8 @@ class NotificationSocketService {
         message: this.generateNotificationMessage(data),
         reference_id: data.reference_id,
         is_read: false, // 새 알림은 읽지 않음으로 설정
-        created_at: data.created_at
+        created_at: data.created_at,
+        ...extraData // 추가 정보 병합
       };
 
       // NotificationStore에 알림 추가
@@ -315,11 +342,11 @@ class NotificationSocketService {
       case 'feed_liked':
         return `${sender.nickname}님이 회원님의 피드를 좋아합니다.`;
       case 'post_liked':
-        return `${sender.nickname}님이 회원님의 포스트를 좋아합니다.`;
+        return `${sender.nickname}님이 회원님의 게시물을 좋아합니다.`;
       case 'feed_commented':
         return `${sender.nickname}님이 회원님의 피드에 댓글을 남겼습니다.`;
       case 'post_commented':
-        return `${sender.nickname}님이 회원님의 포스트에 댓글을 남겼습니다.`;
+        return `${sender.nickname}님이 회원님의 게시물에 댓글을 남겼습니다.`;
       case 'feed_created':
         return `${sender.nickname}님이 새 피드를 작성했습니다.`;
       case 'post_created':
