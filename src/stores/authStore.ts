@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, Tokens, LoginRequest, SignUpRequest } from '../types/auth';
 import { AuthService } from '../services/authService';
 import { ApiError, handleApiError } from '../services/apiClient';
+import { DeviceUtils } from '../utils/deviceUtils';
 
 interface AuthState {
   // 상태
@@ -11,7 +12,7 @@ interface AuthState {
   tokens: Tokens | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  
+
   // 액션
   setUser: (user: User) => void;
   setTokens: (tokens: Tokens) => void;
@@ -33,50 +34,51 @@ export const useAuthStore = create<AuthState>()(
       tokens: null,
       isAuthenticated: false,
       isLoading: false,
-      
+
       // 액션들
       setUser: (user: User) => set({ user }),
-      
+
       setTokens: (tokens: Tokens) => set({ tokens }),
-      
-      login: (user: User, tokens: Tokens) => 
-        set({ 
-          user, 
-          tokens, 
+
+      login: (user: User, tokens: Tokens) =>
+        set({
+          user,
+          tokens,
           isAuthenticated: true,
-          isLoading: false 
+          isLoading: false
         }),
-      
+
       logout: async () => {
         try {
-          await AuthService.logout();
+          const deviceId = await DeviceUtils.getDeviceId();
+          await AuthService.logout({ deviceId });
         } catch (error) {
           console.error('Logout API error:', error);
         } finally {
-          set({ 
-            user: null, 
-            tokens: null, 
+          set({
+            user: null,
+            tokens: null,
             isAuthenticated: false,
-            isLoading: false 
+            isLoading: false
           });
         }
       },
-      
+
       setLoading: (loading: boolean) => set({ isLoading: loading }),
-      
+
       loginWithCredentials: async (credentials: LoginRequest) => {
         set({ isLoading: true });
         try {
           const response = await AuthService.login(credentials);
           const { user, tokens } = response.data;
-          
-          set({ 
-            user, 
-            tokens, 
+
+          set({
+            user,
+            tokens,
             isAuthenticated: true,
-            isLoading: false 
+            isLoading: false
           });
-          
+
           return { success: true };
         } catch (error) {
           const errorMessage = handleApiError(error);
@@ -84,60 +86,60 @@ export const useAuthStore = create<AuthState>()(
           return { success: false, error: errorMessage };
         }
       },
-      
-             signUp: async (data: SignUpRequest) => {
-         set({ isLoading: true });
-         try {
-           await AuthService.signUp(data);
-           set({ isLoading: false });
-           return { success: true };
-         } catch (error) {
-           const errorMessage = handleApiError(error);
-           set({ isLoading: false });
-           return { success: false, error: errorMessage };
-         }
-       },
-       
-       checkEmail: async (email: string) => {
-         try {
-           const response = await AuthService.checkEmail(email);
-           return { 
-             success: true, 
-             isAvailable: response.data.isAvailable 
-           };
-         } catch (error) {
-           const errorMessage = handleApiError(error);
-           return { success: false, error: errorMessage };
-         }
-       },
-       
-       checkNickname: async (nickname: string) => {
-         try {
-           const response = await AuthService.checkNickname(nickname);
-           return { 
-             success: true, 
-             isAvailable: response.data.isAvailable 
-           };
-         } catch (error) {
-           const errorMessage = handleApiError(error);
-           return { success: false, error: errorMessage };
-         }
-       },
-       
-       clearAuth: () => set({ 
-         user: null, 
-         tokens: null, 
-         isAuthenticated: false,
-         isLoading: false 
-       }),
+
+      signUp: async (data: SignUpRequest) => {
+        set({ isLoading: true });
+        try {
+          await AuthService.signUp(data);
+          set({ isLoading: false });
+          return { success: true };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ isLoading: false });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      checkEmail: async (email: string) => {
+        try {
+          const response = await AuthService.checkEmail(email);
+          return {
+            success: true,
+            isAvailable: response.data.isAvailable
+          };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      checkNickname: async (nickname: string) => {
+        try {
+          const response = await AuthService.checkNickname(nickname);
+          return {
+            success: true,
+            isAvailable: response.data.isAvailable
+          };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      clearAuth: () => set({
+        user: null,
+        tokens: null,
+        isAuthenticated: false,
+        isLoading: false
+      }),
     }),
     {
       name: 'auth-storage', // AsyncStorage 키 이름
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({ 
-        user: state.user, 
+      partialize: (state) => ({
+        user: state.user,
         tokens: state.tokens,
-        isAuthenticated: state.isAuthenticated 
+        isAuthenticated: state.isAuthenticated
       }), // 저장할 상태만 선택
     }
   )

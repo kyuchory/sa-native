@@ -56,6 +56,11 @@ export interface NicknameCheckResponse {
   isAvailable: boolean;
 }
 
+// 로그아웃 요청 타입
+export interface LogoutRequest {
+  deviceId?: string;
+}
+
 // API 응답 타입들
 export type SignUpApiResponse = ApiResponse<SignUpResponse>;
 export type LoginApiResponse = ApiResponse<LoginResponse>;

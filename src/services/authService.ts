@@ -2,6 +2,7 @@ import { apiClient } from './apiClient';
 import {
   SignUpRequest,
   LoginRequest,
+  LogoutRequest,
   SignUpApiResponse,
   LoginApiResponse,
   EmailCheckApiResponse,
@@ -22,8 +23,8 @@ export class AuthService {
   }
 
   // 로그아웃
-  static async logout(): Promise<LogoutApiResponse> {
-    return apiClient.post<LogoutApiResponse>('/auth/logout', {});
+  static async logout(data: LogoutRequest = {}): Promise<LogoutApiResponse> {
+    return apiClient.post<LogoutApiResponse>('/auth/logout', data);
   }
 
   // 이메일 중복 체크
