@@ -192,6 +192,57 @@ class NotificationSocketService {
       console.log('📢 메시지 알림 처리 완료');
     });
 
+    // 쇼츠 좋아요 알림 수신
+    socketService.on('notification:short_liked', (data) => {
+      console.log('🔔 쇼츠 좋아요 알림 수신:', {
+        알림ID: data.id,
+        타입: data.type,
+        보낸사람: `${data.sender.nickname} (ID: ${data.sender.id})`,
+        컷츠ID: data.reference_id,
+        읽음여부: data.is_read,
+        생성시간: data.created_at
+      });
+
+      // 실제 알림 처리 로직
+      this.handleRealtimeNotification(data);
+
+      console.log('📢 쇼츠 좋아요 알림 처리 완료');      console.log('📢 쇼츠 좋아요 알림 처리 완료');
+    });
+
+    // 컷츠 댓글 알림 수신
+    socketService.on('notification:short_commented', (data) => {
+      console.log('🔔 컷츠 댓글 알림 수신:', {
+        알림ID: data.id,
+        타입: data.type,
+        보낸사람: `${data.sender.nickname} (ID: ${data.sender.id})`,
+        컷츠ID: data.reference_id,
+        읽음여부: data.is_read,
+        생성시간: data.created_at
+      });
+
+      // 실제 알림 처리 로직
+      this.handleRealtimeNotification(data);
+
+      console.log('📢 컷츠 댓글 알림 처리 완료');
+    });
+
+    // 컷츠 생성 알림 수신
+    socketService.on('notification:short_created', (data) => {
+      console.log('🔔 컷츠 생성 알림 수신:', {
+        알림ID: data.id,
+        타입: data.type,
+        보낸사람: `${data.sender.nickname} (ID: ${data.sender.id})`,
+        컷츠ID: data.reference_id,
+        읽음여부: data.is_read,
+        생성시간: data.created_at
+      });
+
+      // 실제 알림 처리 로직
+      this.handleRealtimeNotification(data);
+
+      console.log('📢 컷츠 생성 알림 처리 완료');
+    });
+
     // 채팅 배지 알림 수신 (새 메시지 도착 시)
     socketService.on('notification:chat_badge', (data) => {
       console.log('🔔 채팅 배지 알림 수신:', {
@@ -226,6 +277,9 @@ class NotificationSocketService {
     socketService.off('notification:feed_created');
     socketService.off('notification:post_created');
     socketService.off('notification:message');
+    socketService.off('notification:short_liked');
+    socketService.off('notification:short_commented');
+    socketService.off('notification:short_created');
 
     this.eventListenersSetup = false;
   }
@@ -272,6 +326,12 @@ class NotificationSocketService {
         return `${sender.nickname}님이 새 포스트를 작성했습니다.`;
       case 'message':
         return `${sender.nickname}님이 메시지를 보냈습니다.`;
+      case 'short_liked':
+        return `${sender.nickname}님이 회원님의 컷츠를 좋아합니다.`;
+      case 'short_commented':
+        return `${sender.nickname}님이 회원님의 컷츠에 댓글을 남겼습니다.`;
+      case 'short_created':
+        return `${sender.nickname}님이 컷츠를 공유했습니다.`;
       default:
         return `${sender.nickname}님의 알림`;
     }

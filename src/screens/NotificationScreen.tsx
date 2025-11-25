@@ -109,6 +109,24 @@ export default function NotificationScreen() {
             navigation.navigate('FeedDetail', { feedId: notification.reference_id });
           }
           break;
+        case 'short_liked':
+          // 쇼츠 좋아요 알림 - 쇼츠 상세로 이동
+          if (notification.reference_id) {
+            navigation.navigate('CutDetail', { shortId: notification.reference_id });
+          }
+          break;
+        case 'short_commented':
+          // 쇼츠 댓글 알림 - 쇼츠 상세로 이동
+          if (notification.reference_id) {
+            navigation.navigate('CutDetail', { shortId: notification.reference_id });
+          }
+          break;
+        case 'short_created':
+          // 쇼츠 생성 알림 - 쇼츠 상세로 이동
+          if (notification.reference_id) {
+            navigation.navigate('CutDetail', { shortId: notification.reference_id });
+          }
+          break;
         case 'message':
           // 채팅 상세로 이동
           if (notification.sender.id) {
@@ -121,11 +139,6 @@ export default function NotificationScreen() {
           break;
         default:
           break;
-      }
-
-      // 이미 읽었던 알림이면 API 호출 생략
-      if (notification.is_read) {
-        return;
       }
 
       // 백그라운드에서 알림 읽음 처리 API 호출

@@ -1,7 +1,7 @@
 import { ApiResponse } from './api';
 
 // 알림 타입 정의
-export type NotificationType = 'followed' | 'feed_liked' | 'post_liked' | 'feed_commented' | 'post_commented' | 'feed_created' | 'post_created' | 'message';
+export type NotificationType = 'followed' | 'feed_liked' | 'post_liked' | 'feed_commented' | 'post_commented' | 'feed_created' | 'post_created' | 'message' | 'short_liked' | 'short_commented' | 'short_created';
 
 // 발신자 정보 인터페이스
 export interface NotificationSender {
