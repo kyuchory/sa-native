@@ -93,6 +93,8 @@ const CanvasSurface = React.memo<CanvasSurfaceProps>(function CanvasSurface(prop
 
   const currentStroke = useSharedValue<Stroke | null>(null);
   const drawingPoints = useSharedValue<{ x: number; y: number }[]>([]);
+  const currentDrawingColor = useSharedValue('#000000');
+  const currentDrawingWidth = useSharedValue(4);
 
   // Undo/Clear 감지하여 drawingPoints 동기화
   const prevStrokeCountRef = useRef(strokes.length);
@@ -125,6 +127,10 @@ const CanvasSurface = React.memo<CanvasSurfaceProps>(function CanvasSurface(prop
       };
       currentStroke.value = stroke;
       drawingPoints.value = stroke.points;
+
+      // Set current drawing color for this stroke
+      currentDrawingColor.value = drawColor;
+      currentDrawingWidth.value = drawWidth;
     })
     .onUpdate(e => {
       if (!currentStroke.value) return;
@@ -171,6 +177,8 @@ const CanvasSurface = React.memo<CanvasSurfaceProps>(function CanvasSurface(prop
   const AnimatedPath = Animated.createAnimatedComponent(Path);
   const animatedPathProps = useAnimatedProps(() => ({
     d: pointsToPath(drawingPoints.value),
+    stroke: currentDrawingColor.value,
+    strokeWidth: currentDrawingWidth.value,
   }));
 
   const updateElementPosition = useCallback((id: string, newPos: PercentPos) => {
@@ -235,8 +243,6 @@ const CanvasSurface = React.memo<CanvasSurfaceProps>(function CanvasSurface(prop
             ))}
             <AnimatedPath
               animatedProps={animatedPathProps}
-              strokeWidth={drawWidth}
-              stroke={drawColor}
               fill="none"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -1115,11 +1121,13 @@ const ElementWrapper = React.memo<ElementWrapperProps>(function ElementWrapper(p
               borderColor: isSelected ? colors.PRIMARY : 'transparent',
               borderRadius: 8,
             },
-            // 그리는 중에도 위치는 baseX/baseY 기준
+            // 그리는 중에도 위치와 회전/크기는 기존 상태 유지
             {
               transform: [
                 { translateX: baseX.value },
                 { translateY: baseY.value },
+                { scale: baseScale.value },
+                { rotateZ: `${baseRotation.value}deg` },
               ],
             },
           ]}
@@ -1172,6 +1180,8 @@ const ElementWrapper = React.memo<ElementWrapperProps>(function ElementWrapper(p
             transform: [
               { translateX: baseX.value },
               { translateY: baseY.value },
+              { scale: baseScale.value },
+              { rotateZ: `${baseRotation.value}deg` },
             ],
           },
         ]}
