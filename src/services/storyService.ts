@@ -12,7 +12,9 @@ import type {
   UserStoryDetailResponse,
   UserStoryDetailApiResponse,
   MyStoryDetailResponse,
-  MyStoryDetailApiResponse
+  MyStoryDetailApiResponse,
+  StoryViewResponse,
+  StoryViewApiResponse
 } from '../types/story';
 import type { ApiResponse } from '../types/api';
 
@@ -160,6 +162,17 @@ export class StoryService {
       return response.data!;
     } catch (error) {
       console.error('자신의 스토리 상세 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  // 스토리 읽음 처리
+  static async viewStory(storyId: number): Promise<StoryViewResponse> {
+    try {
+      const response = await apiClient.post<StoryViewApiResponse>(`/stories/${storyId}/view`, {});
+      return response.data!;
+    } catch (error) {
+      console.error('스토리 읽음 처리 실패:', error);
       throw error;
     }
   }

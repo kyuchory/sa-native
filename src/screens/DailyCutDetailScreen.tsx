@@ -29,6 +29,7 @@ import { AuthStackParamList } from '../types/navigation';
 import { StoryService } from '../services/storyService';
 import type { UserStoryDetailResponse } from '../types/story';
 import { useThemeStore } from '../stores/themeStore';
+import useStoryStore from '../stores/storyStore';
 import UserAvatar from '../components/UserAvatar';
 import { formatRelativeTime } from '../utils/timeUtils';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS as THEME_SHADOWS, TEXT_COLORS } from '../constants/theme';
@@ -133,6 +134,7 @@ const StorySegment: React.FC<{
   colors: Record<string, string>;
   onVideoEnd: () => void;
 }> = ({ story, isActive, colors, onVideoEnd }) => {
+  const { setShouldRefreshStories } = useStoryStore();
   const [imageLoading, setImageLoading] = useState(true);
 
   const player = useVideoPlayer(
@@ -151,6 +153,20 @@ const StorySegment: React.FC<{
     const subscription = player.addListener('playToEnd', onVideoEnd);
     return () => subscription.remove();
   }, [isActive, story.type]);
+
+  // 스토리 읽음 처리
+  useEffect(() => {
+    if (isActive && !story.is_viewed) {
+      StoryService.viewStory(story.id)
+        .then(response => {
+          // 스토리 읽음 처리 성공 시 리프레시 플래그 설정
+          setShouldRefreshStories(true);
+        })
+        .catch(error => {
+          console.error('스토리 읽음 처리 실패:', error);
+        });
+    }
+  }, [isActive, story.id, story.is_viewed, setShouldRefreshStories]);
 
   if (!isActive) return null;
 

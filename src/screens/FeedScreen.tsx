@@ -54,7 +54,7 @@ export default function FeedScreen() {
   // Zustand 스토어 상태 및 액션들
   const { shouldRefreshFeeds, setShouldRefreshFeeds } = useFeedStore();
   const { setShouldRefreshProfileFeeds } = useProfileStore();
-  const { stories, loading: storyLoading, loadStories } = useStoryStore();
+  const { stories, loading: storyLoading, loadStories, shouldRefreshStories, setShouldRefreshStories } = useStoryStore();
 
   // 컴포넌트 마운트 시 피드와 스토리 로드
   useEffect(() => {
@@ -69,7 +69,13 @@ export default function FeedScreen() {
         loadInitialFeeds();
         setShouldRefreshFeeds(false); // 플래그 초기화
       }
-    }, [shouldRefreshFeeds, setShouldRefreshFeeds])
+
+      // 스토리 리프레시 플래그 감지
+      if (shouldRefreshStories) {
+        loadStories();
+        setShouldRefreshStories(false); // 플래그 초기화
+      }
+    }, [shouldRefreshFeeds, setShouldRefreshFeeds, shouldRefreshStories, setShouldRefreshStories, loadStories])
   );
 
   // 초기 피드 로드

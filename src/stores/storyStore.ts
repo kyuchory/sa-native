@@ -11,6 +11,8 @@ interface StoryState {
   loading: boolean;
   // 에러 메시지
   error: string | null;
+  // 스토리 목록 리프레시 플래그
+  shouldRefreshStories: boolean;
 }
 
 interface StoryActions {
@@ -20,6 +22,8 @@ interface StoryActions {
   clearError: () => void;
   // 데이터 리셋 (필요시)
   resetStories: () => void;
+  // 스토리 리프레시 플래그 설정
+  setShouldRefreshStories: (should: boolean) => void;
 }
 
 type StoryStore = StoryState & StoryActions;
@@ -31,6 +35,7 @@ const useStoryStore = create<StoryStore>()(
     stories: null,
     loading: false,
     error: null,
+    shouldRefreshStories: false,
 
     // 액션들
     loadStories: async () => {
@@ -59,7 +64,11 @@ const useStoryStore = create<StoryStore>()(
     },
 
     resetStories: () => {
-      set({ stories: null, loading: false, error: null });
+      set({ stories: null, loading: false, error: null, shouldRefreshStories: false });
+    },
+
+    setShouldRefreshStories: (should: boolean) => {
+      set({ shouldRefreshStories: should });
     },
   }))
 );

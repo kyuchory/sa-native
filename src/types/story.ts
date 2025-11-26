@@ -141,3 +141,13 @@ export interface MyStoryDetailResponse {
 
 // 자신의 스토리 상세 조회 API 응답
 export type MyStoryDetailApiResponse = ApiResponse<MyStoryDetailResponse>;
+
+// 스토리 읽음 처리 응답 데이터
+export interface StoryViewResponse {
+  story_id: number;
+  viewer_id: number;
+  viewed_at: string;
+}
+
+// 스토리 읽음 처리 API 응답
+export type StoryViewApiResponse = ApiResponse<StoryViewResponse>;
