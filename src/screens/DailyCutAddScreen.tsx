@@ -32,7 +32,7 @@ export default function DailyCutAddScreen() {
     <View style={styles.container}>
       <CommonHeader
         title="데일리 컷 추가"
-        rightComponent={
+      rightComponent={
           selectedMedias.length > 0 ? (
             <TouchableOpacity
               style={styles.checkButton}
@@ -41,11 +41,11 @@ export default function DailyCutAddScreen() {
                 if (selectedMedia?.mediaType === 'photo') {
                   // PHAsset URI를 file URI로 변환 후 CanvasEditor로 전달
                   const realUri = await convertPhToFileUri(selectedMedia.uri);
-                  navigation.navigate('CanvasEditor' as never, { imageUri: realUri });
+                  navigation.replace('CanvasEditor' as never, { imageUri: realUri });
                 } else if (selectedMedia?.mediaType === 'video') {
                   // PHAsset URI를 file URI로 변환 후 VideoTrimCrop으로 비디오 전달
                   const realUri = await convertPhToFileUri(selectedMedia.uri);
-                  navigation.navigate('VideoTrimCrop' as never, {
+                  navigation.replace('VideoTrimCrop' as never, {
                     videoUri: realUri,
                     videoDuration: selectedMedia.duration ? selectedMedia.duration * 1000 : undefined,
                     editMode: 'both',
