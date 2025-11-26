@@ -904,7 +904,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
       });
 
       // 생성된 스토리의 ID로 DailyCutDetailScreen으로 이동
-      navigation.navigate('DailyCutDetail', { storyId: response.id });
+      navigation.replace('DailyCutDetail', { storyId: response.id });
     } catch (error) {
       console.error('스토리 생성 실패:', error);
       Alert.alert('업로드 실패', '스토리 업로드에 실패했습니다. 다시 시도해주세요.');
