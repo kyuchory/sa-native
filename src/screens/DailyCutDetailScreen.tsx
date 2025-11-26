@@ -9,6 +9,7 @@ import {
   Pressable,
   FlatList,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -21,6 +22,7 @@ import Animated, {
   interpolate,
   Extrapolation,
 } from 'react-native-reanimated';
+import Svg, { Path } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -36,6 +38,19 @@ import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS as THEME_SHADOWS, TEXT_COLO
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ACTUAL_WIDTH = SCREEN_WIDTH;
+
+// Modern SVG Icons
+const CloseIcon = ({ size = 24, color = '#FFFFFF' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M18 6L6 18M6 6l12 12"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
 
 // 폴백용 상수들 (pagination_info가 없을 때 사용)
 const FALLBACK_TOTAL_USERS = 300;
@@ -307,16 +322,21 @@ const StoryView: React.FC<{
         </View>
 
         <View style={q.overlayContent} pointerEvents="box-none">
-          <View style={q.userOverlay}>
-            <UserAvatar
-              profileImg={currentStory?.profile_img}
-              nickname={currentStory?.username || ''}
-              size={32}
-            />
-            <Text style={q.userNickname}>{currentStory?.username}</Text>
-            <Text style={q.userTime}>
-              {currentStory?.created_at ? formatRelativeTime(currentStory.created_at) : ''}
-            </Text>
+          <View style={q.infoContainer}>
+            <View style={q.userOverlay}>
+              <UserAvatar
+                profileImg={currentStory?.profile_img}
+                nickname={currentStory?.username || ''}
+                size={32}
+              />
+              <Text style={q.userNickname}>{currentStory?.username}</Text>
+              <Text style={q.userTime}>
+                {currentStory?.created_at ? formatRelativeTime(currentStory.created_at) : ''}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={q.closeButton}>
+              <CloseIcon size={32} color="#FFFFFF" />
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -826,6 +846,11 @@ const createStoryViewStyles = (colors: Record<string, string>) =>
       paddingVertical: SPACING.SM,
       paddingHorizontal: SPACING.MD,
     },
+    infoContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
     userOverlay: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -841,7 +866,10 @@ const createStoryViewStyles = (colors: Record<string, string>) =>
       color: colors.WHITE_50,
       fontSize: TYPOGRAPHY.SIZE.SM,
       fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-      },
+    },
+    closeButton: {
+      padding: SPACING.XS,
+    },
     progressContainer: {
       flexDirection: 'row',
       alignItems: 'center',
