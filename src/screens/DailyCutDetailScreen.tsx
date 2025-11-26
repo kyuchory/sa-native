@@ -110,9 +110,23 @@ const ProgressBar: React.FC<{
       // Pause: cancel animation but keep current progress
       cancelAnimation(progress);
     } else if (isActive && !isPaused && !isCompleted) {
-      // Unpause or start: animate from current progress
+      // Active story: start or continue animation
       const currentProgress = progress.value;
-      if (currentProgress < 1) {
+      if (currentProgress >= 1) {
+        // Previously completed story visited again: restart from 0
+        progress.value = 0;
+        progress.value = withTiming(
+          1,
+          { duration },
+          (finished) => {
+            'worklet';
+            if (finished) {
+              scheduleOnRN(onComplete);
+            }
+          }
+        );
+      } else if (currentProgress < 1) {
+        // Continue from current progress (paused case)
         const remainingDuration = duration * (1 - currentProgress);
         progress.value = withTiming(
           1,
