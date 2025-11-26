@@ -171,7 +171,8 @@ const StorySegment: React.FC<{
   isActive: boolean;
   colors: Record<string, string>;
   onVideoEnd: () => void;
-}> = ({ story, isActive, colors, onVideoEnd }) => {
+  isPaused: boolean;
+}> = ({ story, isActive, colors, onVideoEnd, isPaused }) => {
   const { setShouldRefreshStories } = useStoryStore();
   const [imageLoading, setImageLoading] = useState(true);
 
@@ -205,6 +206,17 @@ const StorySegment: React.FC<{
         });
     }
   }, [isActive, story.id, story.is_viewed, setShouldRefreshStories]);
+
+  // 비디오 일시 정지 제어
+  useEffect(() => {
+    if (story.type === 'video' && isActive) {
+      if (isPaused) {
+        player.pause();
+      } else {
+        player.play();
+      }
+    }
+  }, [isPaused, isActive, story.type, player]);
 
   if (!isActive) return null;
 
@@ -321,6 +333,7 @@ const StoryView: React.FC<{
           isActive={index === currentIndex}
           colors={colors}
           onVideoEnd={handleNext}
+          isPaused={longPressDetected || isScrolling}
         />
       ))}
 
