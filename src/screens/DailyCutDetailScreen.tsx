@@ -251,11 +251,14 @@ const StoryView: React.FC<{
   onClose: () => void;
   canGoNext: boolean;
   canGoPrev: boolean;
-}> = ({ userStories, isActive, onNext, onPrev, onClose, canGoNext, canGoPrev }) => {
+  isScrolling: boolean;
+  isScrollingRef: React.MutableRefObject<boolean>;
+  lastScrollTimeRef: React.MutableRefObject<number>;
+}> = ({ userStories, isActive, onNext, onPrev, onClose, canGoNext, canGoPrev, isScrolling, isScrollingRef, lastScrollTimeRef }) => {
   const { colors } = useThemeStore();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [longPressDetected, setLongPressDetected] = useState(false);
-  const pressStartRef = useRef<number>(0);
+  const touchStartTimeRef = useRef<number>(0);
 
   const currentStory = userStories.stories[currentIndex];
   const totalStories = userStories.stories.length;
@@ -263,10 +266,11 @@ const StoryView: React.FC<{
   // isActive가 true로 변경될 때 currentIndex를 0으로 리셋
   useEffect(() => {
     if (isActive) {
-      console.log(`[StoryView] 유저 활성화 - userId: ${userStories.user_id}, currentIndex 리셋`);
       setCurrentIndex(0);
     }
   }, [isActive, userStories.user_id]);
+
+
 
   const handleNext = useCallback(() => {
     if (currentIndex < totalStories - 1) {
@@ -323,8 +327,22 @@ const StoryView: React.FC<{
       <Pressable
         style={q.touchOverlay}
         delayLongPress={150}
+        onPressIn={() => {
+          touchStartTimeRef.current = Date.now();
+        }}
         onLongPress={() => setLongPressDetected(true)}
         onPressOut={(e) => {
+          const touchDuration = Date.now() - touchStartTimeRef.current;
+          const isCurrentlyScrolling = isScrollingRef.current;
+          const timeSinceLastScroll = Date.now() - lastScrollTimeRef.current;
+          const isQuickTap = touchDuration < 50; // 50ms 이하의 매우 짧은 터치는 무시
+
+          // 여러 조건 중 하나라도 참이면 탭 이벤트 무시
+          if (isCurrentlyScrolling || isScrolling || timeSinceLastScroll < 200 || longPressDetected || isQuickTap) {
+            setLongPressDetected(false);
+            return;
+          }
+
           if (!longPressDetected) {
             // 긴 터치가 아니었다면 좌우 이동 처리
             handlePress(e.nativeEvent.locationX);
@@ -347,7 +365,7 @@ const StoryView: React.FC<{
                 duration={story.type === 'video' ? (story.duration ?? 5) * 1000 : 5000}
                 segmentWidth={segmentWidth}
                 colors={colors}
-                isPaused={longPressDetected}
+                isPaused={longPressDetected || isScrolling}
                 onComplete={handleNext}
               />
             );
@@ -388,6 +406,7 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
   const [totalUsers, setTotalUsers] = useState(0);
   const [loading, setLoading] = useState(true);
   const [navigationInfo, setNavigationInfo] = useState<NavigationInfo | null>(null);
+  const [isScrolling, setIsScrolling] = useState(false);
 
   // 로드된 유저 ID를 인덱스와 함께 추적
   const loadedIndexMap = useRef<Map<number, number>>(new Map()); // userId -> index
@@ -396,19 +415,29 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
   const flatListRef = useRef<FlatList>(null);
   const isInitialMount = useRef(true);
   const currentUserIndexRef = useRef(0);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isScrollingRef = useRef(false);
+  const lastScrollTimeRef = useRef<number>(0);
 
   // currentUserIndex 최신 값 유지
   useEffect(() => {
     currentUserIndexRef.current = currentUserIndex;
   }, [currentUserIndex]);
 
+  // 컴포넌트 언마운트 시 타이머 클리어
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // API 응답을 UserStories 배열로 변환
   const transformApiResponse = useCallback((response: UserStoryDetailResponse): {
     prevUser: UserStories | null;
     nextUser: UserStories | null;
   } => {
-    console.log('[transformApiResponse] 변환 시작');
-    
     let prevUser: UserStories | null = null;
     let nextUser: UserStories | null = null;
 
@@ -421,7 +450,6 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
         profile_img: first.profile_img,
         stories: response.prev_user_stories,
       };
-      console.log(`[transformApiResponse] prev_user 변환 - userId: ${first.user_id}, stories: ${response.prev_user_stories.length}개`);
     }
 
     // 다음 유저 변환
@@ -433,7 +461,6 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
         profile_img: first.profile_img,
         stories: response.next_user_stories,
       };
-      console.log(`[transformApiResponse] next_user 변환 - userId: ${first.user_id}, stories: ${response.next_user_stories.length}개`);
     }
 
     return { prevUser, nextUser };
@@ -441,19 +468,13 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
 
   // 초기 로드
   const initializeStory = useCallback(async (storyId: number, isMyStory: boolean) => {
-    console.log(`[initializeStory] 시작 - storyId: ${storyId}, isMyStory: ${isMyStory}`);
     setLoading(true);
 
     try {
       if (isMyStory) {
         // 자신의 스토리인 경우
-        console.log('[initializeStory] 자신의 스토리 조회');
-
         // 자신의 스토리 상세 조회
         const detailResponse = await StoryService.getMyStoryDetail(storyId);
-        console.log('[initializeStory] 자신의 스토리 API 응답:', {
-          stories: detailResponse.current_user_stories?.length || 0
-        });
 
         if (!detailResponse.current_user_stories || detailResponse.current_user_stories.length === 0) {
           throw new Error('자신의 스토리를 찾을 수 없습니다.');
@@ -473,25 +494,14 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
         setCurrentUserIndex(0);
         setTotalUsers(1);
         setNavigationInfo(null); // 내비게이션 정보 없음
-
-        console.log('[initializeStory] 자신의 스토리 초기화 완료');
       } else {
         // 다른 유저의 스토리인 경우 (기존 로직)
-        console.log('[initializeStory] 다른 유저의 스토리 조회');
-
         // 1. 스토리 진입 정보 조회
         const entryResponse = await StoryService.getStoryEntry(storyId);
         const targetUserId = entryResponse.entry_user_id;
-        console.log(`[initializeStory] 진입 유저 ID: ${targetUserId}`);
 
         // 2. 해당 유저의 스토리 상세 조회 (초기 조회 - direction 없음)
         const detailResponse = await StoryService.getUserStoryDetail(targetUserId);
-        console.log('[initializeStory] API 응답:', {
-          current: detailResponse.current_user_stories?.length || 0,
-          next: detailResponse.next_user_stories?.length || 0,
-          prev: detailResponse.prev_user_stories?.length || 0,
-          nav: detailResponse.navigation_info
-        });
 
         // 3. current_user_stories를 현재 유저로 변환
         let currentUser: UserStories | null = null;
@@ -503,7 +513,6 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
             profile_img: first.profile_img,
             stories: detailResponse.current_user_stories,
           };
-          console.log(`[initializeStory] current_user 변환 - userId: ${first.user_id}, stories: ${detailResponse.current_user_stories.length}개`);
         }
 
         // 4. next/prev 유저 변환
@@ -540,10 +549,6 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
             loadedIndexMap.current.set(nextUser.user_id, baseIndex + 1);
           }
 
-          console.log(`[initializeStory] pagination_info 활용 초기화 - total_users: ${total_users}, current_index: ${current_index}`);
-          console.log(`[initializeStory] 초기 데이터 구성 완료 - baseIndex: ${baseIndex}`);
-          console.log(`[initializeStory] loadedIndexMap:`, Array.from(loadedIndexMap.current.entries()));
-
           // 상태 설정
           setTotalUsers(total_users);
           setData(initialArray);
@@ -551,7 +556,7 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
           setNavigationInfo(detailResponse.navigation_info);
         } else {
           // pagination_info가 없는 경우 (예외 상황) - 기존 로직으로 폴백
-          console.warn('[initializeStory] pagination_info가 없음 - 폴백 모드');
+          // console.warn('[initializeStory] pagination_info가 없음 - 폴백 모드');
           initialArray = Array(FALLBACK_TOTAL_USERS).fill(null);
           baseIndex = FALLBACK_CENTER_INDEX;
 
@@ -572,12 +577,9 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
           setCurrentUserIndex(baseIndex);
           setNavigationInfo(detailResponse.navigation_info);
         }
-
-        console.log('[initializeStory] 다른 유저의 스토리 초기화 완료');
       }
-
     } catch (error) {
-      console.error('[initializeStory] 실패:', error);
+      console.error(error);
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -586,18 +588,14 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
 
   // 추가 유저 로드 (direction 기반)
   const loadAdditionalUser = useCallback(async (currentUserId: number, direction: 'next' | 'prev', targetIndex: number) => {
-    console.log(`[loadAdditionalUser] 시작 - currentUserId: ${currentUserId}, direction: ${direction}, targetIndex: ${targetIndex}`);
-
     // 이미 해당 인덱스에 데이터가 있는지 확인
     if (data[targetIndex] !== null) {
-      console.log(`[loadAdditionalUser] 타겟 인덱스에 이미 데이터 존재 - targetIndex: ${targetIndex}`);
       return;
     }
 
     // 로딩 중복 체크
     const loadKey = `${currentUserId}-${direction}`;
     if (loadingUserIds.current.has(loadKey)) {
-      console.log(`[loadAdditionalUser] 이미 로딩 중 - key: ${loadKey}`);
       return;
     }
 
@@ -606,50 +604,38 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
 
       // direction 파라미터와 함께 API 호출
       const response = await StoryService.getUserStoryDetail(currentUserId, direction);
-      console.log(`[loadAdditionalUser] API 응답 - direction: ${direction}`, {
-        next: response.next_user_stories?.length || 0,
-        prev: response.prev_user_stories?.length || 0,
-        nav: response.navigation_info,
-      });
 
       const { nextUser, prevUser } = transformApiResponse(response);
 
       setData(prev => {
         const newData = [...prev];
-        
+
         if (direction === 'next' && nextUser) {
           // 해당 userId가 다른 인덱스에 이미 로드되어 있는지 확인
           const existingIndex = loadedIndexMap.current.get(nextUser.user_id);
-          if (existingIndex !== undefined) {
-            console.log(`[loadAdditionalUser] next 유저 이미 로드됨 - userId: ${nextUser.user_id}, existingIndex: ${existingIndex}`);
-          } else {
+          if (existingIndex === undefined) {
             newData[targetIndex] = nextUser;
             loadedIndexMap.current.set(nextUser.user_id, targetIndex);
-            console.log(`[loadAdditionalUser] next 유저 추가 - index: ${targetIndex}, userId: ${nextUser.user_id}`);
           }
         } else if (direction === 'prev' && prevUser) {
           // 해당 userId가 다른 인덱스에 이미 로드되어 있는지 확인
           const existingIndex = loadedIndexMap.current.get(prevUser.user_id);
-          if (existingIndex !== undefined) {
-            console.log(`[loadAdditionalUser] prev 유저 이미 로드됨 - userId: ${prevUser.user_id}, existingIndex: ${existingIndex}`);
-          } else {
+          if (existingIndex === undefined) {
             newData[targetIndex] = prevUser;
             loadedIndexMap.current.set(prevUser.user_id, targetIndex);
-            console.log(`[loadAdditionalUser] prev 유저 추가 - index: ${targetIndex}, userId: ${prevUser.user_id}`);
           }
         }
-        
+
         return newData;
       });
 
       // navigation_info 업데이트
       if (response.navigation_info) {
         setNavigationInfo(response.navigation_info);
-        console.log(`[loadAdditionalUser] navigationInfo 업데이트:`, response.navigation_info);
       }
 
     } catch (error) {
-      console.error(`[loadAdditionalUser] 실패 - userId: ${currentUserId}, direction: ${direction}`, error);
+      console.error(`loadAdditionalUser failed: userId: ${currentUserId}, direction: ${direction}`, error);
     } finally {
       loadingUserIds.current.delete(loadKey);
     }
@@ -663,7 +649,6 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
   // 다음 유저로 이동
   const handleNextUser = useCallback(() => {
     if (!navigationInfo?.has_next) {
-      console.log('[handleNextUser] 마지막 유저 — 더 이상 이동 불가');
       navigation.goBack();
       return;
     }
@@ -672,7 +657,6 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
 
     // 전체 배열 범위 체크
     if (nextIndex >= totalUsers) {
-      console.log('[handleNextUser] 배열 범위 초과 - 더 이상 이동 불가');
       navigation.goBack();
       return;
     }
@@ -680,19 +664,20 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
     const nextUser = data[nextIndex];
 
     if (!nextUser) {
-      console.log('[handleNextUser] 다음 유저 데이터 없음 - API 호출 필요');
       return;
     }
 
     // 다음다음 데이터 프리패칭 (nextIndex + 1이 배열 범위 내이고 비어있을 때만)
     const prefetchIndex = nextIndex + 1;
     if (prefetchIndex < totalUsers && !data[prefetchIndex] && navigationInfo?.has_next) {
-      console.log(`[handleNextUser] 다음다음 유저 프리패칭 - userId: ${nextUser.user_id}`);
       loadAdditionalUser(nextUser.user_id, 'next', prefetchIndex);
     }
 
+    // 이동 준비: 프로그래매틱 스크롤 시 탭 이벤트 방지
+    isScrollingRef.current = true;
+    setIsScrolling(true);
+
     // 이동
-    console.log(`[handleNextUser] 이동 - ${currentUserIndex} → ${nextIndex}`);
     setCurrentUserIndex(nextIndex);
     flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
   }, [currentUserIndex, data, navigationInfo, loadAdditionalUser, navigation, totalUsers]);
@@ -700,7 +685,6 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
   // 이전 유저로 이동
   const handlePrevUser = useCallback(() => {
     if (!navigationInfo?.has_prev) {
-      console.log('[handlePrevUser] 첫 번째 유저 — 더 이상 이동 불가');
       return;
     }
 
@@ -708,26 +692,26 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
 
     // 전체 배열 범위 체크
     if (prevIndex < 0) {
-      console.log('[handlePrevUser] 배열 범위 초과 - 더 이상 이동 불가');
       return;
     }
 
     const prevUser = data[prevIndex];
 
     if (!prevUser) {
-      console.log('[handlePrevUser] 이전 유저 데이터 없음 - API 호출 필요');
       return;
     }
 
     // 이전이전 데이터 프리패칭 (prevIndex - 1이 배열 범위 내이고 비어있을 때만)
     const prefetchIndex = prevIndex - 1;
     if (prefetchIndex >= 0 && !data[prefetchIndex] && navigationInfo?.has_prev) {
-      console.log(`[handlePrevUser] 이전이전 유저 프리패칭 - userId: ${prevUser.user_id}`);
       loadAdditionalUser(prevUser.user_id, 'prev', prefetchIndex);
     }
 
+    // 이동 준비: 프로그래매틱 스크롤 시 탭 이벤트 방지
+    isScrollingRef.current = true;
+    setIsScrolling(true);
+
     // 이동
-    console.log(`[handlePrevUser] 이동 - ${currentUserIndex} → ${prevIndex}`);
     setCurrentUserIndex(prevIndex);
     flatListRef.current?.scrollToIndex({ index: prevIndex, animated: true });
   }, [currentUserIndex, data, navigationInfo, loadAdditionalUser, totalUsers]);
@@ -739,7 +723,6 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
 
       // 전체 배열 범위를 벗어난 스크롤 시도 방지 (0 ~ totalUsers - 1)
       if (newIndex < 0 || newIndex >= totalUsers) {
-        console.log(`[onViewableItemsChanged] 전체 범위 벗어남 감지 - 스크롤 복구: ${newIndex} → ${currentUserIndex}`);
         // 원래 위치로 강제 복귀
         setTimeout(() => {
           flatListRef.current?.scrollToIndex({
@@ -751,7 +734,6 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
       }
 
       if (newIndex !== currentUserIndex) {
-        console.log(`[onViewableItemsChanged] 인덱스 변경: ${currentUserIndex} → ${newIndex}`);
         setCurrentUserIndex(newIndex);
 
         // 스와이프로 이동한 경우 프리패칭
@@ -760,14 +742,12 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
           // 다음 데이터 프리패칭
           const nextTargetIndex = newIndex + 1;
           if (nextTargetIndex < totalUsers && !data[nextTargetIndex] && navigationInfo?.has_next) {
-            console.log(`[onViewableItemsChanged] 다음 유저 프리패칭 - currentUserId: ${currentUser.user_id}`);
             loadAdditionalUser(currentUser.user_id, 'next', nextTargetIndex);
           }
 
           // 이전 데이터 프리패칭
           const prevTargetIndex = newIndex - 1;
           if (prevTargetIndex >= 0 && !data[prevTargetIndex] && navigationInfo?.has_prev) {
-            console.log(`[onViewableItemsChanged] 이전 유저 프리패칭 - currentUserId: ${currentUser.user_id}`);
             loadAdditionalUser(currentUser.user_id, 'prev', prevTargetIndex);
           }
         }
@@ -809,6 +789,38 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
             offset: ACTUAL_WIDTH * index,
             index,
           })}
+          onScrollBeginDrag={() => {
+            // 기존 타이머 클리어
+            if (scrollTimeoutRef.current) {
+              clearTimeout(scrollTimeoutRef.current);
+            }
+            // 마지막 스크롤 시간 기록
+            lastScrollTimeRef.current = Date.now();
+            // Ref 먼저 업데이트 (동기)
+            isScrollingRef.current = true;
+            // State 업데이트 (비동기)
+            setIsScrolling(true);
+          }}
+          onScrollEndDrag={() => {
+            // 250ms 지연 후 isScrolling 해제
+            if (scrollTimeoutRef.current) {
+              clearTimeout(scrollTimeoutRef.current);
+            }
+            scrollTimeoutRef.current = setTimeout(() => {
+              isScrollingRef.current = false;
+              setIsScrolling(false);
+            }, 250);
+          }}
+          onMomentumScrollEnd={() => {
+            // 모멘텀 스크롤도 고려해서 타이머 재설정
+            if (scrollTimeoutRef.current) {
+              clearTimeout(scrollTimeoutRef.current);
+            }
+            scrollTimeoutRef.current = setTimeout(() => {
+              isScrollingRef.current = false;
+              setIsScrolling(false);
+            }, 150);
+          }}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
           keyExtractor={(_, index) => `user_${index}`}
@@ -822,6 +834,9 @@ export default function DailyCutDetailScreen({ route, navigation }: Props) {
                 onClose={() => navigation.goBack()}
                 canGoNext={isMyStory ? false : !!navigationInfo?.has_next}
                 canGoPrev={isMyStory ? false : !!navigationInfo?.has_prev}
+                isScrolling={isScrolling}
+                isScrollingRef={isScrollingRef}
+                lastScrollTimeRef={lastScrollTimeRef}
               />
             ) : (
               <View style={{ width: ACTUAL_WIDTH }} />
