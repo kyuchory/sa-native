@@ -7,7 +7,7 @@ import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Dimensions,
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
 import { captureRef } from 'react-native-view-shot';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Circle } from 'react-native-svg';
 import { CheckIcon } from '../components/CommonIcons';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
@@ -26,6 +26,7 @@ type CanvasSurfaceProps = {
   isDrawing: boolean;
   canvasRef: React.RefObject<View | null>;
   colors: Record<string, string>;
+  backgroundColor: string;
   onStrokeAdd: (stroke: Stroke) => void;
   canvasSize: { width: number; height: number };
   onCanvasSizeChange: (size: { width: number; height: number }) => void;
@@ -40,6 +41,9 @@ type CanvasSurfaceProps = {
 type BottomToolbarProps = {
   strokesCount: number;
   hasSelectedElement: boolean;
+  hasSelectedText: boolean;
+  onPressBackgroundColor: () => void;
+  onPressTextColor: () => void;
   onPressSave: () => void;
   onPressDraw: () => void;
   onPressText: () => void;
@@ -48,6 +52,13 @@ type BottomToolbarProps = {
   onBringForward: () => void;
   onSendBackward: () => void;
   onDeleteSelected: () => void;
+};
+
+type ColorModalProps = {
+  visible: boolean;
+  selectedColor: string;
+  onSelectColor: (color: string) => void;
+  onClose: () => void;
 };
 
 type DrawingToolbarProps = {
@@ -78,6 +89,7 @@ const CanvasSurface = React.memo<CanvasSurfaceProps>(function CanvasSurface(prop
     isDrawing,
     canvasRef,
     colors,
+    backgroundColor,
     onStrokeAdd,
     canvasSize,
     onCanvasSizeChange,
@@ -89,7 +101,7 @@ const CanvasSurface = React.memo<CanvasSurfaceProps>(function CanvasSurface(prop
     selectedId,
   } = props;
 
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, backgroundColor), [colors, backgroundColor]);
 
   const currentStroke = useSharedValue<Stroke | null>(null);
   const drawingPoints = useSharedValue<{ x: number; y: number }[]>([]);
@@ -266,9 +278,94 @@ const CanvasSurface = React.memo<CanvasSurfaceProps>(function CanvasSurface(prop
   return content;
 });
 
+const TextColorModal = React.memo<ColorModalProps>(function TextColorModal({
+  visible,
+  selectedColor,
+  onSelectColor,
+  onClose,
+}) {
+  const { colors } = useThemeStore();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const textColorPresets = [colors.GRAY_900, colors.WHITE, colors.GRAY_200, colors.GRAY_600, colors.GRAY_900];
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <TouchableOpacity style={styles.colorModalOverlay} activeOpacity={1} onPress={onClose}>
+        <View style={styles.colorModalContent}>
+          <Text style={styles.colorModalTitle}>텍스트 색상 선택</Text>
+          <View style={styles.colorPaletteModalRow}>
+            {textColorPresets.map((c, i) => (
+              <TouchableOpacity
+                key={i.toString()}
+                onPress={() => onSelectColor(c)}
+                style={[
+                  styles.colorCircleModal,
+                  { backgroundColor: c },
+                  selectedColor === c && styles.colorCircleModalActive,
+                  c === colors.WHITE && { borderWidth: 1, borderColor: colors.GRAY_600 }
+                ]}
+              />
+            ))}
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+});
+
+const ColorModal = React.memo<ColorModalProps>(function ColorModal({
+  visible,
+  selectedColor,
+  onSelectColor,
+  onClose,
+}) {
+  const { colors } = useThemeStore();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const backgroundColorPresets = [colors.GRAY_100, colors.WHITE, colors.GRAY_200, colors.GRAY_600, colors.GRAY_900];
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <TouchableOpacity style={styles.colorModalOverlay} activeOpacity={1} onPress={onClose}>
+        <View style={styles.colorModalContent}>
+          <Text style={styles.colorModalTitle}>배경색 선택</Text>
+          <View style={styles.colorPaletteModalRow}>
+            {backgroundColorPresets.map(c => (
+              <TouchableOpacity
+                key={c}
+                onPress={() => onSelectColor(c)}
+                style={[
+                  styles.colorCircleModal,
+                  { backgroundColor: c },
+                  selectedColor === c && styles.colorCircleModalActive,
+                  c === colors.WHITE && { borderWidth: 1, borderColor: colors.GRAY_600 }
+                ]}
+              />
+            ))}
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+});
+
 const BottomToolbar = React.memo<BottomToolbarProps>(function BottomToolbar({
   strokesCount,
   hasSelectedElement,
+  hasSelectedText,
+  onPressBackgroundColor,
+  onPressTextColor,
   onPressSave,
   onPressDraw,
   onPressText,
@@ -301,6 +398,13 @@ const BottomToolbar = React.memo<BottomToolbarProps>(function BottomToolbar({
             <PencilIcon size={26} color={colors.GRAY_900} />
           </View>
           <Text style={styles.toolLabel}>그리기</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.toolItem} onPress={onPressBackgroundColor}>
+          <View style={styles.toolIconWrapper}>
+            <BackgroundColorIcon size={26} color={colors.GRAY_900} />
+          </View>
+          <Text style={styles.toolLabel}>배경색</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.toolItem} onPress={onPressText}>
@@ -341,6 +445,15 @@ const BottomToolbar = React.memo<BottomToolbarProps>(function BottomToolbar({
               </View>
               <Text style={styles.toolLabel}>뒤로</Text>
             </TouchableOpacity>
+
+            {hasSelectedText && (
+              <TouchableOpacity style={styles.toolItem} onPress={onPressTextColor}>
+                <View style={styles.toolIconWrapper}>
+                  <BackgroundColorIcon size={22} color={colors.GRAY_900} />
+                </View>
+                <Text style={styles.toolLabel}>색상</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity style={styles.toolItem} onPress={onDeleteSelected}>
               <View style={styles.toolIconWrapper}>
@@ -487,6 +600,7 @@ type TextElement = {
   pos: PercentPos;
   rotation: number;
   scale: number;
+  color?: string;
 };
 
 type Stroke = { id: string; points: { x: number; y: number }[]; color: string; width: number };
@@ -556,7 +670,17 @@ const LayerDownIcon = ({ size = 20, color = '#000' }) => (
   </Svg>
 );
 
-const TrashIcon = ({ size = 20, color = '#000' }) => (
+  const BackgroundColorIcon = ({ size = 24, color = '#000' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c.9 0 1.65-.73 1.65-1.65 0-.44-.17-.86-.44-1.18-.27-.31-.44-.73-.44-1.18 0-.9.73-1.65 1.65-1.65h1.95C18.48 18.34 22 14.82 22 10.32 22 5.61 17.52 2 12 2z" stroke={color} strokeWidth={2}/>
+    <Circle cx="7" cy="10" r="1.5" fill={color}/>
+    <Circle cx="10" cy="7" r="1.5" fill={color}/>
+    <Circle cx="14" cy="7" r="1.5" fill={color}/>
+    <Circle cx="17" cy="10" r="1.5" fill={color}/>
+  </Svg>
+  );
+
+  const TrashIcon = ({ size = 20, color = '#000' }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
@@ -586,6 +710,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
   const [drawColor, setDrawColor] = useState('#000000');
   const [drawWidth, setDrawWidth] = useState(4);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [canvasBackgroundColor, setCanvasBackgroundColor] = useState(colors.GRAY_100);
 
   // 🔥 선택 상태를 기억하는 ref
   const selectedIdRef = useRef<string | null>(null);
@@ -622,6 +747,14 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
   const [modalTextInput, setModalTextInput] = useState('');
   const [editingElementId, setEditingElementId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showColorModal, setShowColorModal] = useState(false);
+  const [showTextColorModal, setShowTextColorModal] = useState(false);
+
+  const hasSelectedText = !!selectedId && elements.some(el => el.id === selectedId && el.type === 'text');
+  const currentTextColor = (() => {
+    const element = elements.find(el => el.id === selectedId);
+    return element?.type === 'text' ? element.color || colors.GRAY_900 : colors.GRAY_900;
+  })();
 
   const [canvasSize, setCanvasSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
@@ -688,6 +821,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
             pos: { left: 0.5, top: 0.5 },
             rotation: 0,
             scale: 1.3,
+            color: colors.GRAY_900,
           } as TextElement,
         ]);
       }
@@ -718,6 +852,15 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
       return copy;
     });
   };
+
+  const updateTextColor = useCallback((color: string) => {
+    if (!selectedId) return;
+    setElements(prev => prev.map(el =>
+      el.id === selectedId && el.type === 'text'
+        ? { ...el, color }
+        : el
+    ));
+  }, [selectedId]);
 
   const deleteSelected = useCallback(() => {
     if (!selectedId) return;
@@ -898,6 +1041,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
           isDrawing={isDrawing}
           canvasRef={canvasRef}
           colors={colors}
+          backgroundColor={canvasBackgroundColor}
           onStrokeAdd={addStrokeJS}
           canvasSize={canvasSize}
           onCanvasSizeChange={setCanvasSize}
@@ -913,6 +1057,9 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
           <BottomToolbar
             strokesCount={strokes.length}
             hasSelectedElement={!!selectedId}
+            hasSelectedText={hasSelectedText}
+            onPressBackgroundColor={() => setShowColorModal(true)}
+            onPressTextColor={() => setShowTextColorModal(true)}
             onPressSave={exportAsImage}
             onPressDraw={() => setIsDrawing(true)}
             onPressText={addTextBox}
@@ -945,6 +1092,20 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
             setEditingElementId(null);
             setModalTextInput('');
           }}
+        />
+
+        <ColorModal
+          visible={showColorModal}
+          selectedColor={canvasBackgroundColor}
+          onSelectColor={c => { setCanvasBackgroundColor(c); setShowColorModal(false); }}
+          onClose={() => setShowColorModal(false)}
+        />
+
+        <TextColorModal
+          visible={showTextColorModal}
+          selectedColor={currentTextColor}
+          onSelectColor={c => { updateTextColor(c); setShowTextColorModal(false); }}
+          onClose={() => setShowTextColorModal(false)}
         />
       </View>
 
@@ -1161,7 +1322,7 @@ const ElementWrapper = React.memo<ElementWrapperProps>(function ElementWrapper(p
   const textContent = (
     <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
       <View style={styles.textBox}>
-        <Text style={styles.textDisplay}>{textEl.text}</Text>
+        <Text style={[styles.textDisplay, {color: textEl.color || colors.GRAY_900}]}>{textEl.text}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -1210,7 +1371,7 @@ const ElementWrapper = React.memo<ElementWrapperProps>(function ElementWrapper(p
   );
 });
 
-const createStyles = (colors: Record<string, string>) => StyleSheet.create({
+const createStyles = (colors: Record<string, string>, backgroundColor?: string) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.GRAY_50
@@ -1230,7 +1391,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   canvasInner: {
     flex: 1,
-    backgroundColor: colors.GRAY_100,
+    backgroundColor: backgroundColor || colors.GRAY_100,
   },
 
   // Elements
@@ -1401,6 +1562,41 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     color: colors.PRIMARY,
     fontWeight: '600',
     marginTop: 2,
+  },
+
+  // Color Modal
+  colorModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  colorModalContent: {
+    backgroundColor: colors.WHITE,
+    padding: SPACING.XL,
+    borderRadius: BORDER_RADIUS.LG,
+    alignItems: 'center',
+  },
+  colorModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.GRAY_900,
+    marginBottom: SPACING.MD,
+  },
+  colorPaletteModalRow: {
+    flexDirection: 'row',
+    gap: SPACING.SM,
+  },
+  colorCircleModal: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  colorCircleModalActive: {
+    borderColor: colors.GRAY_900,
+    borderWidth: 3,
   },
 
   // Simplified Text Modal
