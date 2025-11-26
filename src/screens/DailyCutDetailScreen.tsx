@@ -21,6 +21,7 @@ import Animated, {
   cancelAnimation,
   interpolate,
   Extrapolation,
+  runOnJS,
 } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -99,29 +100,37 @@ const ProgressBar: React.FC<{
   duration: number;
   segmentWidth: number;
   colors: Record<string, string>;
+  isPaused: boolean;
   onComplete: () => void;
-}> = ({ isActive, isCompleted, duration, segmentWidth, colors, onComplete }) => {
+}> = ({ isActive, isCompleted, duration, segmentWidth, colors, isPaused, onComplete }) => {
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    if (isActive) {
-      progress.value = 0;
-      progress.value = withTiming(
-        1,
-        { duration },
-        (finished) => {
-          'worklet';
-          if (finished) {
-            scheduleOnRN(onComplete);
+    if (isPaused && isActive) {
+      // Pause: cancel animation but keep current progress
+      cancelAnimation(progress);
+    } else if (isActive && !isPaused && !isCompleted) {
+      // Unpause or start: animate from current progress
+      const currentProgress = progress.value;
+      if (currentProgress < 1) {
+        const remainingDuration = duration * (1 - currentProgress);
+        progress.value = withTiming(
+          1,
+          { duration: remainingDuration },
+          (finished) => {
+            'worklet';
+            if (finished) {
+              scheduleOnRN(onComplete);
+            }
           }
-        }
-      );
+        );
+      }
     } else if (isCompleted) {
       progress.value = 1;
     } else {
       progress.value = 0;
     }
-  }, [isActive, duration]);
+  }, [isActive, isPaused, isCompleted, duration]);
 
   const progressAnimatedStyle = useAnimatedStyle(() => {
     'worklet';
@@ -231,6 +240,7 @@ const StoryView: React.FC<{
 }> = ({ userStories, isActive, onNext, onPrev, onClose, canGoNext, canGoPrev }) => {
   const { colors } = useThemeStore();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [longPressDetected, setLongPressDetected] = useState(false);
   const pressStartRef = useRef<number>(0);
 
   const currentStory = userStories.stories[currentIndex];
@@ -298,7 +308,15 @@ const StoryView: React.FC<{
 
       <Pressable
         style={q.touchOverlay}
-        onPress={(e) => handlePress(e.nativeEvent.locationX)}
+        delayLongPress={150}
+        onLongPress={() => setLongPressDetected(true)}
+        onPressOut={(e) => {
+          if (!longPressDetected) {
+            // 긴 터치가 아니었다면 좌우 이동 처리
+            handlePress(e.nativeEvent.locationX);
+          }
+          setLongPressDetected(false);
+        }}
       />
 
       <View style={q.topOverlayContainer} pointerEvents="box-none">
@@ -315,6 +333,7 @@ const StoryView: React.FC<{
                 duration={story.type === 'video' ? (story.duration ?? 5) * 1000 : 5000}
                 segmentWidth={segmentWidth}
                 colors={colors}
+                isPaused={longPressDetected}
                 onComplete={handleNext}
               />
             );
