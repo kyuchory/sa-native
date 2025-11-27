@@ -433,8 +433,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
 
   // 이미지 관련
   imagePreview: {
-    height: 200,
-    marginHorizontal: SPACING.MD,
+    width: '100%', // 부모 컨테이너에 꽉 차게
+    aspectRatio: 1, // 1:1 정방형 비율
+    alignSelf: 'center',
     marginVertical: SPACING.SM,
     borderRadius: BORDER_RADIUS.SM,
   },
@@ -475,8 +476,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     position: 'relative' as const,
   },
   videoPreview: {
-    height: 200,
-    marginHorizontal: SPACING.MD,
+    width: '100%', // 부모 컨테이너에 꽉 차게
+    aspectRatio: 1, // 1:1 정방형 비율
+    alignSelf: 'center',
     marginVertical: SPACING.SM,
     borderRadius: BORDER_RADIUS.SM,
     backgroundColor: colors.GRAY_100,
