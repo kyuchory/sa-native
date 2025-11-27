@@ -24,7 +24,7 @@ const PostCard = ({
 }: PostCardProps) => {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
-  
+
   // 로컬 상태 관리
   const [isLiked, setIsLiked] = useState(post.is_liked || false);
   const [likeCount, setLikeCount] = useState(post.like_count);
@@ -46,36 +46,36 @@ const PostCard = ({
   // 좋아요 토글 핸들러 (낙관적 UI 적용)
   const handleLikeToggle = async () => {
     if (isLikeLoading) return; // 이미 요청 중이면 무시
-    
+
     // 낙관적 UI: 즉시 상태 업데이트
     const originalIsLiked = isLiked;
     const originalLikeCount = likeCount;
     const newLikeState = !isLiked;
-    
+
     setIsLiked(newLikeState);
     setLikeCount(prev => newLikeState ? prev + 1 : Math.max(0, prev - 1));
     setIsLikeLoading(true);
-    
+
     try {
       // API 호출
       const response = await PostService.togglePostLike(post.id);
-      
+
       // 서버 응답으로 최종 상태 동기화
       setIsLiked(response.is_liked);
       setLikeCount(response.like_count);
-      
+
     } catch (error) {
       console.error('좋아요 토글 실패:', error);
-      
+
       // 실패 시 원래 상태로 롤백
       setIsLiked(originalIsLiked);
       setLikeCount(originalLikeCount);
-      
+
       // TODO: 에러 토스트 메시지 표시
-      
-  } finally {
-    setIsLikeLoading(false);
-  }
+
+    } finally {
+      setIsLikeLoading(false);
+    }
   };
 
   // 북마크 토글 핸들러 (낙관적 UI 적용)
@@ -141,38 +141,46 @@ const PostCard = ({
   }, []); // 빈 deps → 컴포넌트 생명주기 동안 동일한 함수 참조
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.container}
       onPress={onPress}
       activeOpacity={0.95}
     >
       {/* 상단: 작성자 정보 */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.authorInfo}
-          onPress={onAuthorPress}
-          activeOpacity={0.7}
-          disabled={!onAuthorPress}
-        >
-          <View style={styles.profileImageContainer}>
-            {post.user.profile_img ? (
-              <Image
-                source={{ uri: post.user.profile_img }}
-                style={styles.profileImage}
-              />
-            ) : (
-              <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
-                <Text style={styles.profileImageText}>
-                  {post.user.nickname.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
-          </View>
+        <View style={styles.authorInfo}>
+          <TouchableOpacity
+            onPress={onAuthorPress}
+            activeOpacity={0.7}
+            disabled={!onAuthorPress}
+          >
+            <View style={styles.profileImageContainer}>
+              {post.user.profile_img ? (
+                <Image
+                  source={{ uri: post.user.profile_img }}
+                  style={styles.profileImage}
+                />
+              ) : (
+                <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
+                  <Text style={styles.profileImageText}>
+                    {post.user.nickname.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
           <View style={styles.authorDetails}>
-            <Text style={styles.authorName}>{post.user.nickname}</Text>
+            <TouchableOpacity
+              onPress={onAuthorPress}
+              activeOpacity={0.7}
+              disabled={!onAuthorPress}
+              style={styles.nicknameTouchable}
+            >
+              <Text style={styles.authorName}>{post.user.nickname}</Text>
+            </TouchableOpacity>
             <Text style={styles.timeText}>{formatTime(post.created_at)}</Text>
           </View>
-        </TouchableOpacity>
+        </View>
         <View style={styles.categoryInfo}>
           <Text style={styles.categoryText}>
             {post.sub_category.category.name} {'>'} {post.sub_category.name}
@@ -309,9 +317,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     marginRight: SPACING.SM,
   },
   profileImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   profileImagePlaceholder: {
     backgroundColor: colors.GRAY_300,
@@ -435,5 +443,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   loadingText: {
     opacity: 0.6,
+  },
+  nicknameTouchable: {
+    alignSelf: 'flex-start', // 닉네임 텍스트 크기에 맞게 터치 영역 제한
+    paddingVertical: 2, // 최소 터치 영역 확보
   },
 });
