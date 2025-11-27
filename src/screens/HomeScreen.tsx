@@ -100,7 +100,7 @@ export default function HomeScreen() {
         subCategoryId: selectedSubcategoryId || undefined,
         page: pagination.page,
       });
-      
+
       setPosts(response.posts);
       setPagination(response.pagination);
     } catch (error) {
@@ -114,8 +114,6 @@ export default function HomeScreen() {
   // 페이지 변경
   const handlePageChange = (page: number) => {
     setPagination(prev => ({ ...prev, page }));
-    // 페이지 변경 시 FlatList 최상단으로 스크롤 (애니메이션 없음)
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
   };
 
   // 카테고리 선택 핸들러
@@ -192,49 +190,53 @@ export default function HomeScreen() {
       />
 
       {/* 게시물 목록 */}
-      <FlatList
-        ref={flatListRef}
-        data={posts}
-        renderItem={renderPost}
-        keyExtractor={(item) => item.id.toString()}
-        style={styles.postList}
-        contentContainerStyle={styles.postListContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={(
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.PRIMARY}
-            colors={[colors.PRIMARY]}
-          />
-        )}
-        // 성능 최적화
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={10}
-        windowSize={10}
-        initialNumToRender={5}
-        getItemLayout={(data, index) => ({
-          length: 200, // 예상 아이템 높이
-          offset: 200 * index,
-          index,
-        })}
-        ListFooterComponent={(
-          <Pagination
-            pagination={pagination}
-            onPageChange={handlePageChange}
-          />
-        )}
-        ListEmptyComponent={
-          isLoading ? (
-            <ActivityIndicator size="large" color={colors.PRIMARY} style={styles.loadingIndicator} />
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>게시글이 없습니다.</Text>
-              <Text style={styles.emptySubText}>새로운 게시글을 작성해보세요!</Text>
-            </View>
-          )
-        }
-      />
+      {isLoading ? (
+        <View style={[styles.postList, { justifyContent: 'center', alignItems: 'center' }]}>
+          <ActivityIndicator size="large" color={colors.PRIMARY} />
+        </View>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={posts}
+          renderItem={renderPost}
+          keyExtractor={(item) => item.id.toString()}
+          style={styles.postList}
+          contentContainerStyle={styles.postListContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={(
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.PRIMARY}
+              colors={[colors.PRIMARY]}
+            />
+          )}
+          // 성능 최적화
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={5}
+          getItemLayout={(data, index) => ({
+            length: 200, // 예상 아이템 높이
+            offset: 200 * index,
+            index,
+          })}
+          ListFooterComponent={(
+            <Pagination
+              pagination={pagination}
+              onPageChange={handlePageChange}
+            />
+          )}
+          ListEmptyComponent={
+            !isLoading ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>게시글이 없습니다.</Text>
+                <Text style={styles.emptySubText}>새로운 게시글을 작성해보세요!</Text>
+              </View>
+            ) : null
+          }
+        />
+      )}
     </View>
   );
 }
