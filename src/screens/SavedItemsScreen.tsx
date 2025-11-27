@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -23,6 +23,8 @@ export default function SavedItemsScreen() {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
+  const initialLoadRef = useRef(false); // 초기 로드 방지 플래그
+  const initialLoadingRef = useRef(false); // 초기 로딩 상태 추적
   const [activeTab, setActiveTab] = useState<SavedItemsTabType>('feeds');
 
   // Feeds data
@@ -43,14 +45,15 @@ export default function SavedItemsScreen() {
   const [shortsCursor, setShortsCursor] = useState<string | undefined>(undefined);
   const [hasMoreShorts, setHasMoreShorts] = useState(true);
 
-  // Load feeds bookmarks
+  // Load feeds bookmarks - Strict Mode 중복 호출 방지
   const loadFeedsBookmarks = useCallback(async (reset = false) => {
+    if (feedsLoading) return; // 이미 로딩 중이면 중복 호출 방지
+
     try {
       setFeedsLoading(true);
       const offset = reset ? 0 : feedsOffset;
 
       const response = await FeedService.getBookmarkFeeds(offset, 20);
-      console.log('북마크 피드 응답:', response);
 
       if (reset) {
         setFeedsData(response.feeds);
@@ -66,7 +69,7 @@ export default function SavedItemsScreen() {
     } finally {
       setFeedsLoading(false);
     }
-  }, [feedsOffset]);
+  }, [feedsLoading, feedsOffset]);
 
   // Load posts bookmarks
   const loadPostsBookmarks = useCallback(async (reset = false) => {
@@ -128,11 +131,21 @@ export default function SavedItemsScreen() {
     };
   }, []);
 
-  // Initial load
+  // Initial load - React Strict Mode에서 중복 호출 방지 + 타임아웃으로 안전하게 실행
   useEffect(() => {
-    loadFeedsBookmarks(true);
-    loadPostsBookmarks(true);
-    loadShortsBookmarks(true);
+    if (initialLoadRef.current) return;
+    initialLoadRef.current = true;
+
+    // 타임아웃으로 Strict Mode 더블 실행을 방지
+    const timer = setTimeout(async () => {
+      await Promise.all([
+        loadFeedsBookmarks(true),
+        loadPostsBookmarks(true),
+        loadShortsBookmarks(true)
+      ]);
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const handleTabChange = (tab: SavedItemsTabType) => {
