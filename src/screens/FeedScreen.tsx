@@ -408,6 +408,7 @@ export default function FeedScreen() {
           }}
           feed={selectedFeedForComments}
           onCommentCountUpdate={handleCommentCountUpdate}
+          onAuthorPress={() => handleUserPress(selectedFeedForComments.user.id)}
         />
       )}
     </View>

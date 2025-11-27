@@ -286,6 +286,7 @@ export default function CutDetailScreen() {
           onShare={handleShare}
           onUpload={() => {}}
           onViewComplete={handleViewComplete}
+          onProfilePress={(userId: string) => navigation.navigate('UserProfile', { userId })}
         />
       </View>
 
@@ -296,6 +297,7 @@ export default function CutDetailScreen() {
             setCommentSheetVisible(false);
           }}
           short={short}
+          onAuthorPress={() => navigation.navigate('UserProfile', { userId: String(short.user_id) })}
         />
       )}
 

@@ -486,6 +486,7 @@ export default function CutScreen() {
             setSelectedShort(null);
           }}
           short={selectedShort}
+          onAuthorPress={() => navigation.navigate('UserProfile', { userId: String(selectedShort.user_id) })}
         />
       )}
 

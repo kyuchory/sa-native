@@ -33,6 +33,7 @@ interface CommentActionSheetProps {
   onClose: () => void;
   feed: FeedListItem;
   onCommentCountUpdate?: (feedId: number, newCount: number) => void;
+  onAuthorPress?: () => void;
 }
 
 
@@ -42,6 +43,7 @@ export default function CommentActionSheet({
   onClose,
   feed,
   onCommentCountUpdate,
+  onAuthorPress,
 }: CommentActionSheetProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
@@ -412,7 +414,7 @@ export default function CommentActionSheet({
             paddingBottom: insets.bottom // 하단 safe area
           }
         ]}>
-          {/* 핸들 바 */}
+          {/* 핸들 바 + 피드 미리보기 헤더 전체를 드래그 영역으로 */}
           <PanGestureHandler
             onGestureEvent={onGestureEvent}
             onHandlerStateChange={onHandlerStateChange}
@@ -421,26 +423,33 @@ export default function CommentActionSheet({
             minPointers={1}
             maxPointers={1}
           >
-            <View style={styles.handleContainer}>
-              <Animated.View style={styles.handle} />
+            <View>
+              {/* 핸들 바 */}
+              <View style={styles.handleContainer}>
+                <View style={styles.handle} />
+              </View>
+
+              {/* 피드 미리보기 헤더 */}
+              <View style={styles.feedPreview}>
+                <TouchableOpacity onPress={onAuthorPress} activeOpacity={0.7}>
+                  <UserAvatar
+                    profileImg={feed.user.profile_img}
+                    nickname={feed.user.nickname}
+                    size={40}
+                  />
+                </TouchableOpacity>
+                <View style={styles.feedContent}>
+                  <TouchableOpacity activeOpacity={0.7} onPress={onAuthorPress}>
+                    <Text style={styles.feedUsername}>{feed.user.nickname}</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.feedTime}>{formatRelativeTime(feed.created_at)}</Text>
+                  <Text style={styles.feedText} numberOfLines={2}>
+                    {feed.content_blocks.find(block => block.type === 'text')?.value || ''}
+                  </Text>
+                </View>
+              </View>
             </View>
           </PanGestureHandler>
-
-          {/* 피드 미리보기 헤더 */}
-          <View style={styles.feedPreview}>
-            <UserAvatar
-              profileImg={feed.user.profile_img}
-              nickname={feed.user.nickname}
-              size={40}
-            />
-            <View style={styles.feedContent}>
-              <Text style={styles.feedUsername}>{feed.user.nickname}</Text>
-              <Text style={styles.feedTime}>{formatRelativeTime(feed.created_at)}</Text>
-              <Text style={styles.feedText} numberOfLines={2}>
-                {feed.content_blocks.find(block => block.type === 'text')?.value || ''}
-              </Text>
-            </View>
-          </View>
 
           <ScrollView
             style={styles.scrollContainer}
@@ -527,7 +536,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: SCREEN_HEIGHT * 0.8, // 화면 80% 높이
+    height: SCREEN_HEIGHT * 0.65, // 화면 80% 높이
     backgroundColor: colors.WHITE,
     borderTopLeftRadius: BORDER_RADIUS.LG,
     borderTopRightRadius: BORDER_RADIUS.LG,
