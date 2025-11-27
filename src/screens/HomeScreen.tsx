@@ -25,10 +25,8 @@ export default function HomeScreen() {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
-  // FlatList ref
   const flatListRef = useRef<FlatList>(null);
 
-  // 상태 관리
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0);
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number>(0);
@@ -43,129 +41,153 @@ export default function HomeScreen() {
   });
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [notificationCount] = useState(3); // 예시 알림 개수
 
-  // Zustand 스토어 상태 및 액션들
   const { shouldRefreshPosts, setShouldRefreshPosts } = usePostStore();
 
-  // 스마트한 포커스 기반 새로고침
-  useFocusEffect(
-    useCallback(() => {
-      if (shouldRefreshPosts) {
-        console.log('게시물 목록 새로고침 필요 - 포커스 시 로드');
-        loadPosts();
-        setShouldRefreshPosts(false); // 플래그 초기화
-      }
-    }, [shouldRefreshPosts, setShouldRefreshPosts])
-  );
-
-  // 컴포넌트 마운트 시 카테고리와 게시글 로드
-  useEffect(() => {
-    loadCategories();
-    loadPosts();
-  }, []);
-
-  // 카테고리 변경 시 게시글 다시 로드
-  useEffect(() => {
-    if (categories.length > 0) {
-      setPagination(prev => ({ ...prev, page: 1 })); // 페이지 초기화
-      loadPosts();
-    }
-  }, [selectedCategoryId, selectedSubcategoryId]);
-
-  // 페이지 변경 시 게시글 다시 로드
-  useEffect(() => {
-    if (categories.length > 0) {
-      loadPosts();
-    }
-  }, [pagination.page]);
-
-  // 카테고리 로드
-  const loadCategories = async () => {
-    try {
-      const categoriesData = await PostService.getCategories();
-      setCategories(categoriesData);
-    } catch (error) {
-      console.error('카테고리 로드 실패:', error);
-      Alert.alert('오류', '카테고리를 불러오는데 실패했습니다.');
-    }
+  // ---------- Helper: shallow compare pagination fields ----------
+  const isSamePagination = (a: typeof pagination, b: Partial<typeof pagination>) => {
+    // only compare keys that server returns (page, limit, total, total_pages, has_next, has_prev)
+    return (
+      a.page === (b.page ?? a.page) &&
+      a.limit === (b.limit ?? a.limit) &&
+      a.total === (b.total ?? a.total) &&
+      a.total_pages === (b.total_pages ?? a.total_pages) &&
+      a.has_next === (b.has_next ?? a.has_next) &&
+      a.has_prev === (b.has_prev ?? a.has_prev)
+    );
   };
 
-  // 게시글 로드
-  const loadPosts = async () => {
+  // ---------- loadPosts: accept explicit page to avoid closure issues ----------
+  const loadPosts = useCallback(async (opts?: { page?: number; categoryId?: number; subCategoryId?: number }) => {
+    const pageToLoad = opts?.page ?? pagination.page;
+    const categoryId = opts?.categoryId ?? selectedCategoryId;
+    const subCategoryId = opts?.subCategoryId ?? selectedSubcategoryId;
+
+    // DEBUG: log calls to detect duplicates
+    console.log('[DEBUG] loadPosts called with params:', { pageToLoad, categoryId, subCategoryId });
+
     try {
       setIsLoading(true);
       const response = await PostService.getPosts({
-        categoryId: selectedCategoryId || undefined,
-        subCategoryId: selectedSubcategoryId || undefined,
-        page: pagination.page,
+        categoryId: categoryId || undefined,
+        subCategoryId: subCategoryId || undefined,
+        page: pageToLoad,
       });
 
-      setPosts(response.posts);
-      setPagination(response.pagination);
+      setPosts(response.posts ?? []);
+
+      // 서버에서 내려준 pagination이 실제로 다를 때만 상태 업데이트 (참조 변경으로 인한 불필요한 재호출 방지)
+      if (!isSamePagination(pagination, response.pagination)) {
+        setPagination(prev => ({ ...prev, ...response.pagination }));
+      }
     } catch (error) {
       console.error('게시글 로드 실패:', error);
       Alert.alert('오류', '게시글을 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [pagination, selectedCategoryId, selectedSubcategoryId]);
 
-  // 페이지 변경
+  // ---------- focus 기반 새로고침 (안정적으로 loadPosts 호출) ----------
+  useFocusEffect(
+    useCallback(() => {
+      if (shouldRefreshPosts) {
+        console.log('게시물 목록 새로고침 필요 - 포커스 시 로드');
+        // 현재 페이지로 새로고침
+        loadPosts({ page: pagination.page, categoryId: selectedCategoryId, subCategoryId: selectedSubcategoryId });
+        setShouldRefreshPosts(false);
+      }
+    }, [shouldRefreshPosts, setShouldRefreshPosts, loadPosts, pagination.page, selectedCategoryId, selectedSubcategoryId])
+  );
+
+  // ---------- 컴포넌트 마운트 시: 카테고리 로드만 (의존성 없음) ----------
+  useEffect(() => {
+    // loadCategories는 별도 함수로 정의하고 내부에서 setCategories 한다
+    const init = async () => {
+      try {
+        const categoriesData = await PostService.getCategories();
+        const normalized = categoriesData.map(cat => ({
+          ...cat,
+          id: Number(cat.id),
+          subCategories: (cat.subCategories || []).map((sc: any) => ({ ...sc, id: Number(sc.id) })),
+        }));
+        setCategories(normalized);
+      } catch (err) {
+        console.error('카테고리 로드 실패:', err);
+        Alert.alert('오류', '카테고리를 불러오는데 실패했습니다.');
+      }
+    };
+
+    init();
+    // 빈 deps -> 마운트 시 1회만 실행, 로드는 category effect에서 담당
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---------- 카테고리/소분류 변경: 페이지를 1로 리셋하고 1페이지 로드 ----------
+  useEffect(() => {
+    if (categories.length === 0) return;
+
+    // 만약 이미 page가 1이면 바로 로드 (페이지 값이 그대로면 setPagination 호출을 안함)
+    if (pagination.page === 1) {
+      loadPosts({ page: 1, categoryId: selectedCategoryId, subCategoryId: selectedSubcategoryId });
+    } else {
+      // page가 1이 아니면 상태를 1로 바꾸고(이후 다른 effect에 의존시키지 않음), 바로 1페이지 로드
+      setPagination(prev => ({ ...prev, page: 1 }));
+      loadPosts({ page: 1, categoryId: selectedCategoryId, subCategoryId: selectedSubcategoryId });
+    }
+    // 의존성: 카테고리 선택 값과 categories 존재여부
+  }, [selectedCategoryId, selectedSubcategoryId, categories.length]); // loadPosts는 내부에서 사용하되 deps에서 제외해 재실행 루프 방지
+
+  // ---------- 페이지 변경 핸들러: 사용자가 버튼 등으로 페이지 바꿀 때 직접 loadPosts 호출 ----------
   const handlePageChange = (page: number) => {
+    // 빠른 연타 방지: 같은 페이지면 무시
+    if (page === pagination.page) return;
+
+    // 로컬 상태 업데이트 (UI용)
     setPagination(prev => ({ ...prev, page }));
+
+    // 서버에서 해당 페이지 바로 로드 (명시적 호출 -> effect에 의존하지 않음)
+    loadPosts({ page, categoryId: selectedCategoryId, subCategoryId: selectedSubcategoryId });
   };
 
-  // 카테고리 선택 핸들러
+  // ---------- 새로고침 ----------
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadPosts({ page: pagination.page });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // ---------- interactions ----------
   const handleCategorySelect = (categoryId: number) => {
     setSelectedCategoryId(categoryId);
-    setSelectedSubcategoryId(0); // 대분류 변경시 소분류 초기화
+    setSelectedSubcategoryId(0);
   };
 
   const handleSubcategorySelect = (subcategoryId: number) => {
     setSelectedSubcategoryId(subcategoryId);
   };
 
-  // 새로고침 핸들러
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await loadPosts();
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  // 게시물 상호작용 핸들러들 - useCallback 메모이제이션
   const handlePostPress = useCallback((post: PostListItem) => {
-    console.log('Post pressed:', post.title);
     navigation.navigate('PostDetail', { postId: post.id });
   }, [navigation]);
 
   const handleCommentPress = useCallback((post: PostListItem) => {
     console.log('Comment pressed:', post.title);
-    // TODO: 댓글 화면으로 이동
+    // TODO
   }, []);
 
   const handleAuthorPress = useCallback((post: PostListItem) => {
-    console.log('Author pressed:', post.user.nickname);
     navigation.navigate('UserProfile', { userId: String(post.user.id) });
   }, [navigation]);
 
-  const handleWritePress = () => {
-    navigation.navigate('CreatePost');
-  };
+  const handleWritePress = () => navigation.navigate('CreatePost');
 
-  // 헤더 버튼들 설정
   const headerRightButtons = [
-    {
-      key: 'write',
-      onPress: handleWritePress,
-      IconComponent: WriteIcon,
-    },
+    { key: 'write', onPress: handleWritePress, IconComponent: WriteIcon },
   ];
 
-  // 게시물 렌더링 - useCallback 메모이제이션
   const renderPost = useCallback(({ item }: { item: PostListItem }) => (
     <PostCard
       post={item}
@@ -177,10 +199,8 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 헤더 */}
       <MainHeader rightButtons={headerRightButtons} />
 
-      {/* 카테고리 선택 */}
       <CategorySelector
         categories={categories}
         selectedCategoryId={selectedCategoryId}
@@ -189,7 +209,6 @@ export default function HomeScreen() {
         onSubcategorySelect={handleSubcategorySelect}
       />
 
-      {/* 게시물 목록 */}
       {isLoading ? (
         <View style={[styles.postList, { justifyContent: 'center', alignItems: 'center' }]}>
           <ActivityIndicator size="large" color={colors.PRIMARY} />
@@ -211,13 +230,12 @@ export default function HomeScreen() {
               colors={[colors.PRIMARY]}
             />
           )}
-          // 성능 최적화
           removeClippedSubviews={true}
           maxToRenderPerBatch={10}
           windowSize={10}
           initialNumToRender={5}
           getItemLayout={(data, index) => ({
-            length: 200, // 예상 아이템 높이
+            length: 200,
             offset: 200 * index,
             index,
           })}
