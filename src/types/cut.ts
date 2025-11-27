@@ -208,3 +208,24 @@ export interface ShortUploadApiResponse {
   message: string;
   data: ShortItem;
 }
+
+// 쇼츠 북마크 목록 아이템
+export interface BookmarkShortListItem {
+  short_id: number;
+  user_id: number;
+  thumbnail_url: string | null;
+  created_at: string;
+}
+
+// 쇼츠 북마크 목록 조회 응답 데이터
+export interface BookmarkShortListResponse {
+  items: BookmarkShortListItem[];
+  next_cursor: string | null;
+}
+
+// 쇼츠 북마크 목록 조회 API 응답
+export interface BookmarkShortListApiResponse {
+  code: number;
+  message: string;
+  data: BookmarkShortListResponse;
+}

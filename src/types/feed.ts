@@ -105,6 +105,31 @@ export interface ToggleBookmarkResponse {
 // 피드 북마크 토글 API 응답
 export type ToggleBookmarkApiResponse = ApiResponse<ToggleBookmarkResponse>;
 
+// 피드 북마크 목록 아이템
+export interface BookmarkFeedListItem {
+  id: number;
+  created_at: string;
+  preview_image: string | null;
+  preview_content_type: string | null;
+}
+
+// 피드 북마크 목록 페이지네이션
+export interface BookmarkFeedPagination {
+  offset: number;
+  limit: number;
+  total: number;
+  has_next: boolean;
+}
+
+// 피드 북마크 목록 조회 응답 데이터
+export interface BookmarkFeedListResponse {
+  feeds: BookmarkFeedListItem[];
+  pagination: BookmarkFeedPagination;
+}
+
+// 피드 북마크 목록 조회 API 응답
+export type BookmarkFeedListApiResponse = ApiResponse<BookmarkFeedListResponse>;
+
 // 댓글 사용자 정보
 export interface CommentUser {
   id: number;

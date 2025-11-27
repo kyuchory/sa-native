@@ -18,6 +18,8 @@ import {
   ShortCategoryListResponse,
   ShortDetailResponse,
   ShortDeleteResponse,
+  BookmarkShortListResponse,
+  BookmarkShortListApiResponse,
 } from '../types/cut';
 import type { ApiResponse } from '../types/api';
 
@@ -128,6 +130,30 @@ export class CutService {
       return response;
     } catch (error) {
       console.error('쇼츠 북마크 토글 실패:', error);
+      throw error;
+    }
+  }
+
+  // 북마크한 쇼츠 목록 조회 (커서 기반 페이지네이션)
+  static async getBookmarkShorts(
+    cursor?: string,
+    limit: number = 20
+  ): Promise<BookmarkShortListResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+
+      if (cursor) {
+        queryParams.append('cursor', cursor);
+      }
+      queryParams.append('limit', limit.toString());
+
+      const response = await apiClient.get<BookmarkShortListApiResponse>(
+        `/shorts/bookmarks?${queryParams.toString()}`
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('북마크한 쇼츠 목록 조회 실패:', error);
       throw error;
     }
   }

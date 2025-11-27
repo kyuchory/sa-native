@@ -27,6 +27,8 @@ import {
   DeleteCommentApiResponse,
   ToggleBookmarkResponse,
   ToggleBookmarkApiResponse,
+  BookmarkFeedListResponse,
+  BookmarkFeedListApiResponse,
   DeleteFeedResponse,
   FeedImageUploadResponse,
   FeedImageUploadApiResponse,
@@ -152,6 +154,27 @@ export class FeedService {
       return response.data!;
     } catch (error) {
       console.error('북마크 토글 실패:', error);
+      throw error;
+    }
+  }
+
+  // 북마크한 피드 목록 조회 (오프셋 기반 페이지네이션)
+  static async getBookmarkFeeds(
+    offset: number = 0,
+    limit: number = 20
+  ): Promise<BookmarkFeedListResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.append('offset', offset.toString());
+      queryParams.append('limit', limit.toString());
+
+      const response = await apiClient.get<BookmarkFeedListApiResponse>(
+        `/feeds/bookmarks?${queryParams.toString()}`
+      );
+
+      return response.data!;
+    } catch (error) {
+      console.error('북마크한 피드 목록 조회 실패:', error);
       throw error;
     }
   }

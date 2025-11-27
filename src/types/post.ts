@@ -291,3 +291,39 @@ export interface PostVideoEditUploadResponse {
 
 // 게시글 비디오 편집 업로드 API 응답
 export type PostVideoEditUploadApiResponse = ApiResponse<PostVideoEditUploadResponse>;
+
+// 게시글 북마크 목록 아이템
+export interface BookmarkPostListItem {
+  id: number;
+  title: string;
+  created_at: string;
+  created_at_bookmark: string;
+  user: {
+    id: number;
+    nickname: string;
+    profile_img: string | null;
+  };
+  sub_category: {
+    id: number;
+    name: string;
+    category: {
+      id: number;
+      name: string;
+    };
+  };
+  like_count: number;
+  bookmark_count: number;
+  comment_count: number;
+  preview_image: string | null;
+  is_liked?: boolean; // 로그인 시에만 제공
+  is_bookmarked?: boolean; // 로그인 시에만 제공
+}
+
+// 게시글 북마크 목록 조회 응답 데이터
+export interface BookmarkPostListResponse {
+  items: BookmarkPostListItem[];
+  next_cursor: string | null;
+}
+
+// 게시글 북마크 목록 조회 API 응답
+export type BookmarkPostListApiResponse = ApiResponse<BookmarkPostListResponse>;

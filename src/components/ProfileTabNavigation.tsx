@@ -4,6 +4,56 @@ import { SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { GridIcon, ListIcon, VideoIcon, CharacterIcon } from './ProfileIcons';
 
+// SavedItems tab type
+export type SavedItemsTabType = 'feeds' | 'posts' | 'shorts';
+
+interface SavedItemsTabNavigationProps {
+  activeTab: SavedItemsTabType;
+  onTabChange: (tab: SavedItemsTabType) => void;
+}
+
+export function SavedItemsTabNavigation({
+  activeTab,
+  onTabChange,
+}: SavedItemsTabNavigationProps) {
+  const { colors } = useThemeStore();
+  const styles = createStyles(colors);
+
+  const savedItemsTabs = [
+    { id: 'feeds' as SavedItemsTabType, icon: GridIcon, label: '저장된 피드' },
+    { id: 'posts' as SavedItemsTabType, icon: ListIcon, label: '저장된 게시물' },
+    { id: 'shorts' as SavedItemsTabType, icon: VideoIcon, label: '저장된 쇼츠' },
+  ];
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.tabsContainer}>
+        {savedItemsTabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const IconComponent = tab.icon;
+
+          return (
+            <TouchableOpacity
+              key={tab.id}
+              style={[
+                styles.tabItem,
+                isActive && styles.activeTabItem,
+              ]}
+              onPress={() => onTabChange(tab.id)}
+              activeOpacity={0.7}
+            >
+              <IconComponent
+                size={24}
+                color={isActive ? colors.PRIMARY : colors.GRAY_500}
+              />
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 export type ProfileTabType = 'feed' | 'posts' | 'videos' | 'character';
 
 interface ProfileTabNavigationProps {

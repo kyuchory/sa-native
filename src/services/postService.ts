@@ -22,7 +22,9 @@ import type {
   UpdatePostRequest,
   UpdatePostResponse,
   PostVideoEditUploadResponse,
-  PostVideoEditUploadApiResponse
+  PostVideoEditUploadApiResponse,
+  BookmarkPostListResponse,
+  BookmarkPostListApiResponse
 } from '../types/post';
 import type { ApiResponse } from '../types/api';
 
@@ -304,6 +306,30 @@ export class PostService {
       return response.data;
     } catch (error) {
       console.error('게시글 북마크 토글 실패:', error);
+      throw error;
+    }
+  }
+
+  // 북마크한 게시글 목록 조회 (커서 기반 페이지네이션)
+  static async getBookmarkPosts(
+    cursor?: string,
+    limit: number = 20
+  ): Promise<BookmarkPostListResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+
+      if (cursor) {
+        queryParams.append('cursor', cursor);
+      }
+      queryParams.append('limit', limit.toString());
+
+      const response = await apiClient.get<BookmarkPostListApiResponse>(
+        `/posts/bookmarks?${queryParams.toString()}`
+      );
+
+      return response.data!;
+    } catch (error) {
+      console.error('북마크한 게시글 목록 조회 실패:', error);
       throw error;
     }
   }

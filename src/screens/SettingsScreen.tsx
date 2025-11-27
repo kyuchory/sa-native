@@ -194,6 +194,20 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* 저장된 항목 섹션 */}
+        <View style={styles.section}>
+          <View style={styles.sectionContainer}>
+            <SettingItem
+              title="저장된 항목"
+              subtitle="북마크된 콘텐츠 확인"
+              showArrow={true}
+              onPress={() => navigation.navigate('SavedItems' as never)}
+              colors={colors}
+              isLast={true}
+            />
+          </View>
+        </View>
+
         {/* 지원 섹션 */}
         <View style={styles.section}>
           <View style={styles.sectionContainer}>
@@ -226,27 +240,6 @@ export default function SettingsScreen() {
             <SettingItem
               title="계정 삭제"
               onPress={handleAccountDelete}
-              colors={colors}
-            />
-            <SettingItem
-              title="미디어 선택기 테스트"
-              subtitle="이미지/비디오 선택 화면 테스트"
-              showArrow={true}
-              onPress={handleMediaSelectorTest}
-              colors={colors}
-            />
-            <SettingItem
-              title="캔버스 에디터"
-              subtitle="그림판 기능 테스트"
-              showArrow={true}
-              onPress={handleCanvasEditorTest}
-              colors={colors}
-            />
-            <SettingItem
-              title="비디오 에디터"
-              subtitle="비디오 편집 기능 테스트"
-              showArrow={true}
-              onPress={handleVideoEditorTest}
               colors={colors}
               isLast={true}
             />

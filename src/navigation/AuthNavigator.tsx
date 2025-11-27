@@ -51,6 +51,7 @@ import VideoTrimCropScreen from '../screens/VideoTrimCropScreen';
 import CutUploadSelectScreen from '../screens/CutUploadSelectScreen';
 import CutUploadFinalizeScreen from '../screens/CutUploadFinalizeScreen';
 import CutDetailScreen from '../screens/CutDetailScreen';
+import SavedItemsScreen from '../screens/SavedItemsScreen';
 
 // Components for notifications
 import { NotificationBanner } from '../components/NotificationBanner';
@@ -271,6 +272,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="CutDetail"
           component={CutDetailScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="SavedItems"
+          component={SavedItemsScreen}
           options={{ headerShown: false }}
         />
           </>

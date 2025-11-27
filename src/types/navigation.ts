@@ -77,6 +77,7 @@ export type AuthStackParamList = {
     thumbnailUri?: string;
   };
   CutDetail: { shortId: number };
+  SavedItems: undefined;
 };
 
 export type TabParamList = {
