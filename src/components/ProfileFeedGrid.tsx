@@ -109,8 +109,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     position: 'absolute',
     bottom: 2,
     right: 2,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: BORDER_RADIUS.SM,
     padding: 1,
     justifyContent: 'center',
     alignItems: 'center',
