@@ -12,7 +12,9 @@ import { BackIcon } from '../components/CommonIcons';
 
 const { width: screenWidth } = Dimensions.get('window');
 const numColumns = 4;
-const imageSize = (screenWidth - SPACING.MD * (numColumns + 1)) / numColumns;
+// 올바른 이미지 사이즈 계산: 좌우 패딩 + 아이템 사이 간격 고려
+const totalGutter = SPACING.MD * 2 + SPACING.XS * (numColumns - 1);
+const imageSize = (screenWidth - totalGutter) / numColumns;
 
 interface ChatRoomMediaScreenProps {
   chatRoomId: number;
@@ -114,6 +116,13 @@ export default function ChatRoomMediaScreen() {
         showBackButton={true}
       />
 
+      {/* 미디어 보관 공지사항 */}
+      <View style={styles.noticeContainer}>
+        <Text style={styles.noticeText}>
+          미디어는 30일, 최근 50개 항목이 보관됩니다.
+        </Text>
+      </View>
+
       <View style={styles.content}>
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -125,6 +134,11 @@ export default function ChatRoomMediaScreen() {
             renderItem={renderMediaItem}
             keyExtractor={(item) => item.message_id.toString()}
             numColumns={numColumns}
+            columnWrapperStyle={{
+              justifyContent: 'space-between',
+              paddingHorizontal: SPACING.MD,
+              marginBottom: SPACING.XS,
+            }}
             contentContainerStyle={styles.mediaGrid}
             showsVerticalScrollIndicator={false}
           />
@@ -171,10 +185,12 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     color: colors.GRAY_500,
   },
   mediaGrid: {
-    padding: SPACING.MD,
+    paddingTop: SPACING.MD,
+    paddingBottom: SPACING.MD + SPACING.XS,
   },
   mediaItem: {
-    margin: SPACING.XS,
+    marginHorizontal: 0,
+    marginVertical: 0,
     position: 'relative',
   },
   mediaImage: {
@@ -207,5 +223,18 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   emptyText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     color: colors.GRAY_500,
+  },
+  noticeContainer: {
+    backgroundColor: colors.GRAY_50,
+    paddingVertical: SPACING.SM,
+    paddingHorizontal: SPACING.MD,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.GRAY_200,
+  },
+  noticeText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.GRAY_600,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    textAlign: 'center',
   },
 });
