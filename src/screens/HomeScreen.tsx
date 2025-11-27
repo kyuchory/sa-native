@@ -63,9 +63,6 @@ export default function HomeScreen() {
     const categoryId = opts?.categoryId ?? selectedCategoryId;
     const subCategoryId = opts?.subCategoryId ?? selectedSubcategoryId;
 
-    // DEBUG: log calls to detect duplicates
-    console.log('[DEBUG] loadPosts called with params:', { pageToLoad, categoryId, subCategoryId });
-
     try {
       setIsLoading(true);
       const response = await PostService.getPosts({

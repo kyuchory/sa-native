@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, FlatList, StyleSheet, Text, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
@@ -24,6 +24,8 @@ export default function NotificationScreen() {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
+  const [refreshing, setRefreshing] = useState(false);
+
   // 알림 store 사용
   const { notifications, unreadCount, isLoading, loadNotifications, markAllNotificationsAsRead, markNotificationAsRead } = useNotificationStore();
 
@@ -40,6 +42,16 @@ export default function NotificationScreen() {
 
     initializeNotifications();
   }, [loadNotifications]);
+
+  // 새로고침 핸들러
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadNotifications();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
 
   // 모두 읽음 처리
@@ -216,6 +228,14 @@ export default function NotificationScreen() {
         style={styles.notificationList}
         contentContainerStyle={styles.notificationListContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={(
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.PRIMARY}
+            colors={[colors.PRIMARY]}
+          />
+        )}
         ListEmptyComponent={isLoading ? renderLoadingState : renderEmptyState}
         // 성능 최적화
         removeClippedSubviews={true}

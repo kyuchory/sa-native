@@ -580,7 +580,9 @@ function FeedCard({
           <TouchableOpacity style={styles.actionButton} onPress={handleCommentPress}>
             <CommentIcon size={20} />
           </TouchableOpacity>
-          <Text style={styles.actionCount}>{feed.comment_count}</Text>
+          <TouchableOpacity style={styles.actionButton} onPress={handleCommentPress}>
+            <Text style={styles.actionCount}>{feed.comment_count}</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.rightActions}>
