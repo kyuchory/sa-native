@@ -939,10 +939,11 @@ export default function FeedDetailScreen() {
           {/* 액션 버튼들 */}
           <View style={styles.actionsContainer}>
             <View style={styles.leftActions}>
-              <Pressable
+              <TouchableOpacity
                 style={styles.actionButton}
                 onPress={onFeedLikePress}
                 disabled={isFeedLikeLoading}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 {isFeedLikeLoading ? (
                   <ActivityIndicator size="small" color={colors.ERROR} />
@@ -953,20 +954,37 @@ export default function FeedDetailScreen() {
                     color={feed.is_liked ? colors.ERROR : colors.GRAY_600}
                   />
                 )}
-              </Pressable>
-              <Text style={[
-                styles.actionCount,
-                feed.is_liked && { color: colors.ERROR },
-                isFeedLikeLoading && styles.loadingText
-              ]}>
-                {feed.like_count}
-              </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={onFeedLikePress}
+                disabled={isFeedLikeLoading}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={[
+                  styles.actionCount,
+                  feed.is_liked && { color: colors.ERROR },
+                  isFeedLikeLoading && styles.loadingText
+                ]}>
+                  {feed.like_count}
+                </Text>
+              </TouchableOpacity>
 
               {/* 댓글 버튼은 액션 없음 */}
-              <TouchableOpacity style={styles.actionButton} onPress={()=>null}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => null}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
                 <CommentIcon size={20} />
               </TouchableOpacity>
-              <Text style={styles.actionCount}>{feed.comment_count}</Text>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => null}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.actionCount}>{feed.comment_count}</Text>
+              </TouchableOpacity>
             </View>
 
         <View style={styles.rightActions}>
@@ -974,6 +992,7 @@ export default function FeedDetailScreen() {
                 style={styles.actionButton}
                 onPress={onFeedBookmarkToggle}
                 disabled={isFeedBookmarkLoading}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 {isFeedBookmarkLoading ? (
                   <ActivityIndicator size="small" color={colors.PRIMARY} />
@@ -985,14 +1004,21 @@ export default function FeedDetailScreen() {
                   />
                 )}
               </TouchableOpacity>
-              <Text style={[
-                styles.actionCount,
-                styles.rightActionCount,
-                feed.is_bookmarked && { color: colors.PRIMARY },
-                isFeedBookmarkLoading && styles.loadingText
-              ]}>
-                {feed.bookmark_count}
-              </Text>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={onFeedBookmarkToggle}
+                disabled={isFeedBookmarkLoading}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={[
+                  styles.actionCount,
+                  styles.rightActionCount,
+                  feed.is_bookmarked && { color: colors.PRIMARY },
+                  isFeedBookmarkLoading && styles.loadingText
+                ]}>
+                  {feed.bookmark_count}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
 

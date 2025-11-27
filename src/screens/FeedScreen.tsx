@@ -406,7 +406,8 @@ export default function FeedScreen() {
             setCommentActionSheetVisible(false);
             setSelectedFeedForComments(null);
           }}
-          feed={selectedFeedForComments}
+          item={selectedFeedForComments}
+          type="feed"
           onCommentCountUpdate={handleCommentCountUpdate}
           onAuthorPress={() => handleUserPress(selectedFeedForComments.user.id)}
         />

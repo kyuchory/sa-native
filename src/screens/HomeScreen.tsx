@@ -7,12 +7,12 @@ import { AuthStackParamList } from '../types/navigation';
 import { useThemeStore } from '../stores/themeStore';
 import usePostStore from '../stores/postStore';
 
-// 컴포넌트 imports
 import CategorySelector from '../components/CategorySelector';
 import PostCard from '../components/PostCard';
 import Pagination from '../components/Pagination';
 import MainHeader from '../components/MainHeader';
 import { WriteIcon } from '../components/HomeHeaderIcons';
+import CommentActionSheet from '../components/CommentActionSheet';
 
 // 서비스 imports
 import { PostService } from '../services/postService';
@@ -41,6 +41,10 @@ export default function HomeScreen() {
   });
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // CommentActionSheet 상태 관리
+  const [commentSheetVisible, setCommentSheetVisible] = useState(false);
+  const [selectedCommentItem, setSelectedCommentItem] = useState<PostListItem | null>(null);
 
   const { shouldRefreshPosts, setShouldRefreshPosts } = usePostStore();
 
@@ -171,8 +175,8 @@ export default function HomeScreen() {
   }, [navigation]);
 
   const handleCommentPress = useCallback((post: PostListItem) => {
-    console.log('Comment pressed:', post.title);
-    // TODO
+    setSelectedCommentItem(post);
+    setCommentSheetVisible(true);
   }, []);
 
   const handleAuthorPress = useCallback((post: PostListItem) => {
@@ -180,6 +184,25 @@ export default function HomeScreen() {
   }, [navigation]);
 
   const handleWritePress = () => navigation.navigate('CreatePost');
+
+  // CommentActionSheet 핸들러
+  const handleCommentSheetClose = useCallback(() => {
+    setCommentSheetVisible(false);
+    setSelectedCommentItem(null);
+  }, []);
+
+  const handleCommentCountUpdate = useCallback((postId: number, newCount: number) => {
+    setPosts(prev => prev.map(post =>
+      post.id === postId ? { ...post, comment_count: newCount } : post
+    ));
+  }, []);
+
+  const handleAuthorPressFromSheet = useCallback(() => {
+    if (selectedCommentItem) {
+      navigation.navigate('UserProfile', { userId: String(selectedCommentItem.user.id) });
+    }
+    setCommentSheetVisible(false);
+  }, [selectedCommentItem, navigation]);
 
   const headerRightButtons = [
     { key: 'write', onPress: handleWritePress, IconComponent: WriteIcon },
@@ -250,6 +273,18 @@ export default function HomeScreen() {
               </View>
             ) : null
           }
+        />
+      )}
+
+      {/* CommentActionSheet */}
+      {selectedCommentItem && (
+        <CommentActionSheet
+          visible={commentSheetVisible}
+          onClose={handleCommentSheetClose}
+          item={selectedCommentItem}
+          type="post"
+          onCommentCountUpdate={handleCommentCountUpdate}
+          onAuthorPress={handleAuthorPressFromSheet}
         />
       )}
     </View>

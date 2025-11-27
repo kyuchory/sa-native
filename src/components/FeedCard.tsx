@@ -556,61 +556,85 @@ function FeedCard({
         </View>
       )}
 
-      <View style={styles.actionsContainer}>
-        <View style={styles.leftActions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleLikePress}
-            disabled={isLikeLoading}
-          >
-            {isLikeLoading ? (
-              <ActivityIndicator size="small" color={colors.ERROR} />
-            ) : (
-              <HeartIcon filled={isLiked} size={20} color={isLiked ? colors.ERROR : colors.GRAY_600} />
-            )}
-          </TouchableOpacity>
-          <Text style={[
-            styles.actionCount,
-            isLiked && { color: colors.ERROR },
-            isLikeLoading && styles.loadingText
-          ]}>
-            {likeCount}
-          </Text>
+  <View style={styles.actionsContainer}>
+    <View style={styles.leftActions}>
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={handleLikePress}
+        disabled={isLikeLoading}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        {isLikeLoading ? (
+          <ActivityIndicator size="small" color={colors.ERROR} />
+        ) : (
+          <HeartIcon filled={isLiked} size={20} color={isLiked ? colors.ERROR : colors.GRAY_600} />
+        )}
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={handleLikePress}
+        disabled={isLikeLoading}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Text style={[
+          styles.actionCount,
+          isLiked && { color: colors.ERROR },
+          isLikeLoading && styles.loadingText
+        ]}>
+          {likeCount}
+        </Text>
+      </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton} onPress={handleCommentPress}>
-            <CommentIcon size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={handleCommentPress}>
-            <Text style={styles.actionCount}>{feed.comment_count}</Text>
-          </TouchableOpacity>
-        </View>
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={handleCommentPress}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <CommentIcon size={20} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={handleCommentPress}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Text style={styles.actionCount}>{feed.comment_count}</Text>
+      </TouchableOpacity>
+    </View>
 
-        <View style={styles.rightActions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleBookmarkPress}
-            disabled={isBookmarkLoading}
-          >
-            {isBookmarkLoading ? (
-              <ActivityIndicator size="small" color={colors.PRIMARY} />
-            ) : (
-              <BookmarkIcon
-                filled={isBookmarked}
-                size={20}
-                color={isBookmarked ? colors.PRIMARY : colors.GRAY_600}
-              />
-            )}
-          </TouchableOpacity>
-          <Text style={[
-            styles.actionCount,
-            styles.rightActionCount,
-            isBookmarked && { color: colors.PRIMARY },
-            isBookmarkLoading && styles.loadingText
-          ]}>
-            {bookmarkCount}
-          </Text>
-        </View>
-      </View>
+    <View style={styles.rightActions}>
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={handleBookmarkPress}
+        disabled={isBookmarkLoading}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        {isBookmarkLoading ? (
+          <ActivityIndicator size="small" color={colors.PRIMARY} />
+        ) : (
+          <BookmarkIcon
+            filled={isBookmarked}
+            size={20}
+            color={isBookmarked ? colors.PRIMARY : colors.GRAY_600}
+          />
+        )}
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={handleBookmarkPress}
+        disabled={isBookmarkLoading}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Text style={[
+          styles.actionCount,
+          styles.rightActionCount,
+          isBookmarked && { color: colors.PRIMARY },
+          isBookmarkLoading && styles.loadingText
+        ]}>
+          {bookmarkCount}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  </View>
 
       {textBlock && (
         <View style={styles.contentContainer}>

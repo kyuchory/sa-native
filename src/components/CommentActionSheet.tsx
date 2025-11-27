@@ -17,8 +17,10 @@ import { PanGestureHandler, State, GestureHandlerRootView } from 'react-native-g
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeStore } from '../stores/themeStore';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
-import { FeedListItem, CommentItem } from '../types/feed';
+import { FeedListItem, CommentItem as FeedCommentItem } from '../types/feed';
+import { PostListItem, Comment as PostComment } from '../types/post';
 import { FeedService } from '../services/feedService';
+import { PostService } from '../services/postService';
 import { formatRelativeTime } from '../utils/timeUtils';
 import UserAvatar from './UserAvatar';
 import CommentList from './CommentList';
@@ -28,11 +30,15 @@ import { ReplyInput } from './ReplyInput';
 
 const { width: screenWidth, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+// Union type for comments
+type CommentType = FeedCommentItem | PostComment;
+
 interface CommentActionSheetProps {
   visible: boolean;
   onClose: () => void;
-  feed: FeedListItem;
-  onCommentCountUpdate?: (feedId: number, newCount: number) => void;
+  item: PostListItem | FeedListItem;
+  type: 'post' | 'feed';
+  onCommentCountUpdate?: (id: number, newCount: number) => void;
   onAuthorPress?: () => void;
 }
 
@@ -41,7 +47,8 @@ interface CommentActionSheetProps {
 export default function CommentActionSheet({
   visible,
   onClose,
-  feed,
+  item,
+  type,
   onCommentCountUpdate,
   onAuthorPress,
 }: CommentActionSheetProps) {
@@ -66,7 +73,7 @@ export default function CommentActionSheet({
   const lastGestureDy = useRef(0);
 
   // 상태 관리
-  const [comments, setComments] = useState<CommentItem[]>([]);
+  const [comments, setComments] = useState<CommentType[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadMoreLoading, setIsLoadMoreLoading] = useState(false);
@@ -133,7 +140,8 @@ export default function CommentActionSheet({
 
     try {
       setIsLoading(true);
-      const response = await FeedService.getComments(feed.id);
+      const service = type === 'post' ? PostService : FeedService;
+      const response = await service.getComments(item.id);
       setComments(response.items);
       setNextCursor(response.next_cursor);
     } catch (error) {
@@ -149,7 +157,8 @@ export default function CommentActionSheet({
 
     try {
       setIsLoadMoreLoading(true);
-      const response = await FeedService.getComments(feed.id, nextCursor);
+      const service = type === 'post' ? PostService : FeedService;
+      const response = await service.getComments(item.id, nextCursor);
       setComments(prev => [...prev, ...response.items]);
       setNextCursor(response.next_cursor);
     } catch (error) {
@@ -165,7 +174,7 @@ export default function CommentActionSheet({
     const originalComments = [...comments];
 
     setComments(prev => {
-      const updateComment = (comment: CommentItem): CommentItem => {
+      const updateComment = (comment: CommentType): CommentType => {
         if (comment.id === commentId) {
           return {
             ...comment,
@@ -186,7 +195,11 @@ export default function CommentActionSheet({
     });
 
     try {
-      await FeedService.toggleCommentLike(feed.id, commentId);
+      if (type === 'post') {
+        await PostService.toggleCommentLike(commentId);
+      } else {
+        await FeedService.toggleCommentLike(item.id, commentId);
+      }
 
       // 서버 응답을 기다리지 않고 성공했다고 가정
     } catch (error) {
@@ -194,7 +207,7 @@ export default function CommentActionSheet({
       // 실패 시 원래 상태로 롤백
       setComments(originalComments);
     }
-  }, [comments, feed.id]);
+  }, [comments, type, item.id]);
 
   // 댓글 작성
   const onSendComment = async (text: string) => {
@@ -202,15 +215,20 @@ export default function CommentActionSheet({
 
     try {
       setIsCommentLoading(true);
-      await FeedService.createComment(feed.id, { content: text });
+      if (type === 'post') {
+        await PostService.createComment(item.id, text);
+      } else {
+        await FeedService.createComment(item.id, { content: text });
+      }
 
       // 댓글 목록 새로고침
-      const updatedComments = await FeedService.getComments(feed.id);
+      const service = type === 'post' ? PostService : FeedService;
+      const updatedComments = await service.getComments(item.id);
       setComments(updatedComments.items);
       setNextCursor(updatedComments.next_cursor);
 
       // 부모에게 댓글 수 업데이트 알림 (전체 댓글 수는 피드에서 관리하므로 여기서는 임시로 사용)
-      onCommentCountUpdate?.(feed.id, comments.length + 1);
+      onCommentCountUpdate?.(item.id, comments.length + 1);
     } catch (error) {
       console.error('댓글 작성 실패:', error);
     } finally {
@@ -230,20 +248,25 @@ export default function CommentActionSheet({
         .flatMap(c => [c, ...(c.replies || [])])
         .find(c => c.user.nickname === replyingTo.userName)?.user.id;
 
-      await FeedService.createComment(feed.id, {
-        content: text,
-        parent_comment_id: replyingTo.commentId,
-        mention_user_id: mentionUserId || null
-      });
+      if (type === 'post') {
+        await PostService.createComment(item.id, text, replyingTo.commentId, mentionUserId || undefined);
+      } else {
+        await FeedService.createComment(item.id, {
+          content: text,
+          parent_comment_id: replyingTo.commentId,
+          mention_user_id: mentionUserId || null
+        });
+      }
 
       // 댓글 목록 새로고침
-      const updatedComments = await FeedService.getComments(feed.id);
+      const service = type === 'post' ? PostService : FeedService;
+      const updatedComments = await service.getComments(item.id);
       setComments(updatedComments.items);
       setNextCursor(updatedComments.next_cursor);
       setReplyingTo(null);
 
       // 부모에게 댓글 수 업데이트 알림
-      onCommentCountUpdate?.(feed.id, comments.length + 1);
+      onCommentCountUpdate?.(item.id, comments.length + 1);
     } catch (error) {
       console.error('답글 작성 실패:', error);
     } finally {
@@ -283,10 +306,15 @@ export default function CommentActionSheet({
 
     try {
       setIsCommentLoading(true);
-      await FeedService.updateComment(feed.id, editingComment.commentId, { content: text });
+      if (type === 'post') {
+        await PostService.updateComment(editingComment.commentId, text);
+      } else {
+        await FeedService.updateComment(item.id, editingComment.commentId, { content: text });
+      }
 
       // 댓글 목록 새로고침
-      const updatedComments = await FeedService.getComments(feed.id);
+      const service = type === 'post' ? PostService : FeedService;
+      const updatedComments = await service.getComments(item.id);
       setComments(updatedComments.items);
       setNextCursor(updatedComments.next_cursor);
       setEditingComment(null);
@@ -310,15 +338,20 @@ export default function CommentActionSheet({
           onPress: async () => {
             try {
               setIsCommentLoading(true);
-              await FeedService.deleteComment(feed.id, commentId);
+              if (type === 'post') {
+                await PostService.deleteComment(commentId);
+              } else {
+                await FeedService.deleteComment(item.id, commentId);
+              }
 
               // 댓글 목록 새로고침
-              const updatedComments = await FeedService.getComments(feed.id);
+              const service = type === 'post' ? PostService : FeedService;
+              const updatedComments = await service.getComments(item.id);
               setComments(updatedComments.items);
               setNextCursor(updatedComments.next_cursor);
 
               // 부모에게 댓글 수 업데이트 알림
-              onCommentCountUpdate?.(feed.id, comments.length - 1);
+              onCommentCountUpdate?.(item.id, comments.length - 1);
             } catch (error) {
               console.error('댓글 삭제 실패:', error);
             } finally {
@@ -429,22 +462,22 @@ export default function CommentActionSheet({
                 <View style={styles.handle} />
               </View>
 
-              {/* 피드 미리보기 헤더 */}
+              {/* 피드/포스트 미리보기 헤더 */}
               <View style={styles.feedPreview}>
                 <TouchableOpacity onPress={onAuthorPress} activeOpacity={0.7}>
                   <UserAvatar
-                    profileImg={feed.user.profile_img}
-                    nickname={feed.user.nickname}
+                    profileImg={item.user.profile_img}
+                    nickname={item.user.nickname}
                     size={40}
                   />
                 </TouchableOpacity>
                 <View style={styles.feedContent}>
                   <TouchableOpacity activeOpacity={0.7} onPress={onAuthorPress}>
-                    <Text style={styles.feedUsername}>{feed.user.nickname}</Text>
+                    <Text style={styles.feedUsername}>{item.user.nickname}</Text>
                   </TouchableOpacity>
-                  <Text style={styles.feedTime}>{formatRelativeTime(feed.created_at)}</Text>
+                  <Text style={styles.feedTime}>{formatRelativeTime(item.created_at)}</Text>
                   <Text style={styles.feedText} numberOfLines={2}>
-                    {feed.content_blocks.find(block => block.type === 'text')?.value || ''}
+                    {type === 'post' ? (item as PostListItem).title : (item as FeedListItem).content_blocks.find((block: any) => block.type === 'text')?.value || ''}
                   </Text>
                 </View>
               </View>
@@ -464,7 +497,7 @@ export default function CommentActionSheet({
             ) : (
               <CommentList
                 comments={comments}
-                totalCount={feed.comment_count}
+                totalCount={item.comment_count}
                 hasNextPage={!!nextCursor}
                 onCommentLike={onCommentLikePress}
                 onReplyPress={(comment: any) => onReplyPress(comment.id, comment.user?.nickname || 'Unknown')}

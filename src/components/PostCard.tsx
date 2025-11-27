@@ -221,6 +221,7 @@ const PostCard = ({
             onPress={handleLikeToggle}
             activeOpacity={0.7}
             disabled={isLikeLoading}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <View style={styles.iconContainer}>
               {isLikeLoading ? (
@@ -240,8 +241,11 @@ const PostCard = ({
             style={styles.interactionButton}
             onPress={onCommentPress}
             activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <CommentIcon size={18} color={colors.GRAY_400} />
+            <View style={styles.iconContainer}>
+              <CommentIcon size={18} color={colors.GRAY_400} />
+            </View>
             <Text style={styles.interactionText}>{formatNumber(post.comment_count)}</Text>
           </TouchableOpacity>
 
@@ -250,6 +254,7 @@ const PostCard = ({
             onPress={handleBookmarkToggle}
             activeOpacity={0.7}
             disabled={isBookmarkLoading}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <View style={styles.iconContainer}>
               {isBookmarkLoading ? (
