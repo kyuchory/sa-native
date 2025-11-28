@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { View, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useFocusEffect, useNavigation, NavigationProp, RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../types/navigation';
 import { useThemeStore } from '../stores/themeStore';
@@ -43,6 +43,14 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
   const [loading, setLoading] = useState(true);
   const [postsData, setPostsData] = useState<ProfilePostItem[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
+  const [postsPagination, setPostsPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    total_pages: 1,
+    has_next: false,
+    has_prev: false,
+  });
   const [feedsData, setFeedsData] = useState<ProfileFeedItem[]>([]);
   const [feedsLoading, setFeedsLoading] = useState(false);
   const [feedsPagination, setFeedsPagination] = useState<ProfilePagination>({
@@ -136,20 +144,48 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
     }
   };
 
-  // posts 데이터 조회
-  const fetchPosts = async () => {
-    if (targetUserId) {
-      try {
-        setPostsLoading(true);
-        const response = await ProfileService.getProfilePosts(targetUserId);
-        setPostsData(response.data.posts);
-      } catch (error) {
-        console.error('게시글 목록 조회 실패:', error);
-        setPostsData([]);
-      } finally {
-        setPostsLoading(false);
-      }
+  // ---------- loadPosts: stateless 함수, 페이지만 받아 처리 ----------
+  const loadPosts = useCallback(async ({ page }: { page: number }) => {
+    const limit = postsPagination.limit; // limit은 고정된 값 사용
+    const offset = (page - 1) * limit;
+
+    if (!targetUserId) return;
+
+    try {
+      setPostsLoading(true);
+      const response = await ProfileService.getProfilePosts(targetUserId, offset, limit);
+
+      setPostsData(response.data.posts);
+
+      // Calculate pagination info
+      const total = response.data.pagination.total;
+      const total_pages = Math.ceil(total / limit);
+      const has_next = response.data.pagination.has_next;
+      const has_prev = page > 1;
+
+      const newPagination = {
+        ...postsPagination,
+        page,
+        total,
+        total_pages,
+        has_next,
+        has_prev,
+      };
+
+      setPostsPagination(newPagination);
+    } catch (error) {
+      console.error('게시글 목록 조회 실패:', error);
+      setPostsData([]);
+    } finally {
+      setPostsLoading(false);
     }
+  }, [targetUserId, postsPagination.limit]);
+
+  // ---------- 페이지 변경 핸들러: 사용자가 버튼 등으로 페이지 바꿀 때 직접 loadPosts 호출 ----------
+  const handlePostsPageChange = (page: number) => {
+    if (page === postsPagination.page) return;
+    setPostsPagination(prev => ({ ...prev, page }));
+    loadPosts({ page });
   };
 
   // shorts 데이터 조회
@@ -181,9 +217,9 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
     fetchProfile(true);
     // 초기 로드 시 피드와 포스트, 쇼츠 데이터 모두 한번에 불러오기
     fetchFeeds(true);
-    fetchPosts();
+    loadPosts({ page: 1 });
     fetchShorts(true);
-  }, [targetUserId]);
+  }, [targetUserId, loadPosts]);
 
   // 화면에 다시 포커스될 때 프로필 데이터 리프레시
   useFocusEffect(
@@ -199,7 +235,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
 
       if (isOwnProfile) {
         if (shouldRefreshProfilePosts) {
-          fetchPosts();
+          loadPosts({ page: 1 });
           setShouldRefreshProfilePosts(false); // 플래그 초기화
         }
         if (shouldRefreshProfileFeeds) {
@@ -438,12 +474,20 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
           />
         )}
         {activeTab === 'posts' && (
-          <ProfilePostsList
-            data={postsData}
-            loading={postsLoading}
-            onItemPress={handleItemPress}
-            canViewContent={profileData?.can_view_content ?? true}
-          />
+          postsLoading ? (
+            <View style={[styles.loadingContainer, { flex: 1 }]}>
+              <ActivityIndicator size="large" color={colors.PRIMARY} />
+            </View>
+          ) : (
+            <ProfilePostsList
+              data={postsData}
+              loading={false}
+              onItemPress={handleItemPress}
+              canViewContent={profileData?.can_view_content ?? true}
+              pagination={postsPagination}
+              onPageChange={handlePostsPageChange}
+            />
+          )
         )}
         {activeTab === 'videos' && (
           <ProfileCutGrid

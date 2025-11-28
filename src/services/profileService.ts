@@ -34,7 +34,7 @@ export class ProfileService {
   static async getProfilePosts(
     userId: number,
     offset: number = 0,
-    limit: number = 20
+    limit: number = 15
   ): Promise<ProfilePostsResponse> {
     const queryParams = new URLSearchParams({
       offset: offset.toString(),

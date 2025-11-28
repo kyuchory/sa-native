@@ -7,15 +7,19 @@ import { useThemeStore } from '../stores/themeStore';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../types/navigation';
+import Pagination from './Pagination';
+import type { Pagination as PaginationType } from '../types/post';
 
 export type ProfilePostsListProps = {
   data: ProfilePostItem[];
   loading?: boolean;
   onItemPress?: (item: ProfilePostItem) => void;
   canViewContent?: boolean;
+  pagination?: PaginationType;
+  onPageChange?: (page: number) => void;
 };
 
-export default function ProfilePostsList({ data = [], loading = false, onItemPress, canViewContent = true }: ProfilePostsListProps) {
+export default function ProfilePostsList({ data = [], loading = false, onItemPress, canViewContent = true, pagination, onPageChange }: ProfilePostsListProps) {
   const navigation = useNavigation<StackNavigationProp<AuthStackParamList>>();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
@@ -58,7 +62,16 @@ export default function ProfilePostsList({ data = [], loading = false, onItemPre
       keyExtractor={(item) => item.id.toString()}
       numColumns={1}
       contentContainerStyle={styles.postsContainer}
-      ListFooterComponent={renderLoading}
+      ListFooterComponent={
+        pagination && onPageChange ? (
+          <Pagination
+            pagination={pagination}
+            onPageChange={onPageChange}
+          />
+        ) : (
+          renderLoading()
+        )
+      }
     />
   );
 }
