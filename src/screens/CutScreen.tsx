@@ -73,11 +73,12 @@ export default function CutScreen() {
       setError(null);
 
       const response = await CutService.getShortsFeed(undefined, LIMIT);
+
       setShorts(response.data.items);
       setNextCursor(response.data.next_cursor);
       setCurrentIndex(0);
     } catch (e) {
-      console.error('컷츠 피드 초기 로딩 실패:', e);
+      console.error('❌ 컷츠 피드 초기 로딩 실패:', e);
       setError('컷츠를 불러오는 중 오류가 발생했습니다.');
     } finally {
       setIsInitialLoading(false);
@@ -86,25 +87,30 @@ export default function CutScreen() {
 
   // 추가 페이지 불러오기 - 중복 데이터 필터링 추가
   const fetchMore = async () => {
-    if (!nextCursor || isFetchingMore) return;
+    const currentNextCursor = nextCursor;
+    if (!currentNextCursor || isFetchingMore) {
+      return;
+    }
 
     try {
       setIsFetchingMore(true);
 
-      const response = await CutService.getShortsFeed(nextCursor!, LIMIT);
+      const response = await CutService.getShortsFeed(currentNextCursor, LIMIT);
 
       // 중복 제거: 기존 shorts의 ID와 비교해서 중복된 아이템 필터링
       setShorts((prev) => {
         const existingIds = new Set(prev.map(short => short.id));
-        const newItems = response.data.items.filter(
-          item => !existingIds.has(item.id)
-        );
-        return [...prev, ...newItems];
+
+        const newItems = response.data.items.filter(item => !existingIds.has(item.id));
+
+        const updated = [...prev, ...newItems];
+
+        return updated;
       });
 
       setNextCursor(response.data.next_cursor);
     } catch (e) {
-      console.warn('컷츠 추가 로딩 실패:', e);
+      console.warn('❌ 컷츠 추가 로딩 실패:', e);
     } finally {
       setIsFetchingMore(false);
     }
@@ -174,7 +180,6 @@ export default function CutScreen() {
 
   // 댓글 보기
   const handleComment = useCallback((shortId: number) => {
-    console.log('댓글 보기:', shortId);
     const short = shorts.find(s => s.id === shortId);
     if (short) {
       setSelectedShort(short);
@@ -184,7 +189,6 @@ export default function CutScreen() {
 
   // 공유하기
   const handleShare = useCallback((shortId: number) => {
-    console.log('공유하기:', shortId);
     const short = shorts.find(s => s.id === shortId);
     Alert.alert('공유하기', '기능 준비중입니다.', [
       // { text: '취소', style: 'cancel' },
@@ -296,18 +300,18 @@ export default function CutScreen() {
     shortId: number,
     viewData: RecordShortViewRequest
   ) => {
-    console.log(`📊 시청 기록 전송 시작 - 쇼츠 ID: ${shortId}`);
-    console.log('📊 전송 데이터:', viewData);
+    // console.log(`📊 시청 기록 전송 시작 - 쇼츠 ID: ${shortId}`);
+    // console.log('📊 전송 데이터:', viewData);
 
     // 3초 이상 시청한 경우에만 기록
     if (viewData.watched_seconds < 3) {
-      console.log(`⏭️ 시청 시간이 3초 미만으로 기록 건너뜀 - 쇼츠 ID: ${shortId} (${viewData.watched_seconds}초)`);
+      // console.log(`⏭️ 시청 시간이 3초 미만으로 기록 건너뜀 - 쇼츠 ID: ${shortId} (${viewData.watched_seconds}초)`);
       return;
     }
 
     try {
       await CutService.recordShortView(shortId, viewData);
-      console.log(`✅ 시청 기록 저장 성공 - 쇼츠 ID: ${shortId}`);
+      // console.log(`✅ 시청 기록 저장 성공 - 쇼츠 ID: ${shortId}`);
     } catch (error) {
       console.error(`❌ 시청 기록 저장 실패 - 쇼츠 ID: ${shortId}:`, error);
     }
