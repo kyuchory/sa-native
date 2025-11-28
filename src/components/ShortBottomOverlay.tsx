@@ -19,6 +19,7 @@ interface ShortBottomOverlayProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
   onProfilePress?: () => void;
+  extraBottomMargin?: number;
 }
 
 export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
@@ -30,9 +31,14 @@ export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
   isExpanded,
   onToggleExpand,
   onProfilePress,
+  extraBottomMargin,
 }) => {
+  const containerStyle = extraBottomMargin
+    ? [styles.container, { marginBottom: extraBottomMargin }]
+    : styles.container;
+
   return (
-    <View style={styles.container}>
+    <View style={containerStyle}>
       <TouchableOpacity
         style={styles.toggleButton}
         onPress={onToggleExpand}

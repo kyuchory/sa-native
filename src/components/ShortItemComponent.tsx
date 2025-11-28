@@ -17,6 +17,7 @@ interface ShortItemProps {
   onUpload: () => void;
   onViewComplete: (shortId: number, data: RecordShortViewRequest) => void;
   onProfilePress: (userId: string) => void;
+  extraBottomMargin?: number;
 }
 
 export const ShortItemComponent = React.memo<ShortItemProps>(({
@@ -27,6 +28,7 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
   onUpload,
   onViewComplete,
   onProfilePress,
+  extraBottomMargin,
 }) => {
   const player = useVideoPlayer((item.content_url || '') as string, (player) => {
     player.loop = true;
@@ -133,6 +135,7 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
           isExpanded={isDescriptionExpanded}
           onToggleExpand={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
           onProfilePress={() => onProfilePress(item.user_id.toString())}
+          extraBottomMargin={extraBottomMargin}
         />
       </View>
     );
@@ -191,6 +194,7 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
         isExpanded={isDescriptionExpanded}
         onToggleExpand={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
         onProfilePress={() => onProfilePress(item.user_id.toString())}
+        extraBottomMargin={extraBottomMargin}
       />
     </View>
   );

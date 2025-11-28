@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, useIsFocused } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   COLORS,
   TYPOGRAPHY,
@@ -41,6 +42,7 @@ export default function CutDetailScreen() {
   const navigation = useNavigation<CutDetailNavigationProp>();
   const route = useRoute<CutDetailRouteProp>();
   const isFocused = useIsFocused();
+  const insets = useSafeAreaInsets();
 
   const { shortId } = route.params;
 
@@ -287,6 +289,7 @@ export default function CutDetailScreen() {
           onUpload={() => {}}
           onViewComplete={handleViewComplete}
           onProfilePress={(userId: string) => navigation.navigate('UserProfile', { userId })}
+          extraBottomMargin={insets.bottom}
         />
       </View>
 
