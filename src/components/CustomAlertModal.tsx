@@ -36,11 +36,20 @@ export default function CustomAlertModal({
   const getButtonStyle = (btnStyle?: string) => {
     switch (btnStyle) {
       case 'destructive':
-        return { backgroundColor: colors.ERROR, textColor: colors.WHITE };
+        return { 
+          backgroundColor: colors.ERROR, 
+          textColor: colors.WHITE 
+        };
       case 'cancel':
-        return { backgroundColor: colors.GRAY_100, textColor: colors.GRAY_700 };
+        return { 
+          backgroundColor: '#E5E5EA', 
+          textColor: colors.GRAY_900 
+        };
       default:
-        return { backgroundColor: colors.PRIMARY, textColor: colors.WHITE };
+        return { 
+          backgroundColor: colors.PRIMARY, 
+          textColor: colors.WHITE 
+        };
     }
   };
 
@@ -54,13 +63,13 @@ export default function CustomAlertModal({
     >
       <View style={styles.overlay}>
         <View style={styles.container}>
-          {/* 제목 (선택적) */}
-          {title && (
-            <Text style={styles.title}>{title}</Text>
-          )}
+          {/* 제목 */}
+          {title && <Text style={styles.title}>{title}</Text>}
 
           {/* 메시지 */}
-          <Text style={styles.message}>{message}</Text>
+          <Text style={[styles.message, !title && styles.messageWithoutTitle]}>
+            {message}
+          </Text>
 
           {/* 버튼들 */}
           <View style={styles.buttonContainer}>
@@ -87,51 +96,57 @@ export default function CustomAlertModal({
   );
 }
 
-const createStyles = (colors: Record<string, string>) => StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    backgroundColor: colors.WHITE,
-    borderRadius: BORDER_RADIUS.LG,
-    padding: SPACING.LG,
-    marginHorizontal: SPACING.LG,
-    maxWidth: 320,
-    minWidth: 280,
-  },
-  title: {
-    fontSize: TYPOGRAPHY.SIZE.LG,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: colors.GRAY_900,
-    textAlign: 'center',
-    marginBottom: SPACING.SM,
-  },
-  message: {
-    fontSize: TYPOGRAPHY.SIZE.MD,
-    color: colors.GRAY_700,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: SPACING.LG,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: SPACING.SM,
-    justifyContent: 'center',
-  },
-  button: {
-    flex: 1,
-    paddingVertical: SPACING.SM,
-    paddingHorizontal: SPACING.MD,
-    borderRadius: BORDER_RADIUS.MD,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 44,
-  },
-  buttonText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-  },
-});
+const createStyles = (colors: Record<string, string>) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 40,
+    },
+    container: {
+      backgroundColor: colors.WHITE,
+      borderRadius: 32,
+      paddingTop: 28,
+      paddingHorizontal: 24,
+      paddingBottom: 20,
+      width: '100%',
+      maxWidth: 340,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.GRAY_900,
+      textAlign: 'center',
+      marginBottom: 8,
+      letterSpacing: -0.3,
+    },
+    message: {
+      fontSize: 14,
+      fontWeight: '400',
+      color: '#86868B',
+      textAlign: 'center',
+      lineHeight: 20,
+      marginBottom: 24,
+    },
+    messageWithoutTitle: {
+      marginBottom: 24,
+    },
+    buttonContainer: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    button: {
+      flex: 1,
+      height: 50,
+      borderRadius: 25,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    buttonText: {
+      fontSize: 17,
+      fontWeight: '600',
+      letterSpacing: -0.3,
+    },
+  });
