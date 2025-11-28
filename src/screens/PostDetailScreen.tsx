@@ -38,6 +38,7 @@ import { CommentInput } from '../components/CommentInput';
 import { ReplyInput } from '../components/ReplyInput';
 import { CommentEditInput } from '../components/CommentEditInput';
 import MenuActionSheet from '../components/MenuActionSheet';
+import { CustomAlertModal } from '../components';
 import { MenuIcon, ReportIcon, EditIcon, DeleteIcon, MuteIcon, UnmuteIcon } from '../components/CommonIcons';
 
 import { Comment } from '../types/post';
@@ -301,6 +302,8 @@ export default function PostDetailScreen() {
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportSuccessModalVisible, setReportSuccessModalVisible] = useState(false);
   const { user } = useAuthStore();
   const { setShouldRefreshPosts } = usePostStore();
   const { setShouldRefreshProfilePosts } = useProfileStore(); 
@@ -976,10 +979,49 @@ export default function PostDetailScreen() {
               icon: <ReportIcon size={20} color={colors.ERROR} />,
               color: colors.ERROR,
               onPress: () => {
-                Alert.alert('신고', '게시물 신고 기능이 구현 예정입니다.');
+                setReportModalVisible(true);
               },
             },
           ]}
+        />
+
+        {/* 게시물 신고 모달 */}
+        <CustomAlertModal
+          visible={reportModalVisible}
+          title="게시물 신고"
+          message="이 게시물을 신고하시겠습니까? 신고된 게시물은 관리자가 검토 후 조치됩니다."
+          buttons={[
+            {
+              text: "취소",
+              onPress: () => setReportModalVisible(false),
+              style: "cancel"
+            },
+            {
+              text: "신고하기",
+              onPress: () => {
+                // TODO: 신고 API 호출
+                setReportModalVisible(false);
+                setReportSuccessModalVisible(true);
+              },
+              style: "destructive"
+            }
+          ]}
+          onClose={() => setReportModalVisible(false)}
+        />
+
+        {/* 신고 완료 모달 */}
+        <CustomAlertModal
+          visible={reportSuccessModalVisible}
+          title="신고 완료"
+          message="신고가 접수되었습니다."
+          buttons={[
+            {
+              text: "확인",
+              onPress: () => setReportSuccessModalVisible(false),
+              style: "default"
+            }
+          ]}
+          onClose={() => setReportSuccessModalVisible(false)}
         />
       </View>
     </SafeAreaView>

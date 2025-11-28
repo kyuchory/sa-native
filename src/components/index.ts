@@ -23,4 +23,5 @@ export { default as FollowUserItem } from './FollowUserItem';
 export { default as FollowTabNavigation } from './FollowTabNavigation';
 
 // Add more exports as needed...
+export { default as CustomAlertModal } from './CustomAlertModal';
 // Other existing exports remain unchanged
