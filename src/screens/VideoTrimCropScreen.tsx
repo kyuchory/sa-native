@@ -346,7 +346,7 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
       };
       console.log('cuts edit result:', result);
 
-      navigation.navigate('CutUploadFinalize', result);
+      navigation.replace('CutUploadFinalize', result);
     } else {
       const result = {
         videoUri,

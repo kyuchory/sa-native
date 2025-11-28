@@ -22,7 +22,7 @@ import { CutService } from '../services/cutService';
 import CommonHeader from '../components/CommonHeader';
 import LoadingOverlay from '../components/LoadingOverlay';
 import UserAvatar from '../components/UserAvatar';
-import { ShortCategory } from '../types/cut';
+import { ShortCategory, ShortUploadResponse } from '../types/cut';
 
 
 import { HeartIcon, CommentIcon, ShareIcon, UploadIcon, BackIcon, MoreVerticalIcon } from '../components/CutIcons';
@@ -109,16 +109,14 @@ export default function CutUploadFinalizeScreen() {
       console.log('🚀 컷츠 업로드 FormData 최종 데이터:', uploadData);
 
       // 실제 업로드 호출 (현재 API 없으므로 목데이터 응답)
-      const response = await CutService.uploadShorts(uploadData);
+      const response: ShortUploadResponse = await CutService.uploadShorts(uploadData);
 
       Alert.alert('성공', '컷츠가 성공적으로 업로드되었습니다!', [
         {
           text: '확인',
           onPress: () => {
-            // 프로필 숏츠 목록 새로고침 플래그 설정
-            useProfileStore.getState().setShouldRefreshProfileShorts(true);
-            // 컷츠 탭으로 돌아가기
-            navigation.popToTop();
+            // 새로 업로드된 컷츠 상세 조회로 이동
+            (navigation as any).replace('CutDetail', { shortId: response.id });
           },
         },
       ]);

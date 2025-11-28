@@ -50,7 +50,7 @@ export default function CutUploadSelectScreen() {
         const videoUri = await normalizeVideoUri(result.assets[0]);
 
         // VideoTrimCropScreen으로 이동
-        navigation.navigate('VideoTrimCrop', {
+        navigation.replace('VideoTrimCrop', {
           videoUri,
           aspectRatio: '9:16', // 세로 비율
           uploadService: 'cuts', // 컷츠 전용
@@ -90,7 +90,7 @@ export default function CutUploadSelectScreen() {
         const videoUri = await normalizeVideoUri(result.assets[0]);
 
         // VideoTrimCropScreen으로 이동
-        navigation.navigate('VideoTrimCrop', {
+        navigation.replace('VideoTrimCrop', {
           videoUri,
           aspectRatio: '9:16', // 세로 비율
           uploadService: 'cuts', // 컷츠 전용
