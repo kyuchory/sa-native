@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getAccessToken, getRefreshToken, clearTokens, setAccessToken } from '../stores/authStore';
+import { getAccessToken, getRefreshToken, clearTokens, setAccessToken } from '../stores/tokenStore';
 import { getApiConfig } from '../config/api';
+import { ApiError } from '../utils/apiErrors';
 
 // API 기본 설정
 const API_BASE_URL = getApiConfig().baseURL;
@@ -251,30 +252,8 @@ class ApiClient {
   }
 }
 
-// API 에러 클래스
-export class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-    public errors: Array<{ field: string; message: string }> = []
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
-
 // API 클라이언트 인스턴스 생성
 export const apiClient = new ApiClient(API_BASE_URL);
 
-// 에러 처리 유틸리티
-export const handleApiError = (error: any): string => {
-  if (error instanceof ApiError) {
-    return error.message;
-  }
-  
-  if (error.message) {
-    return error.message;
-  }
-  
-  return '알 수 없는 오류가 발생했습니다.';
-};
+// apiErrors에서 import하여 재익스포트 (역호환성 유지)
+export { ApiError, handleApiError } from '../utils/apiErrors';

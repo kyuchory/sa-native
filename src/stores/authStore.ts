@@ -3,8 +3,9 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, Tokens, LoginRequest, SignUpRequest } from '../types/auth';
 import { AuthService } from '../services/authService';
-import { ApiError, handleApiError } from '../services/apiClient';
+import { ApiError, handleApiError } from '../utils/apiErrors';
 import { DeviceUtils } from '../utils/deviceUtils';
+import { useTokenStore, setTokens as tokenStoreSetTokens, clearTokens as tokenStoreClearTokens } from './tokenStore';
 
 interface AuthState {
   // 상태
@@ -38,15 +39,20 @@ export const useAuthStore = create<AuthState>()(
       // 액션들
       setUser: (user: User) => set({ user }),
 
-      setTokens: (tokens: Tokens) => set({ tokens }),
+      setTokens: (tokens: Tokens) => {
+        set({ tokens });
+        tokenStoreSetTokens(tokens);
+      },
 
-      login: (user: User, tokens: Tokens) =>
+      login: (user: User, tokens: Tokens) => {
         set({
           user,
           tokens,
           isAuthenticated: true,
           isLoading: false
-        }),
+        });
+        tokenStoreSetTokens(tokens);
+      },
 
       logout: async () => {
         try {
@@ -61,6 +67,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             isLoading: false
           });
+          tokenStoreClearTokens();
         }
       },
 
@@ -78,6 +85,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false
           });
+          tokenStoreSetTokens(tokens);
 
           return { success: true };
         } catch (error) {
@@ -145,22 +153,17 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// 편의 함수들
-export const getAccessToken = () => useAuthStore.getState().tokens?.accessToken;
-export const getRefreshToken = () => useAuthStore.getState().tokens?.refreshToken;
+// 편의 함수들 (tokenStore에서 가져오도록 변경)
+export const getAccessToken = () => useTokenStore.getState().tokens?.accessToken;
+export const getRefreshToken = () => useTokenStore.getState().tokens?.refreshToken;
 export const isUserAuthenticated = () => useAuthStore.getState().isAuthenticated;
 
-// 토큰 관리 함수들 (apiClient에서 사용)
+// 토큰 관리 함수들 (tokenStore 위임)
 export const setAccessToken = (accessToken: string) => {
-  const currentTokens = useAuthStore.getState().tokens;
-  if (currentTokens) {
-    useAuthStore.getState().setTokens({
-      ...currentTokens,
-      accessToken
-    });
-  }
+  useTokenStore.getState().setAccessToken(accessToken);
 };
 
 export const clearTokens = async () => {
   useAuthStore.getState().clearAuth();
+  tokenStoreClearTokens();
 };
