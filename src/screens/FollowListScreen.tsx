@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import useFeedStore from '../stores/feedStore';
 import { View, Text, StyleSheet, FlatList, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navigation/native';
 import { SPACING, TYPOGRAPHY } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
@@ -24,9 +25,10 @@ type FollowTabType = 'followers' | 'following';
 export default function FollowListScreen() {
   const route = useRoute<RouteProp<AuthStackParamList, 'FollowList'>>();
   const navigation = useNavigation<NavigationProp<AuthStackParamList>>();
+  const insets = useSafeAreaInsets();
   const { userId, initialTab } = route.params;
   const { colors } = useThemeStore();
-  const styles = createStyles(colors);
+  const styles = createStyles(colors, insets.bottom);
 
   // 상태 관리
   const [activeTab, setActiveTab] = useState<FollowTabType>(initialTab || 'followers');
@@ -306,13 +308,14 @@ export default function FollowListScreen() {
   );
 }
 
-const createStyles = (colors: Record<string, string>) => StyleSheet.create({
+const createStyles = (colors: Record<string, string>, bottomInset: number) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.GRAY_50,
   },
   contentContainer: {
     flexGrow: 1,
+    paddingBottom: bottomInset,
   },
   emptyContainer: {
     flex: 1,

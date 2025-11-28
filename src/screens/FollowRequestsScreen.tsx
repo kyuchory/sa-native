@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { FollowService } from '../services/followService';
@@ -20,6 +21,7 @@ import { handleApiError } from '../services/apiClient';
 export default function FollowRequestsScreen() {
   const navigation = useNavigation();
   const { colors } = useThemeStore();
+  const insets = useSafeAreaInsets();
 
   // 상태 관리
   const [requests, setRequests] = useState<FollowRequest[]>([]);
@@ -208,6 +210,7 @@ export default function FollowRequestsScreen() {
         }
         contentContainerStyle={requests.length === 0 ? styles.flatListEmpty : undefined}
         showsVerticalScrollIndicator={false}
+        style={{ marginBottom: insets.bottom }}
       />
     </View>
   );
@@ -223,7 +226,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.MD,
-    marginHorizontal: SPACING.MD,
+    marginHorizontal: SPACING.SM,
     marginVertical: SPACING.XS,
     borderRadius: SPACING.SM,
   },
