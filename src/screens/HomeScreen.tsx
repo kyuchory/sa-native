@@ -13,6 +13,7 @@ import Pagination from '../components/Pagination';
 import MainHeader from '../components/MainHeader';
 import { WriteIcon } from '../components/HomeHeaderIcons';
 import CommentActionSheet from '../components/CommentActionSheet';
+import PostEmptyState from '../components/PostEmptyState';
 
 // 서비스 imports
 import { PostService } from '../services/postService';
@@ -41,6 +42,7 @@ export default function HomeScreen() {
   });
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFirstLoad, setIsFirstLoad] = useState(true); // 초기 로딩 플래그
 
   // CommentActionSheet 상태 관리
   const [commentSheetVisible, setCommentSheetVisible] = useState(false);
@@ -81,9 +83,19 @@ export default function HomeScreen() {
       if (!isSamePagination(pagination, response.pagination)) {
         setPagination(prev => ({ ...prev, ...response.pagination }));
       }
+
+      // 최초 로딩 완료 플래그 설정
+      if (isFirstLoad) {
+        setIsFirstLoad(false);
+      }
     } catch (error) {
       console.error('게시글 로드 실패:', error);
       Alert.alert('오류', '게시글을 불러오는데 실패했습니다.');
+
+      // 에러라도 최초 로딩은 완료된 것으로 판단
+      if (isFirstLoad) {
+        setIsFirstLoad(false);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -266,11 +278,10 @@ export default function HomeScreen() {
             />
           )}
           ListEmptyComponent={
-            !isLoading ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>게시글이 없습니다.</Text>
-                <Text style={styles.emptySubText}>새로운 게시글을 작성해보세요!</Text>
-              </View>
+            !isFirstLoad && !isLoading && posts.length === 0 ? (
+              <PostEmptyState
+                onCreatePress={() => navigation.navigate('CreatePost')}
+              />
             ) : null
           }
         />
@@ -307,21 +318,5 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: SPACING.MD,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
-    marginBottom: SPACING.SM,
-  },
-  emptySubText: {
-    fontSize: 14,
-    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
   },
 });

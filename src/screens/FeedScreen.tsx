@@ -14,6 +14,7 @@ import StorySection from '../components/StorySection';
 import FeedCard from '../components/FeedCard';
 import MenuActionSheet from '../components/MenuActionSheet';
 import CommentActionSheet from '../components/CommentActionSheet';
+import FeedEmptyState from '../components/FeedEmptyState';
 import { WriteIcon } from '../components/HomeHeaderIcons';
 import { EditIcon, DeleteIcon, ReportIcon } from '../components/CommonIcons';
 
@@ -341,6 +342,13 @@ export default function FeedScreen() {
           />
         }
         ListHeaderComponent={listHeader}
+        ListEmptyComponent={
+          !feedState.loading ? (
+            <FeedEmptyState
+              onCreatePress={() => navigation.navigate('CreateFeed')}
+            />
+          ) : null
+        }
         onEndReached={loadMoreFeeds}
         onEndReachedThreshold={0.5}
         // 비디오 가시성 제어 - 화면에 보이는 영상만 재생
