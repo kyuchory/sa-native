@@ -28,7 +28,7 @@ export default function FollowListScreen() {
   const insets = useSafeAreaInsets();
   const { userId, initialTab } = route.params;
   const { colors } = useThemeStore();
-  const styles = createStyles(colors, insets.bottom);
+  const styles = createStyles(colors);
 
   // 상태 관리
   const [activeTab, setActiveTab] = useState<FollowTabType>(initialTab || 'followers');
@@ -298,24 +298,24 @@ export default function FollowListScreen() {
         keyExtractor={(item) => item.id.toString()}
         showsVerticalScrollIndicator={false}
         onEndReached={handleEndReached}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={0.1}
         refreshing={refreshing}
         onRefresh={handleRefresh}
         ListEmptyComponent={renderEmptyState}
         contentContainerStyle={filteredData.length === 0 && !loading && styles.contentContainer}
+        style={{ marginBottom: insets.bottom }}
       />
     </View>
   );
 }
 
-const createStyles = (colors: Record<string, string>, bottomInset: number) => StyleSheet.create({
+const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.GRAY_50,
   },
   contentContainer: {
     flexGrow: 1,
-    paddingBottom: bottomInset,
   },
   emptyContainer: {
     flex: 1,
