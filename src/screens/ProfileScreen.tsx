@@ -47,7 +47,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
   const [feedsLoading, setFeedsLoading] = useState(false);
   const [feedsPagination, setFeedsPagination] = useState<ProfilePagination>({
     offset: 0,
-    limit: 20,
+    limit: 18,
     total: 0,
     has_next: false,
   });
@@ -129,6 +129,13 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
     }
   };
 
+  // 숏폼 무한 스크롤 핸들러
+  const handleShortsEndReached = () => {
+    if (!shortsLoading && nextCursor) {
+      fetchShorts(false);
+    }
+  };
+
   // posts 데이터 조회
   const fetchPosts = async () => {
     if (targetUserId) {
@@ -151,7 +158,8 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
 
     try {
       setShortsLoading(true);
-      const response = await ProfileService.getProfileShorts(targetUserId, reset ? undefined : nextCursor, 20);
+      const cursor = reset ? undefined : nextCursor;
+      const response = await ProfileService.getProfileShorts(targetUserId, cursor, 12);
 
       if (reset) {
         setShortsData(response.data.shorts);
@@ -442,11 +450,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
             data={shortsData}
             loading={shortsLoading}
             onItemPress={(shortsItem) => handleItemPress(shortsItem)}
-            onEndReached={() => {
-              if (!shortsLoading && nextCursor) {
-                fetchShorts(false);
-              }
-            }}
+            onEndReached={handleShortsEndReached}
             canViewContent={profileData?.can_view_content ?? true}
           />
         )}

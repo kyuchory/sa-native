@@ -115,6 +115,8 @@ export default function CutUploadFinalizeScreen() {
         {
           text: '확인',
           onPress: () => {
+            // 프로필 쇼츠 목록 갱신을 위한 플래그 설정
+            useProfileStore.getState().setShouldRefreshProfileShorts(true);
             // 새로 업로드된 컷츠 상세 조회로 이동
             (navigation as any).replace('CutDetail', { shortId: response.id });
           },

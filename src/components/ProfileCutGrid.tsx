@@ -78,7 +78,7 @@ export default function ProfileCutGrid({ data = [], loading = false, onItemPress
       numColumns={3}
       contentContainerStyle={styles.gridContainer}
       onEndReached={onEndReached}
-      onEndReachedThreshold={0.5}
+      onEndReachedThreshold={0}
       ListFooterComponent={renderLoading}
     />
   );
