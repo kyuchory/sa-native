@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl, Alert } from 'react-native';
+import { View, FlatList, StyleSheet, RefreshControl, Alert, Text, TouchableOpacity } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { SPACING } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
 import { useThemeStore } from '../stores/themeStore';
 import useFeedStore from '../stores/feedStore';
 import useProfileStore from '../stores/profileStore';
 import useStoryStore from '../stores/storyStore';
 
-  // 컴포넌트 imports
+// 컴포넌트 imports
 import MainHeader from '../components/MainHeader';
 import StorySection from '../components/StorySection';
 import FeedCard from '../components/FeedCard';
 import MenuActionSheet from '../components/MenuActionSheet';
 import CommentActionSheet from '../components/CommentActionSheet';
-import FeedEmptyState from '../components/FeedEmptyState';
 import { WriteIcon } from '../components/HomeHeaderIcons';
 import { EditIcon, DeleteIcon, ReportIcon } from '../components/CommonIcons';
 
@@ -343,10 +343,15 @@ export default function FeedScreen() {
         }
         ListHeaderComponent={listHeader}
         ListEmptyComponent={
-          !feedState.loading ? (
-            <FeedEmptyState
-              onCreatePress={() => navigation.navigate('CreateFeed')}
-            />
+          !feedState.loading && feedState.feeds.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>피드가 없습니다.</Text>
+              <Text style={styles.emptySubText}>새로운 피드를 올려보세요!</Text>
+              <TouchableOpacity style={styles.writeButton} onPress={() => navigation.navigate('CreateFeed')}>
+                <WriteIcon size={20} color={colors.WHITE} />
+                <Text style={styles.buttonText}>피드 작성하기</Text>
+              </TouchableOpacity>
+            </View>
           ) : null
         }
         onEndReached={loadMoreFeeds}
@@ -432,5 +437,39 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   feedList: {
     flex: 1,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SPACING.XL,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: colors.GRAY_500,
+    fontWeight: '400',
+  },
+  emptySubText: {
+    fontSize: 14,
+    color: colors.GRAY_400,
+    fontWeight: '400',
+    marginTop: SPACING.SM,
+    marginBottom: SPACING.LG,
+  },
+  writeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.PRIMARY,
+    paddingVertical: SPACING.SM,
+    paddingHorizontal: SPACING.MD,
+    borderRadius: 25,
+    gap: SPACING.SM,
+    minHeight: 44,
+  },
+  buttonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.WHITE,
   },
 });

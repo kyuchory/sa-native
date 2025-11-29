@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl, Alert, ActivityIndicator, Text } from 'react-native';
+import { View, FlatList, StyleSheet, RefreshControl, Alert, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SPACING } from '../constants/theme';
@@ -12,8 +12,8 @@ import PostCard from '../components/PostCard';
 import Pagination from '../components/Pagination';
 import MainHeader from '../components/MainHeader';
 import { WriteIcon } from '../components/HomeHeaderIcons';
+// CommentActionSheet 컴포넌트 import
 import CommentActionSheet from '../components/CommentActionSheet';
-import PostEmptyState from '../components/PostEmptyState';
 
 // 서비스 imports
 import { PostService } from '../services/postService';
@@ -279,9 +279,14 @@ export default function HomeScreen() {
           )}
           ListEmptyComponent={
             !isFirstLoad && !isLoading && posts.length === 0 ? (
-              <PostEmptyState
-                onCreatePress={() => navigation.navigate('CreatePost')}
-              />
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>게시글이 없습니다.</Text>
+                <Text style={styles.emptySubText}>새로운 게시글을 작성해보세요!</Text>
+                <TouchableOpacity style={styles.writeButton} onPress={handleWritePress}>
+                  <WriteIcon size={20} color={colors.WHITE} />
+                  <Text style={styles.buttonText}>게시글 작성하기</Text>
+                </TouchableOpacity>
+              </View>
             ) : null
           }
         />
@@ -318,5 +323,39 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SPACING.XL,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: colors.GRAY_500,
+    fontWeight: '400',
+  },
+  emptySubText: {
+    fontSize: 14,
+    color: colors.GRAY_400,
+    fontWeight: '400',
+    marginTop: SPACING.SM,
+    marginBottom: SPACING.LG,
+  },
+  writeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.PRIMARY,
+    paddingVertical: SPACING.SM,
+    paddingHorizontal: SPACING.MD,
+    borderRadius: 25,
+    gap: SPACING.SM,
+    minHeight: 44,
+  },
+  buttonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.WHITE,
   },
 });
