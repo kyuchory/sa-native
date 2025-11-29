@@ -48,7 +48,7 @@ export const shouldShowMessageTime = (currentMessage: Message, prevMessage: Mess
  * @param date2 - 두 번째 날짜
  * @returns 같은 날이면 true
  */
-const isSameDay = (date1: string, date2: string): boolean => {
+export const isSameDay = (date1: string, date2: string): boolean => {
   const d1 = new Date(date1);
   const d2 = new Date(date2);
 
