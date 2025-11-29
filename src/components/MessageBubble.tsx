@@ -12,7 +12,7 @@ import { SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../constants/theme';
 interface MessageBubbleProps {
   message: Message;
   isMyMessage: boolean;
-  isContinuous: boolean;
+  isFirstInGroup: boolean;
   showTime: boolean;
   onLongPress?: (message: Message) => void;
   onPressImage?: (imageUri: string) => void;
@@ -22,7 +22,7 @@ interface MessageBubbleProps {
 const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
   message,
   isMyMessage,
-  isContinuous,
+  isFirstInGroup,
   showTime,
   onLongPress,
   onPressImage,
@@ -179,7 +179,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
       {/* 프로필 이미지 (상대방 메시지에서만, 연속 메시지가 아닐 때) */}
       {!isMyMessage && (
         <View style={styles.avatarContainer}>
-          {!isContinuous ? (
+          {isFirstInGroup ? (
             <UserAvatar
               profileImg={message.sender.profile_img}
               nickname={message.sender.nickname}
@@ -194,7 +194,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
       {/* 메시지 내용 */}
       <View style={[styles.contentContainer, isMyMessage ? styles.myContentContainer : styles.otherContentContainer]}>
         {/* 상대방 메시지의 경우 닉네임 (연속 메시지가 아닐 때만) */}
-        {!isMyMessage && !isContinuous && (
+        {!isMyMessage && isFirstInGroup && (
           <Text style={styles.nickname}>
             {message.sender.nickname}
           </Text>

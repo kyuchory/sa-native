@@ -4,7 +4,7 @@ import { SPACING, TYPOGRAPHY } from '../constants/theme';
 import { Message } from '../types/chat';
 import { useAuthStore } from '../stores/authStore';
 import { useThemeStore } from '../stores/themeStore';
-import { shouldShowDateSeparator, isContinuousMessage, shouldShowMessageTime } from '../utils/messageUtils';
+import { shouldShowDateSeparator, isContinuousMessage, shouldShowMessageTime, isSameDay } from '../utils/messageUtils';
 import MessageBubble from './MessageBubble';
 import MessageDateSeparator from './MessageDateSeparator';
 
@@ -35,9 +35,9 @@ const MessageList: React.FC<MessageListProps> = React.memo(({
 
   const renderMessageItem = useCallback(({ item, index }: { item: Message; index: number }) => {
     const isMyMessage = item.sender.id === user?.id;
-    // displayMessages에서 다음 메시지(화면상 아래쪽)를 확인해서 날짜 구분선 표시
+    // displayMessages에서 다음 메시지(화면상 아래쪽)를 확인해서 날짜 구분선 표시 및 그룹 시작 판별
     const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
-    // displayMessages에서 이전 메시지(화면상 위쪽, 더 최근)를 확인해서 연속 메시지/시간 표시 판별
+    // displayMessages에서 이전 메시지(화면상 위쪽)를 확인해서 연속 메시지/시간 표시 판별
     const prevMessage = index > 0 ? messages[index - 1] : null;
     const isContinuous = isContinuousMessage(item, prevMessage);
     // 날짜 구분자 표시 (다음 메시지와 비교, inverted FlatList용)
@@ -47,6 +47,11 @@ const MessageList: React.FC<MessageListProps> = React.memo(({
     );
     // 시간 표시 여부 결정 (이전 메시지와 비교)
     const showTime = shouldShowMessageTime(item, prevMessage);
+    // 그룹의 첫 번째 메시지인지 판별 (프로필 표시용)
+    const isFirstInGroup = !nextMessage ||
+      nextMessage.sender.id !== item.sender.id ||
+      (nextMessage && (new Date(nextMessage.created_at).getTime() - new Date(item.created_at).getTime() > 60000)) ||
+      (nextMessage && !isSameDay(item.created_at, nextMessage.created_at));
 
     return (
       <React.Fragment>
@@ -55,7 +60,7 @@ const MessageList: React.FC<MessageListProps> = React.memo(({
           <MessageBubble
             message={item}
             isMyMessage={isMyMessage}
-            isContinuous={isContinuous}
+            isFirstInGroup={isFirstInGroup}
             showTime={showTime}
             onLongPress={onMessageLongPress}
             onPressImage={onPressImage}
