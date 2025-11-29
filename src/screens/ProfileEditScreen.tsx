@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../types/navigation';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
-
-// Services
-import { ProfileService } from '../services/profileService';
 import { useAuthStore } from '../stores/authStore';
 
 // Components
@@ -24,64 +21,29 @@ export default function ProfileEditScreen() {
 
   const navigation = useNavigation<ProfileEditScreenNavigationProp>();
   const { user } = useAuthStore();
-  const [loading, setLoading] = useState(true);
 
-  // 프로필 데이터 상태
-  const [profileData, setProfileData] = useState({
-    profileImage: null as string | null,
-    nickname: '',
-    bio: '',
-  });
-
-  // 프로필 데이터 조회
-  const fetchProfile = async () => {
-    if (user?.id) {
-      try {
-        setLoading(true);
-        const response = await ProfileService.getProfile(user.id);
-        setProfileData({
-          profileImage: response.data.profile_img,
-          nickname: response.data.nickname,
-          bio: response.data.bio || '',
-        });
-      } catch (error) {
-        console.error('프로필 조회 실패:', error);
-        // 에러 발생 시 기본값 사용
-        setProfileData({
-          profileImage: user?.profile_img || null,
-          nickname: user?.nickname || '사용자',
-          bio: user?.bio || '',
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    fetchProfile();
-  }, [user?.id]);
-
-  // user 가 변경될 때 profileData 업데이트
-  useEffect(() => {
-    setProfileData({
-      profileImage: user?.profile_img || null,
-      nickname: user?.nickname || '사용자',
-      bio: user?.bio || '',
-    });
-  }, [user?.nickname, user?.profile_img, user?.bio]);
+  // 프로필 데이터 - user 스토어 기반으로 계산
+  const profileData = useMemo(() => {
+    if (!user) return null;
+    return {
+      profileImage: user.profile_img || null,
+      nickname: user.nickname || '',
+      bio: user.bio || '',
+    };
+  }, [user]);
 
 
 
   const handleImagePress = () => {
+    if (!profileData) return;
     navigation.navigate('ProfileImageEdit', {
       currentImageUrl: profileData.profileImage,
       nickname: profileData.nickname
     });
   };
 
-  // 로딩 중이거나 프로필 데이터가 없으면 로딩 표시
-  if (loading || !profileData.nickname) {
+  // 프로필 데이터가 로드되지 않았으면 로딩 표시
+  if (!profileData) {
     return (
       <View style={styles.container}>
         <CommonHeader title="프로필 편집" />

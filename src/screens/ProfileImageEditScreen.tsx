@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
@@ -14,6 +14,7 @@ import { ProfileService } from '../services/profileService';
 // Components
 import CommonHeader from '../components/CommonHeader';
 import CustomButton from '../components/CustomButton';
+import CustomAlertModal from '../components/CustomAlertModal';
 import { ProfileEditIcon } from '../components/ProfileIcons';
 import UserAvatar from '../components/UserAvatar';
 
@@ -26,7 +27,7 @@ export default function ProfileImageEditScreen() {
 
   const navigation = useNavigation<ProfileImageEditScreenNavigationProp>();
   const route = useRoute<ProfileImageEditScreenRouteProp>();
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
 
   // props에서 현재 이미지 URL과 닉네임 가져오기
   const { currentImageUrl, nickname } = route.params || { currentImageUrl: null, nickname: '' };
@@ -36,12 +37,22 @@ export default function ProfileImageEditScreen() {
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [uploadedImagePath, setUploadedImagePath] = useState<string | null>(null); // 서버 저장용
   const [isUploading, setIsUploading] = useState(false);
+  const [showImageSelectModal, setShowImageSelectModal] = useState(false); // 이미지 선택 모달
+  const [showNotificationModal, setShowNotificationModal] = useState(false); // 알림 모달
+  const [notificationModalContent, setNotificationModalContent] = useState({
+    title: '',
+    message: '',
+  }); // 알림 모달 내용
 
   // 미디어 라이브러리 권한 요청
   const requestMediaLibraryPermission = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('권한 필요', '사진 라이브러리에 대한 접근 권한이 필요합니다. 설정에서 허용해주세요.');
+      setNotificationModalContent({
+        title: '권한 필요',
+        message: '사진 라이브러리에 대한 접근 권한이 필요합니다. 설정에서 허용해주세요.',
+      });
+      setShowNotificationModal(true);
       return false;
     }
     return true;
@@ -51,7 +62,11 @@ export default function ProfileImageEditScreen() {
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('권한 필요', '카메라에 대한 접근 권한이 필요합니다. 설정에서 허용해주세요.');
+      setNotificationModalContent({
+        title: '권한 필요',
+        message: '카메라에 대한 접근 권한이 필요합니다. 설정에서 허용해주세요.',
+      });
+      setShowNotificationModal(true);
       return false;
     }
     return true;
@@ -102,11 +117,19 @@ export default function ProfileImageEditScreen() {
       // 업로드된 이미지 - 화면 표시용은 URL, 저장용은 path를 따로 저장
       setSelectedImageUri(uploadedImage.url); // 표시용: 완전한 URL
       setUploadedImagePath(uploadedImage.path); // 저장용: 경로만
-      
-      Alert.alert('성공', '프로필 이미지가 업로드되었습니다.');
+
+      setNotificationModalContent({
+        title: '성공',
+        message: '프로필 이미지가 업로드되었습니다.',
+      });
+      setShowNotificationModal(true);
     } catch (error) {
       console.error('프로필 이미지 업로드 실패:', error);
-      Alert.alert('오류', '이미지 업로드에 실패했습니다. 다시 시도해주세요.');
+      setNotificationModalContent({
+        title: '오류',
+        message: '이미지 업로드에 실패했습니다. 다시 시도해주세요.',
+      });
+      setShowNotificationModal(true);
     } finally {
       setIsUploading(false);
     }
@@ -114,15 +137,22 @@ export default function ProfileImageEditScreen() {
 
   // 이미지 선택 옵션 표시
   const handleImageSelect = () => {
-    Alert.alert(
-      '프로필 이미지 선택',
-      '어디에서 이미지를 가져오시겠습니까?',
-      [
-        { text: '갤러리에서 선택', onPress: pickImageFromLibrary },
-        { text: '사진 촬영', onPress: takePhoto },
-        { text: '취소', style: 'cancel' },
-      ]
-    );
+    setShowImageSelectModal(true);
+  };
+
+  // 모달 버튼 핸들러
+  const handleModalClose = () => {
+    setShowImageSelectModal(false);
+  };
+
+  const handleGallerySelect = () => {
+    setShowImageSelectModal(false);
+    pickImageFromLibrary();
+  };
+
+  const handleCameraSelect = () => {
+    setShowImageSelectModal(false);
+    takePhoto();
   };
 
   // 저장 버튼 처리
@@ -138,12 +168,24 @@ export default function ProfileImageEditScreen() {
         await ProfileService.updateProfile({
           profile_img: imagePath
         });
-        
-        Alert.alert('성공', '프로필 이미지가 저장되었습니다.');
-        navigation.goBack();
+
+        // 스토어 업데이트 추가 (표시용 URL 사용)
+        if (user) {
+          setUser({ ...user, profile_img: selectedImageUri });
+        }
+
+        setNotificationModalContent({
+          title: '저장 완료',
+          message: '프로필 이미지가 저장되었습니다.',
+        });
+        setShowNotificationModal(true);
       } catch (error) {
         console.error('프로필 업데이트 실패:', error);
-        Alert.alert('오류', '프로필 저장에 실패했습니다. 다시 시도해주세요.');
+        setNotificationModalContent({
+          title: '오류',
+          message: '프로필 저장에 실패했습니다. 다시 시도해주세요.',
+        });
+        setShowNotificationModal(true);
       } finally {
         setIsUploading(false);
       }
@@ -162,6 +204,53 @@ export default function ProfileImageEditScreen() {
   return (
     <View style={styles.container}>
       <CommonHeader title="프로필 이미지 편집" />
+
+      {/* 이미지 선택 모달 */}
+      <CustomAlertModal
+        visible={showImageSelectModal}
+        title="프로필 이미지 선택"
+        message="어디에서 이미지를 가져오시겠습니까?"
+        buttons={[
+          {
+            text: '갤러리',
+            onPress: handleGallerySelect,
+          },
+          {
+            text: '사진 촬영',
+            onPress: handleCameraSelect,
+          },
+          {
+            text: '취소',
+            onPress: handleModalClose,
+            style: 'cancel',
+          },
+        ]}
+        onClose={handleModalClose}
+      />
+
+      {/* 알림 모달 */}
+      <CustomAlertModal
+        visible={showNotificationModal}
+        title={notificationModalContent.title}
+        message={notificationModalContent.message}
+        buttons={[
+          {
+            text: '확인',
+            onPress: () => {
+              setShowNotificationModal(false);
+              if (notificationModalContent.title === '저장 완료') {
+                navigation.goBack();
+              }
+            },
+          },
+        ]}
+        onClose={() => {
+          setShowNotificationModal(false);
+          if (notificationModalContent.title === '저장 완료') {
+            navigation.goBack();
+          }
+        }}
+      />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* 현재 이미지 표시 */}

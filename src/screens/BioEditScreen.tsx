@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../types/navigation';
@@ -13,6 +13,7 @@ import { useAuthStore } from '../stores/authStore';
 // Components
 import CommonHeader from '../components/CommonHeader';
 import CustomInput from '../components/CustomInput';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 type BioEditScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'BioEdit'>;
 
@@ -26,6 +27,7 @@ export default function BioEditScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [originalBio, setOriginalBio] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // 초기 데이터 로드
   useEffect(() => {
@@ -52,7 +54,7 @@ export default function BioEditScreen() {
       if (user) {
         setUser({ ...user, bio });
       }
-      navigation.goBack();
+      setShowSuccessModal(true); // 성공 모달 표시
     } catch (error : any) {
       console.error('소개 업데이트 실패:', error);
       setError(error.message);
@@ -112,6 +114,26 @@ export default function BioEditScreen() {
           </Text>
         </View>
       </View>
+
+      {/* 성공 모달 */}
+      <CustomAlertModal
+        visible={showSuccessModal}
+        title="소개 변경 성공"
+        message="소개가 성공적으로 변경되었습니다."
+        buttons={[
+          {
+            text: '확인',
+            onPress: () => {
+              setShowSuccessModal(false);
+              navigation.goBack();
+            },
+          },
+        ]}
+        onClose={() => {
+          setShowSuccessModal(false);
+          navigation.goBack();
+        }}
+      />
     </View>
   );
 }

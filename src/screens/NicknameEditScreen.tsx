@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../types/navigation';
@@ -13,6 +13,7 @@ import { useAuthStore } from '../stores/authStore';
 // Components
 import CommonHeader from '../components/CommonHeader';
 import CustomInput from '../components/CustomInput';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 type NicknameEditScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'NicknameEdit'>;
 
@@ -26,6 +27,7 @@ export default function NicknameEditScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [originalNickname, setOriginalNickname] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // 초기 데이터 로드
   useEffect(() => {
@@ -41,8 +43,8 @@ export default function NicknameEditScreen() {
       return;
     }
 
-    if (nickname.length > 50) {
-      setError('닉네임은 50자 이하여야 합니다.');
+    if (nickname.length > 10) {
+      setError('닉네임은 10자 이하여야 합니다.');
       return;
     }
 
@@ -58,7 +60,7 @@ export default function NicknameEditScreen() {
       if (user) {
         setUser({ ...user, nickname });
       }
-      navigation.goBack();
+      setShowSuccessModal(true); // 성공 모달 표시
     } catch (error : any) {
       console.error('닉네임 업데이트 실패:', error);
       setError(error.message);
@@ -106,15 +108,35 @@ export default function NicknameEditScreen() {
               if (error) setError(''); // 입력할 때 에러 메시지 숨김
             }}
             placeholder="닉네임을 입력하세요"
-            maxLength={50}
+            maxLength={10}
             autoFocus
             error={error}
           />
           <Text style={styles.hint}>
-            {nickname.length}/50자
+            {nickname.length}/10자
           </Text>
         </View>
       </View>
+
+      {/* 성공 모달 */}
+      <CustomAlertModal
+        visible={showSuccessModal}
+        title="닉네임 변경 성공"
+        message="닉네임이 성공적으로 변경되었습니다."
+        buttons={[
+          {
+            text: '확인',
+            onPress: () => {
+              setShowSuccessModal(false);
+              navigation.goBack();
+            },
+          },
+        ]}
+        onClose={() => {
+          setShowSuccessModal(false);
+          navigation.goBack();
+        }}
+      />
     </View>
   );
 }
