@@ -15,7 +15,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 // Components
 import CommonHeader from '../components/CommonHeader';
-import { SearchIcon, MenuIcon, PlusCircleIcon, SendIcon } from '../components/ChatDetailIcons';
+import { SearchIcon, MenuIcon, PlusCircleIcon, SendIcon, GalleryImageIcon, GalleryVideoIcon } from '../components/ChatDetailIcons';
 import { MenuIcon as AddImageIcon, NoticeIcon, CameraIcon } from '../components/CommonIcons';
 import ChatDetailSidebar from '../components/ChatDetailSidebar';
 import MenuActionSheet from '../components/MenuActionSheet';
@@ -724,22 +724,22 @@ export default function ChatDetailScreen() {
           {
             id: 'camera',
             title: '사진 촬영',
-            icon: <CameraIcon size={24} color={colors.PRIMARY} />,
-            color: colors.PRIMARY,
+            icon: <CameraIcon size={24} color={colors.GRAY_700} />,
+            color: colors.GRAY_700,
             onPress: handleSelectCamera,
           },
           {
             id: 'gallery_image',
             title: '갤러리에서 이미지 선택',
-            icon: <AddImageIcon size={24} color={colors.PRIMARY} />,
-            color: colors.PRIMARY,
+            icon: <GalleryImageIcon size={24} color={colors.GRAY_700} />,
+            color: colors.GRAY_700,
             onPress: handleSelectGalleryImage,
           },
           {
             id: 'gallery_video',
             title: '갤러리에서 비디오 선택',
-            icon: <AddImageIcon size={24} color={colors.PRIMARY} />,
-            color: colors.PRIMARY,
+            icon: <GalleryVideoIcon size={24} color={colors.GRAY_700} />,
+            color: colors.GRAY_700,
             onPress: handleSelectGalleryVideo,
           },
         ]}

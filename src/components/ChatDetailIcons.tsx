@@ -41,3 +41,37 @@ export const SendIcon: React.FC<IconProps> = ({ size = 24, color = '#000' }) => 
     />
   </Svg>
 );
+
+// 갤러리 이미지 아이콘
+export const GalleryImageIcon: React.FC<IconProps> = ({ size = 24, color = '#000' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M3 6c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V6z"
+      stroke={color}
+      strokeWidth={2}
+    />
+    <Circle cx="9" cy="9" r="2" stroke={color} strokeWidth={2} />
+    <Path
+      d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L8 20"
+      stroke={color}
+      strokeWidth={2}
+    />
+  </Svg>
+);
+
+// 갤러리 비디오 아이콘
+export const GalleryVideoIcon: React.FC<IconProps> = ({ size = 24, color = '#000' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M3 6c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V6z"
+      stroke={color}
+      strokeWidth={2}
+    />
+    <Path
+      d="M9.5 8.5v7l5-3.5-5-3.5z"
+      fill={color}
+      stroke={color}
+      strokeWidth={2}
+    />
+  </Svg>
+);
