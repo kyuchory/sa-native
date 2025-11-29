@@ -9,7 +9,6 @@ import {
   TextInput,
   TouchableOpacity,
   Image,
-  Alert,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -20,6 +19,7 @@ import { SearchIcon, ClearSearchIcon, UserIcon } from '../components/SearchIcons
 import UserAvatar from '../components/UserAvatar';
 import { PlusCircleIcon } from '../components/ChatDetailIcons';
 import GroupChatNameInputModal from '../components/GroupChatNameInputModal';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 // Services
 import { FollowService } from '../services/followService';
@@ -55,6 +55,7 @@ export default function SelectChatUserScreen() {
   const [selectedUsers, setSelectedUsers] = useState<Set<FollowUser>>(new Set());
   const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
   const [showGroupChatModal, setShowGroupChatModal] = useState(false);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // 선택된 사용자 리스트 (메모이제이션)
   const selectedUserList = useMemo(() =>
@@ -76,7 +77,12 @@ export default function SelectChatUserScreen() {
       setFollowingList(following);
     } catch (error: any) {
       console.error('팔로우 목록 로드 실패:', error);
-      Alert.alert('오류', '팔로우 목록을 불러오는데 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '팔로우 목록을 불러오는데 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setIsLoading(false);
     }
@@ -140,18 +146,19 @@ export default function SelectChatUserScreen() {
       if (selectedUserList.length === 1) {
         // 1:1 채팅
         const user = selectedUserList[0];
-        Alert.alert(
-          '채팅방 생성',
-          `${user.nickname}님과 1:1 채팅방을 생성하시겠습니까?`,
-          [
-            { text: '취소', style: 'cancel' },
+        setAlertModal({
+          visible: true,
+          title: '채팅방 생성',
+          message: `${user.nickname}님과 1:1 채팅방을 생성하시겠습니까?`,
+          buttons: [
+            { text: '취소', style: 'cancel', onPress: () => setAlertModal(null) },
             {
               text: '생성',
               onPress: () => createPrivateChat(user),
               style: 'default'
             }
           ]
-        );
+        });
       } else {
         // 그룹 채팅 모달 표시
         setShowGroupChatModal(true);
@@ -181,7 +188,12 @@ export default function SelectChatUserScreen() {
       });
     } catch (error: any) {
       console.error('그룹 채팅방 생성 실패:', error);
-      Alert.alert('오류', '그룹 채팅방 생성에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '그룹 채팅방 생성에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setIsLoading(false);
     }
@@ -212,7 +224,12 @@ export default function SelectChatUserScreen() {
       });
     } catch (error: any) {
       console.error('채팅방 생성 실패:', error);
-      Alert.alert('오류', '채팅방 생성에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '채팅방 생성에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setIsLoading(false);
     }
@@ -248,11 +265,20 @@ export default function SelectChatUserScreen() {
 
       await Promise.all(invitePromises);
 
-      Alert.alert('성공', `${users.length}명의 사용자를 채팅방에 초대했습니다.`);
-      navigation.goBack(); // 초대 완료 후 이전 화면으로 돌아감
+      setAlertModal({
+        visible: true,
+        title: '성공',
+        message: `${users.length}명의 사용자를 채팅방에 초대했습니다.`,
+        buttons: [{ text: '확인', onPress: () => { setAlertModal(null); navigation.goBack(); } }]
+      });
     } catch (error: any) {
       console.error('사용자 초대 실패:', error);
-      Alert.alert('오류', '사용자 초대에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '사용자 초대에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setIsLoading(false);
     }
@@ -377,6 +403,17 @@ export default function SelectChatUserScreen() {
         selectedUsersCount={selectedUserList.length}
         firstUserName={selectedUserList.length > 0 ? selectedUserList[0].nickname : ''}
       />
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </View>
   );
 }

@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Platform,
   Keyboard,
@@ -38,7 +37,7 @@ import { CommentInput } from '../components/CommentInput';
 import { ReplyInput } from '../components/ReplyInput';
 import { CommentEditInput } from '../components/CommentEditInput';
 import MenuActionSheet from '../components/MenuActionSheet';
-import { CustomAlertModal } from '../components';
+import CustomAlertModal from '../components/CustomAlertModal';
 import { MenuIcon, ReportIcon, EditIcon, DeleteIcon, MuteIcon, UnmuteIcon } from '../components/CommonIcons';
 
 import { Comment } from '../types/post';
@@ -302,8 +301,9 @@ export default function PostDetailScreen() {
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
-  const [reportModalVisible, setReportModalVisible] = useState(false);
-  const [reportSuccessModalVisible, setReportSuccessModalVisible] = useState(false);
+
+  // Custom Alert Modal 상태
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
   const { user } = useAuthStore();
   const { setShouldRefreshPosts } = usePostStore();
   const { setShouldRefreshProfilePosts } = useProfileStore(); 
@@ -343,8 +343,12 @@ export default function PostDetailScreen() {
       setComments(commentsData.items);
       setNextCursor(commentsData.next_cursor);
     } catch (error) {
-      Alert.alert('오류', '게시물을 불러오는데 실패했습니다.');
-      navigation.goBack();
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '게시물을 불러오는데 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => { setAlertModal(null); navigation.goBack(); } }]
+      });
     } finally {
       setIsLoading(false);
     }
@@ -397,7 +401,12 @@ export default function PostDetailScreen() {
       setIsLiked(originalIsLiked);
       setLikeCount(originalLikeCount);
 
-      Alert.alert('오류', '좋아요 처리에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '좋아요 처리에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
 
     } finally {
       setIsLikeLoading(false);
@@ -435,7 +444,12 @@ export default function PostDetailScreen() {
       setIsBookmarked(originalIsBookmarked);
       setBookmarkCount(originalBookmarkCount);
 
-      Alert.alert('오류', '북마크 처리에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '북마크 처리에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
 
     } finally {
       setIsBookmarkLoading(false);
@@ -496,7 +510,12 @@ export default function PostDetailScreen() {
     } catch (error) {
       // 실패 시 원래 상태로 롤백
       setComments(originalComments);
-      Alert.alert('오류', '좋아요 처리에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '좋아요 처리에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       console.error('댓글 좋아요 토글 실패:', error);
     }
   }, [comments, postId]); // comments와 postId가 바뀔 때만 재생성
@@ -520,7 +539,12 @@ export default function PostDetailScreen() {
       setShouldRefreshPosts(true);
 
     } catch (error) {
-      Alert.alert('오류', '댓글 작성에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '댓글 작성에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       console.error('댓글 작성 실패:', error);
     } finally {
       setIsCommentLoading(false);
@@ -562,7 +586,12 @@ export default function PostDetailScreen() {
       setReplyingTo(null);
 
     } catch (error) {
-      Alert.alert('오류', '답글 작성에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '답글 작성에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       console.error('답글 작성 실패:', error);
     } finally {
       setIsCommentLoading(false);
@@ -602,7 +631,12 @@ export default function PostDetailScreen() {
       setEditingComment(null);
 
     } catch (error) {
-      Alert.alert('오류', '댓글 수정에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '댓글 수정에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       console.error('댓글 수정 실패:', error);
     } finally {
       setIsCommentLoading(false);
@@ -611,86 +645,108 @@ export default function PostDetailScreen() {
 
   // 댓글 삭제
   const handleDeleteComment = async (commentId: number) => {
-    Alert.alert(
-      '댓글 삭제',
-      '댓글을 삭제하시겠습니까? 삭제된 댓글은 복구할 수 없습니다.',
-      [
+    const performDelete = async () => {
+      try {
+        setIsCommentLoading(true);
+
+        // API 호출
+        await PostService.deleteComment(commentId);
+
+        // 댓글 목록 새로고침
+        const updatedComments = await PostService.getComments(postId);
+        setComments(updatedComments.items);
+        setNextCursor(updatedComments.next_cursor);
+
+        // 모달 닫기
+        setAlertModal(null);
+
+      } catch (error) {
+        setAlertModal({
+          visible: true,
+          title: '오류',
+          message: '댓글 삭제에 실패했습니다.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
+        console.error('댓글 삭제 실패:', error);
+      } finally {
+        setIsCommentLoading(false);
+      }
+    };
+
+    setAlertModal({
+      visible: true,
+      title: '댓글 삭제',
+      message: '댓글을 삭제하시겠습니까? 삭제된 댓글은 복구할 수 없습니다.',
+      buttons: [
         {
           text: '취소',
           style: 'cancel',
+          onPress: () => setAlertModal(null)
         },
         {
           text: '삭제',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              setIsCommentLoading(true);
-
-              // API 호출
-              await PostService.deleteComment(commentId);
-
-              // 댓글 목록 새로고침
-              const updatedComments = await PostService.getComments(postId);
-              setComments(updatedComments.items);
-              setNextCursor(updatedComments.next_cursor);
-
-            } catch (error) {
-              Alert.alert('오류', '댓글 삭제에 실패했습니다.');
-              console.error('댓글 삭제 실패:', error);
-            } finally {
-              setIsCommentLoading(false);
-            }
-          },
-        },
+          onPress: performDelete
+        }
       ]
-    );
+    });
   };
 
   // 게시물 삭제
   const handleDeletePost = async () => {
-    Alert.alert(
-      '게시물 삭제',
-      '게시물을 삭제하시겠습니까? 삭제된 게시물은 복구할 수 없습니다.',
-      [
+    const performDelete = async () => {
+      try {
+        setIsLoading(true);
+
+        // API 호출
+        await PostService.deletePost(postId);
+
+        // 목록 새로고침 플래그 설정
+        setShouldRefreshPosts(true);
+
+        // 자신이 작성한 게시물을 삭제하는 경우 프로필 목록도 새로고침
+        if (post?.is_author) {
+          setShouldRefreshProfilePosts(true); // 자신의 게시물 목록 새로고침
+        }
+
+        // 삭제 성공 시 이전 화면으로 돌아가기
+        setAlertModal({
+          visible: true,
+          title: '삭제 완료',
+          message: '게시물이 삭제되었습니다.',
+          buttons: [{ text: '확인', onPress: () => { navigation.goBack(); setAlertModal(null); } }]
+        });
+
+      } catch (error) {
+        setAlertModal({
+          visible: true,
+          title: '오류',
+          message: '게시물 삭제에 실패했습니다.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
+        console.error('게시물 삭제 실패:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    setAlertModal({
+      visible: true,
+      title: '게시물 삭제',
+      message: '게시물을 삭제하시겠습니까? 삭제된 게시물은 복구할 수 없습니다.',
+      buttons: [
         {
           text: '취소',
           style: 'cancel',
+          onPress: () => setAlertModal(null)
         },
         {
           text: '삭제',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              setIsLoading(true);
-
-              // API 호출
-              await PostService.deletePost(postId);
-
-              // 목록 새로고침 플래그 설정
-              setShouldRefreshPosts(true);
-
-              // 자신이 작성한 게시물을 삭제하는 경우 프로필 목록도 새로고침
-              if (post?.is_author) {
-                setShouldRefreshProfilePosts(true); // 자신의 게시물 목록 새로고침
-              }
-
-              // 삭제 성공 시 이전 화면으로 돌아가기
-              Alert.alert('삭제 완료', '게시물이 삭제되었습니다.', [
-                {
-                  text: '확인',
-                  onPress: () => navigation.goBack(),
-                },
-              ]);
-            } catch (error) {
-              Alert.alert('오류', '게시물 삭제에 실패했습니다.');
-              console.error('게시물 삭제 실패:', error);
-            } finally {
-              setIsLoading(false);
-            }
-          },
-        },
+          onPress: performDelete
+        }
       ]
-    );
+    });
   };
 
   // 시간 포맷팅
@@ -979,50 +1035,47 @@ export default function PostDetailScreen() {
               icon: <ReportIcon size={20} color={colors.ERROR} />,
               color: colors.ERROR,
               onPress: () => {
-                setReportModalVisible(true);
+                setMenuActionSheetVisible(false);  // 메뉴 닫기
+                setAlertModal({
+                  visible: true,
+                  title: '게시물 신고',
+                  message: '이 게시물을 신고하시겠습니까?',
+                  buttons: [
+                    {
+                      text: '취소',
+                      style: 'cancel',
+                      onPress: () => setAlertModal(null)
+                    },
+                    {
+                      text: '신고',
+                      style: 'destructive',
+                      onPress: () => {
+                        // TODO: 신고 API 호출 구현 필요
+                        setAlertModal({
+                          visible: true,
+                          title: '신고 완료',
+                          message: '게시물이 신고되었습니다.',
+                          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+                        });
+                      }
+                    }
+                  ]
+                });
               },
             },
           ]}
         />
 
-        {/* 게시물 신고 모달 */}
-        <CustomAlertModal
-          visible={reportModalVisible}
-          title="게시물 신고"
-          message="이 게시물을 신고하시겠습니까? 신고된 게시물은 관리자가 검토 후 조치됩니다."
-          buttons={[
-            {
-              text: "취소",
-              onPress: () => setReportModalVisible(false),
-              style: "cancel"
-            },
-            {
-              text: "신고하기",
-              onPress: () => {
-                // TODO: 신고 API 호출
-                setReportModalVisible(false);
-                setReportSuccessModalVisible(true);
-              },
-              style: "destructive"
-            }
-          ]}
-          onClose={() => setReportModalVisible(false)}
-        />
-
-        {/* 신고 완료 모달 */}
-        <CustomAlertModal
-          visible={reportSuccessModalVisible}
-          title="신고 완료"
-          message="신고가 접수되었습니다."
-          buttons={[
-            {
-              text: "확인",
-              onPress: () => setReportSuccessModalVisible(false),
-              style: "default"
-            }
-          ]}
-          onClose={() => setReportSuccessModalVisible(false)}
-        />
+        {/* Custom Alert Modal */}
+        {alertModal && (
+          <CustomAlertModal
+            visible={alertModal.visible}
+            title={alertModal.title}
+            message={alertModal.message}
+            buttons={alertModal.buttons}
+            onClose={() => setAlertModal(null)}
+          />
+        )}
       </View>
     </SafeAreaView>
   );

@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -22,6 +21,7 @@ import { ContentBlockComponent } from '../components/ContentBlocks';
 import { AddImageIcon, AddVideoIcon } from '../components/CommonIcons';
 import { CreateFeedIcon } from '../components/CommonIcons';
 import LoadingOverlay from '../components/LoadingOverlay';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 // Services
 import { FeedService } from '../services/feedService';
@@ -42,6 +42,7 @@ export default function CreateFeedScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // Zustand 스토어
   const { setShouldRefreshFeeds, videoEditResult, setVideoEditResult } = useFeedStore();
@@ -166,7 +167,12 @@ export default function CreateFeedScreen() {
       // 권한 요청
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.');
+        setAlertModal({
+          visible: true,
+          title: '권한 필요',
+          message: '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
         return;
       }
 
@@ -210,7 +216,12 @@ export default function CreateFeedScreen() {
 
         } catch (uploadError) {
           console.error('이미지 업로드 실패:', uploadError);
-          Alert.alert('오류', '이미지 업로드에 실패했습니다.');
+          setAlertModal({
+            visible: true,
+            title: '오류',
+            message: '이미지 업로드에 실패했습니다.',
+            buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+          });
 
           // 업로드 실패 시 블록 제거
           setContentBlocks(prev => prev.filter(block => block.id !== newImageBlock.id));
@@ -218,7 +229,12 @@ export default function CreateFeedScreen() {
       }
     } catch (error) {
       console.error('이미지 선택 실패:', error);
-      Alert.alert('오류', '이미지 선택에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '이미지 선택에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setIsLoading(false);
       setIsUploadingImage(false);
@@ -231,7 +247,12 @@ export default function CreateFeedScreen() {
       // 권한 요청
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.');
+        setAlertModal({
+          visible: true,
+          title: '권한 필요',
+          message: '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
         return;
       }
 
@@ -258,7 +279,12 @@ export default function CreateFeedScreen() {
       }
     } catch (error) {
       console.error('비디오 선택 실패:', error);
-      Alert.alert('오류', '비디오 선택에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '비디오 선택에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   };
 
@@ -267,20 +293,35 @@ export default function CreateFeedScreen() {
     // 유효성 검사
     const textBlock = contentBlocks.find(block => block.type === 'text');
     if (!textBlock?.value.trim()) {
-      Alert.alert('오류', '내용을 입력해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '내용을 입력해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       return;
     }
 
     const mediaBlocks = contentBlocks.filter(block => block.type !== 'text');
     if (mediaBlocks.length === 0) {
-      Alert.alert('오류', '이미지 또는 영상을 최소 1개 이상 선택해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '이미지 또는 영상을 최소 1개 이상 선택해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       return;
     }
 
     // 업로드 완료 확인
     const unuploadedBlocks = mediaBlocks.filter(block => !block.originalValue);
     if (unuploadedBlocks.length > 0) {
-      Alert.alert('업로드 중', '미디어 업로드가 완료될 때까지 기다려주세요.');
+      setAlertModal({
+        visible: true,
+        title: '업로드 중',
+        message: '미디어 업로드가 완료될 때까지 기다려주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       return;
     }
 
@@ -307,10 +348,27 @@ export default function CreateFeedScreen() {
       setShouldRefreshFeeds(true);
       setShouldRefreshProfileFeeds(true);
 
-      // 작성된 피드 상세 화면으로 이동
-      navigation.replace('FeedDetail', { feedId: result.feedId });
+      // 성공 alert 표시
+      setAlertModal({
+        visible: true,
+        title: '성공',
+        message: '피드가 성공적으로 작성되었습니다.',
+        buttons: [{
+          text: '확인',
+          onPress: () => {
+            setAlertModal(null);
+            // 작성된 피드 상세 화면으로 이동
+            navigation.replace('FeedDetail', { feedId: result.feedId });
+          }
+        }]
+      });
     } catch (error) {
-      Alert.alert('오류', '피드 작성에 실패했습니다. 다시 시도해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '피드 작성에 실패했습니다. 다시 시도해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       console.error('피드 작성 실패:', error);
     } finally {
       setIsLoading(false);
@@ -390,6 +448,17 @@ export default function CreateFeedScreen() {
         visible={isLoading}
         message={isUploadingImage ? '이미지를 업로드중입니다...' : isUploadingVideo ? '비디오를 업로드중입니다...' : undefined}
       />
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }

@@ -41,9 +41,9 @@ export default function CustomAlertModal({
           textColor: colors.WHITE 
         };
       case 'cancel':
-        return { 
-          backgroundColor: '#E5E5EA', 
-          textColor: colors.GRAY_900 
+        return {
+          backgroundColor: colors.GRAY_300,
+          textColor: colors.GRAY_900
         };
       default:
         return { 
@@ -52,6 +52,17 @@ export default function CustomAlertModal({
         };
     }
   };
+
+  // 버튼 개수에 따른 레이아웃 결정
+  const isTwoButtons = buttons.length === 2;
+
+  // 버튼 컨테이너 스타일
+  const buttonContainerStyle = [
+    {
+      flexDirection: (isTwoButtons ? 'row' : 'column') as 'row' | 'column',
+      gap: buttons.length > 2 ? 8 : 12,
+    }
+  ];
 
   return (
     <Modal
@@ -72,14 +83,20 @@ export default function CustomAlertModal({
           </Text>
 
           {/* 버튼들 */}
-          <View style={styles.buttonContainer}>
+          <View style={buttonContainerStyle}>
             {buttons.map((button, index) => {
               const { backgroundColor, textColor } = getButtonStyle(button.style);
 
               return (
                 <TouchableOpacity
                   key={index}
-                  style={[styles.button, { backgroundColor }]}
+                  style={[
+                    styles.testButton, // 테스트용 버튼 스타일
+                    {
+                      backgroundColor: backgroundColor,
+                      ...(isTwoButtons && { flex: 1 }),
+                    }
+                  ]}
                   onPress={button.onPress}
                   activeOpacity={0.7}
                 >
@@ -148,5 +165,33 @@ const createStyles = (colors: Record<string, string>) =>
       fontSize: 17,
       fontWeight: '600',
       letterSpacing: -0.3,
+    },
+    // 2개 버튼일 때 스타일 (가로 정렬)
+    twoButtons: {
+      flex: 1,
+      height: 50,
+      borderRadius: 25,
+    },
+    // 여러 버튼일 때 스타일 (세로 정렬, 전체 너비)
+    multipleButtons: {
+      width: '100%',
+      height: 50,
+      borderRadius: 25,
+      marginBottom: 8,
+    },
+    // 여러 버튼 중 마지막 버튼 (마지막 마진 제거)
+    multipleButtonsLast: {
+      width: '100%',
+      height: 50,
+      borderRadius: 25,
+      marginBottom: 0,
+    },
+    // 테스트용 버튼 스타일 (가로/세로 모두 지원)
+    testButton: {
+      height: 50,
+      borderRadius: 25,
+      justifyContent: 'center',
+      alignItems: 'center',
+      alignSelf: 'stretch',
     },
   });

@@ -7,12 +7,12 @@ import {
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import * as MediaLibrary from 'expo-media-library';
 import { useThemeStore } from '../stores/themeStore';
 import { SPACING, TYPOGRAPHY } from '../constants/theme';
+import CustomAlertModal from './CustomAlertModal';
 
 interface MediaSelectorProps {
   maxSelection?: number;
@@ -55,6 +55,7 @@ export default function MediaSelector({
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [endCursor, setEndCursor] = useState<string>();
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   useEffect(() => {
     loadAssets();
@@ -131,7 +132,7 @@ export default function MediaSelector({
       setHasMore(result.hasNextPage);
     } catch (error) {
       console.error('Failed to load assets:', error);
-      Alert.alert('오류', '미디어를 불러오지 못했습니다.');
+      setAlertModal({ visible: true, title: '오류', message: '미디어를 불러오지 못했습니다.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -146,7 +147,7 @@ export default function MediaSelector({
         newSet.delete(asset.id);
       } else {
         if (newSet.size >= maxSelection) {
-          Alert.alert('선택 제한', `최대 ${maxSelection}개까지만 선택할 수 있습니다.`);
+          setAlertModal({ visible: true, title: '선택 제한', message: `최대 ${maxSelection}개까지만 선택할 수 있습니다.`, buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
           return prev;
         }
         newSet.add(asset.id);
@@ -235,28 +236,41 @@ export default function MediaSelector({
   }
 
   return (
-    <FlatList
-      data={assets}
-      renderItem={renderItem}
-      keyExtractor={item => item.id}
-      numColumns={4}
-      removeClippedSubviews={false}
-      contentContainerStyle={styles.gridContainer}
-      showsVerticalScrollIndicator={false}
-      onEndReached={loadAssets}
-      onEndReachedThreshold={0.3}
-      ListFooterComponent={
-        loadingMore ? (
-          <View style={styles.loadingMore}>
-            <Text style={styles.loadingMoreText}>
-              {loadingMore ? '더 불러오는 중...' : ''}
-            </Text>
-          </View>
-        ) : null
-      }
-    />
+    <View style={{ flex: 1 }}>
+      <FlatList
+        data={assets}
+        renderItem={renderItem}
+        keyExtractor={item => item.id}
+        numColumns={4}
+        removeClippedSubviews={false}
+        contentContainerStyle={styles.gridContainer}
+        showsVerticalScrollIndicator={false}
+        onEndReached={loadAssets}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.loadingMore}>
+              <Text style={styles.loadingMoreText}>
+                {loadingMore ? '더 불러오는 중...' : ''}
+              </Text>
+            </View>
+          ) : null
+        }
+      />
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
+    </View>
   );
-}
+};
 
 const createStyles = (colors: Record<string, string>) =>
   StyleSheet.create({

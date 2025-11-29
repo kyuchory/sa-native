@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
@@ -16,6 +15,7 @@ import { BlockedUser } from '../types/block';
 import { formatMessageDate } from '../utils/timeUtils';
 import CommonHeader from '../components/CommonHeader';
 import UserAvatar from '../components/UserAvatar';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 export default function BlockedUsersScreen() {
   const navigation = useNavigation();
@@ -28,6 +28,7 @@ export default function BlockedUsersScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // 차단된 사용자 목록 가져오기
   const fetchBlockedUsers = async () => {
@@ -74,36 +75,48 @@ export default function BlockedUsersScreen() {
 
   // 차단 해제 핸들러
   const handleUnblock = (user: BlockedUser) => {
-    Alert.alert(
-      '차단 해제',
-      `${user.nickname}님의 차단을 해제하시겠습니까?`,
-      [
+    setAlertModal({
+      visible: true,
+      title: '차단 해제',
+      message: `${user.nickname}님의 차단을 해제하시겠습니까?`,
+      buttons: [
         {
           text: '취소',
-          style: 'cancel',
+          onPress: () => setAlertModal(null),
+          style: 'cancel'
         },
         {
           text: '해제',
-          style: 'destructive',
           onPress: async () => {
             try {
+              setAlertModal(null);
               // 차단 해제 API 호출
               await BlockService.unblockUser(user.id);
-              
+
               // 목록에서 해당 사용자 제거
               setUsers(prev => prev.filter(u => u.id !== user.id));
-              
+
               // 성공 메시지 표시
-              Alert.alert('차단 해제 완료', `${user.nickname}님이 차단 해제 되었습니다.`);
+              setAlertModal({
+                visible: true,
+                title: '차단 해제 완료',
+                message: `${user.nickname}님이 차단 해제 되었습니다.`,
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
             } catch (error) {
               console.error('차단 해제 실패:', error);
               const errorMessage = error instanceof Error ? error.message : '차단 해제에 실패했습니다.';
-              Alert.alert('오류', errorMessage);
+              setAlertModal({
+                visible: true,
+                title: '오류',
+                message: errorMessage,
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
             }
           },
         },
       ],
-    );
+    });
   };
 
   // 사용자 아이템 렌더링
@@ -205,6 +218,17 @@ export default function BlockedUsersScreen() {
         contentContainerStyle={users.length === 0 ? styles.flatListEmpty : undefined}
         showsVerticalScrollIndicator={false}
       />
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </View>
   );
 }

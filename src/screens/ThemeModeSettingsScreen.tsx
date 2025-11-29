@@ -1,20 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import CommonHeader from '../components/CommonHeader';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 type ThemeModeOption = 'system' | 'light' | 'dark';
 
 export default function ThemeModeSettingsScreen() {
   const { themeMode, setThemeMode, colors } = useThemeStore();
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   const handleThemeModeChange = async (option: ThemeModeOption) => {
     // 이미 선택된 옵션이면 API 호출하지 않음
@@ -31,14 +32,21 @@ export default function ThemeModeSettingsScreen() {
         dark: '다크'
       };
 
-      Alert.alert(
-        '설정 완료',
-        `테마가 ${modeText[option]} 모드로 설정되었습니다.`
-      );
+      setAlertModal({
+        visible: true,
+        title: '설정 완료',
+        message: `테마가 ${modeText[option]} 모드로 설정되었습니다.`,
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
 
     } catch (error) {
       console.error('테마 모드 변경 실패:', error);
-      Alert.alert('오류', '설정 변경에 실패했습니다. 다시 시도해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '설정 변경에 실패했습니다. 다시 시도해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   };
 
@@ -152,6 +160,17 @@ export default function ThemeModeSettingsScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </View>
   );
 }

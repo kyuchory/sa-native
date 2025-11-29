@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, Text, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, FlatList, StyleSheet, Text, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import CustomAlertModal from '../components/CustomAlertModal';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
@@ -26,6 +27,9 @@ export default function NotificationScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
 
+  // Custom Alert Modal 상태
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
+
   // 알림 store 사용
   const { notifications, unreadCount, isLoading, loadNotifications, markAllNotificationsAsRead, markNotificationAsRead } = useNotificationStore();
 
@@ -36,7 +40,12 @@ export default function NotificationScreen() {
         await loadNotifications();
       } catch (error) {
         console.error('알림 초기화 실패:', error);
-        Alert.alert('오류', '알림을 불러오는데 실패했습니다.');
+        setAlertModal({
+          visible: true,
+          title: '오류',
+          message: '알림을 불러오는데 실패했습니다.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
       }
     };
 
@@ -70,7 +79,12 @@ export default function NotificationScreen() {
       }
     } catch (error: any) {
       console.error('모두 읽음 처리 실패:', error);
-      Alert.alert('오류', '모두 읽음 처리에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '모두 읽음 처리에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   };
 
@@ -168,7 +182,12 @@ export default function NotificationScreen() {
       }
     } catch (error) {
       console.error('알림 클릭 처리 실패:', error);
-      Alert.alert('오류', '알림 처리에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '알림 처리에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   };
 
@@ -243,6 +262,17 @@ export default function NotificationScreen() {
         windowSize={10}
         initialNumToRender={5}
       />
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </View>
   );
 }

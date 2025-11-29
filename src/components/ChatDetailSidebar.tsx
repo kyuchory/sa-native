@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo, useState } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
   Modal,
   Animated,
   Dimensions,
-  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,6 +21,7 @@ import { ChatService } from '../services/chatService';
 import GroupChatNameInputModal from './GroupChatNameInputModal';
 import ChatRoomImageEditModal from './ChatRoomImageEditModal';
 import { ImageViewerModal } from './ImageViewerModal';
+import CustomAlertModal from './CustomAlertModal';
 
 // UI 컴포넌트용 내부 인터페이스들
 interface ChatMember {
@@ -89,6 +89,7 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
   const [isImageEditModalVisible, setIsImageEditModalVisible] = React.useState(false);
   const [isImageViewerVisible, setIsImageViewerVisible] = React.useState(false);
   const [imageViewerInitialIndex, setImageViewerInitialIndex] = React.useState(0);
+  const [alertModal, setAlertModal] = React.useState<null | {visible: boolean, title: string, message: string, buttons: any[]}>(null);
 
   // API 데이터를 UI 데이터로 변환
   const {
@@ -300,32 +301,35 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
 
   // 채팅방 나가기 핸들러
   const handleLeaveChatRoom = () => {
-    Alert.alert(
-      '채팅방 나가기',
-      '정말로 이 채팅방을 나가시겠습니까?',
-      [
-        {
-          text: '취소',
-          style: 'cancel',
-        },
-        {
-          text: '나가기',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await ChatService.leaveChatRoom(chatRoomId);
-              // 사이드바 닫기
-              onClose();
-              // 채팅방 목록으로 돌아가기
-              navigation.goBack();
-            } catch (error) {
-              console.error('❌ 채팅방 나가기 실패:', error);
-              Alert.alert('오류', '채팅방을 나가는 중 오류가 발생했습니다.');
-            }
-          },
-        },
-      ]
-    );
+    setAlertModal({
+      visible: true,
+      title: '채팅방 나가기',
+      message: '정말로 이 채팅방을 나가시겠습니까?',
+      buttons: [
+        { text: '취소', onPress: () => setAlertModal(null), style: 'cancel' },
+        { text: '나가기', onPress: () => handleConfirmLeave(), style: 'destructive' },
+      ],
+    });
+  };
+
+  // 채팅방 나가기 확인
+  const handleConfirmLeave = async () => {
+    setAlertModal(null);
+    try {
+      await ChatService.leaveChatRoom(chatRoomId);
+      // 사이드바 닫기
+      onClose();
+      // 채팅방 목록으로 돌아가기
+      navigation.goBack();
+    } catch (error) {
+      console.error('❌ 채팅방 나가기 실패:', error);
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '채팅방을 나가는 중 오류가 발생했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }],
+      });
+    }
   };
 
   return (
@@ -534,6 +538,15 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
         initialIndex={imageViewerInitialIndex}
         title={localChatRoomName}
         onClose={() => setIsImageViewerVisible(false)}
+      />
+
+      {/* 알림 모달 */}
+      <CustomAlertModal
+        visible={alertModal?.visible || false}
+        title={alertModal?.title || ''}
+        message={alertModal?.message || ''}
+        buttons={alertModal?.buttons || []}
+        onClose={() => setAlertModal(null)}
       />
     </Modal>
   );

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import useFeedStore from '../stores/feedStore';
-import { View, Text, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navigation/native';
 import { SPACING, TYPOGRAPHY } from '../constants/theme';
@@ -12,6 +12,7 @@ import CommonHeader from '../components/CommonHeader';
 import SearchInput, { SearchInputRef } from '../components/SearchInput';
 import FollowTabNavigation from '../components/FollowTabNavigation';
 import FollowUserItem from '../components/FollowUserItem';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 // 서비스 imports
 import { FollowService } from '../services/followService';
@@ -44,6 +45,9 @@ export default function FollowListScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasLoadedFollowers, setHasLoadedFollowers] = useState(false);
   const [hasLoadedFollowing, setHasLoadedFollowing] = useState(false);
+
+  // Custom Alert Modal 상태
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // 헤더 타이틀 설정
   const getHeaderTitle = () => {
@@ -87,7 +91,12 @@ export default function FollowListScreen() {
     } catch (error) {
       console.error('데이터 로드 실패:', error);
       const errorMessage = handleApiError(error);
-      Alert.alert('오류', errorMessage);
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: errorMessage,
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   }, [activeTab, userId]);
 
@@ -219,7 +228,12 @@ export default function FollowListScreen() {
     } catch (error) {
       console.error('팔로우/언팔로우 실패:', error);
       const errorMessage = handleApiError(error);
-      Alert.alert('오류', errorMessage);
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: errorMessage,
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   };
 
@@ -305,6 +319,17 @@ export default function FollowListScreen() {
         contentContainerStyle={filteredData.length === 0 && !loading && styles.contentContainer}
         style={{ marginBottom: insets.bottom }}
       />
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </View>
   );
 }

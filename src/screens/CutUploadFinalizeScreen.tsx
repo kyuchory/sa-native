@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ScrollView,
   Dimensions,
   TextInput,
@@ -22,6 +21,7 @@ import { CutService } from '../services/cutService';
 import CommonHeader from '../components/CommonHeader';
 import LoadingOverlay from '../components/LoadingOverlay';
 import UserAvatar from '../components/UserAvatar';
+import CustomAlertModal from '../components/CustomAlertModal';
 import { ShortCategory, ShortUploadResponse } from '../types/cut';
 
 
@@ -60,6 +60,7 @@ export default function CutUploadFinalizeScreen() {
   const [description, setDescription] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<ShortCategory[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   const styles = createStyles(colors);
 
@@ -81,14 +82,24 @@ export default function CutUploadFinalizeScreen() {
   }, []);
 
   const validateAndUpload = useCallback(async () => {
-    // valida tion
+    // validation
     if (selectedCategories.length === 0) {
-      Alert.alert('오류', '최소 1개의 카테고리를 선택해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '최소 1개의 카테고리를 선택해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       return;
     }
 
     if (description.trim().length > 300) {
-      Alert.alert('오류', '설명은 300자 이내로 입력해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '설명은 300자 이내로 입력해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       return;
     }
 
@@ -111,20 +122,29 @@ export default function CutUploadFinalizeScreen() {
       // 실제 업로드 호출 (현재 API 없으므로 목데이터 응답)
       const response: ShortUploadResponse = await CutService.uploadShorts(uploadData);
 
-      Alert.alert('성공', '컷츠가 성공적으로 업로드되었습니다!', [
-        {
+      setAlertModal({
+        visible: true,
+        title: '성공',
+        message: '컷츠가 성공적으로 업로드되었습니다!',
+        buttons: [{
           text: '확인',
           onPress: () => {
+            setAlertModal(null);
             // 프로필 쇼츠 목록 갱신을 위한 플래그 설정
             useProfileStore.getState().setShouldRefreshProfileShorts(true);
             // 새로 업로드된 컷츠 상세 조회로 이동
             (navigation as any).replace('CutDetail', { shortId: response.id });
-          },
-        },
-      ]);
+          }
+        }]
+      });
     } catch (error: any) {
       console.error('업로드 실패:', error);
-      Alert.alert('업로드 실패', error.message || '컷츠 업로드에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '업로드 실패',
+        message: error.message || '컷츠 업로드에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setIsUploading(false);
     }
@@ -310,6 +330,17 @@ export default function CutUploadFinalizeScreen() {
         visible={isUploading}
         message="컷츠를 업로드 중입니다..."
       />
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </>
   );
 }

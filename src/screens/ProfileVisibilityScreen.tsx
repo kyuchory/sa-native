@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
@@ -13,6 +12,7 @@ import { useAuthStore } from '../stores/authStore';
 import { ProfileService } from '../services/profileService';
 import CommonHeader from '../components/CommonHeader';
 import LoadingOverlay from '../components/LoadingOverlay';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 type VisibilityOption = 'public' | 'followers';
 
@@ -22,6 +22,7 @@ export default function ProfileVisibilityScreen() {
   const [selectedVisibility, setSelectedVisibility] = useState<VisibilityOption>('public');
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // 컴포넌트 마운트 시 현재 설정값 로드
   useEffect(() => {
@@ -37,7 +38,12 @@ export default function ProfileVisibilityScreen() {
       setSelectedVisibility(response.data.profile_visibility);
     } catch (error) {
       console.error('프로필 정보 조회 실패:', error);
-      Alert.alert('오류', '프로필 정보를 불러오는데 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '프로필 정보를 불러오는데 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setInitialLoading(false);
     }
@@ -59,16 +65,23 @@ export default function ProfileVisibilityScreen() {
       
       // 성공 시 로컬 상태 업데이트
       setSelectedVisibility(option);
-      
+
       // 성공 메시지
-      Alert.alert(
-        '설정 완료', 
-        `프로필이 ${option === 'public' ? '공개' : '팔로워만'}로 설정되었습니다.`
-      );
-      
+      setAlertModal({
+        visible: true,
+        title: '설정 완료',
+        message: `프로필이 ${option === 'public' ? '공개' : '팔로워만'}로 설정되었습니다.`,
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
+
     } catch (error) {
       console.error('프로필 공개여부 수정 실패:', error);
-      Alert.alert('오류', '설정 변경에 실패했습니다. 다시 시도해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '설정 변경에 실패했습니다. 다시 시도해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setLoading(false);
     }
@@ -163,8 +176,18 @@ export default function ProfileVisibilityScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-      
       {loading && <LoadingOverlay visible={true} message='프로필 공개 범위 설정중...' />}
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </View>
   );
 }

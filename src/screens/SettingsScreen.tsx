@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { useAuthStore } from '../stores/authStore';
 import CommonHeader from '../components/CommonHeader';
 import SettingItem from '../components/SettingItem';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
@@ -18,6 +19,7 @@ export default function SettingsScreen() {
   const [isNotifications, setIsNotifications] = useState(true);
   const [isAutoPlay, setIsAutoPlay] = useState(false);
   const [isHDQuality, setIsHDQuality] = useState(true);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // 네비게이션 핸들러들
   const handleProfileEdit = () => {
@@ -78,13 +80,15 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      '로그아웃',
-      '정말 로그아웃 하시겠습니까?',
-      [
+    setAlertModal({
+      visible: true,
+      title: '로그아웃',
+      message: '정말 로그아웃 하시겠습니까?',
+      buttons: [
         {
           text: '취소',
           style: 'cancel',
+          onPress: () => setAlertModal(null)
         },
         {
           text: '로그아웃',
@@ -95,13 +99,17 @@ export default function SettingsScreen() {
               console.log('✅ 로그아웃 완료');
             } catch (error) {
               console.error('❌ 로그아웃 실패:', error);
-              Alert.alert('오류', '로그아웃 중 오류가 발생했습니다.');
+              setAlertModal({
+                visible: true,
+                title: '오류',
+                message: '로그아웃 중 오류가 발생했습니다.',
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
             }
-          },
-        },
-      ],
-      { cancelable: true }
-    );
+          }
+        }
+      ]
+    });
   };
 
   // 스타일 생성
@@ -251,6 +259,17 @@ export default function SettingsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </View>
   );
 }

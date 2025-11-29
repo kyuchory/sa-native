@@ -10,7 +10,6 @@ import {
   ScrollView,
   Platform,
   ActivityIndicator,
-  Alert,
   Keyboard,
 } from 'react-native';
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
@@ -25,6 +24,7 @@ import CommentList from './CommentList';
 import { CommentInput } from './CommentInput';
 import { CommentEditInput } from './CommentEditInput';
 import { ReplyInput } from './ReplyInput';
+import CustomAlertModal from './CustomAlertModal';
 
 const { width: screenWidth, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -70,6 +70,7 @@ export default function CutCommentActionSheet({
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // 댓글 로드와 같은 기존 함수들 유지...
 
@@ -230,7 +231,7 @@ export default function CutCommentActionSheet({
 
     } catch (error) {
       console.error('댓글 작성 실패:', error);
-      Alert.alert('오류', '댓글 작성에 실패했습니다.');
+      setAlertModal({ visible: true, title: '오류', message: '댓글 작성에 실패했습니다.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
     } finally {
       setIsCommentLoading(false);
     }
@@ -268,7 +269,7 @@ export default function CutCommentActionSheet({
 
     } catch (error) {
       console.error('답글 작성 실패:', error);
-      Alert.alert('오류', '답글 작성에 실패했습니다.');
+      setAlertModal({ visible: true, title: '오류', message: '답글 작성에 실패했습니다.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
     } finally {
       setIsCommentLoading(false);
     }
@@ -320,7 +321,7 @@ export default function CutCommentActionSheet({
 
     } catch (error) {
       console.error('댓글 수정 실패:', error);
-      Alert.alert('오류', '댓글 수정에 실패했습니다.');
+      setAlertModal({ visible: true, title: '오류', message: '댓글 수정에 실패했습니다.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
     } finally {
       setIsCommentLoading(false);
     }
@@ -328,18 +329,18 @@ export default function CutCommentActionSheet({
 
   // 댓글 삭제
   const onDeleteComment = async (commentId: number) => {
-    Alert.alert(
-      '댓글 삭제',
-      '댓글을 삭제하시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
+    setAlertModal({
+      visible: true,
+      title: '댓글 삭제',
+      message: '댓글을 삭제하시겠습니까?',
+      buttons: [
+        { text: '취소', onPress: () => setAlertModal(null), style: 'cancel' },
         {
           text: '삭제',
-          style: 'destructive',
           onPress: async () => {
             try {
               setIsCommentLoading(true);
-
+              setAlertModal(null); // Close modal first
               // 쇼츠 댓글 삭제 API 호출
               await CutService.deleteShortComment(commentId);
 
@@ -353,14 +354,15 @@ export default function CutCommentActionSheet({
 
             } catch (error) {
               console.error('댓글 삭제 실패:', error);
-              Alert.alert('오류', '댓글 삭제에 실패했습니다.');
+              setAlertModal({ visible: true, title: '오류', message: '댓글 삭제에 실패했습니다.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
             } finally {
               setIsCommentLoading(false);
             }
           },
+          style: 'destructive'
         },
       ]
-    );
+    });
   };
 
   // 드래그 제스처 핸들러
@@ -542,6 +544,17 @@ export default function CutCommentActionSheet({
               />
             )}
           </View>
+
+          {/* Alert Modal */}
+          {alertModal && (
+            <CustomAlertModal
+              visible={alertModal.visible}
+              title={alertModal.title}
+              message={alertModal.message}
+              buttons={alertModal.buttons}
+              onClose={() => setAlertModal(null)}
+            />
+          )}
         </Animated.View>
       </GestureHandlerRootView>
     </Modal>
@@ -572,7 +585,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: SCREEN_HEIGHT * 0.65, // 화면 80% 높이
+    height: SCREEN_HEIGHT * 0.725, // 화면 80% 높이
     backgroundColor: colors.WHITE,
     borderTopLeftRadius: BORDER_RADIUS.LG,
     borderTopRightRadius: BORDER_RADIUS.LG,

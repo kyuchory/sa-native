@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   Platform,
   ActivityIndicator
 } from 'react-native';
@@ -24,6 +23,7 @@ import { AddImageIcon, DeleteIcon } from '../components/CommonIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { handleApiError } from '../services/apiClient';
 import { AuthStackParamList } from '../types/navigation';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 type SupportCreateNavigationProp = StackNavigationProp<AuthStackParamList, 'SupportCreate'>;
 
@@ -57,6 +57,7 @@ export default function SupportCreateScreen() {
   const [priority, setPriority] = useState('normal');
   const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [loading, setLoading] = useState(false);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // 이미지 선택
   const pickImages = async () => {
@@ -65,7 +66,12 @@ export default function SupportCreateScreen() {
       if (Platform.OS !== 'web') {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다 . 설정에서 허용해주세요.');
+          setAlertModal({
+            visible: true,
+            title: '권한 필요',
+            message: '갤러리 접근 권한이 필요합니다 . 설정에서 허용해주세요.',
+            buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+          });
           return;
         }
       }
@@ -80,14 +86,24 @@ export default function SupportCreateScreen() {
       if (!result.canceled && result.assets) {
         const newImages = result.assets;
         if (images.length + newImages.length > 5) {
-          Alert.alert('알림', '이미지는 최대 5장까지 첨부할 수 있습니다.');
+          setAlertModal({
+            visible: true,
+            title: '알림',
+            message: '이미지는 최대 5장까지 첨부할 수 있습니다.',
+            buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+          });
           return;
         }
         setImages(prev => [...prev, ...newImages]);
       }
     } catch (error) {
       console.error('이미지 선택 오류:', error);
-      Alert.alert('오류', '이미지를 선택하는 중 오류가 발생했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '이미지를 선택하는 중 오류가 발생했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   };
 
@@ -109,15 +125,30 @@ export default function SupportCreateScreen() {
   // 폼 검증
   const validateForm = () => {
     if (!title.trim()) {
-      Alert.alert('알림', '제목을 입력해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '알림',
+        message: '제목을 입력해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       return false;
     }
     if (!content.trim()) {
-      Alert.alert('알림', '내용을 입력해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '알림',
+        message: '내용을 입력해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       return false;
     }
     if (!category) {
-      Alert.alert('알림', '카테고리를 선택해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '알림',
+        message: '카테고리를 선택해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       return false;
     }
     return true;
@@ -165,12 +196,28 @@ export default function SupportCreateScreen() {
       // 목록 새로고침 플래그 설정
       setShouldRefreshInquiries(true);
 
-      // 작성된 문의 상세 페이지로 이동
-      navigation.replace('SupportDetail', { inquiryId: result.inquiry_id });
+      // 성공 메시지 표시 후 상세 페이지로 이동
+      setAlertModal({
+        visible: true,
+        title: '문의 작성 완료',
+        message: '문의가 성공적으로 작성되었습니다.\n상세 내용을 확인해보세요.',
+        buttons: [{
+          text: '확인',
+          onPress: () => {
+            setAlertModal(null);
+            navigation.replace('SupportDetail', { inquiryId: result.inquiry_id });
+          }
+        }]
+      });
     } catch (error: any) {
       console.error('문의 작성 실패:', error);
       const errorMessage = handleApiError(error);
-      Alert.alert('오류', errorMessage);
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: errorMessage,
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setLoading(false);
     }
@@ -335,6 +382,17 @@ export default function SupportCreateScreen() {
 
 
       </ScrollView>
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }

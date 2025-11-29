@@ -3,7 +3,7 @@ import 'react-native-gesture-handler';
 import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedProps, runOnJS } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Dimensions, Alert, Modal, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Dimensions, Modal, ScrollView, ActivityIndicator } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
 import { captureRef } from 'react-native-view-shot';
@@ -16,6 +16,7 @@ import { StoryService } from '../services/storyService';
 import { SPACING, BORDER_RADIUS } from '../constants/theme';
 import CommonHeader from '../components/CommonHeader';
 import LoadingOverlay from '../components/LoadingOverlay';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 // Sub-components for performance optimization
 type CanvasSurfaceProps = {
@@ -749,6 +750,7 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
   const [isUploading, setIsUploading] = useState(false);
   const [showColorModal, setShowColorModal] = useState(false);
   const [showTextColorModal, setShowTextColorModal] = useState(false);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   const hasSelectedText = !!selectedId && elements.some(el => el.id === selectedId && el.type === 'text');
   const currentTextColor = (() => {
@@ -875,18 +877,33 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
 
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission required', 'Permission to access media library is required to save the image.');
+        setAlertModal({
+          visible: true,
+          title: '권한 필요',
+          message: '이미지를 저장하려면 미디어 라이브러리에 대한 접근 권한이 필요합니다.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
         return;
       }
 
       const asset = await MediaLibrary.createAssetAsync(uri);
       await MediaLibrary.createAlbumAsync('CanvasExports', asset, false).catch(() => {});
 
-      Alert.alert('Saved', 'Image saved to your gallery.');
+      setAlertModal({
+        visible: true,
+        title: '저장됨',
+        message: '이미지가 갤러리에 저장되었습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       navigation?.navigate?.('Somewhere', { exportedUri: uri });
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Failed to export');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '내보내기 실패',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   };
 
@@ -907,7 +924,12 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
       navigation.replace('DailyCutDetail', { storyId: response.id });
     } catch (error) {
       console.error('스토리 생성 실패:', error);
-      Alert.alert('업로드 실패', '스토리 업로드에 실패했습니다. 다시 시도해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '업로드 실패',
+        message: '스토리 업로드에 실패했습니다. 다시 시도해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setIsUploading(false);
     }
@@ -1107,6 +1129,17 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
           onSelectColor={c => { updateTextColor(c); setShowTextColorModal(false); }}
           onClose={() => setShowTextColorModal(false)}
         />
+
+        {/* Custom Alert Modal */}
+        {alertModal && (
+          <CustomAlertModal
+            visible={alertModal.visible}
+            title={alertModal.title}
+            message={alertModal.message}
+            buttons={alertModal.buttons}
+            onClose={() => setAlertModal(null)}
+          />
+        )}
       </View>
 
       {/* <LoadingOverlay

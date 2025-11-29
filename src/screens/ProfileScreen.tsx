@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFocusEffect, useNavigation, NavigationProp, RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../types/navigation';
 import { useThemeStore } from '../stores/themeStore';
@@ -12,6 +12,7 @@ import ProfileFeedGrid from '../components/ProfileFeedGrid';
 import ProfileCutGrid from '../components/ProfileCutGrid';
 import ProfilePostsList from '../components/ProfilePostsList';
 import MenuActionSheet from '../components/MenuActionSheet';
+import CustomAlertModal from '../components/CustomAlertModal';
 import { ReportEyeSlashIcon } from '../components/CommonIcons';
 
 // 서비스 imports
@@ -63,6 +64,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
   const [shortsLoading, setShortsLoading] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
   const isFirstFocusRef = useRef(true);
 
   // 프로필 스토어 상태
@@ -356,7 +358,12 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
 
       // 공통 에러 처리 유틸리티 사용
       const errorMessage = handleApiError(error);
-      Alert.alert('오류', errorMessage);
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: errorMessage,
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   };
 
@@ -370,36 +377,53 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
 
   // 사용자 차단 핸들러
   const handleBlockUser = () => {
-    Alert.alert(
-      '사용자 차단',
-      `${profileUser?.nickname || '사용자'}님을 정말 차단하시겠습니까?`,
-      [
+    setAlertModal({
+      visible: true,
+      title: '사용자 차단',
+      message: `${profileUser?.nickname || '사용자'}님을 정말 차단하시겠습니까?`,
+      buttons: [
         {
           text: '취소',
           style: 'cancel',
+          onPress: () => setAlertModal(null)
         },
         {
           text: '차단',
           style: 'destructive',
           onPress: async () => {
             if (!profileData?.id) {
-              Alert.alert('오류', '사용자 정보를 찾을 수 없습니다.');
+              setAlertModal({
+                visible: true,
+                title: '오류',
+                message: '사용자 정보를 찾을 수 없습니다.',
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
               return;
             }
 
             try {
               // 사용자 차단 API 호출
               await BlockService.blockUser(profileData.id);
-              Alert.alert('차단 완료', '차단이 완료되었습니다.\n설정 > 차단목록에서 차단 관리가 가능합니다.');
+              setAlertModal({
+                visible: true,
+                title: '차단 완료',
+                message: '차단이 완료되었습니다.\n설정 > 차단목록에서 차단 관리가 가능합니다.',
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
             } catch (error) {
               console.error('사용자 차단 실패:', error);
               const errorMessage = error instanceof Error ? error.message : '차단 처리에 실패했습니다.';
-              Alert.alert('오류', errorMessage);
+              setAlertModal({
+                visible: true,
+                title: '오류',
+                message: errorMessage,
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
             }
-          },
-        },
+          }
+        }
       ]
-    );
+    });
   };
 
 
@@ -515,6 +539,17 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
           },
         ]}
       />
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </View>
   );
 }

@@ -3,11 +3,11 @@ import {
   View,
   Text,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from 'react-native';
+import CustomAlertModal from '../components/CustomAlertModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/authStore';
 import { useThemeStore } from '../stores/themeStore';
@@ -19,27 +19,50 @@ export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  // Custom Alert Modal 상태
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
+
   const { loginWithCredentials, isLoading } = useAuthStore();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('오류', '이메일과 비밀번호를 모두 입력해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '이메일과 비밀번호를 모두 입력해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       return;
     }
 
     try {
       const result = await loginWithCredentials({ email, password });
-      
+
       if (result.success) {
-        Alert.alert('성공', '로그인이 완료되었습니다.');
+        setAlertModal({
+          visible: true,
+          title: '성공',
+          message: '로그인이 완료되었습니다.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
       } else {
-        Alert.alert('오류', result.error || '로그인에 실패했습니다.');
+        setAlertModal({
+          visible: true,
+          title: '오류',
+          message: result.error || '로그인에 실패했습니다.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
       }
-      
+
     } catch (error) {
-      Alert.alert('오류', '로그인 중 오류가 발생했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '로그인 중 오류가 발생했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   };
 
@@ -98,6 +121,17 @@ export default function LoginScreen({ navigation }: any) {
         </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }

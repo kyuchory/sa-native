@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +16,7 @@ import { FollowRequest } from '../types/follow';
 import CommonHeader from '../components/CommonHeader';
 import UserAvatar from '../components/UserAvatar';
 import { handleApiError } from '../services/apiClient';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 export default function FollowRequestsScreen() {
   const navigation = useNavigation();
@@ -30,6 +30,9 @@ export default function FollowRequestsScreen() {
   const [cursor, setCursor] = useState<number | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Custom Alert Modal 상태
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // 팔로우 요청 목록 가져오기
   const fetchFollowRequests = async () => {
@@ -83,11 +86,21 @@ export default function FollowRequestsScreen() {
       // 목록에서 제거
       setRequests(prev => prev.filter(r => r.id !== request.id));
 
-      Alert.alert('수락 완료', `${request.requester.nickname}님의 팔로우 요청을 수락했습니다.`);
+      setAlertModal({
+        visible: true,
+        title: '수락 완료',
+        message: `${request.requester.nickname}님의 팔로우 요청을 수락했습니다.`,
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } catch (error) {
       console.error('팔로우 요청 수락 실패:', error);
       const errorMessage = handleApiError(error);
-      Alert.alert('오류', errorMessage);
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: errorMessage,
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   };
 
@@ -99,11 +112,21 @@ export default function FollowRequestsScreen() {
       // 목록에서 제거
       setRequests(prev => prev.filter(r => r.id !== request.id));
 
-      Alert.alert('거절 완료', `${request.requester.nickname}님의 팔로우 요청을 거절했습니다.`);
+      setAlertModal({
+        visible: true,
+        title: '거절 완료',
+        message: `${request.requester.nickname}님의 팔로우 요청을 거절했습니다.`,
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } catch (error) {
       console.error('팔로우 요청 거절 실패:', error);
       const errorMessage = handleApiError(error);
-      Alert.alert('오류', errorMessage);
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: errorMessage,
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   };
 
@@ -212,6 +235,17 @@ export default function FollowRequestsScreen() {
         showsVerticalScrollIndicator={false}
         style={{ marginBottom: insets.bottom }}
       />
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </View>
   );
 }

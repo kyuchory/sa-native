@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl, Alert, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
+import { View, FlatList, StyleSheet, RefreshControl, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
+import CustomAlertModal from '../components/CustomAlertModal';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SPACING } from '../constants/theme';
@@ -48,6 +49,9 @@ export default function HomeScreen() {
   const [commentSheetVisible, setCommentSheetVisible] = useState(false);
   const [selectedCommentItem, setSelectedCommentItem] = useState<PostListItem | null>(null);
 
+  // Custom Alert Modal 상태
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
+
   const { shouldRefreshPosts, setShouldRefreshPosts } = usePostStore();
 
   // ---------- Helper: shallow compare pagination fields ----------
@@ -90,7 +94,12 @@ export default function HomeScreen() {
       }
     } catch (error) {
       console.error('게시글 로드 실패:', error);
-      Alert.alert('오류', '게시글을 불러오는데 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '게시글을 불러오는데 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
 
       // 에러라도 최초 로딩은 완료된 것으로 판단
       if (isFirstLoad) {
@@ -127,7 +136,12 @@ export default function HomeScreen() {
         setCategories(normalized);
       } catch (err) {
         console.error('카테고리 로드 실패:', err);
-        Alert.alert('오류', '카테고리를 불러오는데 실패했습니다.');
+        setAlertModal({
+          visible: true,
+          title: '오류',
+          message: '카테고리를 불러오는데 실패했습니다.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
       }
     };
 
@@ -301,6 +315,17 @@ export default function HomeScreen() {
           type="post"
           onCommentCountUpdate={handleCommentCountUpdate}
           onAuthorPress={handleAuthorPressFromSheet}
+        />
+      )}
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
         />
       )}
     </View>

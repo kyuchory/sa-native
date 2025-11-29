@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +12,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
 import { useThemeStore } from '../stores/themeStore';
 import CommonHeader from '../components/CommonHeader';
+import CustomAlertModal from '../components/CustomAlertModal';
 import { CameraIcon, GalleryIcon, AlertIcon } from '../components/CutIcons';
 import { SPACING, TYPOGRAPHY, COLORS, BORDER_RADIUS } from '../constants/theme';
 import { normalizeVideoUri } from '../utils/normalizeVideoUri';
@@ -24,6 +24,7 @@ export default function CutUploadSelectScreen() {
   const navigation = useNavigation<CutUploadSelectNavigationProp>();
 
   const [isPickingVideo, setIsPickingVideo] = useState(false);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
   const styles = createStyles(colors);
 
   const handleCameraPress = async () => {
@@ -33,7 +34,12 @@ export default function CutUploadSelectScreen() {
       // 카메라 권한 요청
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('권한 필요', '카메라 사용을 위해 권한이 필요합니다.');
+        setAlertModal({
+          visible: true,
+          title: '권한 필요',
+          message: '카메라 사용을 위해 권한이 필요합니다.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
         return;
       }
 
@@ -60,7 +66,12 @@ export default function CutUploadSelectScreen() {
       }
     } catch (error) {
       console.error('카메라 촬영 실패:', error);
-      Alert.alert('오류', '카메라를 실행할 수 없습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '카메라를 실행할 수 없습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setIsPickingVideo(false);
     }
@@ -73,7 +84,12 @@ export default function CutUploadSelectScreen() {
       // 갤러리 권한 요청
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('권한 필요', '갤러리 접근을 위해 권한이 필요합니다.');
+        setAlertModal({
+          visible: true,
+          title: '권한 필요',
+          message: '갤러리 접근을 위해 권한이 필요합니다.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
         return;
       }
 
@@ -100,7 +116,12 @@ export default function CutUploadSelectScreen() {
       }
     } catch (error) {
       console.error('갤러리 선택 실패:', error);
-      Alert.alert('오류', '갤러리에서 영상을 선택할 수 없습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '갤러리에서 영상을 선택할 수 없습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setIsPickingVideo(false);
     }
@@ -167,6 +188,17 @@ export default function CutUploadSelectScreen() {
           </View>
         </View>
       </SafeAreaView>
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </>
   );
 }

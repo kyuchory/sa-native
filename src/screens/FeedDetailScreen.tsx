@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, Pressable, TouchableOpacity, TouchableWithoutFeedback, Alert, Platform, Keyboard, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Platform, Keyboard, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer, VideoSource } from 'expo-video';
 import { getThumbnailAsync } from 'expo-video-thumbnails';
@@ -33,6 +33,7 @@ import useFeedStore from '../stores/feedStore';
 import useProfileStore from '../stores/profileStore';
 import { useNetworkState, shouldAutoPlayVideo } from '../hooks/useNetworkState';
 import { useVideoSettingsStore } from '../stores/videoSettingsStore';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -276,6 +277,9 @@ export default function FeedDetailScreen() {
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
+
+  // Custom Alert Modal 상태
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // 좋아요/북마크 로딩 상태
   const [isFeedLikeLoading, setIsFeedLikeLoading] = useState(false);
@@ -656,14 +660,15 @@ export default function FeedDetailScreen() {
 
   // 피드 삭제
   const handleDeleteFeed = async () => {
-
-    Alert.alert(
-      '피드 삭제',
-      '피드를 삭제하시겠습니까? 삭제된 피드는 복구할 수 없습니다.',
-      [
+    setAlertModal({
+      visible: true,
+      title: '피드 삭제',
+      message: '피드를 삭제하시겠습니까? 삭제된 피드는 복구할 수 없습니다.',
+      buttons: [
         {
           text: '취소',
           style: 'cancel',
+          onPress: () => setAlertModal(null),
         },
         {
           text: '삭제',
@@ -684,14 +689,25 @@ export default function FeedDetailScreen() {
               }
 
               // 삭제 성공 시 이전 화면으로 돌아가기
-              Alert.alert('삭제 완료', '피드가 삭제되었습니다.', [
-                {
+              setAlertModal({
+                visible: true,
+                title: '삭제 완료',
+                message: '피드가 삭제되었습니다.',
+                buttons: [{
                   text: '확인',
-                  onPress: () => navigation.goBack(),
-                },
-              ]);
+                  onPress: () => {
+                    setAlertModal(null);
+                    navigation.goBack();
+                  }
+                }]
+              });
             } catch (error) {
-              Alert.alert('오류', '피드 삭제에 실패했습니다.');
+              setAlertModal({
+                visible: true,
+                title: '오류',
+                message: '피드 삭제에 실패했습니다.',
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
               console.error('피드 삭제 실패:', error);
             } finally {
               setLoading(false);
@@ -699,7 +715,7 @@ export default function FeedDetailScreen() {
           },
         },
       ]
-    );
+    });
   };
   
   // TapPauseVideo 컴포넌트 - 탭하면 재생/일시정지
@@ -1110,11 +1126,28 @@ export default function FeedDetailScreen() {
             icon: <ReportIcon size={20} color={colors.ERROR} />,
             color: colors.ERROR,
             onPress: () => {
-              Alert.alert('신고', '피드 신고 기능이 구현 예정입니다.');
+              setAlertModal({
+                visible: true,
+                title: '신고',
+                message: '피드 신고 기능이 구현 예정입니다.',
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
+              setMenuActionSheetVisible(false);
             },
           },
         ]}
         />
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }

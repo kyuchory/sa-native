@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -22,6 +21,7 @@ import ChatScreenEmptyState from '../components/ChatScreenEmptyState';
 import ChatScreenLoading from '../components/ChatScreenLoading';
 import ChatEditActionBar from '../components/ChatEditActionBar';
 import MenuActionSheet from '../components/MenuActionSheet';
+import CustomAlertModal from '../components/CustomAlertModal';
 import { CheckIcon, MuteIcon, DeleteIcon, CheckboxEmptyIcon, CheckboxFilledIcon } from '../components/ChatActionIcons';
 
 // Services
@@ -53,6 +53,7 @@ export default function ChatScreen() {
   const [selectedChatRoom, setSelectedChatRoom] = useState<ChatRoom | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedChatIds, setSelectedChatIds] = useState<Set<number>>(new Set());
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // NOTE: 초기 로드 로직은 useFocusEffect에서 처리
 
@@ -212,7 +213,12 @@ export default function ChatScreen() {
       console.log('📋 채팅방 목록 로드 완료:', data.chat_rooms.length, '개');
     } catch (error: any) {
       console.error('채팅방 목록 로드 실패:', error);
-      Alert.alert('오류', error.message || '채팅방 목록을 불러오는데 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: error.message || '채팅방 목록을 불러오는데 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       if (showLoading) setIsLoading(false);
     }
@@ -234,7 +240,12 @@ export default function ChatScreen() {
       console.log('📋 추가 채팅방 로드 완료:', data.chat_rooms.length, '개');
     } catch (error: any) {
       console.error('추가 채팅방 로드 실패:', error);
-      Alert.alert('오류', '추가 채팅방을 불러오는데 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '추가 채팅방을 불러오는데 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setIsLoadingMore(false);
     }
@@ -269,15 +280,15 @@ export default function ChatScreen() {
   // 채팅방 삭제 (나가기)
   const handleDeleteChat = async () => {
     if (!selectedChatRoom) return;
-    
-    Alert.alert(
-      '채팅방 나가기',
-      `"${getChatDisplayName(selectedChatRoom)}" 채팅방을 나가시겠습니까?\n나간 후에는 이전 메시지를 볼 수 없습니다.`,
-      [
-        { text: '취소', style: 'cancel' },
+
+    setAlertModal({
+      visible: true,
+      title: '채팅방 나가기',
+      message: `"${getChatDisplayName(selectedChatRoom)}" 채팅방을 나가시겠습니까?\n나간 후에는 이전 메시지를 볼 수 없습니다.`,
+      buttons: [
+        { text: '취소', onPress: () => setAlertModal(null), style: 'cancel' },
         {
           text: '나가기',
-          style: 'destructive',
           onPress: async () => {
             try {
               console.log('선택된 채팅방 아이디:', selectedChatRoom.id);
@@ -285,15 +296,26 @@ export default function ChatScreen() {
               // 성공 시 로컬 상태에서 제거
               setAllChatRooms(prev => prev.filter(room => room.id !== selectedChatRoom.id));
               console.log('선택된 채팅방 나가기 성공');
-              Alert.alert('성공', '채팅방을 나갔습니다.');
+              setAlertModal({
+                visible: true,
+                title: '성공',
+                message: '채팅방을 나갔습니다.',
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
             } catch (error: any) {
               console.error('채팅방 나가기 실패:', error);
-              Alert.alert('오류', error.message || '채팅방 나가기에 실패했습니다.');
+              setAlertModal({
+                visible: true,
+                title: '오류',
+                message: error.message || '채팅방 나가기에 실패했습니다.',
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
             }
-          }
+          },
+          style: 'destructive'
         }
       ]
-    );
+    });
   };
 
   // 채팅방 읽음 처리
@@ -328,7 +350,12 @@ export default function ChatScreen() {
       setActionSheetVisible(true);
       setSelectedChatRoom(currentSelectedChatRoom); // 다시 선택된 채팅방으로 설정
 
-      Alert.alert('오류', error.message || '읽음 처리에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: error.message || '읽음 처리에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   };
 
@@ -336,20 +363,22 @@ export default function ChatScreen() {
   const handleMuteChat = () => {
     if (!selectedChatRoom) return;
 
-    Alert.alert(
-      '알림 끄기',
-      `"${getChatDisplayName(selectedChatRoom)}" 채팅방의 알림을 끄시겠습니까?`,
-      [
-        { text: '취소', style: 'cancel' },
+    setAlertModal({
+      visible: true,
+      title: '알림 끄기',
+      message: `"${getChatDisplayName(selectedChatRoom)}" 채팅방의 알림을 끄시겠습니까?`,
+      buttons: [
+        { text: '취소', onPress: () => setAlertModal(null), style: 'cancel' },
         {
           text: '알림 끄기',
           onPress: () => {
             console.log('알림 끄기:', selectedChatRoom.id);
             // TODO: API 호출 및 상태 업데이트
+            setAlertModal(null);
           }
         }
       ]
-    );
+    });
   };
 
   // 채팅방 표시 이름 가져오기
@@ -397,36 +426,47 @@ export default function ChatScreen() {
   const handleBulkDelete = async () => {
     if (selectedChatIds.size === 0) return;
 
-    Alert.alert(
-      '채팅방 나가기',
-      `선택한 ${selectedChatIds.size}개의 채팅방을 나가시겠습니까?\n나간 후에는 이전 메시지를 볼 수 없습니다.`,
-      [
-        { text: '취소', style: 'cancel' },
+    setAlertModal({
+      visible: true,
+      title: '채팅방 나가기',
+      message: `선택한 ${selectedChatIds.size}개의 채팅방을 나가시겠습니까?\n나간 후에는 이전 메시지를 볼 수 없습니다.`,
+      buttons: [
+        { text: '취소', onPress: () => setAlertModal(null), style: 'cancel' },
         {
           text: '나가기',
-          style: 'destructive',
           onPress: async () => {
             try {
               const chatRoomIds = Array.from(selectedChatIds);
-              
+
               // 병렬로 모든 채팅방 나가기 처리
               const deletePromises = chatRoomIds.map(id => ChatService.leaveChatRoom(id));
               await Promise.all(deletePromises);
-              
+
               // 성공 시 로컬 상태에서 제거
               setAllChatRooms(prev => prev.filter(room => !selectedChatIds.has(room.id)));
               setSelectedChatIds(new Set());
               setIsEditMode(false);
-              
-              Alert.alert('성공', `${chatRoomIds.length}개 채팅방을 나갔습니다.`);
+
+              setAlertModal({
+                visible: true,
+                title: '성공',
+                message: `${chatRoomIds.length}개 채팅방을 나갔습니다.`,
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
             } catch (error: any) {
               console.error('다중 채팅방 나가기 실패:', error);
-              Alert.alert('오류', error.message || '일부 채팅방 나가기에 실패했습니다.');
+              setAlertModal({
+                visible: true,
+                title: '오류',
+                message: error.message || '일부 채팅방 나가기에 실패했습니다.',
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
             }
-          }
+          },
+          style: 'destructive'
         }
       ]
-    );
+    });
   };
 
 
@@ -532,6 +572,17 @@ export default function ChatScreen() {
           totalCount={allChatRooms.length}
           onSelectAll={handleSelectAll}
           onDelete={handleBulkDelete}
+        />
+      )}
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
         />
       )}
     </SafeAreaView>

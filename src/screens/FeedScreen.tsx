@@ -9,6 +9,8 @@ import useFeedStore from '../stores/feedStore';
 import useProfileStore from '../stores/profileStore';
 import useStoryStore from '../stores/storyStore';
 
+import CustomAlertModal from '../components/CustomAlertModal';
+
 // 컴포넌트 imports
 import MainHeader from '../components/MainHeader';
 import StorySection from '../components/StorySection';
@@ -47,6 +49,9 @@ export default function FeedScreen() {
   // 댓글 액션 시트 관련 상태
   const [commentActionSheetVisible, setCommentActionSheetVisible] = useState(false);
   const [selectedFeedForComments, setSelectedFeedForComments] = useState<FeedListItem | null>(null);
+
+  // Custom Alert Modal 상태
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // feeds 참조로 viewability 핸들러 최적화
   const feedsRef = useRef<FeedListItem[]>([]);
@@ -92,7 +97,12 @@ export default function FeedScreen() {
       });
     } catch (error) {
       console.error('피드 로드 실패:', error);
-      Alert.alert('오류', '피드를 불러오는데 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '피드를 불러오는데 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       setFeedState(prev => ({ ...prev, loading: false }));
     }
   };
@@ -217,13 +227,15 @@ export default function FeedScreen() {
   const handleDeleteFeed = async () => {
     if (!selectedFeed) return;
 
-    Alert.alert(
-      '피드 삭제',
-      '피드를 삭제하시겠습니까? 삭제된 피드는 복구할 수 없습니다.',
-      [
+    setAlertModal({
+      visible: true,
+      title: '피드 삭제',
+      message: '피드를 삭제하시겠습니까? 삭제된 피드는 복구할 수 없습니다.',
+      buttons: [
         {
           text: '취소',
           style: 'cancel',
+          onPress: () => setAlertModal(null)
         },
         {
           text: '삭제',
@@ -241,16 +253,26 @@ export default function FeedScreen() {
               setMenuActionSheetVisible(false);
               setSelectedFeed(null);
 
-              // 삭제 완료 알림
-              Alert.alert('삭제 완료', '피드가 삭제되었습니다.');
+              // 삭제 완료 알림 - 모달을 완료로 감추고 성공 메시지를 표시
+              setAlertModal({
+                visible: true,
+                title: '삭제 완료',
+                message: '피드가 삭제되었습니다.',
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
             } catch (error) {
-              Alert.alert('오류', '피드 삭제에 실패했습니다.');
+              setAlertModal({
+                visible: true,
+                title: '오류',
+                message: '피드 삭제에 실패했습니다.',
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
               console.error('피드 삭제 실패:', error);
             }
           },
         },
       ]
-    );
+    });
   };
 
   // 피드 렌더링 - 가시성 상태 전달 및 메모이제이션
@@ -404,7 +426,12 @@ export default function FeedScreen() {
             icon: <ReportIcon size={20} color={colors.ERROR} />,
             color: colors.ERROR,
             onPress: () => {
-              Alert.alert('신고', '피드 신고 기능이 구현 예정입니다.');
+              setAlertModal({
+                visible: true,
+                title: '신고',
+                message: '피드 신고 기능이 구현 예정입니다.',
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
               setMenuActionSheetVisible(false);
             },
           },
@@ -423,6 +450,17 @@ export default function FeedScreen() {
           type="feed"
           onCommentCountUpdate={handleCommentCountUpdate}
           onAuthorPress={() => handleUserPress(selectedFeedForComments.user.id)}
+        />
+      )}
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
         />
       )}
     </View>

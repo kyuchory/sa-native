@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   TouchableOpacity,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { COLORS, SPACING } from '../constants/theme';
+import CustomAlertModal from './CustomAlertModal';
 
 interface CommentActionsProps {
   commentId: number;
@@ -35,44 +35,52 @@ export function CommentActions({
   onDelete,
   onReply,
 }: CommentActionsProps) {
-  
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
+
   const handleMorePress = () => {
-    const actions = [
+    const buttons = [
       {
         text: '답글 달기',
-        onPress: () => onReply(),
+        onPress: () => { onReply(); setAlertModal(null); },
       },
     ];
 
     if (isOwner) {
-      actions.push(
+      buttons.push(
         {
           text: '수정',
-          onPress: () => onEdit(commentId),
+          onPress: () => { onEdit(commentId); setAlertModal(null); },
         },
         {
           text: '삭제',
           onPress: () => {
-            Alert.alert(
-              '댓글 삭제',
-              '정말로 이 댓글을 삭제하시겠습니까?',
-              [
-                { text: '취소', style: 'cancel' },
-                { 
-                  text: '삭제', 
-                  style: 'destructive',
-                  onPress: () => onDelete(commentId)
+            setAlertModal({
+              visible: true,
+              title: '댓글 삭제',
+              message: '정말로 이 댓글을 삭제하시겠습니까?',
+              buttons: [
+                { text: '취소', onPress: () => { setAlertModal(null); }, style: 'cancel' },
+                {
+                  text: '삭제',
+                  onPress: () => { onDelete(commentId); setAlertModal(null); },
+                  style: 'destructive'
                 },
               ]
-            );
+            });
           },
         }
       );
     }
 
-    actions.push({ text: '취소', onPress: () => {} });
+    buttons.push({ text: '취소', onPress: () => { setAlertModal(null); } });
 
-    Alert.alert('댓글 옵션', '', actions);
+    // For multiple options, show as modal with multiple buttons
+    setAlertModal({
+      visible: true,
+      title: '댓글 옵션',
+      message: '',
+      buttons: buttons,
+    });
   };
 
   return (
@@ -84,6 +92,16 @@ export function CommentActions({
       >
         <MoreIcon />
       </TouchableOpacity>
+
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </View>
   );
 }

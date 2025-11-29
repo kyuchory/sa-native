@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
   Platform,
   Keyboard,
 } from 'react-native';
@@ -13,6 +12,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
+import CustomAlertModal from '../components/CustomAlertModal';
 // Components
 import CommonHeader from '../components/CommonHeader';
 import { SearchIcon, MenuIcon, PlusCircleIcon, SendIcon, GalleryImageIcon, GalleryVideoIcon } from '../components/ChatDetailIcons';
@@ -86,6 +86,9 @@ export default function ChatDetailScreen() {
   const [initialMediaIndex, setInitialMediaIndex] = useState(0);
 
 
+  // Alert modal state
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string} | null>(null);
+
   // Keyboard height for input adjustments
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -123,7 +126,7 @@ export default function ChatDetailScreen() {
     }, [removePendingMessage, addMessage]),
     onMessageFailed: useCallback((tempId: string, error: any) => {
       removePendingMessage(tempId);
-      Alert.alert('전송 실패', '메시지를 전송할 수 없습니다. 다시 시도해주세요.');
+      setAlertModal({ visible: true, title: '전송 실패', message: '메시지를 전송할 수 없습니다. 다시 시도해주세요.' });
     }, [removePendingMessage]),
     onTypingUpdate: useCallback((_typingUsers: Array<{ user_id: number; nickname: string; timestamp: number }>) => {
       // 타이핑 상태는 useChatSocket에서 관리
@@ -216,7 +219,7 @@ export default function ChatDetailScreen() {
       stopTypingIndicator();
     } catch (error) {
       removePendingMessage(tempMessageId);
-      Alert.alert('전송 실패', '메시지를 전송할 수 없습니다. 다시 시도해주세요.');
+      setAlertModal({ visible: true, title: '전송 실패', message: '메시지를 전송할 수 없습니다. 다시 시도해주세요.' });
     }
   }, [inputText, user, chatRoomId, addPendingMessage, removePendingMessage, sendMessage, stopTypingIndicator]);
 
@@ -246,7 +249,7 @@ export default function ChatDetailScreen() {
         await handleSendImageMessage(asset);
       }
     } catch (error) {
-      Alert.alert('오류', '사진 촬영에 실패했습니다.');
+      setAlertModal({ visible: true, title: '오류', message: '사진 촬영에 실패했습니다.' });
     }
     setAttachmentActionSheetVisible(false);
   }, [user]);
@@ -258,7 +261,7 @@ export default function ChatDetailScreen() {
         await handleSendImageMessage(asset);
       }
     } catch (error) {
-      Alert.alert('오류', '사진 선택에 실패했습니다.');
+      setAlertModal({ visible: true, title: '오류', message: '사진 선택에 실패했습니다.' });
     }
     setAttachmentActionSheetVisible(false);
   }, [user]);
@@ -278,7 +281,7 @@ export default function ChatDetailScreen() {
         });
       }
     } catch (error) {
-      Alert.alert('오류', '비디오 선택에 실패했습니다.');
+      setAlertModal({ visible: true, title: '오류', message: '비디오 선택에 실패했습니다.' });
     }
     setAttachmentActionSheetVisible(false);
   }, [user, navigation]);
@@ -314,7 +317,7 @@ export default function ChatDetailScreen() {
       await sendMessage(tempMessageId, chatRoomId, 'image', uploadResponse.image_path, []);
     } catch (error) {
       removePendingMessage(tempMessageId);
-      Alert.alert('전송 실패', '이미지를 전송할 수 없습니다. 다시 시도해주세요.');
+      setAlertModal({ visible: true, title: '전송 실패', message: '이미지를 전송할 수 없습니다. 다시 시도해주세요.' });
     }
   }, [user, chatRoomId, addPendingMessage, removePendingMessage, uploadChatImage, sendMessage]);
 
@@ -353,7 +356,7 @@ export default function ChatDetailScreen() {
       await sendMessage(tempMessageId, chatRoomId, 'video', content, []);
     } catch (error) {
       removePendingMessage(tempMessageId);
-      Alert.alert('전송 실패', '비디오를 전송할 수 없습니다. 다시 시도해주세요.');
+      setAlertModal({ visible: true, title: '전송 실패', message: '비디오를 전송할 수 없습니다. 다시 시도해주세요.' });
     }
   }, [user, chatRoomId, addPendingMessage, removePendingMessage, uploadChatVideo, sendMessage]);
 
@@ -364,9 +367,9 @@ export default function ChatDetailScreen() {
       await ChatService.registerNotice(chatRoomId, {
         content: selectedMessage.content
       });
-      Alert.alert('성공', '공지사항이 등록되었습니다.');
+      setAlertModal({ visible: true, title: '성공', message: '공지사항이 등록되었습니다.' });
     } catch (error: any) {
-      Alert.alert('오류', error.response?.data?.message || '공지사항 등록에 실패했습니다.');
+      setAlertModal({ visible: true, title: '오류', message: error.response?.data?.message || '공지사항 등록에 실패했습니다.' });
     } finally {
       setSelectedMessage(null);
       setMenuActionSheetVisible(false);
@@ -397,7 +400,7 @@ export default function ChatDetailScreen() {
       });
     } catch (error) {
       console.error('채팅방 멤버 정보 로드 실패:', error);
-      Alert.alert('오류', '멤버 정보를 불러오는데 실패했습니다.');
+      setAlertModal({ visible: true, title: '오류', message: '멤버 정보를 불러오는데 실패했습니다.' });
     }
   }, [chatRoomId, navigation]);
 
@@ -766,6 +769,15 @@ export default function ChatDetailScreen() {
         initialIndex={initialMediaIndex}
         title={localChatRoomName}
         onClose={handleCloseImageViewer}
+      />
+
+      {/* Alert modal */}
+      <CustomAlertModal
+        visible={alertModal?.visible || false}
+        title={alertModal?.title || ''}
+        message={alertModal?.message || ''}
+        buttons={[{ text: '확인', onPress: () => setAlertModal(null) }]}
+        onClose={() => setAlertModal(null)}
       />
 
     </SafeAreaView>

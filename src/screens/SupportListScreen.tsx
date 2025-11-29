@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, TouchableOpacity, Alert, Text } from 'react-native';
+import { View, FlatList, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import { SPACING, TYPOGRAPHY } from '../constants/theme';
@@ -13,6 +13,7 @@ import { InquiryListItem } from '../types/support';
 import { handleApiError } from '../services/apiClient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CreateFeedIcon } from '../components/CommonIcons';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 // 유틸리티 함수들 (원래 supportMockData.ts에 있던 함수들)
 const getCategoryText = (category?: string) => {
@@ -99,6 +100,8 @@ export default function SupportListScreen() {
   const [priorityFilter, setPriorityFilter] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
 
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
+
   // 초기 데이터 로드 (컴포넌트 마운트 시)
   useEffect(() => {
     loadInquiries();
@@ -135,7 +138,12 @@ export default function SupportListScreen() {
     } catch (error) {
       console.error('문의 목록 로드 실패:', error);
       const errorMessage = handleApiError(error);
-      Alert.alert('오류', errorMessage);
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: errorMessage,
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setLoading(false);
     }
@@ -257,6 +265,17 @@ export default function SupportListScreen() {
             onPageChange={handlePageChange}
           />
         </View>
+      )}
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
       )}
     </SafeAreaView>
   );

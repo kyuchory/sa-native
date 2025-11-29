@@ -28,6 +28,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SaveIcon, ShareIcon } from './CommonIcons';
+import CustomAlertModal from './CustomAlertModal';
 import { useVideoSettingsStore } from '../stores/videoSettingsStore';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -226,6 +227,7 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
   const [currentPage, setCurrentPage] = useState(initialIndex);
   const [isZoomed, setIsZoomed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
   
   const pageTranslateX = useSharedValue(-initialIndex * SCREEN_WIDTH);
   const savedPageTranslateX = useSharedValue(-initialIndex * SCREEN_WIDTH);
@@ -328,7 +330,7 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
 
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
-        alert('갤러리 저장 권한이 필요합니다.');
+        setAlertModal({ visible: true, title: '권한 필요', message: '갤러리 저장 권한이 필요합니다.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
         return;
       }
 
@@ -351,7 +353,7 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
           }
         } catch (urlError) {
           console.error('URL 검증 실패:', urlError);
-          alert('이미지가 유효하지 않습니다. 링크가 만료되었을 수 있습니다.');
+          setAlertModal({ visible: true, title: '오류', message: '이미지가 유효하지 않습니다. 링크가 만료되었을 수 있습니다.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
           throw urlError;
         }
 
@@ -375,7 +377,7 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
           localUri = file.uri;
         } catch (downloadError) {
           console.error('다운로드 실패:', downloadError);
-          alert(`다운로드에 실패했습니다. 네트워크 상태를 확인해주세요.`);
+          setAlertModal({ visible: true, title: '오류', message: '다운로드에 실패했습니다. 네트워크 상태를 확인해주세요.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
           throw downloadError;
         }
       }
@@ -396,17 +398,17 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
         }
       }
 
-      alert(`${mediaItem.type === 'video' ? '비디오' : '이미지'}가 갤러리에 저장되었습니다.`);
+      setAlertModal({ visible: true, title: '저장 완료', message: `${mediaItem.type === 'video' ? '비디오' : '이미지'}가 갤러리에 저장되었습니다.`, buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
     } catch (error) {
       console.error('미디어 저장 실패:', error);
       // 더 구체적인 에러 메시지
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (errorMessage?.includes('404')) {
-        alert('이미지를 찾을 수 없습니다. 링크가 만료되었거나 삭제되었을 수 있습니다.');
+        setAlertModal({ visible: true, title: '오류', message: '이미지를 찾을 수 없습니다. 링크가 만료되었거나 삭제되었을 수 있습니다.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
       } else if (errorMessage?.includes('타임아웃')) {
-        alert('다운로드가 너무 오래 걸립니다. 네트워크 상태를 확인해주세요.');
+        setAlertModal({ visible: true, title: '오류', message: '다운로드가 너무 오래 걸립니다. 네트워크 상태를 확인해주세요.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
       } else {
-        alert('미디어 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        setAlertModal({ visible: true, title: '오류', message: '미디어 저장에 실패했습니다. 잠시 후 다시 시도해주세요.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
       }
     } finally {
       setIsSaving(false);
@@ -421,7 +423,7 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
       // 공유 가능 여부 확인
       const isAvailable = await Sharing.isAvailableAsync();
       if (!isAvailable) {
-        alert('이 기기에서는 공유 기능을 사용할 수 없습니다.');
+        setAlertModal({ visible: true, title: '공유 불가', message: '이 기기에서는 공유 기능을 사용할 수 없습니다.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
         return;
       }
 
@@ -443,7 +445,7 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
           }
         } catch (urlError) {
           console.error('URL 검증 실패:', urlError);
-          alert('이미지가 유효하지 않습니다. 링크가 만료되었을 수 있습니다.');
+          setAlertModal({ visible: true, title: '오류', message: '이미지가 유효하지 않습니다. 링크가 만료되었을 수 있습니다.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
           return;
         }
 
@@ -466,7 +468,7 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
           localUri = file.uri;
         } catch (downloadError) {
           console.error('다운로드 실패:', downloadError);
-          alert(`다운로드에 실패했습니다. 네트워크 상태를 확인해주세요.`);
+          setAlertModal({ visible: true, title: '오류', message: '다운로드에 실패했습니다. 네트워크 상태를 확인해주세요.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
           return;
         }
       }
@@ -484,11 +486,11 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
       console.error('미디어 공유 실패:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (errorMessage?.includes('404')) {
-        alert('이미지를 찾을 수 없습니다. 링크가 만료되었거나 삭제되었을 수 있습니다.');
+        setAlertModal({ visible: true, title: '오류', message: '이미지를 찾을 수 없습니다. 링크가 만료되었거나 삭제되었을 수 있습니다.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
       } else if (errorMessage?.includes('타임아웃')) {
-        alert('다운로드가 너무 오래 걸립니다. 네트워크 상태를 확인해주세요.');
+        setAlertModal({ visible: true, title: '오류', message: '다운로드가 너무 오래 걸립니다. 네트워크 상태를 확인해주세요.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
       } else {
-        alert('미디어 공유에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        setAlertModal({ visible: true, title: '오류', message: '미디어 공유에 실패했습니다. 잠시 후 다시 시도해주세요.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
       }
     }
   }, [mediaItems, currentPage]);
@@ -566,6 +568,17 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
               <Text style={styles.menuText}>공유</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Custom Alert Modal */}
+          {alertModal && (
+            <CustomAlertModal
+              visible={alertModal.visible}
+              title={alertModal.title}
+              message={alertModal.message}
+              buttons={alertModal.buttons}
+              onClose={() => setAlertModal(null)}
+            />
+          )}
         </Animated.View>
       </GestureHandlerRootView>
     </Modal>

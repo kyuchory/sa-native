@@ -5,8 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
-  Alert
+  TextInput
 } from 'react-native';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { RouteProp } from '@react-navigation/native';
@@ -26,6 +25,7 @@ import { ContentBlockComponent } from '../components/ContentBlocks';
 import { AddTextIcon, AddImageIcon, AddVideoIcon } from '../components/CommonIcons';
 import { WriteIcon } from '../components/HomeHeaderIcons';
 import LoadingOverlay from '../components/LoadingOverlay';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 // Services
 import { PostService } from '../services/postService';
@@ -62,6 +62,7 @@ export default function EditPostScreen() {
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isLoadingPost, setIsLoadingPost] = useState(true);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // 게시물 데이터 로드
   const loadPostData = async () => {
@@ -91,9 +92,19 @@ export default function EditPostScreen() {
       setContentBlocks(convertedBlocks);
 
     } catch (error) {
-      Alert.alert('오류', '게시물을 불러오는데 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '게시물을 불러오는데 실패했습니다.',
+        buttons: [{
+          text: '확인',
+          onPress: () => {
+            setAlertModal(null);
+            navigation.goBack();
+          }
+        }]
+      });
       console.error('게시물 로드 실패:', error);
-      navigation.goBack();
     } finally {
       setIsLoadingPost(false);
     }
@@ -134,7 +145,12 @@ export default function EditPostScreen() {
       const categoriesData = await PostService.getCategories();
       setCategories(categoriesData);
     } catch (error) {
-      Alert.alert('오류', '카테고리를 불러오는데 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '카테고리를 불러오는데 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       console.error('카테고리 로드 실패:', error);
     } finally {
       setIsLoadingCategories(false);
@@ -215,7 +231,12 @@ export default function EditPostScreen() {
       // 권한 요청
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.');
+        setAlertModal({
+          visible: true,
+          title: '권한 필요',
+          message: '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
         return;
       }
 
@@ -257,7 +278,12 @@ export default function EditPostScreen() {
 
         } catch (uploadError) {
           console.error('이미지 업로드 실패:', uploadError);
-          Alert.alert('오류', '이미지 업로드에 실패했습니다.');
+          setAlertModal({
+            visible: true,
+            title: '오류',
+            message: '이미지 업로드에 실패했습니다.',
+            buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+          });
 
           // 업로드 실패 시 블록 제거
           setContentBlocks(prev => prev.filter(block => block.id !== newImageBlock.id));
@@ -265,7 +291,12 @@ export default function EditPostScreen() {
       }
     } catch (error) {
       console.error('이미지 선택 실패:', error);
-      Alert.alert('오류', '이미지 선택에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '이미지 선택에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setIsLoading(false);
       setIsUploadingImage(false);
@@ -278,7 +309,12 @@ export default function EditPostScreen() {
       // 권한 요청
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.');
+        setAlertModal({
+          visible: true,
+          title: '권한 필요',
+          message: '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
         return;
       }
 
@@ -305,7 +341,12 @@ export default function EditPostScreen() {
       }
     } catch (error) {
       console.error('비디오 선택 실패:', error);
-      Alert.alert('오류', '비디오 선택에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '비디오 선택에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   };
 
@@ -321,18 +362,33 @@ export default function EditPostScreen() {
   const handleUpdatePost = async () => {
     // 유효성 검사
     if (!title.trim()) {
-      Alert.alert('오류', '제목을 입력해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '제목을 입력해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       return;
     }
 
     if (!selectedSubcategoryId) {
-      Alert.alert('오류', '카테고리를 선택해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '카테고리를 선택해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       return;
     }
 
     const hasContent = contentBlocks.some(block => block.value.trim());
     if (!hasContent) {
-      Alert.alert('오류', '내용을 입력해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '내용을 입력해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       return;
     }
 
@@ -345,9 +401,9 @@ export default function EditPostScreen() {
         sub_category_id: selectedSubcategoryId,
         content_blocks: contentBlocks
           .filter(block => block.value.trim()) // 빈 블록 제외
-          .map(({ id, originalValue, thumbnailPath, ...block }, index) => ({ 
-            ...block, 
-            value: originalValue || block.value, 
+          .map(({ id, originalValue, thumbnailPath, ...block }, index) => ({
+            ...block,
+            value: originalValue || block.value,
             sequence: index,
             ...(thumbnailPath && { thumbnail_path: thumbnailPath }) // 비디오 블록인 경우 썸네일 경로 추가
           })), // id, originalValue, thumbnailPath 제거, 원래 value 사용
@@ -360,21 +416,26 @@ export default function EditPostScreen() {
       setShouldRefreshPosts(true);
       setShouldRefreshProfilePosts(true); // 자신의 게시물 목록 새로고침 플래그
 
-      Alert.alert(
-        '성공',
-        '게시물이 성공적으로 수정되었습니다!',
-        [
-          {
-            text: '확인',
-            onPress: () => {
-              navigation.goBack();
-              // 선택적으로 수정된 게시물로 이동할 수 있음
-            }
+      setAlertModal({
+        visible: true,
+        title: '성공',
+        message: '게시물이 성공적으로 수정되었습니다!',
+        buttons: [{
+          text: '확인',
+          onPress: () => {
+            setAlertModal(null);
+            navigation.goBack();
+            // 선택적으로 수정된 게시물로 이동할 수 있음
           }
-        ]
-      );
+        }]
+      });
     } catch (error) {
-      Alert.alert('오류', '게시물 수정에 실패했습니다. 다시 시도해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '게시물 수정에 실패했습니다. 다시 시도해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       console.error('게시물 수정 실패:', error);
     } finally {
       setIsLoading(false);
@@ -505,6 +566,17 @@ export default function EditPostScreen() {
         visible={isLoading}
         message={isUploadingImage ? '이미지를 업로드중입니다...' : isUploadingVideo ? '비디오를 업로드중입니다...' : undefined}
       />
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }

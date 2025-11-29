@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Modal,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -14,6 +13,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { ChatService } from '../services/chatService';
+import CustomAlertModal from './CustomAlertModal';
 
 interface ChatRoomImageEditModalProps {
   visible: boolean;
@@ -35,6 +35,7 @@ export default function ChatRoomImageEditModal({
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string} | null>(null);
 
   // 이미지 선택 및 1:1 crop
   const handleSelectImage = async () => {
@@ -42,7 +43,7 @@ export default function ChatRoomImageEditModal({
       // 권한 요청
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (permissionResult.granted === false) {
-        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
+        setAlertModal({ visible: true, title: '권한 필요', message: '갤러리 접근 권한이 필요합니다.' });
         return;
       }
 
@@ -59,7 +60,7 @@ export default function ChatRoomImageEditModal({
       }
     } catch (error) {
       console.error('이미지 선택 오류:', error);
-      Alert.alert('오류', '이미지를 선택할 수 없습니다.');
+      setAlertModal({ visible: true, title: '오류', message: '이미지를 선택할 수 없습니다.' });
     }
   };
 
@@ -85,7 +86,7 @@ export default function ChatRoomImageEditModal({
       handleClose();
     } catch (error: any) {
       console.error('채팅방 이미지 변경 오류:', error);
-      Alert.alert('오류', error.response?.data?.message || '채팅방 이미지를 변경할 수 없습니다.');
+      setAlertModal({ visible: true, title: '오류', message: error.response?.data?.message || '채팅방 이미지를 변경할 수 없습니다.' });
     } finally {
       setIsLoading(false);
     }
@@ -177,6 +178,15 @@ export default function ChatRoomImageEditModal({
             )}
           </View>
         </View>
+
+        {/* Custom Alert Modal */}
+        <CustomAlertModal
+          visible={alertModal?.visible || false}
+          title={alertModal?.title || ''}
+          message={alertModal?.message || ''}
+          buttons={[{ text: '확인', onPress: () => setAlertModal(null) }]}
+          onClose={() => setAlertModal(null)}
+        />
       </View>
     </Modal>
   );

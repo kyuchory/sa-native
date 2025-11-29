@@ -1,22 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { useVideoSettingsStore } from '../stores/videoSettingsStore';
 import { useThemeStore } from '../stores/themeStore';
 import CommonHeader from '../components/CommonHeader';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 type VideoAutoPlayMode = 'always' | 'wifi_only' | 'cellular_only' | 'manual';
 
 export default function VideoAutoPlaySettingsScreen() {
   const { autoPlayMode, setAutoPlayMode } = useVideoSettingsStore();
   const { colors } = useThemeStore();
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   const handleAutoPlayModeChange = async (option: VideoAutoPlayMode) => {
     // 이미 선택된 옵션이면 API 호출하지 않음
@@ -34,14 +35,21 @@ export default function VideoAutoPlaySettingsScreen() {
         manual: '수동 재생'
       };
 
-      Alert.alert(
-        '설정 완료',
-        `비디오 재생이 ${modeText[option]}으로 설정되었습니다.`
-      );
+      setAlertModal({
+        visible: true,
+        title: '설정 완료',
+        message: `비디오 재생이 ${modeText[option]}으로 설정되었습니다.`,
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
 
     } catch (error) {
       console.error('자동 재생 모드 변경 실패:', error);
-      Alert.alert('오류', '설정 변경에 실패했습니다. 다시 시도해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '설정 변경에 실패했습니다. 다시 시도해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   };
 
@@ -189,6 +197,17 @@ export default function VideoAutoPlaySettingsScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </View>
   );
 }

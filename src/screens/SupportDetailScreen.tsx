@@ -5,7 +5,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Alert,
   TouchableOpacity,
   ActivityIndicator
 } from 'react-native';
@@ -101,6 +100,7 @@ import { handleApiError } from '../services/apiClient';
 import { AuthStackParamList } from '../types/navigation';
 import { useAuthStore } from '../stores/authStore';
 import useSupportStore from '../stores/supportStore';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 type SupportDetailRouteProp = RouteProp<AuthStackParamList, 'SupportDetail'>;
 
@@ -120,6 +120,7 @@ export default function SupportDetailScreen() {
   const [inquiry, setInquiry] = useState<GetInquiryDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // 문의 상세 정보 로드
   useEffect(() => {
@@ -129,49 +130,63 @@ export default function SupportDetailScreen() {
   // 문의 수정 (구현 준비중)
   const handleEditInquiry = () => {
     setMenuActionSheetVisible(false);
-    Alert.alert('알림', '문의 수정 기능이 구현 준비중입니다.');
+    setAlertModal({
+      visible: true,
+      title: '알림',
+      message: '문의 수정 기능이 구현 준비중입니다.',
+      buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+    });
   };
 
   // 문의 삭제
   const handleDeleteInquiry = async () => {
-    Alert.alert(
-      '문의 삭제',
-      '문의를 삭제하시겠습니까? 삭제된 문의는 복구할 수 없습니다.',
-      [
+    setAlertModal({
+      visible: true,
+      title: '문의 삭제',
+      message: '문의를 삭제하시겠습니까? 삭제된 문의는 복구할 수 없습니다.',
+      buttons: [
         {
           text: '취소',
           style: 'cancel',
+          onPress: () => setAlertModal(null)
         },
         {
           text: '삭제',
           style: 'destructive',
           onPress: async () => {
             try {
+              setAlertModal(null);
               await SupportService.deleteInquiry(inquiryId);
 
               // 목록 새로고침 플래그 설정
               setShouldRefreshInquiries(true);
 
-              Alert.alert(
-                '삭제 완료',
-                '문의가 삭제되었습니다.',
-                [
-                  {
-                    text: '확인',
-                    onPress: () => navigation.goBack(),
-                  },
-                ]
-              );
+              setAlertModal({
+                visible: true,
+                title: '삭제 완료',
+                message: '문의가 삭제되었습니다.',
+                buttons: [{
+                  text: '확인',
+                  onPress: () => {
+                    setAlertModal(null);
+                    navigation.goBack();
+                  }
+                }]
+              });
             } catch (error) {
               console.error('문의 삭제 실패:', error);
               const errorMessage = handleApiError(error);
-              Alert.alert('오류', errorMessage);
+              setAlertModal({
+                visible: true,
+                title: '오류',
+                message: errorMessage,
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
             }
           },
         },
-      ],
-      { cancelable: true }
-    );
+      ]
+    });
     setMenuActionSheetVisible(false);
   };
 
@@ -184,7 +199,12 @@ export default function SupportDetailScreen() {
     } catch (error) {
       console.error('문의 상세 조회 실패:', error);
       const errorMessage = handleApiError(error);
-      Alert.alert('오류', errorMessage);
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: errorMessage,
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setLoading(false);
     }
@@ -290,7 +310,12 @@ export default function SupportDetailScreen() {
                   activeOpacity={0.8}
                   onPress={() => {
                     // TODO: 이미지 확대 보기 구현
-                    Alert.alert('이미지 보기', `${attachment.original_name} 이미지를 확대합니다.`);
+                    setAlertModal({
+                      visible: true,
+                      title: '이미지 보기',
+                      message: `${attachment.original_name} 이미지를 확대합니다.`,
+                      buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+                    });
                   }}
                 >
                   <Image
@@ -370,6 +395,17 @@ export default function SupportDetailScreen() {
           ] : []),
         ]}
       />
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }

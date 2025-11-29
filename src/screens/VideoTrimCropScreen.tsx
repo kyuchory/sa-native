@@ -1,7 +1,7 @@
 import 'react-native-reanimated';
 import 'react-native-gesture-handler';
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEvent } from 'expo';
@@ -18,6 +18,7 @@ import { PostService } from '../services/postService';
 import { StoryService } from '../services/storyService';
 import { SPACING } from '../constants/theme';
 import CommonHeader from '../components/CommonHeader';
+import CustomAlertModal from '../components/CustomAlertModal';
 import LoadingOverlay from '../components/LoadingOverlay';
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
@@ -117,6 +118,7 @@ function convertCropAreaForServer(
 export default function VideoTrimCropScreen({ route, navigation }: Props) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   const videoUri = route?.params?.videoUri ?? null;
   const aspectRatio = route?.params?.aspectRatio ?? null;
@@ -241,10 +243,12 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
     // 최대 길이 제한 확인
     if (maxDuration && (trimEnd - trimStart) > maxDuration) {
       const maxSeconds = Math.floor(maxDuration / 1000);
-      Alert.alert(
-        '비디오 길이 제한', 
-        `선택한 구간이 너무 깁니다.\n최대 ${maxSeconds}초까지 가능합니다.`
-      );
+      setAlertModal({
+        visible: true,
+        title: '비디오 길이 제한',
+        message: `선택한 구간이 너무 깁니다.\n최대 ${maxSeconds}초까지 가능합니다.`,
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       return;
     }
 
@@ -271,7 +275,12 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         navigation.goBack();
       } catch (error) {
         console.error('❌ 비디오 편집 업로드 실패:', error);
-        Alert.alert('업로드 실패', '비디오 편집 업로드에 실패했습니다. 다시 시도해주세요.');
+        setAlertModal({
+          visible: true,
+          title: '업로드 실패',
+          message: '비디오 편집 업로드에 실패했습니다. 다시 시도해주세요.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
       } finally {
         setIsUploading(false);
       }
@@ -296,7 +305,12 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         navigation.goBack();
       } catch (error) {
         console.error('❌ 포스트 비디오 편집 업로드 실패:', error);
-        Alert.alert('업로드 실패', '비디오 편집 업로드에 실패했습니다. 다시 시도해주세요.');
+        setAlertModal({
+          visible: true,
+          title: '업로드 실패',
+          message: '비디오 편집 업로드에 실패했습니다. 다시 시도해주세요.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
       } finally {
         setIsUploading(false);
       }
@@ -314,7 +328,12 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         navigation.replace('DailyCutDetail', { storyId: storyResult.id });
       } catch (error) {
         console.error('❌ 스토리 생성 실패:', error);
-        Alert.alert('업로드 실패', '스토리 업로드에 실패했습니다. 다시 시도해주세요.');
+        setAlertModal({
+          visible: true,
+          title: '업로드 실패',
+          message: '스토리 업로드에 실패했습니다. 다시 시도해주세요.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
       } finally {
         setIsUploading(false);
       }
@@ -356,7 +375,12 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         duration: trimEnd - trimStart,
       };
       console.log('📝 편집 결과:', result);
-      Alert.alert('편집 완료', `Trim: ${trimStart}ms ~ ${trimEnd}ms\nCrop: ${JSON.stringify(correctedCropArea)}`);
+      setAlertModal({
+        visible: true,
+        title: '편집 완료',
+        message: `Trim: ${trimStart}ms ~ ${trimEnd}ms\nCrop: ${JSON.stringify(correctedCropArea)}`,
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   }, [videoUri, trimStart, trimEnd, cropArea, videoDimensions, actualVideoOrientation, maxDuration, uploadService, navigation]);
 
@@ -455,6 +479,17 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         visible={isUploading}
         message="비디오 편집 및 업로드를 진행중입니다..."
       />
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }

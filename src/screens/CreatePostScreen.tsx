@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -24,6 +23,7 @@ import { ContentBlockComponent } from '../components/ContentBlocks';
 import { AddTextIcon, AddImageIcon, AddVideoIcon } from '../components/CommonIcons';
 import { WriteIcon } from '../components/HomeHeaderIcons';
 import LoadingOverlay from '../components/LoadingOverlay';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 // Services
 import { PostService } from '../services/postService';
@@ -49,6 +49,7 @@ export default function CreatePostScreen() {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // Zustand 스토어
   const { setShouldRefreshPosts, videoEditResult, setVideoEditResult } = usePostStore();
@@ -90,7 +91,12 @@ export default function CreatePostScreen() {
       const categoriesData = await PostService.getCategories();
       setCategories(categoriesData);
     } catch (error) {
-      Alert.alert('오류', '카테고리를 불러오는데 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '카테고리를 불러오는데 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       console.error('카테고리 로드 실패:', error);
     } finally {
       setIsLoadingCategories(false);
@@ -184,7 +190,13 @@ export default function CreatePostScreen() {
       // 권한 요청
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.');
+
+        setAlertModal({
+          visible: true,
+          title: '권한 필요',
+          message: '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
         return;
       }
 
@@ -226,7 +238,12 @@ export default function CreatePostScreen() {
 
         } catch (uploadError) {
           console.error('이미지 업로드 실패:', uploadError);
-          Alert.alert('오류', '이미지 업로드에 실패했습니다.');
+          setAlertModal({
+            visible: true,
+            title: '오류',
+            message: '이미지 업로드에 실패했습니다.',
+            buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+          });
 
           // 업로드 실패 시 블록 제거
           setContentBlocks(prev => prev.filter(block => block.id !== newImageBlock.id));
@@ -234,7 +251,12 @@ export default function CreatePostScreen() {
       }
     } catch (error) {
       console.error('이미지 선택 실패:', error);
-      Alert.alert('오류', '이미지 선택에 실패했습니다.');
+          setAlertModal({
+            visible: true,
+            title: '오류',
+            message: '이미지 선택에 실패했습니다.',
+            buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+          });
     } finally {
       setIsLoading(false);
       setIsUploadingImage(false);
@@ -247,7 +269,12 @@ export default function CreatePostScreen() {
       // 권한 요청
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.');
+        setAlertModal({
+          visible: true,
+          title: '권한 필요',
+          message: '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
         return;
       }
 
@@ -273,8 +300,13 @@ export default function CreatePostScreen() {
         } as any);
       }
     } catch (error) {
-      console.error('비디오 선택 실패:', error);
-      Alert.alert('오류', '비디오 선택에 실패했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '카테고리를 불러오는데 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
+      console.error('카테고리 로드 실패:', error);
     }
   };
 
@@ -290,18 +322,33 @@ export default function CreatePostScreen() {
   const handleCreatePost = async () => {
     // 유효성 검사
     if (!title.trim()) {
-      Alert.alert('오류', '제목을 입력해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '제목을 입력해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       return;
     }
 
     if (!selectedSubcategoryId) {
-      Alert.alert('오류', '카테고리를 선택해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '카테고리를 선택해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       return;
     }
 
     const hasContent = contentBlocks.some(block => block.value.trim());
     if (!hasContent) {
-      Alert.alert('오류', '내용을 입력해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '내용을 입력해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       return;
     }
 
@@ -329,10 +376,27 @@ export default function CreatePostScreen() {
       setShouldRefreshPosts(true);
       setShouldRefreshProfilePosts(true); // 자신의 게시물 목록 새로고침 플래그
 
-      // 작성된 게시물 상세 화면으로 이동
-      navigation.replace('PostDetail', { postId: result.postId });
+      // 성공 alert 표시
+      setAlertModal({
+        visible: true,
+        title: '성공',
+        message: '게시물이 성공적으로 작성되었습니다.',
+        buttons: [{
+          text: '확인',
+          onPress: () => {
+            setAlertModal(null);
+            // 작성된 게시물 상세 화면으로 이동
+            navigation.replace('PostDetail', { postId: result.postId });
+          }
+        }]
+      });
     } catch (error) {
-      Alert.alert('오류', '게시물 작성에 실패했습니다. 다시 시도해주세요.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '게시물 작성에 실패했습니다. 다시 시도해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       console.error('게시물 작성 실패:', error);
     } finally {
       setIsLoading(false);
@@ -453,6 +517,17 @@ export default function CreatePostScreen() {
         visible={isLoading}
         message={isUploadingImage ? '이미지를 업로드중입니다...' : isUploadingVideo ? '비디오를 업로드중입니다...' : undefined}
       />
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }

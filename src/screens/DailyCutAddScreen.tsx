@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useThemeStore } from '../stores/themeStore';
-import { SPACING } from '../constants/theme';
 import CommonHeader from '../components/CommonHeader';
 import MediaSelector from '../components/MediaSelector';
 import { CheckIcon } from '../components/CommonIcons';

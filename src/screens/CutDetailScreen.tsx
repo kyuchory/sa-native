@@ -6,7 +6,6 @@ import {
   Dimensions,
   StatusBar,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, useIsFocused } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -32,6 +31,7 @@ import {
 } from '../components/CutIcons';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { DeleteIcon, ReportIcon } from '../components/CommonIcons';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -57,6 +57,7 @@ export default function CutDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [commentSheetVisible, setCommentSheetVisible] = useState(false);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // 쇼츠 상세 정보 조회
   const fetchShortDetail = async () => {
@@ -91,13 +92,17 @@ export default function CutDetailScreen() {
   // 공유하기
   const handleShare = useCallback(() => {
     console.log('공유하기:', shortId);
-    Alert.alert('공유하기', '기능이 준비중입니다.', [
-      { text: '취소', style: 'cancel' },
-      // { text: '카카오톡', onPress: () => console.log('카카오톡 공유:', shortId) },
-      // { text: '인스타그램', onPress: () => console.log('인스타그램 공유:', shortId) },
-      // { text: '링크 복사', onPress: () => console.log('링크 복사:', shortId, short?.content_url) },
-    ]);
-  }, [short, shortId]);
+    setAlertModal({
+      visible: true,
+      title: '공유하기',
+      message: '기능이 준비중입니다.',
+      buttons: [{
+        text: '취소',
+        style: 'cancel',
+        onPress: () => setAlertModal(null)
+      }]
+    });
+  }, [short, shortId, colors]);
 
   // 뒤로가기
   const handleGoBack = useCallback(() => {
@@ -113,38 +118,55 @@ export default function CutDetailScreen() {
   const handleDeleteCut = useCallback(async () => {
     if (!short) return;
 
-    Alert.alert(
-      '컷 삭제',
-      '정말 이 컷츠를 삭제하시겠습니까? 삭제된 컷츠는 복구할 수 없습니다.',
-      [
-        { text: '취소', style: 'cancel' },
+    setAlertModal({
+      visible: true,
+      title: '컷 삭제',
+      message: '정말 이 컷츠를 삭제하시겠습니까? 삭제된 컷츠는 복구할 수 없습니다.',
+      buttons: [
+        {
+          text: '취소',
+          style: 'cancel',
+          onPress: () => setAlertModal(null)
+        },
         {
           text: '삭제',
           style: 'destructive',
           onPress: async () => {
             try {
               setMenuActionSheetVisible(false);
+              setAlertModal(null);
               await CutService.deleteShort(short.id);
 
               // 프로필 쇼츠 목록 갱신을 위한 플래그 설정
               useProfileStore.getState().setShouldRefreshProfileShorts(true);
 
-              Alert.alert('성공', '컷츠가 삭제되었습니다.', [
-                {
+              setAlertModal({
+                visible: true,
+                title: '성공',
+                message: '컷츠가 삭제되었습니다.',
+                buttons: [{
                   text: '확인',
-                  onPress: () => navigation.goBack()
-                }
-              ]);
+                  onPress: () => {
+                    setAlertModal(null);
+                    navigation.goBack();
+                  }
+                }]
+              });
             } catch (error) {
               console.error('컷 삭제 실패:', error);
               const errorMessage = error instanceof Error ? error.message : '삭제에 실패했습니다.';
-              Alert.alert('오류', errorMessage);
+              setAlertModal({
+                visible: true,
+                title: '오류',
+                message: errorMessage,
+                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+              });
             }
           }
         }
       ]
-    );
-  }, [short, navigation]);
+    });
+  }, [short, navigation, colors]);
 
   // 컷 신고 핸들러
   const handleReportCut = useCallback(() => {
@@ -311,6 +333,17 @@ export default function CutDetailScreen() {
         title={'컷츠'}
         actions={menuActions()}
       />
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
     </View>
   );
 }

@@ -48,10 +48,6 @@ export default function ChatEditActionBar({
           disabled={!hasSelection}
           activeOpacity={0.7}
         >
-          <DeleteIcon
-            size={16}
-            color={hasSelection ? colors.WHITE : colors.GRAY_400}
-          />
           <Text style={[
             styles.deleteButtonText,
             !hasSelection && styles.deleteButtonTextDisabled

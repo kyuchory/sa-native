@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -14,6 +13,7 @@ import { useThemeStore } from '../stores/themeStore';
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
 import DuplicateCheckButton from '../components/DuplicateCheckButton';
+import CustomAlertModal from '../components/CustomAlertModal';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 
 export default function SignUpScreen({ navigation }: any) {
@@ -29,13 +29,15 @@ export default function SignUpScreen({ navigation }: any) {
   
   const [emailChecking, setEmailChecking] = useState(false);
   const [nicknameChecking, setNicknameChecking] = useState(false);
-  
+
   const [errors, setErrors] = useState<{
     email?: string;
     password?: string;
     confirmPassword?: string;
     nickname?: string;
   }>({});
+
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
   
   const { signUp, checkEmail, checkNickname, isLoading } = useAuthStore();
   const { colors } = useThemeStore();
@@ -65,10 +67,20 @@ export default function SignUpScreen({ navigation }: any) {
            setErrors(prev => ({ ...prev, email: '이미 사용 중인 이메일입니다.' }));
          }
        } else {
-         Alert.alert('오류', result.error || '이메일 중복 체크에 실패했습니다.');
+         setAlertModal({
+           visible: true,
+           title: '오류',
+           message: result.error || '이메일 중복 체크에 실패했습니다.',
+           buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+         });
        }
     } catch (error) {
-      Alert.alert('오류', '이메일 중복 체크 중 오류가 발생했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '이메일 중복 체크 중 오류가 발생했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setEmailChecking(false);
     }
@@ -98,10 +110,20 @@ export default function SignUpScreen({ navigation }: any) {
            setErrors(prev => ({ ...prev, nickname: '이미 사용 중인 닉네임입니다.' }));
          }
        } else {
-         Alert.alert('오류', result.error || '닉네임 중복 체크에 실패했습니다.');
+         setAlertModal({
+           visible: true,
+           title: '오류',
+           message: result.error || '닉네임 중복 체크에 실패했습니다.',
+           buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+         });
        }
     } catch (error) {
-      Alert.alert('오류', '닉네임 중복 체크 중 오류가 발생했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '닉네임 중복 체크 중 오류가 발생했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     } finally {
       setNicknameChecking(false);
     }
@@ -147,21 +169,30 @@ export default function SignUpScreen({ navigation }: any) {
       const result = await signUp({ email, password, nickname });
       
       if (result.success) {
-        Alert.alert(
-          '성공', 
-          '회원가입이 완료되었습니다. 로그인해주세요.',
-          [
-            {
-              text: '확인',
-              onPress: () => navigation.goBack()
-            }
-          ]
-        );
-      } else {
-        Alert.alert('오류', result.error || '회원가입에 실패했습니다.');
-      }
+        setAlertModal({
+          visible: true,
+          title: '성공',
+          message: '회원가입이 완료되었습니다. 로그인해주세요.',
+          buttons: [{
+            text: '확인',
+            onPress: () => navigation.goBack()
+          }]
+        });
+       } else {
+         setAlertModal({
+           visible: true,
+           title: '오류',
+           message: result.error || '이메일 중복 체크에 실패했습니다.',
+           buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+         });
+       }
     } catch (error) {
-      Alert.alert('오류', '회원가입 중 오류가 발생했습니다.');
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '이메일 중복 체크 중 오류가 발생했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   };
 
@@ -277,10 +308,21 @@ export default function SignUpScreen({ navigation }: any) {
             style={styles.backToLoginButton}
           />
         </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
+      </ScrollView>
+
+      {/* Custom Alert Modal */}
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
+    </KeyboardAvoidingView>
+  </SafeAreaView>
+);
 }
 
 // 스타일 생성 함수
