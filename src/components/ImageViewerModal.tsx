@@ -64,17 +64,19 @@ const MediaItemView: React.FC<{
   currentPage: number;
   isZoomed: boolean;
   onZoomChange: (zoomed: boolean) => void;
-}> = ({ mediaItem, index, currentPage, isZoomed, onZoomChange }) => {
+  isVisible: boolean;
+  networkState: 'wifi' | 'cellular' | 'none';
+}> = React.memo(({ mediaItem, index, currentPage, isZoomed, onZoomChange, isVisible, networkState }) => {
   const isActive = currentPage === index;
   const isVideo = mediaItem.type === 'video';
-  
+
+  // Animated 값들을 조건부로 생성하여 메모리 최적화
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
-
   const focalX = useSharedValue(0);
   const focalY = useSharedValue(0);
 
@@ -97,7 +99,7 @@ const MediaItemView: React.FC<{
     translateY.value = withTiming(0, { duration: 300 });
     savedTranslateX.value = 0;
     savedTranslateY.value = 0;
-  }, []);
+  }, []); // 빈 배열로 의존성 제거 (worklet 함수는 의존성 필요 없음)
 
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
@@ -190,8 +192,26 @@ const MediaItemView: React.FC<{
         runOnJS(onZoomChange)(result);
       }
     },
-    [isActive, isVideo]
+    [isActive]
   );
+
+  if (!isVisible) {
+    // 보이지 않는 아이템은 placeholder 표시
+    return (
+      <View style={styles.imageWrapper}>
+        {mediaItem.thumbnailUrl ? (
+          <Image
+            source={{ uri: mediaItem.thumbnailUrl }}
+            style={styles.image}
+            contentFit="contain"
+            cachePolicy="memory-disk"
+          />
+        ) : (
+          <View style={styles.placeholder} />
+        )}
+      </View>
+    );
+  }
 
   return (
     <GestureDetector gesture={composed}>
@@ -201,6 +221,7 @@ const MediaItemView: React.FC<{
             videoUrl={mediaItem.url}
             thumbnailUrl={mediaItem.thumbnailUrl}
             isVisible={isActive}
+            networkState={networkState}
           />
         ) : (
           <Image
@@ -213,7 +234,7 @@ const MediaItemView: React.FC<{
       </Animated.View>
     </GestureDetector>
   );
-};
+});
 
 export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
   visible,
@@ -228,10 +249,11 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
   const [isZoomed, setIsZoomed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
-  
+  const [networkState, setNetworkState] = useState<'wifi' | 'cellular' | 'none'>('none');
+
   const pageTranslateX = useSharedValue(-initialIndex * SCREEN_WIDTH);
   const savedPageTranslateX = useSharedValue(-initialIndex * SCREEN_WIDTH);
-  
+
   const modalOpacity = useSharedValue(1);
   const modalScale = useSharedValue(1);
   const closeTranslateY = useSharedValue(0);
@@ -509,6 +531,22 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
     }
   }, [visible, initialIndex]);
 
+  useEffect(() => {
+    const checkNetwork = async () => {
+      const networkState = await Network.getNetworkStateAsync();
+      if (networkState.isConnected) {
+        if (networkState.type === Network.NetworkStateType.WIFI) {
+          setNetworkState('wifi');
+        } else {
+          setNetworkState('cellular');
+        }
+      } else {
+        setNetworkState('none');
+      }
+    };
+    checkNetwork();
+  }, []);
+
   if (!visible) return null;
 
   return (
@@ -545,16 +583,22 @@ export const ImageViewerModal: React.FC<MediaViewerModalProps> = ({
 
           <GestureDetector gesture={containerGesture}>
             <Animated.View style={[styles.imageScrollContainer, pageStyle]}>
-              {mediaItems.map((mediaItem, index) => (
-                <MediaItemView
-                  key={`media-${index}`}
-                  mediaItem={mediaItem}
-                  index={index}
-                  currentPage={currentPage}
-                  isZoomed={isZoomed}
-                  onZoomChange={setIsZoomed}
-                />
-              ))}
+              {mediaItems.map((mediaItem, index) => {
+                // Lazy rendering: 현재 페이지 ±1 범위만 렌더링
+                const isVisible = Math.abs(index - currentPage) <= 1;
+                return (
+                  <MediaItemView
+                    key={`media-${index}`}
+                    mediaItem={mediaItem}
+                    index={index}
+                    currentPage={currentPage}
+                    isZoomed={isZoomed}
+                    onZoomChange={setIsZoomed}
+                    isVisible={isVisible}
+                    networkState={networkState}
+                  />
+                );
+              })}
             </Animated.View>
           </GestureDetector>
 
@@ -590,33 +634,17 @@ const VideoPlayer: React.FC<{
   videoUrl: string;
   thumbnailUrl?: string;
   isVisible: boolean;
-}> = ({ videoUrl, thumbnailUrl, isVisible }) => {
+  networkState?: 'wifi' | 'cellular' | 'none';
+}> = React.memo(({ videoUrl, thumbnailUrl, isVisible, networkState = 'none' }) => {
   const { autoPlayMode } = useVideoSettingsStore();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
-  const [networkState, setNetworkState] = useState<'wifi' | 'cellular' | 'none'>('none');
   
   const controlsOpacity = useSharedValue(1);
   const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    const checkNetwork = async () => {
-      const networkState = await Network.getNetworkStateAsync();
-      if (networkState.isConnected) {
-        if (networkState.type === Network.NetworkStateType.WIFI) {
-          setNetworkState('wifi');
-        } else {
-          setNetworkState('cellular');
-        }
-      } else {
-        setNetworkState('none');
-      }
-    };
-    checkNetwork();
-  }, []);
 
   const shouldAutoPlay = useMemo(() => {
     if (!isVisible) return false;
@@ -634,7 +662,8 @@ const VideoPlayer: React.FC<{
     }
   }, [autoPlayMode, networkState, isVisible]);
 
-  const player = useVideoPlayer(videoUrl ? { uri: videoUrl } : null, (player) => {
+  // 비디오 플레이어 조건부 생성
+  const player = useVideoPlayer(isVisible ? (videoUrl ? { uri: videoUrl } : null) : null, (player) => {
     player.loop = false;
     player.muted = false;
     if (shouldAutoPlay) {
@@ -825,7 +854,7 @@ const VideoPlayer: React.FC<{
       </Animated.View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   modalContainer: {
@@ -984,6 +1013,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#fff',
     fontWeight: '500',
+  },
+  placeholder: {
+    width: 100,
+    height: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
   },
 
 });
