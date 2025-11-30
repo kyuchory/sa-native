@@ -25,6 +25,7 @@ import { useThemeStore } from '../stores/themeStore';
 import CommonHeader from '../components/CommonHeader';
 import LoadingOverlay from '../components/LoadingOverlay';
 import UserAvatar from '../components/UserAvatar';
+import { ImageViewerModal } from '../components/ImageViewerModal';
 
 // Services
 import { PostService } from '../services/postService';
@@ -54,35 +55,38 @@ type ImageBlockProps = {
   imageUri: string;
   colors: Record<string, string>;
   styles: ReturnType<typeof createStyles>;
+  onPress?: () => void;
 };
 
-const ImageBlock: React.FC<ImageBlockProps> = React.memo(({ imageUri, colors, styles }) => {
+const ImageBlock: React.FC<ImageBlockProps> = React.memo(({ imageUri, colors, styles, onPress }) => {
   const [aspectRatio, setAspectRatio] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   return (
-    <View style={styles.imageBlock}>
-      {isLoading && (
-        <View style={styles.imageLoadingContainer}>
-          <ActivityIndicator size="large" color={colors.PRIMARY} />
-        </View>
-      )}
-      <Image
-        source={{ uri: imageUri }}
-        cachePolicy="memory-disk"
-        style={[
-          styles.contentImage,
-          aspectRatio ? { aspectRatio } : { height: 250 },
-        ]}
-        onLoad={(e) => {
-          const { width, height } = e.source;
-          if (width && height) setAspectRatio(width / height);
-          setIsLoading(false);
-        }}
-        transition={200}
-        contentFit="contain"
-      />
-    </View>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
+      <View style={styles.imageBlock}>
+        {isLoading && (
+          <View style={styles.imageLoadingContainer}>
+            <ActivityIndicator size="large" color={colors.PRIMARY} />
+          </View>
+        )}
+        <Image
+          source={{ uri: imageUri }}
+          cachePolicy="memory-disk"
+          style={[
+            styles.contentImage,
+            aspectRatio ? { aspectRatio } : { height: 250 },
+          ]}
+          onLoad={(e) => {
+            const { width, height } = e.source;
+            if (width && height) setAspectRatio(width / height);
+            setIsLoading(false);
+          }}
+          transition={200}
+          contentFit="contain"
+        />
+      </View>
+    </TouchableOpacity>
   );
 });
 
@@ -304,9 +308,30 @@ export default function PostDetailScreen() {
 
   // Custom Alert Modal 상태
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
+
+  // ImageViewerModal 상태
+  const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
+  const [imageViewerInitialIndex, setImageViewerInitialIndex] = useState(0);
+
   const { user } = useAuthStore();
   const { setShouldRefreshPosts } = usePostStore();
-  const { setShouldRefreshProfilePosts } = useProfileStore(); 
+  const { setShouldRefreshProfilePosts } = useProfileStore();
+
+  // ImageViewer용 mediaItems 추출
+  const mediaItems = useMemo(() => {
+    if (!post) return [];
+    return post.content_blocks
+      .filter(block => block.type === 'image' || block.type === 'video')
+      .sort((a, b) => a.sequence - b.sequence)
+      .map(block => ({
+        type: block.type as 'image' | 'video',
+        url: block.value || '',
+        thumbnailUrl: block.type === 'video' ? (() => {
+          // 비디오 thumbnail 처리 로직 필요
+          return undefined; // 임시로 undefined
+        })() : undefined,
+      }));
+  }, [post]);
 
   useFocusEffect(
     useCallback(() => {
@@ -763,35 +788,51 @@ export default function PostDetailScreen() {
 
 
   // 콘텐츠 블록 렌더링
-  const renderContentBlock = (block: PostDetailContentBlock, index: number) => {
+  const renderContentBlock = (block: PostDetailContentBlock, blockIndex: number, post: PostDetail) => {
+    // 미디어 블록들 중 현재 블록의 인덱스 계산
+    const mediaBlocks = post.content_blocks.filter(b => b.type === 'image' || b.type === 'video').sort((a, b) => a.sequence - b.sequence);
+    const mediaIndex = mediaBlocks.findIndex(b => b.sequence === block.sequence);
+
     switch (block.type) {
       case 'text':
         return (
-          <View key={index} style={styles.textBlock}>
+          <View key={blockIndex} style={styles.textBlock}>
             <Text style={styles.contentText}>{block.value}</Text>
           </View>
         );
       case 'image':
         return (
           <ImageBlock
-            key={index}
+            key={blockIndex}
             imageUri={block.value || ''}
             colors={colors}
             styles={styles}
+            onPress={() => {
+              setImageViewerInitialIndex(mediaIndex);
+              setIsImageViewerVisible(true);
+            }}
           />
         );
       case 'video':
         return (
-          <EnhancedVideoBlock
-            key={index}
-            videoUri={block.value || ''}
-            postId={postId}
-            styles={{
-              videoBlock: styles.videoBlock,
-              videoPlayer: styles.videoPlayer
+          <TouchableOpacity
+            onPress={() => {
+              setImageViewerInitialIndex(mediaIndex);
+              setIsImageViewerVisible(true);
             }}
-            isVisible={true}
-          />
+            activeOpacity={0.8}
+          >
+            <EnhancedVideoBlock
+              key={blockIndex}
+              videoUri={block.value || ''}
+              postId={postId}
+              styles={{
+                videoBlock: styles.videoBlock,
+                videoPlayer: styles.videoPlayer
+              }}
+              isVisible={true}
+            />
+          </TouchableOpacity>
         );
       default:
         return null;
@@ -890,7 +931,7 @@ export default function PostDetailScreen() {
           <View style={styles.contentSection}>
             {post.content_blocks
               .sort((a, b) => a.sequence - b.sequence)
-              .map((block, index) => renderContentBlock(block, index))}
+              .map((block, index) => renderContentBlock(block, index, post))}
           </View>
 
           {/* 태그 */}
@@ -1076,6 +1117,16 @@ export default function PostDetailScreen() {
             onClose={() => setAlertModal(null)}
           />
         )}
+
+        {/* Image Viewer Modal */}
+        <ImageViewerModal
+          visible={isImageViewerVisible}
+          mediaItems={mediaItems}
+          initialIndex={imageViewerInitialIndex}
+          title={post.title}
+          onClose={() => setIsImageViewerVisible(false)}
+        />
+
       </View>
     </SafeAreaView>
   );
