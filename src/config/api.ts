@@ -5,12 +5,12 @@ export const API_CONFIG = {
     // React Native에서는 localhost 대신 실제 IP 주소 사용
     // baseURL: 'http://10.0.2.2:3001', // Android 에뮬레이터
     // baseURL: 'http://localhost:3001', // iOS 시뮬레이터 
-    baseURL: 'http://211.218.21.166:3001', // 실제 기기용 (주인님 컴퓨터의 IP)
-    //baseURL: 'https://sa-server-u2xi.onrender.com', // Render 배포 서버
+    //baseURL: 'http://211.218.21.166:3001', // 실제 기기용 (주인님 컴퓨터의 IP)
+    baseURL: 'https://sa-server-u2xi.onrender.com', // Render 배포 서버
     // wsBaseURL: 'ws://10.0.2.2:3001', // Android 에뮬레이터
     // wsBaseURL: 'ws://localhost:3001', // iOS 시뮬레이터 
-    wsBaseURL: 'ws://211.218.21.166:3001', // 실제 기기용 (주인님 컴퓨터의 IP)
-    //wsBaseURL: 'wss://sa-server-u2xi.onrender.com', // Render 배포 서버
+    //wsBaseURL: 'ws://211.218.21.166:3001', // 실제 기기용 (주인님 컴퓨터의 IP)
+    wsBaseURL: 'wss://sa-server-u2xi.onrender.com', // Render 배포 서버
     timeout: 10000,
   },
   // 프로덕션 환경
