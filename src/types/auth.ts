@@ -58,6 +58,7 @@ export interface NicknameCheckResponse {
 
 // 로그아웃 요청 타입
 export interface LogoutRequest {
+  refreshToken: string;
   deviceId?: string;
 }
 

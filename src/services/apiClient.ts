@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAccessToken, getRefreshToken, clearTokens, setAccessToken } from '../stores/tokenStore';
 import { getApiConfig } from '../config/api';
 import { ApiError } from '../utils/apiErrors';
+import { useAuthStore } from '../stores/authStore';
 
 // API 기본 설정
 const API_BASE_URL = getApiConfig().baseURL;
@@ -39,10 +40,9 @@ class ApiClient {
   // 강제 로그아웃 처리
   private async forceLogout(): Promise<void> {
     try {
-      await clearTokens();
-      // TODO: 네비게이션을 통한 로그인 화면 이동
-      // 현재는 콘솔 로그만 출력
-      console.log('토큰 만료로 인한 자동 로그아웃');
+      // AuthStore의 logout 로직 활용 (API 호출 실패해도 finally block 실행됨)
+      // 토큰 만료로 인해 API logout은 실패하지만, finally block에서 토큰 클리어 + 네비게이션 처리
+      await useAuthStore.getState().logout();
     } catch (error) {
       console.error('로그아웃 처리 중 오류:', error);
     }
@@ -208,7 +208,6 @@ class ApiClient {
     }
 
     this.isRefreshing = true;
-
     this.refreshPromise = (async () => {
       try {
         const headers = {
@@ -229,7 +228,7 @@ class ApiClient {
           
           // RefreshToken도 만료된 경우 강제 로그아웃
           if (this.isRefreshTokenExpiredError(error)) {
-            await this.forceLogout();
+          await this.forceLogout();
           }
           
           throw error;
@@ -242,6 +241,10 @@ class ApiClient {
         console.log('토큰 재발급 성공');
         
         return newAccessToken;
+      } catch (error) {
+        console.error('토큰 재발급 중 오류 발생:', error);
+        await this.forceLogout();
+        throw error;
       } finally {
         this.isRefreshing = false;
         this.refreshPromise = null;

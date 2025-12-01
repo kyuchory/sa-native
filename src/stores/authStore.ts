@@ -6,6 +6,7 @@ import { AuthService } from '../services/authService';
 import { ApiError, handleApiError } from '../utils/apiErrors';
 import { DeviceUtils } from '../utils/deviceUtils';
 import { useTokenStore, setTokens as tokenStoreSetTokens, clearTokens as tokenStoreClearTokens } from './tokenStore';
+import { connectSocketAfterLogin, disconnectSocketAfterLogout } from '../utils/socketInitializer';
 
 interface AuthState {
   // 상태
@@ -25,6 +26,7 @@ interface AuthState {
   logout: () => Promise<void>;
   setLoading: (loading: boolean) => void;
   clearAuth: () => void;
+  set: (newState: Partial<AuthState>) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -57,7 +59,13 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         try {
           const deviceId = await DeviceUtils.getDeviceId();
-          await AuthService.logout({ deviceId });
+          const refreshToken = getRefreshToken();
+
+          // 리프레시 토큰이 없으면 서버 요청 생략 (클라이언트 사이드 정리만 수행)
+          if (!refreshToken) {
+          } else {
+            await AuthService.logout({ refreshToken, deviceId });
+          }
         } catch (error) {
           console.error('Logout API error:', error);
         } finally {
@@ -68,6 +76,9 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false
           });
           tokenStoreClearTokens();
+
+          // 로그아웃 시 소켓 연결 해제
+          disconnectSocketAfterLogout();
         }
       },
 
@@ -86,6 +97,14 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false
           });
           tokenStoreSetTokens(tokens);
+
+          // 로그인 성공 시 소켓 재연결
+          try {
+            await connectSocketAfterLogin();
+          } catch (error) {
+            console.error('로그인 후 소켓 연결 실패:', error);
+            // 로그인 성공 자체는 유지
+          }
 
           return { success: true };
         } catch (error) {
@@ -140,6 +159,8 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: false,
         isLoading: false
       }),
+
+      set: (newState) => set(newState),
     }),
     {
       name: 'auth-storage', // AsyncStorage 키 이름
