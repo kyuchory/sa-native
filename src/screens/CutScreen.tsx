@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -166,6 +166,15 @@ export default function CutScreen() {
       setRefreshing(false);
     }
   }, [currentIndex, LIMIT]);
+
+  // 🔥 콜백 최적화 - useRef로 안정적인 참조 유지 (함수 선언 후에 설정)
+  const callbacksRef = useRef({
+    onComment: (shortId: number) => {},
+    onShare: (shortId: number) => {},
+    onUpload: () => {},
+    onViewComplete: (shortId: number, data: RecordShortViewRequest) => {},
+    onProfilePress: (userId: string) => {},
+  });
 
   // Tab re-press 이벤트 핸들러 - 첫 번째 쇼츠로 스크롤
   const handleTabRePress = useCallback(() => {
@@ -343,6 +352,17 @@ export default function CutScreen() {
     navigation.navigate('UserProfile', { userId });
   }, [navigation]);
 
+  // 콜백이 변경될 때만 ref 업데이트
+  useEffect(() => {
+    callbacksRef.current = {
+      onComment: handleComment,
+      onShare: handleShare,
+      onUpload: handleUpload,
+      onViewComplete: handleViewComplete,
+      onProfilePress: handleProfilePress,
+    };
+  }, [handleComment, handleShare, handleUpload, handleViewComplete, handleProfilePress]);
+
   // FlatList 뷰어빌리티 설정
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 80,
@@ -354,21 +374,25 @@ export default function CutScreen() {
     }
   }).current;
 
+  // 🔥 스타일 객체를 useMemo로 분리하여 매번 생성 방지
+  const itemContainerStyle = useMemo(() => ({ height: ITEM_HEIGHT }), [ITEM_HEIGHT]);
+
+  // 🔥 renderShortItem 의존성 최소화 - callbacksRef 사용
   const renderShortItem = useCallback(
     ({ item, index }: { item: ShortItem; index: number }) => (
-      <View style={{ height: ITEM_HEIGHT }}>
+      <View style={itemContainerStyle}>
         <ShortItemComponent
           item={item}
           isActive={isFocused && index === currentIndex}
-          onComment={handleComment}
-          onShare={handleShare}
-          onUpload={handleUpload}
-          onViewComplete={handleViewComplete}
-          onProfilePress={handleProfilePress}
+          onComment={callbacksRef.current.onComment}
+          onShare={callbacksRef.current.onShare}
+          onUpload={callbacksRef.current.onUpload}
+          onViewComplete={callbacksRef.current.onViewComplete}
+          onProfilePress={callbacksRef.current.onProfilePress}
         />
       </View>
     ),
-    [ITEM_HEIGHT, isFocused, currentIndex, handleComment, handleShare, handleUpload, handleViewComplete, handleProfilePress]
+    [itemContainerStyle, isFocused, currentIndex] // 🔥 콜백 의존성 제거!
   );
 
   // 로딩 중
@@ -482,9 +506,11 @@ export default function CutScreen() {
           offset: ITEM_HEIGHT * index,
           index,
         })}
-        initialNumToRender={3}
-        maxToRenderPerBatch={3}
-        windowSize={3}
+        initialNumToRender={2}
+        maxToRenderPerBatch={2}
+        windowSize={5}
+        removeClippedSubviews={true}
+        updateCellsBatchingPeriod={100}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

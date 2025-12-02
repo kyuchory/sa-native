@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ChevronDownIcon, ChevronUpIcon } from './CutIcons';
 import UserAvatar from './UserAvatar';
@@ -16,8 +16,6 @@ interface ShortBottomOverlayProps {
   createdAt: string;
   description?: string;
   categories: Category[];
-  isExpanded: boolean;
-  onToggleExpand: () => void;
   onProfilePress?: () => void;
   extraBottomMargin?: number;
 }
@@ -28,11 +26,13 @@ export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
   createdAt,
   description,
   categories,
-  isExpanded,
-  onToggleExpand,
   onProfilePress,
   extraBottomMargin,
 }) => {
+  // 🔥 자체적으로 상태 관리하여 부모 컴포넌트 리렌더링 영향 제거
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleToggleExpand = () => setIsExpanded(!isExpanded);
   const containerStyle = extraBottomMargin
     ? [styles.container, { marginBottom: extraBottomMargin }]
     : styles.container;
@@ -41,7 +41,7 @@ export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
     <View style={containerStyle}>
       <TouchableOpacity
         style={styles.toggleButton}
-        onPress={onToggleExpand}
+        onPress={handleToggleExpand}
         activeOpacity={0.8}
       >
         {isExpanded ? (

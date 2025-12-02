@@ -30,20 +30,21 @@ const formatCount = (count: number): string => {
   return count.toString();
 };
 
-export const ShortActionButtons = React.memo<ShortActionButtonsProps>(({
-  isLiked,
-  likeCount,
-  isLikeLoading,
-  commentCount,
-  isBookmarked,
-  isBookmarkLoading,
-  viewCount,
-  onLike,
-  onComment,
-  onBookmark,
-  onShare,
-  onUpload,
-}) => {
+export const ShortActionButtons = React.memo<ShortActionButtonsProps>(
+  ({
+    isLiked,
+    likeCount,
+    isLikeLoading,
+    commentCount,
+    isBookmarked,
+    isBookmarkLoading,
+    viewCount,
+    onLike,
+    onComment,
+    onBookmark,
+    onShare,
+    onUpload,
+  }) => {
   return (
     <View style={styles.container}>
       {/* 좋아요 */}
@@ -123,7 +124,21 @@ export const ShortActionButtons = React.memo<ShortActionButtonsProps>(({
       </TouchableOpacity>
     </View>
   );
-});
+},
+// 🔥 커스텀 비교 함수 - 데이터 속성만 비교, 콜백 함수 제외
+(prevProps, nextProps) => {
+  return (
+    prevProps.isLiked === nextProps.isLiked &&
+    prevProps.likeCount === nextProps.likeCount &&
+    prevProps.isLikeLoading === nextProps.isLikeLoading &&
+    prevProps.commentCount === nextProps.commentCount &&
+    prevProps.isBookmarked === nextProps.isBookmarked &&
+    prevProps.isBookmarkLoading === nextProps.isBookmarkLoading &&
+    prevProps.viewCount === nextProps.viewCount
+    // onLike, onComment, onBookmark, onShare, onUpload은 비교 제외
+  );
+}
+);
 
 const styles = StyleSheet.create({
   container: {

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, TouchableOpacity, Image, Animated, StyleSheet } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { PlayIcon, PauseIcon } from './CutIcons';
@@ -30,7 +30,8 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
   onProfilePress,
   extraBottomMargin,
 }) => {
-  const player = useVideoPlayer((item.content_url || '') as string, (player) => {
+  // 🔥 비디오 플레이어 - URL을 직접 전달 (안정적인 참조)
+  const player = useVideoPlayer(item.content_url || '', (player) => {
     player.loop = true;
   });
 
@@ -58,58 +59,114 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
   const [showOverlayIcon, setShowOverlayIcon] = useState(false);
   const [overlayIsPlaying, setOverlayIsPlaying] = useState(false);
   const overlayOpacity = useRef(new Animated.Value(0)).current;
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
 
-  const triggerOverlay = (isPlayingNow: boolean) => {
+  // 🔥 애니메이션 참조를 useRef로 관리
+  const overlayAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  // 🔥 player의 유효성을 추적하기 위한 ref
+  const isPlayerValidRef = useRef(true);
+
+  const triggerOverlay = useCallback((isPlayingNow: boolean) => {
+    if (overlayAnimationRef.current) {
+      overlayAnimationRef.current.stop();
+    }
+
     setOverlayIsPlaying(isPlayingNow);
     setShowOverlayIcon(true);
     overlayOpacity.setValue(1);
 
-    Animated.timing(overlayOpacity, {
+    overlayAnimationRef.current = Animated.timing(overlayOpacity, {
       toValue: 0,
       duration: 1000,
       useNativeDriver: true,
-    }).start(({ finished }) => {
+    });
+
+    overlayAnimationRef.current.start(({ finished }) => {
       if (finished) setShowOverlayIcon(false);
     });
-  };
+  }, [overlayOpacity]);
 
-  // 🔥 중복 제거: 재생/정지 + 시청 추적을 하나의 useEffect로 통합
+  // 🔥 재생/정지 제어
   useEffect(() => {
     if (item.type !== 'video') return;
 
+    // player 유효성 플래그 설정
+    isPlayerValidRef.current = true;
+
     if (isActive) {
-      player.play();
-      startTracking(player);
+      try {
+        player.play();
+        startTracking(player);
+      } catch (error) {
+        console.warn('Video play error:', error);
+      }
     } else {
-      player.pause();
-      stopTracking();
-      recordAndReset();
+      try {
+        player.pause();
+        stopTracking();
+        recordAndReset();
+      } catch (error) {
+        console.warn('Video pause error:', error);
+      }
     }
-  }, [isActive, item.type, player, startTracking, stopTracking, recordAndReset]);
+  }, [isActive, item.type]); // 🔥 player 제외
 
-  // 언마운트 시 기록 저장
+  // 🔥 언마운트 시 정리 - 한 번만 실행
   useEffect(() => {
-    return () => recordAndReset();
-  }, [recordAndReset]);
+    return () => {
+      // 애니메이션 정리
+      if (overlayAnimationRef.current) {
+        overlayAnimationRef.current.stop();
+      }
 
-  const handleTogglePlay = () => {
-    if (item.type !== 'video' || !isActive) return;
+      // 시청 기록 저장
+      recordAndReset();
 
-    if (player.playing) {
-      player.pause();
-      triggerOverlay(false);
-    } else {
-      player.play();
-      triggerOverlay(true);
+      // 🔥 player가 유효한 경우에만 pause 호출
+      if (item.type === 'video' && isPlayerValidRef.current) {
+        try {
+          player.pause();
+        } catch (error) {
+          // player가 이미 해제된 경우 에러 무시
+          console.warn('Video cleanup error (ignored):', error);
+        }
+      }
+
+      // player 무효화 표시
+      isPlayerValidRef.current = false;
+    };
+  }, []); // 🔥 빈 배열 - 마운트 시 한 번만 등록
+
+  const handleTogglePlay = useCallback(() => {
+    if (item.type !== 'video' || !isActive || !isPlayerValidRef.current) return;
+
+    try {
+      if (player.playing) {
+        player.pause();
+        triggerOverlay(false);
+      } else {
+        player.play();
+        triggerOverlay(true);
+      }
+    } catch (error) {
+      console.warn('Toggle play error:', error);
     }
-  };
+  }, [item.type, isActive, player, triggerOverlay]);
+
+  // 🔥 콜백 함수들을 useCallback으로 감싸기
+  const handleComment = useCallback(() => onComment(item.id), [onComment, item.id]);
+  const handleShare = useCallback(() => onShare(item.id), [onShare, item.id]);
+  const handleProfilePress = useCallback(() => onProfilePress(item.user_id.toString()), [onProfilePress, item.user_id]);
 
   // 이미지 타입
   if (item.type === 'image') {
     return (
       <View style={styles.container}>
-        <Image source={{ uri: item.content_url }} style={styles.media} />
+        <Image
+          source={{ uri: item.content_url }}
+          style={styles.media}
+          resizeMode="cover"
+        />
 
         <ShortActionButtons
           isLiked={isLiked}
@@ -120,9 +177,9 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
           isBookmarkLoading={isBookmarkLoading}
           viewCount={item.view_count}
           onLike={toggleLike}
-          onComment={() => onComment(item.id)}
+          onComment={handleComment}
           onBookmark={toggleBookmark}
-          onShare={() => onShare(item.id)}
+          onShare={handleShare}
           onUpload={onUpload}
         />
 
@@ -132,9 +189,7 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
           createdAt={item.created_at}
           description={item.description}
           categories={item.categories}
-          isExpanded={isDescriptionExpanded}
-          onToggleExpand={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-          onProfilePress={() => onProfilePress(item.user_id.toString())}
+          onProfilePress={handleProfilePress}
           extraBottomMargin={extraBottomMargin}
         />
       </View>
@@ -179,9 +234,9 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
         isBookmarkLoading={isBookmarkLoading}
         viewCount={item.view_count}
         onLike={toggleLike}
-        onComment={() => onComment(item.id)}
+        onComment={handleComment}
         onBookmark={toggleBookmark}
-        onShare={() => onShare(item.id)}
+        onShare={handleShare}
         onUpload={onUpload}
       />
 
@@ -191,20 +246,30 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
         createdAt={item.created_at}
         description={item.description}
         categories={item.categories}
-        isExpanded={isDescriptionExpanded}
-        onToggleExpand={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-        onProfilePress={() => onProfilePress(item.user_id.toString())}
+        onProfilePress={handleProfilePress}
         extraBottomMargin={extraBottomMargin}
       />
     </View>
   );
-});
+},
+// 🔥 커스텀 비교 함수 - 불필요한 리렌더링 방지
+(prevProps, nextProps) => {
+  return (
+    prevProps.item.id === nextProps.item.id &&
+    prevProps.isActive === nextProps.isActive &&
+    prevProps.extraBottomMargin === nextProps.extraBottomMargin &&
+    // 좋아요/북마크 상태는 내부에서 관리하므로 비교 불필요
+    prevProps.item.content_url === nextProps.item.content_url
+  );
+}
+);
 
 const styles = StyleSheet.create({
   container: {
     width: '100%',
     height: '100%',
     position: 'relative',
+    backgroundColor: COLORS.BLACK, // 🔥 배경색 추가로 깜빡임 방지
   },
   media: {
     width: '100%',
@@ -214,6 +279,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    // 🔥 포인터 이벤트를 통과시켜 아래 버튼들이 동작하도록
+    pointerEvents: 'box-none',
   },
   overlayIcon: {
     width: 72,
