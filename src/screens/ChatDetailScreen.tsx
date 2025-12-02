@@ -723,6 +723,7 @@ export default function ChatDetailScreen() {
                 styles.chatSendButton,
                 isSendButtonEnabled ? styles.chatSendButtonActive : styles.chatSendButtonInactive
               ]}
+              hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
               onPress={handleSendMessage}
               activeOpacity={0.7}
               disabled={!isSendButtonEnabled}
