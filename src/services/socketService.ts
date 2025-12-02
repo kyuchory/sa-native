@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 import { getApiConfig } from '../config/api';
-import { getAccessToken, getRefreshToken, setAccessToken, clearTokens } from '../stores/authStore';
+import { tokenService } from './tokenService';
 import { apiClient } from './apiClient';
 
 // 소켓 서비스 클래스
@@ -190,7 +190,7 @@ class SocketService {
       await apiClient.refreshToken();
 
       // 새로운 토큰으로 소켓 완전 재생성
-      const newToken = getAccessToken();
+      const newToken = tokenService.getAccessToken();
       if (newToken) {
         // 기존 소켓 정리 후 재연결
         if (this.socket) {
@@ -211,7 +211,7 @@ class SocketService {
 
       // 재발급 실패시 로그아웃 처리
       try {
-        await clearTokens();
+        tokenService.clearTokens();
         this.notifyErrorCallbacks('로그인이 만료되었습니다. 다시 로그인해주세요.');
       } catch (logoutError) {
         console.error('로그아웃 처리 실패:', logoutError);
@@ -229,7 +229,7 @@ class SocketService {
     }
 
     // 실시간으로 토큰 가져오기
-    const token = getAccessToken();
+    const token = tokenService.getAccessToken() || undefined;
 
     // 소켓이 없거나 토큰이 변경된 경우 재생성
     if (!this.socket) {

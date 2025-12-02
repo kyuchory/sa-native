@@ -6,7 +6,7 @@ import { AuthService } from '../services/authService';
 import { ApiError, handleApiError } from '../utils/apiErrors';
 import { DeviceUtils } from '../utils/deviceUtils';
 import { useTokenStore, setTokens as tokenStoreSetTokens, clearTokens as tokenStoreClearTokens } from './tokenStore';
-import { connectSocketAfterLogin, disconnectSocketAfterLogout } from '../utils/socketInitializer';
+import { emitAuthLogin, emitAuthLogout } from '../utils/simpleEventEmitter';
 
 interface AuthState {
   // 상태
@@ -54,6 +54,9 @@ export const useAuthStore = create<AuthState>()(
           isLoading: false
         });
         tokenStoreSetTokens(tokens);
+
+        // 로그인 이벤트 발행 (소켓 연결 등 다른 모듈이 반응)
+        emitAuthLogin({ user, tokens });
       },
 
       logout: async () => {
@@ -77,8 +80,8 @@ export const useAuthStore = create<AuthState>()(
           });
           tokenStoreClearTokens();
 
-          // 로그아웃 시 소켓 연결 해제
-          disconnectSocketAfterLogout();
+          // 로그아웃 이벤트 발행 (소켓 연결 해제 등 다른 모듈이 반응)
+          emitAuthLogout({ reason: 'user_logout' });
         }
       },
 
@@ -98,13 +101,8 @@ export const useAuthStore = create<AuthState>()(
           });
           tokenStoreSetTokens(tokens);
 
-          // 로그인 성공 시 소켓 재연결
-          try {
-            await connectSocketAfterLogin();
-          } catch (error) {
-            console.error('로그인 후 소켓 연결 실패:', error);
-            // 로그인 성공 자체는 유지
-          }
+          // 로그인 성공 이벤트 발행 (소켓 연결은 이벤트 리스너에서 처리)
+          emitAuthLogin({ user, tokens });
 
           return { success: true };
         } catch (error) {

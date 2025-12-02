@@ -1,8 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getAccessToken, getRefreshToken, clearTokens, setAccessToken } from '../stores/tokenStore';
+import { tokenService } from './tokenService';
 import { getApiConfig } from '../config/api';
 import { ApiError } from '../utils/apiErrors';
-import { useAuthStore } from '../stores/authStore';
 
 // API 기본 설정
 const API_BASE_URL = getApiConfig().baseURL;
@@ -12,9 +11,11 @@ class ApiClient {
   private baseURL: string;
   private isRefreshing: boolean = false; // 토큰 재발급 중 플래그
   private refreshPromise: Promise<string> | null = null; // 중복 재발급 방지
+  private onAuthError?: () => void; // 인증 에러 콜백
 
-  constructor(baseURL: string) {
+  constructor(baseURL: string, options?: { onAuthError?: () => void }) {
     this.baseURL = baseURL;
+    this.onAuthError = options?.onAuthError;
   }
 
   // 토큰 만료 감지
@@ -40,9 +41,8 @@ class ApiClient {
   // 강제 로그아웃 처리
   private async forceLogout(): Promise<void> {
     try {
-      // AuthStore의 logout 로직 활용 (API 호출 실패해도 finally block 실행됨)
-      // 토큰 만료로 인해 API logout은 실패하지만, finally block에서 토큰 클리어 + 네비게이션 처리
-      await useAuthStore.getState().logout();
+      // 외부에서 주입받은 콜백 실행
+      this.onAuthError?.();
     } catch (error) {
       console.error('로그아웃 처리 중 오류:', error);
     }
@@ -56,7 +56,7 @@ class ApiClient {
     };
 
     if (includeAuth) {
-      const token = getAccessToken();
+      const token = tokenService.getAccessToken();
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
@@ -194,69 +194,19 @@ class ApiClient {
     return response.json();
   }
 
-  // 토큰 재발급 (실무용 구현)
+  // 토큰 재발급 (토큰 서비스로 위임)
   async refreshToken(): Promise<string> {
-    // 이미 재발급 중이면 기존 Promise 반환 (중복 호출 방지)
-    if (this.isRefreshing && this.refreshPromise) {
-      return this.refreshPromise;
-    }
-
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) {
-      await this.forceLogout();
-      throw new Error('Refresh token not found');
-    }
-
-    this.isRefreshing = true;
-    this.refreshPromise = (async () => {
-      try {
-        const headers = {
-          'Content-Type': 'application/json',
-          'x-platform': 'mobile',
-          'Authorization': `Bearer ${refreshToken}`,
-        };
-
-        const response = await fetch(`${this.baseURL}/auth/refresh`, {
-          method: 'POST',
-          headers,
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          const error = new ApiError(response.status, data.message || 'Token refresh failed', data.errors || []);
-          
-          // RefreshToken도 만료된 경우 강제 로그아웃
-          if (this.isRefreshTokenExpiredError(error)) {
-          await this.forceLogout();
-          }
-          
-          throw error;
-        }
-
-        const newAccessToken = data.data.accessToken;
-        
-        // 새 토큰을 AuthStore에 저장
-        setAccessToken(newAccessToken);
-        console.log('토큰 재발급 성공');
-        
-        return newAccessToken;
-      } catch (error) {
-        console.error('토큰 재발급 중 오류 발생:', error);
-        await this.forceLogout();
-        throw error;
-      } finally {
-        this.isRefreshing = false;
-        this.refreshPromise = null;
-      }
-    })();
-
-    return this.refreshPromise;
+    return tokenService.refreshToken();
   }
 }
 
-// API 클라이언트 인스턴스 생성
-export const apiClient = new ApiClient(API_BASE_URL);
+// API 클라이언트 인스턴스 생성 (콜백은 나중에 주입)
+export let apiClient = new ApiClient(API_BASE_URL);
+
+// 콜백 주입 함수
+export const setApiClientAuthErrorHandler = (onAuthError: () => void) => {
+  apiClient = new ApiClient(API_BASE_URL, { onAuthError });
+};
 
 // apiErrors에서 import하여 재익스포트 (역호환성 유지)
 export { ApiError, handleApiError } from '../utils/apiErrors';

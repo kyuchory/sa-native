@@ -1,7 +1,8 @@
 import { AppState } from 'react-native';
 import { initializeSocketStore, cleanupSocketStore, useSocketStore } from '../stores/socketStore';
 import { useSocketAppState } from '../hooks/useAppState';
-import { getAccessToken } from '../stores/authStore';
+import { tokenService } from '../services/tokenService';
+import { onAuthLogin, onAuthLogout } from './simpleEventEmitter';
 
 /**
  * 소켓 서비스 초기화 유틸리티
@@ -42,7 +43,7 @@ export const initializeSocketServices = async (): Promise<void> => {
 
     if (hasValidToken && currentAppState === 'active') {
       console.log('🔗 로그인 상태 확인됨, 소켓 연결 시도...');
-      console.log(`🔑 인증 토큰 존재 여부: ${!!getAccessToken()}`);
+      console.log(`🔑 인증 토큰 존재 여부: ${!!tokenService.getAccessToken()}`);
       console.log(`📱 앱 상태: ${currentAppState}`);
 
       try {
@@ -59,7 +60,10 @@ export const initializeSocketServices = async (): Promise<void> => {
       console.log('📱 앱이 백그라운드 상태 - 소켓 연결 대기');
     }
 
-    // 4. 초기화 완료 표시
+    // 4. 인증 이벤트 리스너 등록
+    setupAuthEventListeners();
+
+    // 5. 초기화 완료 표시
     isInitialized = true;
     console.log('✅ 소켓 서비스 초기화 완료');
 
@@ -105,7 +109,7 @@ const checkLoginStatus = async (): Promise<boolean> => {
   try {
     // 실제 구현시에는 authStore에서 토큰 유효성을 확인해야 함
     // 현재는 간단히 토큰 존재 여부만 확인
-    const token = getAccessToken();
+    const token = tokenService.getAccessToken();
 
     if (!token) {
       return false;
@@ -113,7 +117,7 @@ const checkLoginStatus = async (): Promise<boolean> => {
 
     // 토큰 유효성 검증 (간단히)
     // 실제 구현시에는 서버에 토큰 검증 요청을 보내야 할 수 있음
-    return token.length > 0;
+    return tokenService.isTokenValid(token);
 
   } catch (error) {
     console.error('로그인 상태 확인 실패:', error);
@@ -173,6 +177,35 @@ export const disconnectSocketAfterLogout = (): void => {
   } catch (error) {
     console.error('로그아웃 후 소켓 연결 해제 실패:', error);
   }
+};
+
+/**
+ * 인증 이벤트 리스너 설정
+ * 로그인/로그아웃 이벤트에 따라 소켓 연결/해제를 처리
+ */
+const setupAuthEventListeners = (): void => {
+  // 로그인 이벤트 리스너
+  onAuthLogin(async (data) => {
+    console.log('🔐 로그인 이벤트 수신, 소켓 연결 시도...');
+    try {
+      await useSocketStore.getState().connect();
+      console.log('✅ 로그인 후 소켓 연결 성공');
+    } catch (error) {
+      console.error('❌ 로그인 후 소켓 연결 실패:', error);
+      // 로그인 성공 자체는 유지하므로 에러를 throw하지 않음
+    }
+  });
+
+  // 로그아웃 이벤트 리스너
+  onAuthLogout((data) => {
+    console.log('🚪 로그아웃 이벤트 수신, 소켓 연결 해제...');
+    try {
+      useSocketStore.getState().disconnect();
+      console.log('✅ 로그아웃 후 소켓 연결 해제 완료');
+    } catch (error) {
+      console.error('❌ 로그아웃 후 소켓 연결 해제 실패:', error);
+    }
+  });
 };
 
 // 초기화 상태 확인

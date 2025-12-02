@@ -23,7 +23,7 @@ export class AuthService {
   }
 
   // 로그아웃
-  static async logout(data: LogoutRequest = {}): Promise<LogoutApiResponse> {
+  static async logout(data: LogoutRequest = { refreshToken: '' }): Promise<LogoutApiResponse> {
     return apiClient.post<LogoutApiResponse>('/auth/logout', data);
   }
 
