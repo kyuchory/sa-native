@@ -133,24 +133,12 @@ const MessageList: React.FC<MessageListProps> = React.memo(({
     []
   );
 
-  // ✅ 최적화 5: getItemLayout 간단 구현 (평균 높이 사용)
-  // inverted FlatList에서 새 메시지는 맨 위에만 추가 → 평균 높이만으로 충분
-  const getItemLayout = useCallback((data: any, index: number) => {
-    const AVERAGE_HEIGHT = 80; // 텍스트(52-60)와 이미지(232)의 균형 잡힌 평균
-    return {
-      length: AVERAGE_HEIGHT,
-      offset: AVERAGE_HEIGHT * index,
-      index,
-    };
-  }, []);
-
   // ✅ 최적화 6: FlatList 성능 최적화 옵션 추가
   return (
     <FlatList
       data={messagesWithMetadata}
       renderItem={renderMessageItem}
       keyExtractor={keyExtractor}
-      getItemLayout={getItemLayout}
       style={styles.flatList}
       showsVerticalScrollIndicator={false}
       inverted={messages.length > 0} // 메시지가 있을 때만 inverted 적용

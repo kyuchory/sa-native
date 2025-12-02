@@ -640,6 +640,15 @@ export default function ChatDetailScreen() {
 
         {/* 스크롤 가능한 채팅 컨텐츠 */}
         <View style={styles.contentContainer}>
+          {/* 과거 메시지 로드 중 표시 (헤더 바로 아래) */}
+          {isLoadingMessages && (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>
+                오래된 메시지를 불러오고 있습니다...
+              </Text>
+            </View>
+          )}
+
           <MessageList
             messages={displayMessages}
             hasMoreMessages={hasMoreMessages}
@@ -816,6 +825,19 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
+  },
+  loadingContainer: {
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.SM,
+    alignItems: 'center',
+    backgroundColor: colors.GRAY_50,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.GRAY_200,
+  },
+  loadingText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.GRAY_600,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
   headerRightContainer: {
     flexDirection: 'row',
