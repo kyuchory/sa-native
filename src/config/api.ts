@@ -31,20 +31,3 @@ export const getApiConfig = () => {
   const isDevelopment = __DEV__;
   return isDevelopment ? API_CONFIG.development : API_CONFIG.production;
 };
-
-// API 엔드포인트
-export const API_ENDPOINTS = {
-  auth: {
-    signup: '/auth/signup',
-    login: '/auth/login',
-    logout: '/auth/logout',
-    refresh: '/auth/refresh',
-    checkEmail: '/auth/check-email',
-    checkNickname: '/auth/check-nickname',
-  },
-  user: {
-    profile: '/user/profile',
-    updateProfile: '/user/profile',
-  },
-  // 추가 도메인별 엔드포인트들...
-};
