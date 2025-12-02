@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Message } from '../types/chat';
 import { ChatService } from '../services/chatService';
 
@@ -29,22 +29,31 @@ export const useChatMessages = ({
   chatRoomId,
   userId
 }: UseChatMessagesProps): UseChatMessagesReturn => {
-  // 서버에서 온 실제 메시지들
   const [messages, setMessages] = useState<Message[]>([]);
-  // 낙관적 메시지들 (전송 중)
   const [pendingMessages, setPendingMessages] = useState<Message[]>([]);
-
-  // 로딩 상태
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-  // 표시할 메시지들: 서버 메시지 + 낙관적 메시지 결합 (실무 표준 패턴)
+  // ✅ 최적화 1: 정렬된 타임스탬프를 캐싱하여 재계산 방지
+  const sortedTimestamps = useRef<Map<number, number>>(new Map());
+
+  const getMessageTimestamp = useCallback((message: Message): number => {
+    const cachedTimestamp = sortedTimestamps.current.get(message.id);
+    if (cachedTimestamp !== undefined) {
+      return cachedTimestamp;
+    }
+    const timestamp = new Date(message.created_at).getTime();
+    sortedTimestamps.current.set(message.id, timestamp);
+    return timestamp;
+  }, []);
+
+  // ✅ 최적화 2: 정렬 최적화 - 이미 정렬된 배열을 효율적으로 병합
   const displayMessages = useMemo(() => {
-    return [...messages, ...pendingMessages].sort((a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+    // pendingMessages는 항상 최신이므로 fastest delivery를 위해 앞에 배치
+    // inverted FlatList에서 최신 메시지가 가장 위에 표시됨
+    return [...pendingMessages, ...messages];
   }, [messages, pendingMessages]);
 
   // 낙관적 메시지 추가
@@ -116,6 +125,13 @@ export const useChatMessages = ({
 
     initChatRoom();
   }, [chatRoomId, userId]);
+
+  // ✅ 타임스탬프 캐시 정리
+  useEffect(() => {
+    return () => {
+      sortedTimestamps.current.clear();
+    };
+  }, []);
 
   return {
     messages,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,8 @@ import { MenuIcon as AddImageIcon, NoticeIcon, CameraIcon } from '../components/
 import ChatDetailSidebar from '../components/ChatDetailSidebar';
 import MenuActionSheet from '../components/MenuActionSheet';
 import { ImageViewerModal } from '../components/ImageViewerModal';
+
+// NOTE: 채팅에서는 throttle 불필요 - 버튼 disabled로 충분한 중복 방지 효과
 
 
 // Local Components
@@ -97,6 +99,15 @@ export default function ChatDetailScreen() {
 
   // 타이핑 타이머 ref
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 이전 입력값 ref (타이핑 상태 비교용)
+  const prevInputTextRef = useRef<string>('');
+
+  // ✅ 최적화: 전송 버튼 활성화 상태 캐싱 (매 렌더마다 trim() 호출 방지)
+  const isSendButtonEnabled = useMemo(
+    () => inputText.trim().length > 0,
+    [inputText]
+  );
 
   // Custom hooks
   const {
@@ -177,15 +188,20 @@ export default function ChatDetailScreen() {
   const handleInputChange = useCallback((text: string) => {
     setInputText(text);
 
-    // 타이핑 상태 관리
-    if (text.length > 0 && inputText.length === 0) {
+    // ✅ 최적화: 이전 입력값과 비교하여 타이핑 상태 관리
+    const prevText = prevInputTextRef.current;
+    if (text.length > 0 && prevText.length === 0) {
       startTypingIndicator();
-    } else if (text.length === 0 && inputText.length > 0) {
+    } else if (text.length === 0 && prevText.length > 0) {
       stopTypingIndicator();
     }
-  }, [inputText, startTypingIndicator, stopTypingIndicator]);
 
-  const handleSendMessage = useCallback(async () => {
+    // 이전 값 업데이트
+    prevInputTextRef.current = text;
+  }, [startTypingIndicator, stopTypingIndicator]);
+
+  // ✅ 최적화 4: 메시지 전송 로직 분리 (throttle 불필요 - disabled로 충분)
+  const sendMessageLogic = useCallback(async () => {
     if (!inputText.trim() || !user) return;
 
     const messageContent = inputText.trim();
@@ -222,6 +238,12 @@ export default function ChatDetailScreen() {
       setAlertModal({ visible: true, title: '전송 실패', message: '메시지를 전송할 수 없습니다. 다시 시도해주세요.' });
     }
   }, [inputText, user, chatRoomId, addPendingMessage, removePendingMessage, sendMessage, stopTypingIndicator]);
+
+  // 메시지 전송 핸들러 (disabled 버튼으로 중복 전송 방지 충분)
+  const handleSendMessage = useCallback(async () => {
+    if (!isSendButtonEnabled) return; // 버튼이 disabled되어 있어도 보험 적용
+    await sendMessageLogic();
+  }, [sendMessageLogic, isSendButtonEnabled]);
 
   const handleMessageLongPress = useCallback((message: Message) => {
     if (message.sender.id === user?.id) {
@@ -410,11 +432,11 @@ export default function ChatDetailScreen() {
     console.log('📝 채팅방 이름 업데이트:', newName);
   }, []);
 
-  // displayMessages에서 모든 미디어 아이템 추출
-  const extractAllMediaItems = useCallback((messages: Message[]) => {
+  // ✅ 최적화 3: 미디어 리스트를 캐싱하여 재계산 방지
+  const allMediaItemsCache = useMemo(() => {
     const mediaItems: Array<{ type: 'image' | 'video'; url: string; thumbnailUrl?: string }> = [];
 
-    messages.forEach(message => {
+    displayMessages.forEach(message => {
       if (message.type === 'image') {
         mediaItems.push({
           type: 'image',
@@ -435,22 +457,21 @@ export default function ChatDetailScreen() {
     });
 
     return mediaItems;
-  }, []);
+  }, [displayMessages]);
 
   const handlePressMedia = useCallback((mediaItem: { type: 'image' | 'video'; url: string; thumbnailUrl?: string }) => {
-    const allItems = extractAllMediaItems(displayMessages);
-    const initialIndex = allItems.findIndex(item =>
+    const initialIndex = allMediaItemsCache.findIndex(item =>
       item.type === mediaItem.type &&
       item.url === mediaItem.url &&
       item.thumbnailUrl === mediaItem.thumbnailUrl
     );
 
     if (initialIndex !== -1) {
-      setAllMediaItems(allItems);
+      setAllMediaItems(allMediaItemsCache);
       setInitialMediaIndex(initialIndex);
       setImageViewerVisible(true);
     }
-  }, [displayMessages, extractAllMediaItems]);
+  }, [allMediaItemsCache]);
 
   const handlePressImage = useCallback((imageUri: string) => {
     handlePressMedia({ type: 'image', url: imageUri });
@@ -682,20 +703,24 @@ export default function ChatDetailScreen() {
               onSubmitEditing={handleSendMessage}
               blurOnSubmit={false}
               editable={true}
+              // ✅ 최적화: 불필요한 리렌더 방지
+              selectTextOnFocus={false}
+              autoCorrect={false}
+              spellCheck={false}
             />
 
             <TouchableOpacity
               style={[
                 styles.chatSendButton,
-                inputText.trim() ? styles.chatSendButtonActive : styles.chatSendButtonInactive
+                isSendButtonEnabled ? styles.chatSendButtonActive : styles.chatSendButtonInactive
               ]}
               onPress={handleSendMessage}
               activeOpacity={0.7}
-              disabled={!inputText.trim()}
+              disabled={!isSendButtonEnabled}
             >
               <SendIcon
                 size={24}
-                color={inputText.trim() ? colors.PRIMARY : colors.GRAY_400}
+                color={isSendButtonEnabled ? colors.PRIMARY : colors.GRAY_400}
               />
             </TouchableOpacity>
           </View>

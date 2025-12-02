@@ -54,6 +54,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
             contentFit="cover"
             cachePolicy={'memory-disk'}
             transition={200}
+            priority="normal" // ✅ 최적화: 우선순위 낮춤
+            placeholder={{ blurhash: 'LEHV6nWB2yk8pyo0adR*.7kCMdnj' }} // ✅ 최적화: 기본 blurhash placeholder
           />
           {/* 반투명 오버레이 */}
           <View style={styles.imageOverlay}>
@@ -79,6 +81,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
             contentFit="cover"
             cachePolicy={'memory-disk'}
             transition={200}
+            priority="normal"
+            placeholder={{ blurhash: 'LEHV6nWB2yk8pyo0adR*.7kCMdnj' }}
           />
           {/* 반투명 오버레이 */}
           <View style={styles.imageOverlay}>
@@ -108,6 +112,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
             contentFit="cover"
             cachePolicy={'memory-disk'}
             transition={200}
+            priority="normal"
+            placeholder={{ blurhash: 'LEHV6nWB2yk8pyo0adR*.7kCMdnj' }}
           />
         </TouchableOpacity>
       );
@@ -135,6 +141,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
               contentFit="cover"
               cachePolicy={'memory-disk'}
               transition={200}
+              priority="normal"
+              placeholder={{ blurhash: 'LEHV6nWB2yk8pyo0adR*.7kCMdnj' }}
             />
             {/* 플레이 버튼 오버레이 */}
             <View style={styles.videoOverlay}>
