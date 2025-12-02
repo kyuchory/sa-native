@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ChevronDownIcon, ChevronUpIcon } from './CutIcons';
 import UserAvatar from './UserAvatar';
@@ -30,12 +30,47 @@ export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
   extraBottomMargin,
 }) => {
   // 🔥 자체적으로 상태 관리하여 부모 컴포넌트 리렌더링 영향 제거
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
-  const handleToggleExpand = () => setIsExpanded(!isExpanded);
+  // 🔥 useCallback으로 이벤트 핸들러 최적화
+  const handleToggleExpand = useCallback(() => setIsExpanded((prev) => !prev), []);
+
   const containerStyle = extraBottomMargin
     ? [styles.container, { marginBottom: extraBottomMargin }]
     : styles.container;
+
+  // 🔥 시간 포맷 결과 메모이제이션
+  const formattedTime = useMemo(() => formatRelativeTime(createdAt), [createdAt]);
+
+  // 🔥 카테고리 렌더링 메모이제이션
+  const renderedCategories = useMemo(() =>
+    categories.map((category) => (
+      <Text key={category.id} style={styles.tag}>
+        #{category.name}
+      </Text>
+    )), [categories]
+  );
+
+  // 🔥 조건부 콘텐츠 메모이제이션
+  const conditionalContent = useMemo(() => {
+    if (!isExpanded) return null;
+
+    return (
+      <>
+        {description && (
+          <View style={styles.descriptionContainer}>
+            <Text style={styles.description} numberOfLines={2}>
+              {description}
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.tagsContainer}>
+          {renderedCategories}
+        </View>
+      </>
+    );
+  }, [isExpanded, description, renderedCategories]);
 
   return (
     <View style={containerStyle}>
@@ -57,28 +92,10 @@ export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
             <UserAvatar profileImg={profileImg} nickname={username} size={30} />
             <Text style={styles.username}>{username}</Text>
           </TouchableOpacity>
-          <Text style={styles.timeText}>{formatRelativeTime(createdAt)}</Text>
+          <Text style={styles.timeText}>{formattedTime}</Text>
         </View>
 
-        {isExpanded && (
-          <>
-            {description && (
-              <View style={styles.descriptionContainer}>
-                <Text style={styles.description} numberOfLines={2}>
-                  {description}
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.tagsContainer}>
-              {categories.map((category) => (
-                <Text key={category.id} style={styles.tag}>
-                  #{category.name}
-                </Text>
-              ))}
-            </View>
-          </>
-        )}
+        {conditionalContent}
       </View>
     </View>
   );

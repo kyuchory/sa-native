@@ -6,11 +6,11 @@ import {
   Dimensions,
   StatusBar,
   TouchableOpacity,
-  FlatList,
   ActivityIndicator,
   RefreshControl,
   DeviceEventEmitter,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import {
@@ -47,7 +47,6 @@ export default function CutScreen() {
   const [containerHeight, setContainerHeight] = useState<number | null>(null);
   const ITEM_HEIGHT = containerHeight ?? SCREEN_HEIGHT;
 
-  // Zustand에서 colors만 선택적으로 가져옴 (최적화)
   const { colors } = useThemeStore();
 
   const [shorts, setShorts] = useState<ShortItem[]>([]);
@@ -61,11 +60,15 @@ export default function CutScreen() {
   const [selectedShort, setSelectedShort] = useState<ShortItem | null>(null);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
-  const flatListRef = useRef<FlatList>(null);
+  
+  // 🔥 리프레시 키 추가 - 리프레시 시마다 변경하여 컴포넌트 강제 재마운트
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  const flatListRef = useRef<any>(null);
   const fetchMoreTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const LIMIT = 4;
-  const PREFETCH_OFFSET = 1;
+  const LIMIT = 6;
+  const PREFETCH_OFFSET = 3;
 
   // 초기 로딩
   const fetchInitial = async () => {
@@ -86,7 +89,7 @@ export default function CutScreen() {
     }
   };
 
-  // 추가 페이지 불러오기 - 중복 데이터 필터링 추가
+  // 추가 페이지 불러오기
   const fetchMore = async () => {
     const currentNextCursor = nextCursor;
     if (!currentNextCursor || isFetchingMore) {
@@ -98,15 +101,10 @@ export default function CutScreen() {
 
       const response = await CutService.getShortsFeed(currentNextCursor, LIMIT);
 
-      // 중복 제거: 기존 shorts의 ID와 비교해서 중복된 아이템 필터링
       setShorts((prev) => {
         const existingIds = new Set(prev.map(short => short.id));
-
         const newItems = response.data.items.filter(item => !existingIds.has(item.id));
-
-        const updated = [...prev, ...newItems];
-
-        return updated;
+        return [...prev, ...newItems];
       });
 
       setNextCursor(response.data.next_cursor);
@@ -117,25 +115,22 @@ export default function CutScreen() {
     }
   };
 
-  // 프리패칭 로직 - 디바운싱 추가
+  // 프리패칭 로직
   useEffect(() => {
     if (!nextCursor) return;
     if (isFetchingMore) return;
     if (shorts.length === 0) return;
 
     if (currentIndex >= shorts.length - 1 - PREFETCH_OFFSET) {
-      // 이전 타임아웃 클리어 (디바운싱)
       if (fetchMoreTimeoutRef.current) {
         clearTimeout(fetchMoreTimeoutRef.current);
       }
 
-      // 300ms 디바운싱 후 fetchMore 호출
       fetchMoreTimeoutRef.current = setTimeout(() => {
         fetchMore();
       }, 300);
     }
 
-    // cleanup function
     return () => {
       if (fetchMoreTimeoutRef.current) {
         clearTimeout(fetchMoreTimeoutRef.current);
@@ -147,27 +142,38 @@ export default function CutScreen() {
     fetchInitial();
   }, []);
 
-  // Pull to refresh 데이터 리프레시 함수
+  // 🔥 Pull to refresh - 수정된 버전
   const onRefresh = useCallback(async () => {
-    if (currentIndex !== 0) return;
     try {
       setRefreshing(true);
       setError(null);
 
+      // 🔥 1. 먼저 currentIndex를 0으로 설정
+      setCurrentIndex(0);
+
+      // 🔥 2. 데이터 fetch
       const response = await CutService.getShortsFeed(undefined, LIMIT);
+      
+      // 🔥 3. refreshKey 증가로 모든 ShortItemComponent 강제 재마운트
+      setRefreshKey(prev => prev + 1);
+      
+      // 🔥 4. 데이터 업데이트
       setShorts(response.data.items);
       setNextCursor(response.data.next_cursor);
-      setCurrentIndex(0);
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      
+      // 🔥 5. 스크롤을 맨 위로 (약간의 지연 후)
+      setTimeout(() => {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+      }, 100);
+      
     } catch (e) {
       console.error('컷츠 리프레시 실패:', e);
       setError('컷츠를 새로고침하는 중 오류가 발생했습니다.');
     } finally {
       setRefreshing(false);
     }
-  }, [currentIndex, LIMIT]);
+  }, [LIMIT]);
 
-  // 🔥 콜백 최적화 - useRef로 안정적인 참조 유지 (함수 선언 후에 설정)
   const callbacksRef = useRef({
     onComment: (shortId: number) => {},
     onShare: (shortId: number) => {},
@@ -176,19 +182,16 @@ export default function CutScreen() {
     onProfilePress: (userId: string) => {},
   });
 
-  // Tab re-press 이벤트 핸들러 - 첫 번째 쇼츠로 스크롤
   const handleTabRePress = useCallback(() => {
     setCurrentIndex(0);
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, []);
 
-  // Tab re-press 이벤트 리스너
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('CutTab:rePress', handleTabRePress);
     return () => subscription.remove();
   }, [handleTabRePress]);
 
-  // 댓글 보기
   const handleComment = useCallback((shortId: number) => {
     const short = shorts.find(s => s.id === shortId);
     if (short) {
@@ -197,7 +200,6 @@ export default function CutScreen() {
     }
   }, [shorts]);
 
-  // 공유하기
   const handleShare = useCallback((shortId: number) => {
     const short = shorts.find(s => s.id === shortId);
     setAlertModal({
@@ -212,22 +214,18 @@ export default function CutScreen() {
     });
   }, [shorts, colors]);
 
-  // 뒤로가기
   const handleGoBack = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
 
-  // 업로드 버튼 클릭
   const handleUpload = useCallback(() => {
     navigation.navigate('CutUploadSelect');
   }, [navigation]);
 
-  // 메뉴 버튼 핸들러
   const handleMorePress = useCallback(() => {
     setMenuActionSheetVisible(true);
   }, []);
 
-  // 컷 삭제 핸들러
   const handleDeleteCut = useCallback(async () => {
     const currentShort = shorts[currentIndex];
     if (!currentShort) return;
@@ -251,18 +249,15 @@ export default function CutScreen() {
               setAlertModal(null);
               await CutService.deleteShort(currentShort.id);
 
-              // 삭제 성공: 쇼츠 배열에서 제거하고 현재 인덱스 조정
               const updatedShorts = shorts.filter(short => short.id !== currentShort.id);
               setShorts(updatedShorts);
 
-              // 만약 마지막 쇼츠가 삭제되었거나 배열이 비었다면 인덱스 리셋
               if (updatedShorts.length === 0) {
                 setCurrentIndex(0);
               } else if (currentIndex >= updatedShorts.length) {
                 setCurrentIndex(updatedShorts.length - 1);
               }
 
-              // 프로필 쇼츠 목록 갱신을 위한 플래그 설정
               useProfileStore.getState().setShouldRefreshProfileShorts(true);
 
               setAlertModal({
@@ -287,7 +282,6 @@ export default function CutScreen() {
     });
   }, [shorts, currentIndex, colors]);
 
-  // 컷 신고 핸들러
   const handleReportCut = useCallback(() => {
     const currentShort = shorts[currentIndex];
     if (currentShort) {
@@ -296,7 +290,6 @@ export default function CutScreen() {
     }
   }, [shorts, currentIndex]);
 
-  // 메뉴 액션 배열 (동적 생성)
   const menuActions = useCallback(() => {
     const currentShort = shorts[currentIndex];
     if (!currentShort) return [];
@@ -311,7 +304,6 @@ export default function CutScreen() {
       },
     ];
 
-    // 내가 소유자인 경우에만 삭제 메뉴 추가
     if (currentShort.is_owner) {
       actions.unshift({
         id: 'delete',
@@ -325,34 +317,25 @@ export default function CutScreen() {
     return actions;
   }, [shorts, currentIndex, colors, handleDeleteCut, handleReportCut]);
 
-  // 시청 기록 저장 핸들러 (로깅 추가)
   const handleViewComplete = useCallback(async (
     shortId: number,
     viewData: RecordShortViewRequest
   ) => {
-    // console.log(`📊 시청 기록 전송 시작 - 쇼츠 ID: ${shortId}`);
-    // console.log('📊 전송 데이터:', viewData);
-
-    // 3초 이상 시청한 경우에만 기록
     if (viewData.watched_seconds < 3) {
-      // console.log(`⏭️ 시청 시간이 3초 미만으로 기록 건너뜀 - 쇼츠 ID: ${shortId} (${viewData.watched_seconds}초)`);
       return;
     }
 
     try {
       await CutService.recordShortView(shortId, viewData);
-      // console.log(`✅ 시청 기록 저장 성공 - 쇼츠 ID: ${shortId}`);
     } catch (error) {
       console.error(`❌ 시청 기록 저장 실패 - 쇼츠 ID: ${shortId}:`, error);
     }
   }, []);
 
-  // 프로필 이동 핸들러
   const handleProfilePress = useCallback((userId: string) => {
     navigation.navigate('UserProfile', { userId });
   }, [navigation]);
 
-  // 콜백이 변경될 때만 ref 업데이트
   useEffect(() => {
     callbacksRef.current = {
       onComment: handleComment,
@@ -363,25 +346,32 @@ export default function CutScreen() {
     };
   }, [handleComment, handleShare, handleUpload, handleViewComplete, handleProfilePress]);
 
-  // FlatList 뷰어빌리티 설정
-  const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 80,
-  }).current;
+  const viewabilityConfigCallbackPairs = useRef([
+    {
+      viewabilityConfig: {
+        itemVisiblePercentThreshold: 80,
+      },
+      onViewableItemsChanged: ({ viewableItems }: any) => {
+        if (viewableItems.length > 0) {
+          setCurrentIndex(viewableItems[0].index ?? 0);
+        }
+      },
+    },
+  ]);
 
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
-      setCurrentIndex(viewableItems[0].index ?? 0);
-    }
-  }).current;
-
-  // 🔥 스타일 객체를 useMemo로 분리하여 매번 생성 방지
   const itemContainerStyle = useMemo(() => ({ height: ITEM_HEIGHT }), [ITEM_HEIGHT]);
 
-  // 🔥 renderShortItem 의존성 최소화 - callbacksRef 사용
+  // 🔥 keyExtractor에 refreshKey 포함
+  const keyExtractor = useCallback(
+    (item: ShortItem) => `${item.id}-${refreshKey}`,
+    [refreshKey]
+  );
+
   const renderShortItem = useCallback(
     ({ item, index }: { item: ShortItem; index: number }) => (
       <View style={itemContainerStyle}>
         <ShortItemComponent
+          key={`${item.id}-${refreshKey}`} // 🔥 key prop 추가
           item={item}
           isActive={isFocused && index === currentIndex}
           onComment={callbacksRef.current.onComment}
@@ -392,7 +382,7 @@ export default function CutScreen() {
         />
       </View>
     ),
-    [itemContainerStyle, isFocused, currentIndex] // 🔥 콜백 의존성 제거!
+    [itemContainerStyle, isFocused, currentIndex, refreshKey] // 🔥 refreshKey 의존성 추가
   );
 
   // 로딩 중
@@ -490,27 +480,20 @@ export default function CutScreen() {
         </TouchableOpacity>
       </View>
 
-      <FlatList
+      <FlashList
         ref={flatListRef}
         data={shorts}
         renderItem={renderShortItem}
-        keyExtractor={(item, index) => `${item.id}-${index}`}
+        keyExtractor={keyExtractor}
         pagingEnabled
         showsVerticalScrollIndicator={false}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        onEndReached={fetchMore}
-        onEndReachedThreshold={0.5}
-        getItemLayout={(data, index) => ({
-          length: ITEM_HEIGHT,
-          offset: ITEM_HEIGHT * index,
-          index,
-        })}
-        initialNumToRender={2}
-        maxToRenderPerBatch={2}
-        windowSize={5}
-        removeClippedSubviews={true}
-        updateCellsBatchingPeriod={100}
+        viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
+        //@ts-ignore
+        estimatedItemSize={ITEM_HEIGHT}
+        drawDistance={ITEM_HEIGHT * 1.5} // 🔥 오프스크린 렌더링 거리 제한으로 메모리 최적화
+        maxToRenderPerBatch={4} // 🔥 배치 렌더링 수 제한으로 부드러운 스크롤 유도
+        updateCellsBatchingPeriod={150} // 🔥 셀 업데이트 간격 조정으로 반응성 향상
+        windowSize={5} // 🔥 윈도우 크기 제한 (현재 + 위아래 2개씩 = 총 5개)
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -541,7 +524,6 @@ export default function CutScreen() {
         />
       )}
 
-      {/* 메뉴 액션 시트 */}
       <MenuActionSheet
         visible={menuActionSheetVisible}
         onClose={() => setMenuActionSheetVisible(false)}
@@ -549,7 +531,6 @@ export default function CutScreen() {
         actions={menuActions()}
       />
 
-      {/* Custom Alert Modal */}
       {alertModal && (
         <CustomAlertModal
           visible={alertModal.visible}

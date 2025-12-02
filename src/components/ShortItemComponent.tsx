@@ -30,8 +30,11 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
   onProfilePress,
   extraBottomMargin,
 }) => {
-  // 🔥 비디오 플레이어 - URL을 직접 전달 (안정적인 참조)
-  const player = useVideoPlayer(item.content_url || '', (player) => {
+  // 🔥 videoSource를 useMemo로 안정화
+  const videoSource = React.useMemo(() => item.content_url || '', [item.content_url]);
+  
+  // 🔥 비디오 플레이어 - 안정적인 source 사용
+  const player = useVideoPlayer(videoSource, (player) => {
     player.loop = true;
   });
 
@@ -60,13 +63,16 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
   const [overlayIsPlaying, setOverlayIsPlaying] = useState(false);
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
-  // 🔥 애니메이션 참조를 useRef로 관리
   const overlayAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
-
-  // 🔥 player의 유효성을 추적하기 위한 ref
-  const isPlayerValidRef = useRef(true);
+  
+  // 🔥 cleanup 플래그 추가
+  const isCleaningUpRef = useRef(false);
+  const isMountedRef = useRef(true);
+  const hasCalledPauseRef = useRef(false); // 🔥 pause 호출 여부 추적
 
   const triggerOverlay = useCallback((isPlayingNow: boolean) => {
+    if (!isMountedRef.current) return;
+    
     if (overlayAnimationRef.current) {
       overlayAnimationRef.current.stop();
     }
@@ -82,38 +88,64 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
     });
 
     overlayAnimationRef.current.start(({ finished }) => {
-      if (finished) setShowOverlayIcon(false);
+      if (finished && isMountedRef.current) setShowOverlayIcon(false);
     });
   }, [overlayOpacity]);
 
-  // 🔥 재생/정지 제어
+  // 🔥 안전한 pause 함수
+  const safePause = useCallback(() => {
+    if (item.type !== 'video') return;
+    if (hasCalledPauseRef.current) return; // 이미 pause 호출됨
+    if (isCleaningUpRef.current) return; // cleanup 중
+
+    try {
+      if (player && typeof player.pause === 'function') {
+        player.pause();
+        hasCalledPauseRef.current = true; // 🔥 pause 호출 기록
+      }
+    } catch (error) {
+      // 무시
+    }
+  }, [item.type, player]);
+
+  // 🔥 재생/정지 제어 - 개선된 버전
   useEffect(() => {
     if (item.type !== 'video') return;
-
-    // player 유효성 플래그 설정
-    isPlayerValidRef.current = true;
+    if (isCleaningUpRef.current) return;
 
     if (isActive) {
-      try {
-        player.play();
-        startTracking(player);
-      } catch (error) {
-        console.warn('Video play error:', error);
-      }
-    } else {
-      try {
-        player.pause();
-        stopTracking();
-        recordAndReset();
-      } catch (error) {
-        console.warn('Video pause error:', error);
-      }
-    }
-  }, [isActive, item.type]); // 🔥 player 제외
+      // pause 플래그 리셋
+      hasCalledPauseRef.current = false;
+      
+      const playTimer = setTimeout(() => {
+        if (!isCleaningUpRef.current && isMountedRef.current) {
+          try {
+            player.play();
+            startTracking(player);
+          } catch (error) {
+            console.warn('Video play error:', error);
+          }
+        }
+      }, 50);
 
-  // 🔥 언마운트 시 정리 - 한 번만 실행
+      return () => {
+        clearTimeout(playTimer);
+      };
+    } else {
+      // 🔥 safePause 사용
+      safePause();
+      stopTracking();
+      recordAndReset();
+    }
+  }, [isActive, item.type, item.id, safePause]);
+
+  // 🔥 언마운트 시 정리 - 개선된 버전
   useEffect(() => {
     return () => {
+      // 🔥 cleanup 플래그 설정
+      isCleaningUpRef.current = true;
+      isMountedRef.current = false;
+
       // 애니메이션 정리
       if (overlayAnimationRef.current) {
         overlayAnimationRef.current.stop();
@@ -122,38 +154,28 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
       // 시청 기록 저장
       recordAndReset();
 
-      // 🔥 player가 유효한 경우에만 pause 호출
-      if (item.type === 'video' && isPlayerValidRef.current) {
-        try {
-          player.pause();
-        } catch (error) {
-          // player가 이미 해제된 경우 에러 무시
-          console.warn('Video cleanup error (ignored):', error);
-        }
-      }
-
-      // player 무효화 표시
-      isPlayerValidRef.current = false;
+      // 🔥 safePause 사용 (중복 방지)
+      safePause();
     };
-  }, []); // 🔥 빈 배열 - 마운트 시 한 번만 등록
+  }, [safePause]); // 🔥 safePause 의존성 추가
 
   const handleTogglePlay = useCallback(() => {
-    if (item.type !== 'video' || !isActive || !isPlayerValidRef.current) return;
+    if (item.type !== 'video' || !isActive || isCleaningUpRef.current) return;
 
     try {
       if (player.playing) {
-        player.pause();
+        safePause(); // 🔥 safePause 사용
         triggerOverlay(false);
       } else {
+        hasCalledPauseRef.current = false; // play 시 플래그 리셋
         player.play();
         triggerOverlay(true);
       }
     } catch (error) {
       console.warn('Toggle play error:', error);
     }
-  }, [item.type, isActive, player, triggerOverlay]);
+  }, [item.type, isActive, player, triggerOverlay, safePause]);
 
-  // 🔥 콜백 함수들을 useCallback으로 감싸기
   const handleComment = useCallback(() => onComment(item.id), [onComment, item.id]);
   const handleShare = useCallback(() => onShare(item.id), [onShare, item.id]);
   const handleProfilePress = useCallback(() => onProfilePress(item.user_id.toString()), [onProfilePress, item.user_id]);
@@ -252,13 +274,12 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
     </View>
   );
 },
-// 🔥 커스텀 비교 함수 - 불필요한 리렌더링 방지
+// 🔥 커스텀 비교 함수
 (prevProps, nextProps) => {
   return (
     prevProps.item.id === nextProps.item.id &&
     prevProps.isActive === nextProps.isActive &&
     prevProps.extraBottomMargin === nextProps.extraBottomMargin &&
-    // 좋아요/북마크 상태는 내부에서 관리하므로 비교 불필요
     prevProps.item.content_url === nextProps.item.content_url
   );
 }
@@ -269,7 +290,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     position: 'relative',
-    backgroundColor: COLORS.BLACK, // 🔥 배경색 추가로 깜빡임 방지
+    backgroundColor: COLORS.BLACK,
   },
   media: {
     width: '100%',
@@ -279,7 +300,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    // 🔥 포인터 이벤트를 통과시켜 아래 버튼들이 동작하도록
     pointerEvents: 'box-none',
   },
   overlayIcon: {
