@@ -16,7 +16,7 @@ import CustomAlertModal from '../components/CustomAlertModal';
 // Components
 import CommonHeader from '../components/CommonHeader';
 import { SearchIcon, MenuIcon, PlusCircleIcon, SendIcon, GalleryImageIcon, GalleryVideoIcon } from '../components/ChatDetailIcons';
-import { MenuIcon as AddImageIcon, NoticeIcon, CameraIcon } from '../components/CommonIcons';
+import { MenuIcon as AddImageIcon, NoticeIcon } from '../components/CommonIcons';
 import ChatDetailSidebar from '../components/ChatDetailSidebar';
 import MenuActionSheet from '../components/MenuActionSheet';
 import { ImageViewerModal } from '../components/ImageViewerModal';
@@ -55,7 +55,7 @@ import { useChatMessages } from '../hooks/useChatMessages';
 import { useChatSocket } from '../hooks/useChatSocket';
 
 // Utils
-import { takePhotoFromCamera, selectPhotoFromGallery, selectVideoFromGallery, uploadChatImage, uploadChatVideo } from '../utils/uploadUtils';
+import { selectPhotoFromGallery, selectVideoFromGallery, uploadChatImage, uploadChatVideo } from '../utils/uploadUtils';
 
 type ChatDetailScreenRouteProp = RouteProp<AuthStackParamList, 'ChatDetail'>;
 type ChatDetailScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ChatDetail'>;
@@ -264,17 +264,7 @@ export default function ChatDetailScreen() {
     setAttachmentActionSheetVisible(true);
   }, []);
 
-  const handleSelectCamera = useCallback(async () => {
-    try {
-      const asset = await takePhotoFromCamera();
-      if (asset && user) {
-        await handleSendImageMessage(asset);
-      }
-    } catch (error) {
-      setAlertModal({ visible: true, title: '오류', message: '사진 촬영에 실패했습니다.' });
-    }
-    setAttachmentActionSheetVisible(false);
-  }, [user]);
+
 
   const handleSelectGalleryImage = useCallback(async () => {
     try {
@@ -759,13 +749,6 @@ export default function ChatDetailScreen() {
         onClose={() => setAttachmentActionSheetVisible(false)}
         title="첨부파일"
         actions={[
-          {
-            id: 'camera',
-            title: '사진 촬영',
-            icon: <CameraIcon size={24} color={colors.GRAY_700} />,
-            color: colors.GRAY_700,
-            onPress: handleSelectCamera,
-          },
           {
             id: 'gallery_image',
             title: '갤러리에서 이미지 선택',
