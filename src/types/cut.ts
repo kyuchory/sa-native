@@ -12,7 +12,7 @@ export interface ShortItem {
   user_id: number;
   username: string;
   profile_img: string | null;
-  type: 'image' | 'video';
+  type: 'video';
   content_url: string;        // 서버에서 이미 baseUrl 합쳐서 제공
   thumbnail_url?: string;     // 서버에서 이미 baseUrl 합쳐서 제공
   description?: string;

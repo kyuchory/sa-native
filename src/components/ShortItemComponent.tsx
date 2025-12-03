@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, TouchableOpacity, Image, Animated, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { PlayIcon, PauseIcon } from './CutIcons';
 import { ShortActionButtons } from './ShortActionButtons';
@@ -94,7 +94,6 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
 
   // 🔥 안전한 pause 함수
   const safePause = useCallback(() => {
-    if (item.type !== 'video') return;
     if (hasCalledPauseRef.current) return; // 이미 pause 호출됨
     if (isCleaningUpRef.current) return; // cleanup 중
 
@@ -106,17 +105,16 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
     } catch (error) {
       // 무시
     }
-  }, [item.type, player]);
+  }, [player]);
 
   // 🔥 재생/정지 제어 - 개선된 버전
   useEffect(() => {
-    if (item.type !== 'video') return;
     if (isCleaningUpRef.current) return;
 
     if (isActive) {
       // pause 플래그 리셋
       hasCalledPauseRef.current = false;
-      
+
       const playTimer = setTimeout(() => {
         if (!isCleaningUpRef.current && isMountedRef.current) {
           try {
@@ -137,7 +135,7 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
       stopTracking();
       recordAndReset();
     }
-  }, [isActive, item.type, item.id, safePause]);
+  }, [isActive, item.id, safePause]);
 
   // 🔥 언마운트 시 정리 - 개선된 버전
   useEffect(() => {
@@ -160,7 +158,7 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
   }, [safePause]); // 🔥 safePause 의존성 추가
 
   const handleTogglePlay = useCallback(() => {
-    if (item.type !== 'video' || !isActive || isCleaningUpRef.current) return;
+    if (!isActive || isCleaningUpRef.current) return;
 
     try {
       if (player.playing) {
@@ -174,49 +172,11 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
     } catch (error) {
       console.warn('Toggle play error:', error);
     }
-  }, [item.type, isActive, player, triggerOverlay, safePause]);
+  }, [isActive, player, triggerOverlay, safePause]);
 
   const handleComment = useCallback(() => onComment(item.id), [onComment, item.id]);
   const handleShare = useCallback(() => onShare(item.id), [onShare, item.id]);
   const handleProfilePress = useCallback(() => onProfilePress(item.user_id.toString()), [onProfilePress, item.user_id]);
-
-  // 이미지 타입
-  if (item.type === 'image') {
-    return (
-      <View style={styles.container}>
-        <Image
-          source={{ uri: item.content_url }}
-          style={styles.media}
-          resizeMode="cover"
-        />
-
-        <ShortActionButtons
-          isLiked={isLiked}
-          likeCount={likeCount}
-          isLikeLoading={isLikeLoading}
-          commentCount={item.comment_count}
-          isBookmarked={isBookmarked}
-          isBookmarkLoading={isBookmarkLoading}
-          viewCount={item.view_count}
-          onLike={toggleLike}
-          onComment={handleComment}
-          onBookmark={toggleBookmark}
-          onShare={handleShare}
-          onUpload={onUpload}
-        />
-
-        <ShortBottomOverlay
-          username={item.username}
-          profileImg={item.profile_img}
-          createdAt={item.created_at}
-          description={item.description}
-          categories={item.categories}
-          onProfilePress={handleProfilePress}
-          extraBottomMargin={extraBottomMargin}
-        />
-      </View>
-    );
-  }
 
   // 비디오 타입
   return (
