@@ -51,7 +51,7 @@ export interface StoryListItem {
 
 // 스토리 목록 조회 응답 데이터
 export interface StoryListResponse {
-  own: StoryListItem[] | null; // 자신의 스토리 (최대 1개, 없으면 null)
+  own: StoryListItem[]; // 자신의 스토리 (항상 포함, story_count로 개수 표시)
   following: StoryListItem[]; // 팔로우한 사용자들의 스토리 배열 (서버에서 정렬된 상태로 제공)
 }
 
