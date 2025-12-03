@@ -30,7 +30,7 @@ export default function MainHeader({ leftButtons = [], rightButtons = [] }: Main
   const navigation = useNavigation();
   const { isAuthenticated } = useAuthStore();
   const { unreadCount, loadUnreadCount, lastUpdated } = useNotificationStore();
-  const { unreadCount: chatUnreadCount, loadUnreadCount: loadChatUnreadCount } = useChatStore();
+  const { unreadCount: chatUnreadCount, loadUnreadCount: loadChatUnreadCount, shouldLoadUnreadCount, setShouldLoadUnreadCount } = useChatStore();
   const route = useRoute();
   const styles = createStyles(colors);
 
@@ -57,14 +57,17 @@ export default function MainHeader({ leftButtons = [], rightButtons = [] }: Main
         }
 
         // 채팅 화면에서 돌아오는 경우 (채팅을 읽었을 가능성이 높음)
-        if (previousRoute === 'Chat') {
+        // 또는 shouldLoadUnreadCount 플래그가 true인 경우 API 호출 후 플래그 off
+        if (previousRoute === 'Chat' || shouldLoadUnreadCount) {
           loadChatUnreadCount();
+          // API 호출 후 플래그를 off로 돌림
+          setShouldLoadUnreadCount(false);
         }
       }
 
       // 현재 화면을 이전 화면으로 저장
       setPreviousRoute(currentRouteName);
-    }, [isAuthenticated, route.name, previousRoute, loadUnreadCount, loadChatUnreadCount])
+    }, [isAuthenticated, route.name, previousRoute, loadUnreadCount, loadChatUnreadCount, shouldLoadUnreadCount, setShouldLoadUnreadCount])
   );
 
   const handleNotificationPress = () => {

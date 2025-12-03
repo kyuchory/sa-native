@@ -9,6 +9,7 @@ interface ChatState {
   unreadCount: number;
   isLoading: boolean;
   lastUpdated: Date | null;
+  shouldLoadUnreadCount: boolean;
 
   // 액션
   setUnreadCount: (count: number) => void;
@@ -17,6 +18,7 @@ interface ChatState {
   resetUnreadCount: () => void;
   loadUnreadCount: () => Promise<void>;
   setLoading: (loading: boolean) => void;
+  setShouldLoadUnreadCount: (shouldLoad: boolean) => void;
 }
 
 export const useChatStore = create<ChatState>()(
@@ -26,6 +28,7 @@ export const useChatStore = create<ChatState>()(
       unreadCount: 0,
       isLoading: false,
       lastUpdated: null,
+      shouldLoadUnreadCount: false,
 
       // 기존 액션들 (수정됨)
       setUnreadCount: (count: number) => set({
@@ -77,6 +80,8 @@ export const useChatStore = create<ChatState>()(
       },
 
       setLoading: (loading: boolean) => set({ isLoading: loading }),
+
+      setShouldLoadUnreadCount: (shouldLoad: boolean) => set({ shouldLoadUnreadCount: shouldLoad }),
     }),
     {
       name: 'chat-storage',

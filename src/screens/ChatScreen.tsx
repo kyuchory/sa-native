@@ -30,6 +30,7 @@ import { chatScreenSocketService, onChatSummaryMessage, onChatRoomUpdated, onCha
 
 // Hooks
 import { useAppState } from '../hooks/useAppState';
+import { useChatStore } from '../stores/chatStore';
 
 type ChatScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Chat'>;
 
@@ -169,6 +170,9 @@ export default function ChatScreen() {
       console.log('📍 ChatScreen 포커스됨 - 채팅 목록 요약 메시지 수신 활성화');
       // 요약 메시지 수신 활성화 (chatScreenSocketService에서 관리)
       chatScreenSocketService.subscribeToChatList();
+
+      // MainHeader unread count API 호출 플래그 ON
+      useChatStore.getState().setShouldLoadUnreadCount(true);
 
       return () => {
         console.log('📍 ChatScreen 포커스 해제됨 - 채팅 목록 요약 메시지 수신 비활성화');
