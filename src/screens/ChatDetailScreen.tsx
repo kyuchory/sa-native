@@ -424,6 +424,9 @@ export default function ChatDetailScreen() {
     // 채팅방 이름이 변경되었을 때 헤더 등에 반영 (낙관적 업데이트)
     setLocalChatRoomName(newName);
     console.log('📝 채팅방 이름 업데이트:', newName);
+
+    // 성공 알림 표시
+    setAlertModal({ visible: true, title: '성공', message: '채팅방 이름이 성공적으로 수정되었습니다.' });
   }, []);
 
   // ✅ 최적화 3: 미디어 리스트를 캐싱하여 재계산 방지
