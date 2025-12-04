@@ -174,13 +174,11 @@ export default function CutScreen() {
     }
   }, [LIMIT]);
 
-  const callbacksRef = useRef({
-    onComment: (shortId: number) => {},
-    onShare: (shortId: number) => {},
-    onUpload: () => {},
-    onViewComplete: (shortId: number, data: RecordShortViewRequest) => {},
-    onProfilePress: (userId: string) => {},
-  });
+  const onCommentRef = useRef<(shortId: number) => void>(() => {});
+  const onShareRef = useRef<(shortId: number) => void>(() => {});
+  const onUploadRef = useRef<() => void>(() => {});
+  const onViewCompleteRef = useRef<(shortId: number, data: RecordShortViewRequest) => void>(() => {});
+  const onProfilePressRef = useRef<(userId: string) => void>(() => {});
 
   const handleTabRePress = useCallback(() => {
     setCurrentIndex(0);
@@ -337,13 +335,11 @@ export default function CutScreen() {
   }, [navigation]);
 
   useEffect(() => {
-    callbacksRef.current = {
-      onComment: handleComment,
-      onShare: handleShare,
-      onUpload: handleUpload,
-      onViewComplete: handleViewComplete,
-      onProfilePress: handleProfilePress,
-    };
+    onCommentRef.current = handleComment;
+    onShareRef.current = handleShare;
+    onUploadRef.current = handleUpload;
+    onViewCompleteRef.current = handleViewComplete;
+    onProfilePressRef.current = handleProfilePress;
   }, [handleComment, handleShare, handleUpload, handleViewComplete, handleProfilePress]);
 
   const viewabilityConfigCallbackPairs = useRef([
@@ -374,11 +370,11 @@ export default function CutScreen() {
           key={`${item.id}-${refreshKey}`} // 🔥 key prop 추가
           item={item}
           isActive={isFocused && index === currentIndex}
-          onComment={callbacksRef.current.onComment}
-          onShare={callbacksRef.current.onShare}
-          onUpload={callbacksRef.current.onUpload}
-          onViewComplete={callbacksRef.current.onViewComplete}
-          onProfilePress={callbacksRef.current.onProfilePress}
+          onComment={(id) => onCommentRef.current(id)}
+          onShare={(id) => onShareRef.current(id)}
+          onUpload={() => onUploadRef.current()}
+          onViewComplete={(id, data) => onViewCompleteRef.current(id, data)}
+          onProfilePress={(userId) => onProfilePressRef.current(userId)}
         />
       </View>
     ),
@@ -491,9 +487,9 @@ export default function CutScreen() {
         //@ts-ignore
         estimatedItemSize={ITEM_HEIGHT}
         drawDistance={ITEM_HEIGHT * 1.5} // 🔥 오프스크린 렌더링 거리 제한으로 메모리 최적화
-        maxToRenderPerBatch={4} // 🔥 배치 렌더링 수 제한으로 부드러운 스크롤 유도
+        maxToRenderPerBatch={3} // 🔥 배치 렌더링 수 제한으로 부드러운 스크롤 유도
         updateCellsBatchingPeriod={150} // 🔥 셀 업데이트 간격 조정으로 반응성 향상
-        windowSize={5} // 🔥 윈도우 크기 제한 (현재 + 위아래 2개씩 = 총 5개)
+        windowSize={3} // 🔥 윈도우 크기 제한 (현재 + 위아래 2개씩 = 총 5개)
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

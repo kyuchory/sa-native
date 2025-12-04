@@ -14,7 +14,6 @@ interface UseViewTrackingProps {
 }
 
 const COMPLETION_THRESHOLD = 0.9;
-const TRACKING_INTERVAL = 1000;
 
 export const useShortViewTracking = ({
   shortId,
@@ -27,7 +26,7 @@ export const useShortViewTracking = ({
     watchedSegments: new Set(),
   });
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   // shortId 변경 시 초기화
   useEffect(() => {
@@ -38,31 +37,37 @@ export const useShortViewTracking = ({
     };
   }, [shortId]);
 
-  const startTracking = useCallback((player: any) => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
+  const trackingLoop = useCallback((player: any) => {
+    if (!player.playing) {
+      rafRef.current = requestAnimationFrame(() => trackingLoop(player));
+      return;
+    }
 
-    intervalRef.current = setInterval(() => {
-      if (!player.playing) return;
+    const currentTime = player.currentTime || 0;
+    const duration = player.duration || 0;
+    const tracking = trackingRef.current;
 
-      const currentTime = player.currentTime || 0;
-      const duration = player.duration || 0;
-      const tracking = trackingRef.current;
+    if (duration > 0 && tracking.videoDuration === 0) {
+      tracking.videoDuration = duration;
+    }
 
-      if (duration > 0 && tracking.videoDuration === 0) {
-        tracking.videoDuration = duration;
-      }
+    const currentSecond = Math.floor(currentTime);
+    if (!tracking.watchedSegments.has(currentSecond)) {
+      tracking.watchedSegments.add(currentSecond);
+    }
 
-      const currentSecond = Math.floor(currentTime);
-      if (!tracking.watchedSegments.has(currentSecond)) {
-        tracking.watchedSegments.add(currentSecond);
-      }
-    }, TRACKING_INTERVAL);
+    rafRef.current = requestAnimationFrame(() => trackingLoop(player));
   }, []);
 
+  const startTracking = useCallback((player: any) => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => trackingLoop(player));
+  }, [trackingLoop]);
+
   const stopTracking = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
     }
   }, []);
 

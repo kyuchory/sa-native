@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   container: {
     position: 'absolute',
     right: SPACING.SM,
-    bottom: 200,
+    bottom: 150, // bottomOverlay가 차지하는 영역 바로 위에 위치하게 조정
     alignItems: 'center',
     gap: SPACING.LG,
   },

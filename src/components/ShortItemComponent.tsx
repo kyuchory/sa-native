@@ -32,11 +32,15 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
 }) => {
   // 🔥 videoSource를 useMemo로 안정화
   const videoSource = React.useMemo(() => item.content_url || '', [item.content_url]);
-  
-  // 🔥 비디오 플레이어 - 안정적인 source 사용
-  const player = useVideoPlayer(videoSource, (player) => {
-    player.loop = true;
-  });
+
+  // 🔥 비디오 플레이어 - 안정적인 source 사용 + 플레이어 재사용으로 최적화
+  const player = useVideoPlayer(videoSource);
+
+  useEffect(() => {
+    if (player) {
+      player.loop = true;
+    }
+  }, [player]);
 
   const { startTracking, stopTracking, recordAndReset } = useShortViewTracking({
     shortId: item.id,
