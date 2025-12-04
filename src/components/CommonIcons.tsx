@@ -501,4 +501,21 @@ const ShareIcon = ({ size = 24, color = COLORS.GRAY_700 }: IconProps) => (
   </View>
 );
 
-export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, EditIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon, NoticeIcon, ReportEyeSlashIcon, FollowersOnlyIcon, CameraIcon, ChatIcon, SaveIcon, MuteIcon, UnmuteIcon, ShareIcon };
+// 사람 어깨머리 아이콘 (그룹 멤버 수 표시용)
+const GroupMembersIcon = ({ size = 20, color = COLORS.WHITE }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* 사람 머리와 어깨 부분 */}
+      <Circle cx="12" cy="6" r="4" fill={color} />
+      <Path
+        d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"
+        fill={color}
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </Svg>
+  </View>
+);
+
+export { BackIcon, AddTextIcon, AddImageIcon, AddVideoIcon, DragHandleIcon, CreateFeedIcon, EditIcon, DeleteIcon, CheckIcon, MenuIcon, ReportIcon, NoticeIcon, ReportEyeSlashIcon, FollowersOnlyIcon, CameraIcon, ChatIcon, SaveIcon, MuteIcon, UnmuteIcon, ShareIcon, GroupMembersIcon };

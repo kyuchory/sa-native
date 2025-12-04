@@ -205,6 +205,7 @@ export default function ChatScreen() {
     try {
       if (showLoading) setIsLoading(true);
       const data = await ChatService.getChatRooms();
+      console.log('📋 채팅방 목록 데이터 수신:', data);
 
       // 로컬 상태 업데이트 (페이징 정보 포함)
       setAllChatRooms(data.chat_rooms);

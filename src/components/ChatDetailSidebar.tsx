@@ -218,7 +218,6 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
             </Text>
           </View>
         )}
-        {member.isOnline && <View style={styles.onlineIndicator} />}
       </View>
       <Text style={styles.memberName} numberOfLines={1}>
         {member.nickname}
@@ -840,7 +839,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: colors.PRIMARY,
+    backgroundColor: colors.GRAY_300,
     alignItems: 'center',
     justifyContent: 'center',
   },
