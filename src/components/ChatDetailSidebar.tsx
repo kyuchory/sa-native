@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NavigationProp } from '@react-navigation/native';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
+import { useAuthStore } from '../stores/authStore';
 import { MediaIcon, NoticeIcon, MembersIcon, ChevronRightIcon, EditIcon, LeaveIcon } from './SidebarIcons';
 import { ChatRoomMember, ChatRoomNotice, ChatRoomMedia, ChatRoomDetail } from '../types/chat';
 import { AuthStackParamList } from '../types/navigation';
@@ -75,6 +76,7 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
   navigation,
 }) => {
   const { colors } = useThemeStore();
+  const { user: currentUser } = useAuthStore();
   const styles = createStyles(colors);
 
   const slideAnim = useRef(new Animated.Value(screenWidth * 0.8)).current;
@@ -90,6 +92,14 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
   const [isImageViewerVisible, setIsImageViewerVisible] = React.useState(false);
   const [imageViewerInitialIndex, setImageViewerInitialIndex] = React.useState(0);
   const [alertModal, setAlertModal] = React.useState<null | {visible: boolean, title: string, message: string, buttons: any[]}>(null);
+
+  // 개인채팅에서 상대방 정보 구하기
+  const otherPerson = useMemo(() => {
+    if (chatRoomDetail?.type !== 'group' && chatRoomDetail?.members && currentUser) {
+      return chatRoomDetail.members.find(member => member.user.id !== currentUser.id);
+    }
+    return null;
+  }, [chatRoomDetail, currentUser]);
 
   // API 데이터를 UI 데이터로 변환
   const {
@@ -366,25 +376,45 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
               {/* 헤더 */}
               <View style={styles.header}>
                 {/* 채팅방 아바타 */}
-                <TouchableOpacity style={styles.chatRoomAvatarContainer} onPress={handleChatRoomAvatarPress}>
-                  {chatRoomDetail?.avatar_url ? (
-                    <Image
-                      source={{ uri: chatRoomDetail.avatar_url }}
-                      style={styles.chatRoomAvatar}
-                      contentFit="cover"
-                      cachePolicy={'memory-disk'}
-                      transition={200}
-                    />
-                  ) : (
-                    <View style={styles.chatRoomAvatarPlaceholder}>
-                      <MediaIcon size={24} color={colors.WHITE} />
+                {chatRoomDetail?.type === 'group' ? (
+                  <TouchableOpacity style={styles.chatRoomAvatarContainer} onPress={handleChatRoomAvatarPress}>
+                    {chatRoomDetail?.avatar_url ? (
+                      <Image
+                        source={{ uri: chatRoomDetail.avatar_url }}
+                        style={styles.chatRoomAvatar}
+                        contentFit="cover"
+                        cachePolicy={'memory-disk'}
+                        transition={200}
+                      />
+                    ) : (
+                      <View style={styles.chatRoomAvatarPlaceholder}>
+                        <MediaIcon size={24} color={colors.WHITE} />
+                      </View>
+                    )}
+                    {/* 수정 가능 힌트 아이콘 */}
+                    <View style={styles.avatarEditHint}>
+                      <EditIcon size={12} color={colors.WHITE} />
                     </View>
-                  )}
-                  {/* 수정 가능 힌트 아이콘 */}
-                  <View style={styles.avatarEditHint}>
-                    <EditIcon size={12} color={colors.WHITE} />
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.chatRoomAvatarContainer}>
+                    {otherPerson?.user.profile_img ? (
+                      <Image
+                        source={{ uri: otherPerson.user.profile_img }}
+                        style={styles.chatRoomAvatar}
+                        contentFit="cover"
+                        cachePolicy={'memory-disk'}
+                        transition={200}
+                      />
+                    ) : (
+                      <View style={styles.chatRoomAvatarPlaceholder}>
+                        <Text style={styles.chatRoomAvatarText}>
+                          {otherPerson?.user.nickname.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
                   </View>
-                </TouchableOpacity>
+                )}
 
                 {/* 채팅방 정보 */}
                 <View style={styles.chatRoomInfo}>
@@ -470,9 +500,11 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
                     <MembersIcon size={20} color={colors.PRIMARY} />
                     <Text style={styles.sectionTitle}>대화상대 ({members.length})</Text>
                   </View>
-                  <TouchableOpacity style={styles.addButton} onPress={onAddMember}>
-                    <Text style={styles.addButtonText}>+</Text>
-                  </TouchableOpacity>
+                  {chatRoomDetail?.type === 'group' && (
+                    <TouchableOpacity style={styles.addButton} onPress={onAddMember}>
+                      <Text style={styles.addButtonText}>+</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
                 {members.length > 0 ? (
                   <View style={styles.membersContainer}>
@@ -610,6 +642,11 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  chatRoomAvatarText: {
+    color: colors.WHITE,
+    fontSize: TYPOGRAPHY.SIZE.LG,
+    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
   },
   avatarEditHint: {
     position: 'absolute',
