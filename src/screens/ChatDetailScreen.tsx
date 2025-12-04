@@ -433,15 +433,25 @@ export default function ChatDetailScreen() {
           url: message.content,
         });
       } else if (message.type === 'video') {
+        // ✅ 수정: 낙관적 메시지의 파일 URI와 실제 메시지의 JSON을 구분하여 처리
         try {
-          const videoData = JSON.parse(message.content);
-          mediaItems.push({
-            type: 'video',
-            url: videoData.video_url || videoData.video_path || '',
-            thumbnailUrl: videoData.thumbnail_url || videoData.thumbnail_path || '',
-          });
+          // content가 JSON 형태인지 확인 (실제 메시지)
+          if (message.content && message.content.startsWith('{')) {
+            const videoData = JSON.parse(message.content);
+            mediaItems.push({
+              type: 'video',
+              url: videoData.video_url || videoData.video_path || '',
+              thumbnailUrl: videoData.thumbnail_url || videoData.thumbnail_path || '',
+            });
+          } else if (message.isSending) {
+            // 낙관적 메시지 (전송 중)인 경우 미디어 캐싱에서 제외
+            console.log('📤 낙관적 비디오 메시지 - 미디어 캐싱 스킵 (전송 중)');
+          } else {
+            // 기타 경우 (알 수 없는 포맷)
+            console.warn('⚠️ 알 수 없는 비디오 content 포맷:', message.content);
+          }
         } catch (error) {
-          console.error('비디오 content 파싱 실패:', error);
+          console.error('비디오 content 파싱 실패:', error, 'content:', message.content);
         }
       }
     });
