@@ -337,23 +337,6 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
       } finally {
         setIsUploading(false);
       }
-    } else if (uploadService === 'chat') {
-      // 채팅용 비디오 편집 결과 반환
-      const result = {
-        videoUri,
-        trimStart,
-        trimEnd,
-        cropArea: correctedCropArea,
-        duration: trimEnd - trimStart,
-      };
-      console.log('📝 채팅 비디오 편집 결과:', result);
-
-      // ChatDetailScreen으로 결과 전달 (채팅방 ID 포함)
-      navigation.navigate('ChatDetail', {
-        chatRoomId: route?.params?.chatRoomId, // 채팅방 ID 포함
-        ...result,
-        isVideoEditResult: true, // 편집 결과임을 표시
-      });
     } else if (uploadService === 'cuts') {
       // cut upload final screen navigation
       const result = {

@@ -282,21 +282,25 @@ export default function ChatDetailScreen() {
     try {
       const asset = await selectVideoFromGallery();
       if (asset && user) {
-        // VideoTrimCropScreen으로 이동 (trim 전용, 2분 제한)
-        navigation.navigate('VideoTrimCrop', {
-          videoUri: asset.uri,
-          videoDuration: asset.duration ? asset.duration * 1000 : undefined,
-          editMode: 'trim',
-          maxDuration: 120000, // 2분
-          uploadService: 'chat',
-          chatRoomId: chatRoomId // 채팅방 ID 전달
-        });
+        // 3분(180초) 초과 비디오 확인
+        if (asset.duration && asset.duration > 180 * 1000) {
+          console.log('⏱️ 선택된 비디오 길이:', asset.duration, '초 - 전송 불가');
+          setAlertModal({
+            visible: true,
+            title: '비디오 길이 제한',
+            message: '3분 이하의 비디오만 채팅에서 전송할 수 있습니다.'
+          });
+          return; // API 요청 방지
+        }
+
+        // 바로 비디오 전송 (편집없이)
+        await handleSendVideoMessage(asset);
       }
     } catch (error) {
       setAlertModal({ visible: true, title: '오류', message: '비디오 선택에 실패했습니다.' });
     }
     setAttachmentActionSheetVisible(false);
-  }, [user, navigation]);
+  }, [user]);
 
   const handleSendImageMessage = useCallback(async (asset: any) => {
     if (!user) return;
