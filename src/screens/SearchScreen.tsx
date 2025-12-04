@@ -159,6 +159,7 @@ export default function SearchScreen() {
       {!isSearchActive ? (
         <View style={styles.noSearchContainer}>
           <Text style={styles.noSearchText}>원하는 내용을 검색해보세요</Text>
+          <Text style={styles.noSearchSubText}>사용자, 게시물, 피드를 검색해보세요</Text>
         </View>
       ) : (
         <>
@@ -293,6 +294,11 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   noSearchText: {
     fontSize: TYPOGRAPHY.SIZE.LG,
     color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
+    fontWeight: TYPOGRAPHY.WEIGHT.REGULAR,
+  },
+  noSearchSubText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.GRAY_600, // 조금 더 어두운 색상
     fontWeight: TYPOGRAPHY.WEIGHT.REGULAR,
   },
 
