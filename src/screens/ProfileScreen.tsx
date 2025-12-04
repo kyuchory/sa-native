@@ -19,6 +19,7 @@ import { ReportEyeSlashIcon } from '../components/CommonIcons';
 import { ProfileService } from '../services/profileService';
 import { FollowService } from '../services/followService';
 import { BlockService } from '../services/blockService';
+import { ChatService } from '../services/chatService';
 
 
 // 스토어 imports
@@ -372,7 +373,79 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
     navigation.navigate('FollowRequests');
   };
 
-  const handleChatPress = () => {
+  const handleChatPress = async () => {
+    if (!profileData?.id) return;
+
+    try {
+      // 1. 먼저 채팅방 목록을 조회하여 기존 1:1 채팅방이 있는지 확인
+      const chatRoomsData = await ChatService.getChatRooms();
+
+      // 2. 현재 사용자와 targetUserId 간의 1:1 채팅방 찾기
+      const existingChatRoom = chatRoomsData.chat_rooms.find(chatRoom =>
+        chatRoom.type === 'private' &&
+        chatRoom.other_user?.id === profileData.id
+      );
+
+      if (existingChatRoom) {
+        // 3. 기존 채팅방이 있으면 바로 이동
+        navigation.navigate('ChatDetail', {
+          chatRoomId: existingChatRoom.id,
+          chatRoomName: existingChatRoom.other_user?.nickname || '채팅방',
+          chatPartnerId: existingChatRoom.other_user?.id
+        });
+        return;
+      }
+
+      // 4. 기존 채팅방이 없으면 생성 확인 알림
+      setAlertModal({
+        visible: true,
+        title: '채팅방 생성',
+        message: `${profileUser?.nickname || '사용자'}님과 채팅방을 생성하시겠습니까?`,
+        buttons: [
+          {
+            text: '취소',
+            style: 'cancel',
+            onPress: () => setAlertModal(null)
+          },
+          {
+            text: '생성',
+            style: 'default',
+            onPress: async () => {
+              try {
+                // 5. 채팅방 생성
+                const result = await ChatService.createPrivateChat(profileData.id);
+
+                // 6. 생성된 채팅방으로 이동
+                navigation.navigate('ChatDetail', {
+                  chatRoomId: result.chatRoomId,
+                  chatRoomName: profileUser?.nickname || '채팅방',
+                  chatPartnerId: profileData.id
+                });
+
+                // 알림 닫기
+                setAlertModal(null);
+              } catch (error) {
+                console.error('채팅방 생성 실패:', error);
+                setAlertModal({
+                  visible: true,
+                  title: '오류',
+                  message: '채팅방 생성에 실패했습니다. 다시 시도해주세요.',
+                  buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+                });
+              }
+            }
+          }
+        ]
+      });
+    } catch (error) {
+      console.error('채팅방 조회 실패:', error);
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '채팅방 정보를 불러올 수 없습니다. 다시 시도해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
+    }
   };
 
   // 사용자 차단 핸들러
