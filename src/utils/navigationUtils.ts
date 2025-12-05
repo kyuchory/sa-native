@@ -10,3 +10,11 @@ export const setNavigationRef = (ref: NavigationContainerRef<AuthStackParamList>
 export const getNavigationState = () => {
   return navigationRef?.getState();
 };
+
+export const getNavigation = () => {
+  return navigationRef;
+};
+
+export const navigate = (name: string, params?: any) => {
+  navigationRef?.navigate(name as any, params);
+};

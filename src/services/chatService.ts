@@ -78,7 +78,7 @@ export class ChatService {
   static async getMessages(
     chatRoomId: number,
     cursor?: number,
-    limit: number = 50
+    limit: number = 25
   ): Promise<{ messages: any[]; hasNext: boolean; nextCursor: number | null }> {
     const params = new URLSearchParams();
     if (cursor) params.append('cursor', cursor.toString());

@@ -2,8 +2,8 @@ import React, { useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getNavigationState } from '../utils/navigationUtils';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, interpolate } from 'react-native-reanimated';
+import { getNavigationState, navigate } from '../utils/navigationUtils';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, interpolate, runOnJS } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useNotificationStore } from '../stores/notificationStore';
@@ -81,12 +81,24 @@ export const NotificationBanner: React.FC = () => {
       }
     });
 
+  const handleTap = useCallback(() => {
+    if (foregroundNotification?.data?.type === 'chat_message' && foregroundNotification.data.chat_room_id) {
+      navigate('ChatDetail', {
+        chatRoomId: parseInt(foregroundNotification.data.chat_room_id),
+        chatRoomName: '', // 빈 문자열로 처리
+      });
+    }
+    // 알림 터치 후 숨김
+    hideNotification();
+  }, [foregroundNotification, navigate, hideNotification]);
+
   const tapGesture = Gesture.Tap()
     .onBegin(() => {
       scale.value = withSpring(0.96, { damping: 15 });
     })
     .onFinalize(() => {
       scale.value = withSpring(1, { damping: 15 });
+      runOnJS(handleTap)(); // UI 스레드에서 JS 함수 호출
     });
 
   const composedGesture = Gesture.Simultaneous(panGesture, tapGesture);
