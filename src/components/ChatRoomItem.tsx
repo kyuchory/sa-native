@@ -15,6 +15,7 @@ interface ChatRoomItemProps {
   onPress: () => void;
   onLongPress: () => void;
   onSelect?: (chatId: number) => void;
+  onProfilePress?: () => void;
 }
 
 export default function ChatRoomItem({
@@ -23,7 +24,8 @@ export default function ChatRoomItem({
   isSelected,
   onPress,
   onLongPress,
-  onSelect
+  onSelect,
+  onProfilePress
 }: ChatRoomItemProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
@@ -137,7 +139,13 @@ export default function ChatRoomItem({
       )}
 
       <View style={styles.profileContainer}>
-        {renderProfileImage(chatRoom)}
+        {chatRoom.type === 'private' && onProfilePress ? (
+          <TouchableOpacity onPress={onProfilePress} activeOpacity={0.7}>
+            {renderProfileImage(chatRoom)}
+          </TouchableOpacity>
+        ) : (
+          renderProfileImage(chatRoom)
+        )}
       </View>
 
       <View style={styles.info}>

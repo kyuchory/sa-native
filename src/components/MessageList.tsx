@@ -30,6 +30,7 @@ interface MessageListProps {
   onMessageLongPress?: (message: Message) => void;
   onPressImage?: (imageUri: string) => void;
   onPressMedia?: (mediaItem: { type: 'image' | 'video'; url: string; thumbnailUrl?: string }) => void;
+  onProfilePress?: (senderId: number) => void;
 }
 
 const MessageList: React.FC<MessageListProps> = React.memo(({
@@ -41,6 +42,7 @@ const MessageList: React.FC<MessageListProps> = React.memo(({
   onMessageLongPress,
   onPressImage,
   onPressMedia,
+  onProfilePress,
 }) => {
   const { colors } = useThemeStore();
   const { user } = useAuthStore();
@@ -108,6 +110,7 @@ const MessageList: React.FC<MessageListProps> = React.memo(({
             onLongPress={onMessageLongPress}
             onPressImage={onPressImage}
             onPressMedia={onPressMedia}
+            onProfilePress={onProfilePress}
           />
         </View>
 
@@ -116,7 +119,7 @@ const MessageList: React.FC<MessageListProps> = React.memo(({
         )}
       </React.Fragment>
     );
-  }, [onMessageLongPress, onPressImage, onPressMedia, styles.messageContainer]);
+  }, [onMessageLongPress, onPressImage, onPressMedia, onProfilePress, styles.messageContainer]);
 
   const renderEmptyState = useCallback(() => (
     <View style={styles.emptyContainer}>

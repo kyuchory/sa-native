@@ -520,6 +520,11 @@ export default function ChatScreen() {
                 }
               }}
               onSelect={handleChatSelect}
+              onProfilePress={item.type === 'private' ? () => {
+                if (item.other_user) {
+                  navigation.navigate('UserProfile', { userId: item.other_user.id.toString() });
+                }
+              } : undefined}
             />
           )}
           keyExtractor={(item) => item.id.toString()}

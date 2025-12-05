@@ -54,7 +54,6 @@ import { useAppState } from '../hooks/useAppState';
 import { useChatMessages } from '../hooks/useChatMessages';
 import { useChatSocket } from '../hooks/useChatSocket';
 
-// Utils
 import { selectPhotoFromGallery, selectVideoFromGallery, uploadChatImage, uploadChatVideo } from '../utils/uploadUtils';
 
 type ChatDetailScreenRouteProp = RouteProp<AuthStackParamList, 'ChatDetail'>;
@@ -503,6 +502,11 @@ export default function ChatDetailScreen() {
     }, 50);
   }, [chatRoomId, localChatRoomName, navigation]);
 
+  // 프로필 이미지 터치 핸들러
+  const handleProfilePress = useCallback((senderId: number) => {
+    navigation.navigate('UserProfile', { userId: senderId.toString() });
+  }, [navigation]);
+
   // Effects
   useEffect(() => {
     // 읽음 처리
@@ -665,6 +669,7 @@ export default function ChatDetailScreen() {
             onMessageLongPress={handleMessageLongPress}
             onPressImage={handlePressImage}
             onPressMedia={handlePressMedia}
+            onProfilePress={handleProfilePress}
           />
 
           {/* 구독 상태 표시 */}

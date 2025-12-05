@@ -17,6 +17,7 @@ interface MessageBubbleProps {
   onLongPress?: (message: Message) => void;
   onPressImage?: (imageUri: string) => void;
   onPressMedia?: (mediaItem: { type: 'image' | 'video'; url: string; thumbnailUrl?: string }) => void;
+  onProfilePress?: (senderId: number) => void;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
@@ -27,6 +28,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
   onLongPress,
   onPressImage,
   onPressMedia,
+  onProfilePress,
 }) => {
   const { colors } = useThemeStore();
   const { user } = useAuthStore();
@@ -188,11 +190,21 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
       {!isMyMessage && (
         <View style={styles.avatarContainer}>
           {isFirstInGroup ? (
-            <UserAvatar
-              profileImg={message.sender.profile_img}
-              nickname={message.sender.nickname}
-              size={32}
-            />
+            onProfilePress ? (
+              <TouchableOpacity onPress={() => onProfilePress(message.sender.id)} activeOpacity={0.7}>
+                <UserAvatar
+                  profileImg={message.sender.profile_img}
+                  nickname={message.sender.nickname}
+                  size={32}
+                />
+              </TouchableOpacity>
+            ) : (
+              <UserAvatar
+                profileImg={message.sender.profile_img}
+                nickname={message.sender.nickname}
+                size={32}
+              />
+            )
           ) : (
             <View style={styles.avatarPlaceholder} />
           )}
