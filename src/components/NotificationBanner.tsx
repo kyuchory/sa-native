@@ -2,6 +2,7 @@ import React, { useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getNavigationState } from '../utils/navigationUtils';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, interpolate } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -107,6 +108,20 @@ export const NotificationBanner: React.FC = () => {
   });
 
   if (!foregroundNotification) return null;
+
+  // 현재 채팅룸 화면인지 확인하여 같은 채팅룸 메시지면 알림 표시하지 않음
+  const navigationState = getNavigationState();
+  if (navigationState) {
+    const currentRoute = navigationState.routes[navigationState.index];
+    let currentChatRoomId = null;
+    if (currentRoute.name === 'ChatDetail' && currentRoute.params) {
+      currentChatRoomId = (currentRoute.params as any).chatRoomId;
+    }
+
+    if (currentChatRoomId && foregroundNotification.data?.chat_room_id == currentChatRoomId) {
+      return null;
+    }
+  }
 
   return (
     <GestureDetector gesture={composedGesture}>

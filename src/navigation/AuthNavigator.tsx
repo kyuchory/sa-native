@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
+import { setNavigationRef } from '../utils/navigationUtils';
 import { createStackNavigator } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuthStore } from '../stores/authStore';
@@ -64,8 +65,17 @@ const Stack = createStackNavigator<AuthStackParamList>();
 export default function AuthNavigator() {
   const { isAuthenticated, tokens } = useAuthStore();
 
+  const navigationRef = useRef<NavigationContainerRef<AuthStackParamList>>(null);
+
   // 앱 상태 감지 및 소켓 재연결 자동 관리
   useSocketAppState();
+
+  // 네비게이션 ref 설정
+  useEffect(() => {
+    if (navigationRef.current) {
+      setNavigationRef(navigationRef.current);
+    }
+  }, []);
 
   // 소켓 서비스 초기화 (로그인 상태 확인 후)
   useEffect(() => {
@@ -89,7 +99,7 @@ export default function AuthNavigator() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NotificationBanner />
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
         <Stack.Navigator
           screenOptions={{
             headerShown: false
