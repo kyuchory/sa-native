@@ -65,9 +65,10 @@ export interface PostDetailSubCategory {
 
 export interface PostDetailContentBlock {
   type: ContentBlockType;
-  value?: string; // text 타입일 때 필수, image/video에서는 선택
+  value: string; // text: 내용, image/video: URL
   sequence: number;
-  path?: string; // image 타입일 때만 제공 (full URL 대신 경로만)
+  path?: string; // image 타입일 때 상대 경로
+  thumbnail_path?: string; // video 타입일 때 썸네일 URL
 }
 
 export interface PostTag {

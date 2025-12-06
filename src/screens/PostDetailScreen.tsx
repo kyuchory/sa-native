@@ -10,13 +10,12 @@ import {
   Keyboard,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { VideoView, useVideoPlayer, VideoSource } from 'expo-video';
-import { useEventListener } from 'expo';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getThumbnailAsync } from 'expo-video-thumbnails';
 import { useRoute, useNavigation, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
 import { PostDetail, PostDetailContentBlock, PostTag } from '../types/post';
 import { useThemeStore } from '../stores/themeStore';
@@ -90,61 +89,10 @@ const ImageBlock: React.FC<ImageBlockProps> = React.memo(({ imageUri, colors, st
   );
 });
 
-type VideoBlockProps = {
-  videoUri: string;
-  styles: ReturnType<typeof createStyles>;
-};
-
-const VideoBlock: React.FC<VideoBlockProps> = React.memo(({ videoUri, styles }) => {
-  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
-  const networkState = useNetworkState();
-  const { autoPlayMode } = useVideoSettingsStore();
-  const shouldAutoPlay = shouldAutoPlayVideo(networkState.type, autoPlayMode);
-
-  const player = useVideoPlayer(videoUri, (player) => {
-    player.loop = true;
-    player.muted = true;
-    if (shouldAutoPlay) {
-      player.play();
-    }
-  });
-
-  useEventListener(player, 'videoTrackChange', ({ videoTrack }) => {
-    if (videoTrack?.size) {
-      const { width, height } = videoTrack.size;
-      if (width && height) {
-        setAspectRatio(width / height);
-      }
-    }
-  });
-
-  React.useEffect(() => {
-    if (!player) return;
-    if (shouldAutoPlay && player.playing === false) {
-      player.play();
-    } else if (!shouldAutoPlay && player.playing === true) {
-      player.pause();
-    }
-  }, [shouldAutoPlay, player]);
-
-  return (
-    <View style={styles.videoBlock}>
-      <VideoView
-        player={player}
-        style={[
-          styles.videoPlayer,
-          ...(aspectRatio && aspectRatio > 0 ? [{ aspectRatio }] : [])
-        ]}
-        nativeControls
-        contentFit="contain"
-      />
-    </View>
-  );
-});
-
-// Enhanced VideoBlock 컴포넌트 - FeedCard의 최적화된 비디오 컴포넌트 적용
+// Enhanced VideoBlock 컴포넌트 - FeedCard와 동일하게 수정
 interface EnhancedVideoBlockProps {
   videoUri: string;
+  thumbnailUri?: string;
   postId: number;
   styles: any;
   isVisible?: boolean;
@@ -152,21 +100,29 @@ interface EnhancedVideoBlockProps {
 
 const EnhancedVideoBlock = React.memo(({
   videoUri,
+  thumbnailUri: serverThumbnailUri,
   postId,
   styles,
   isVisible = true
 }: EnhancedVideoBlockProps) => {
-  const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
+  const [thumbnailUri, setThumbnailUri] = useState<string | null>(serverThumbnailUri || null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // ✅ 상태 추가
   const playerRef = useRef<any>(null);
 
-  const videoSource = useMemo<VideoSource>(() => ({
-    uri: videoUri,
-    useCaching: true,
-    headers: Platform.OS === 'ios' && videoUri.includes('.m3u8') ? undefined : {}
-  }), [videoUri]);
+  // ✅ 네트워크 상태 고려
+  const networkState = useNetworkState();
+  const { autoPlayMode } = useVideoSettingsStore();
+  const shouldAutoPlay = shouldAutoPlayVideo(networkState.type, autoPlayMode);
 
   useEffect(() => {
+    // 서버 썸네일이 있으면 즉시 사용
+    if (serverThumbnailUri) {
+      setThumbnailUri(serverThumbnailUri);
+      return;
+    }
+
+    // 서버 썸네일이 없으면 클라이언트에서 생성 (폴백)
     const preloadThumbnail = async () => {
       try {
         const thumbnail = await getThumbnailAsync(videoUri, {
@@ -180,27 +136,38 @@ const EnhancedVideoBlock = React.memo(({
     };
 
     preloadThumbnail();
-  }, [videoUri]);
+  }, [videoUri, serverThumbnailUri]);
 
-  const player = useVideoPlayer(videoSource, player => {
+  // ✅ videoUri 직접 사용 + shouldAutoPlay 고려
+  const player = useVideoPlayer(videoUri, player => {
     player.loop = true;
     player.muted = true;
-    if (isVisible) {
+    if (isVisible && shouldAutoPlay) { // ✅ shouldAutoPlay 추가
       player.play();
     }
     setIsPlayerReady(true);
     playerRef.current = player;
   });
 
+  // ✅ shouldAutoPlay 의존성 추가
   useEffect(() => {
     if (!player || !isPlayerReady) return;
 
-    if (isVisible && player.playing === false) {
+    const shouldPlay = isVisible && shouldAutoPlay;
+    if (shouldPlay && player.playing === false) {
       player.play();
-    } else if (!isVisible && player.playing === true) {
+    } else if (!shouldPlay && player.playing === true) {
       player.pause();
     }
-  }, [isVisible, player, isPlayerReady]);
+  }, [isVisible, shouldAutoPlay, player, isPlayerReady]);
+
+  // ✅ 음소거 토글 핸들러
+  const handleToggleMute = () => {
+    if (player) {
+      player.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
 
   const videoStyle = [
     styles.videoPlayer,
@@ -221,29 +188,22 @@ const EnhancedVideoBlock = React.memo(({
       <VideoView
         player={player}
         style={videoStyle}
-        nativeControls
+        nativeControls={false} // ✅ false로 변경
         contentFit="contain"
         surfaceType={Platform.OS === 'android' ? 'textureView' : 'surfaceView'}
-        onFirstFrameRender={() => setThumbnailUri(null)}
       />
 
-      {/* 음소거 토글 버튼 */}
+      {/* ✅ 음소거 토글 버튼 수정 */}
       <TouchableOpacity
-        onPress={() => {
-          if (player) {
-            player.muted = !player.muted;
-          }
-        }}
+        onPress={handleToggleMute}
         activeOpacity={0.9}
         style={videoStyles.muteButton}
       >
-        {
-          player?.muted ? (
-            <MuteIcon size={20} color="#FFFFFF" />
-          ) : (
-            <UnmuteIcon size={20} color="#FFFFFF" />
-          )
-        }
+        {isMuted ? (
+          <MuteIcon size={20} color="#FFFFFF" />
+        ) : (
+          <UnmuteIcon size={20} color="#FFFFFF" />
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -286,9 +246,6 @@ export default function PostDetailScreen() {
     };
   }, []);
 
-
-
-
   // 상태 관리
   const [post, setPost] = useState<PostDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -317,19 +274,15 @@ export default function PostDetailScreen() {
   const { setShouldRefreshPosts } = usePostStore();
   const { setShouldRefreshProfilePosts } = useProfileStore();
 
-  // ImageViewer용 mediaItems 추출
+  // ✅ ImageViewer용 mediaItems - 이미지만 포함
   const mediaItems = useMemo(() => {
     if (!post) return [];
     return post.content_blocks
-      .filter(block => block.type === 'image' || block.type === 'video')
+      .filter(block => block.type === 'image') // ✅ 비디오 제외
       .sort((a, b) => a.sequence - b.sequence)
       .map(block => ({
-        type: block.type as 'image' | 'video',
+        type: 'image' as const,
         url: block.value || '',
-        thumbnailUrl: block.type === 'video' ? (() => {
-          // 비디오 thumbnail 처리 로직 필요
-          return undefined; // 임시로 undefined
-        })() : undefined,
       }));
   }, [post]);
 
@@ -339,22 +292,7 @@ export default function PostDetailScreen() {
     }, [postId])
   );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  // 게시물 상세 로드
   const loadPostDetail = async () => {
     try {
       setIsLoading(true);
@@ -395,11 +333,10 @@ export default function PostDetailScreen() {
     }
   };
 
-  // 좋아요 토글 (PostCard와 동일한 낙관적 UI 적용)
+  // 좋아요 토글
   const handleLikeToggle = async () => {
-    if (isLikeLoading) return; // 이미 요청 중이면 무시
+    if (isLikeLoading) return;
 
-    // 낙관적 UI: 즉시 상태 업데이트
     const originalIsLiked = isLiked;
     const originalLikeCount = likeCount;
     const newLikeState = !isLiked;
@@ -409,40 +346,29 @@ export default function PostDetailScreen() {
     setIsLikeLoading(true);
 
     try {
-      // API 호출
       const response = await PostService.togglePostLike(postId);
-
-      // 서버 응답으로 최종 상태 동기화
       setIsLiked(response.is_liked);
       setLikeCount(response.like_count);
-
-      // 게시물 목록 새로고침 플래그 설정
       setShouldRefreshPosts(true);
-
     } catch (error) {
       console.error('좋아요 토글 실패:', error);
-
-      // 실패 시 원래 상태로 롤백
       setIsLiked(originalIsLiked);
       setLikeCount(originalLikeCount);
-
       setAlertModal({
         visible: true,
         title: '오류',
         message: '좋아요 처리에 실패했습니다.',
         buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
       });
-
     } finally {
       setIsLikeLoading(false);
     }
   };
 
-  // 북마크 토글 (좋아요 토글과 동일한 패턴 적용)
+  // 북마크 토글
   const handleBookmarkToggle = async () => {
-    if (isBookmarkLoading) return; // 이미 요청 중이면 무시
+    if (isBookmarkLoading) return;
 
-    // 낙관적 UI: 즉시 상태 업데이트
     const originalIsBookmarked = isBookmarked;
     const originalBookmarkCount = bookmarkCount;
     const newBookmarkState = !isBookmarked;
@@ -452,38 +378,27 @@ export default function PostDetailScreen() {
     setIsBookmarkLoading(true);
 
     try {
-      // API 호출
       const response = await PostService.togglePostBookmark(postId);
-
-      // 서버 응답으로 최종 상태 동기화
       setIsBookmarked(response.is_bookmarked);
       setBookmarkCount(response.bookmark_count);
-
-      // 게시물 목록 새로고침 플래그 설정
       setShouldRefreshPosts(true);
-
     } catch (error) {
       console.error('북마크 토글 실패:', error);
-
-      // 실패 시 원래 상태로 롤백
       setIsBookmarked(originalIsBookmarked);
       setBookmarkCount(originalBookmarkCount);
-
       setAlertModal({
         visible: true,
         title: '오류',
         message: '북마크 처리에 실패했습니다.',
         buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
       });
-
     } finally {
       setIsBookmarkLoading(false);
     }
   };
 
-  // 댓글 좋아요 토글 - useCallback 메모이제이션
+  // 댓글 좋아요 토글
   const handleCommentLike = useCallback(async (commentId: number) => {
-    // 낙관적 UI 업데이트
     const originalComments = [...comments];
 
     setComments(prev => {
@@ -508,10 +423,7 @@ export default function PostDetailScreen() {
     });
 
     try {
-      // API 호출
       const response = await PostService.toggleCommentLike(commentId);
-
-      // 서버 응답으로 최종 동기화
       setComments(prev => {
         const updateComment = (comment: Comment): Comment => {
           if (comment.id === commentId) {
@@ -533,7 +445,6 @@ export default function PostDetailScreen() {
         return prev.map(updateComment);
       });
     } catch (error) {
-      // 실패 시 원래 상태로 롤백
       setComments(originalComments);
       setAlertModal({
         visible: true,
@@ -543,26 +454,19 @@ export default function PostDetailScreen() {
       });
       console.error('댓글 좋아요 토글 실패:', error);
     }
-  }, [comments, postId]); // comments와 postId가 바뀔 때만 재생성
+  }, [comments, postId]);
 
-  // 댓글 작성 - useCallback 메모이제이션
+  // 댓글 작성
   const handleSendComment = useCallback(async (text: string) => {
     if (!text.trim() || isCommentLoading) return;
 
     try {
       setIsCommentLoading(true);
-
-      // API 호출
       await PostService.createComment(postId, text);
-
-      // 댓글 목록 새로고침
       const updatedComments = await PostService.getComments(postId);
       setComments(updatedComments.items);
       setNextCursor(updatedComments.next_cursor);
-
-      // 게시물 목록 새로고침 플래그 설정
       setShouldRefreshPosts(true);
-
     } catch (error) {
       setAlertModal({
         visible: true,
@@ -578,9 +482,7 @@ export default function PostDetailScreen() {
 
   // 답글 작성
   const handleReplyPress = (comment: Comment) => {
-    // 대댓글에 답글을 다는 경우 최상위 부모 댓글의 ID를 사용
     const parentCommentId = comment.parent_comment_id || comment.id;
-
     setReplyingTo({
       commentId: parentCommentId,
       userName: comment.user.nickname
@@ -594,22 +496,17 @@ export default function PostDetailScreen() {
     try {
       setIsCommentLoading(true);
 
-      // 멘션된 사용자 ID 찾기 (실제로는 사용자 검색 API 필요)
       const mentionUserId = comments
         .flatMap(c => [c, ...(c.replies || [])])
         .find(c => c.user.nickname === replyingTo.userName)?.user.id;
 
-      // API 호출
       await PostService.createComment(postId, text, replyingTo.commentId, mentionUserId);
 
-      // 댓글 목록 새로고침
       const updatedComments = await PostService.getComments(postId);
       setComments(updatedComments.items);
       setNextCursor(updatedComments.next_cursor);
-
-      // 답글 입력 모드 종료
+      setShouldRefreshPosts(true);
       setReplyingTo(null);
-
     } catch (error) {
       setAlertModal({
         visible: true,
@@ -643,18 +540,11 @@ export default function PostDetailScreen() {
 
     try {
       setIsCommentLoading(true);
-
-      // API 호출
       await PostService.updateComment(editingComment.commentId, text);
-
-      // 댓글 목록 새로고침
       const updatedComments = await PostService.getComments(postId);
       setComments(updatedComments.items);
       setNextCursor(updatedComments.next_cursor);
-
-      // 수정 모드 종료
       setEditingComment(null);
-
     } catch (error) {
       setAlertModal({
         visible: true,
@@ -673,18 +563,11 @@ export default function PostDetailScreen() {
     const performDelete = async () => {
       try {
         setIsCommentLoading(true);
-
-        // API 호출
         await PostService.deleteComment(commentId);
-
-        // 댓글 목록 새로고침
         const updatedComments = await PostService.getComments(postId);
         setComments(updatedComments.items);
         setNextCursor(updatedComments.next_cursor);
-
-        // 모달 닫기
         setAlertModal(null);
-
       } catch (error) {
         setAlertModal({
           visible: true,
@@ -722,26 +605,19 @@ export default function PostDetailScreen() {
     const performDelete = async () => {
       try {
         setIsLoading(true);
-
-        // API 호출
         await PostService.deletePost(postId);
-
-        // 목록 새로고침 플래그 설정
         setShouldRefreshPosts(true);
 
-        // 자신이 작성한 게시물을 삭제하는 경우 프로필 목록도 새로고침
         if (post?.is_author) {
-          setShouldRefreshProfilePosts(true); // 자신의 게시물 목록 새로고침
+          setShouldRefreshProfilePosts(true);
         }
 
-        // 삭제 성공 시 이전 화면으로 돌아가기
         setAlertModal({
           visible: true,
           title: '삭제 완료',
           message: '게시물이 삭제되었습니다.',
           buttons: [{ text: '확인', onPress: () => { navigation.goBack(); setAlertModal(null); } }]
         });
-
       } catch (error) {
         setAlertModal({
           visible: true,
@@ -786,12 +662,11 @@ export default function PostDetailScreen() {
     return date.toLocaleDateString('ko-KR');
   };
 
-
   // 콘텐츠 블록 렌더링
   const renderContentBlock = (block: PostDetailContentBlock, blockIndex: number, post: PostDetail) => {
-    // 미디어 블록들 중 현재 블록의 인덱스 계산
-    const mediaBlocks = post.content_blocks.filter(b => b.type === 'image' || b.type === 'video').sort((a, b) => a.sequence - b.sequence);
-    const mediaIndex = mediaBlocks.findIndex(b => b.sequence === block.sequence);
+    // 이미지 블록들 중 현재 블록의 인덱스 계산 (비디오 제외)
+    const imageBlocks = post.content_blocks.filter(b => b.type === 'image').sort((a, b) => a.sequence - b.sequence);
+    const imageIndex = imageBlocks.findIndex(b => b.sequence === block.sequence);
 
     switch (block.type) {
       case 'text':
@@ -808,31 +683,25 @@ export default function PostDetailScreen() {
             colors={colors}
             styles={styles}
             onPress={() => {
-              setImageViewerInitialIndex(mediaIndex);
+              setImageViewerInitialIndex(imageIndex);
               setIsImageViewerVisible(true);
             }}
           />
         );
       case 'video':
+        // ✅ TouchableOpacity 제거, 직접 렌더링
         return (
-          <TouchableOpacity
-            onPress={() => {
-              setImageViewerInitialIndex(mediaIndex);
-              setIsImageViewerVisible(true);
+          <EnhancedVideoBlock
+            key={blockIndex}
+            videoUri={block.value || ''}
+            thumbnailUri={block.thumbnail_path}
+            postId={postId}
+            styles={{
+              videoBlock: styles.videoBlock,
+              videoPlayer: styles.videoPlayer
             }}
-            activeOpacity={0.8}
-          >
-            <EnhancedVideoBlock
-              key={blockIndex}
-              videoUri={block.value || ''}
-              postId={postId}
-              styles={{
-                videoBlock: styles.videoBlock,
-                videoPlayer: styles.videoPlayer
-              }}
-              isVisible={true}
-            />
-          </TouchableOpacity>
+            isVisible={true}
+          />
         );
       default:
         return null;
@@ -897,7 +766,6 @@ export default function PostDetailScreen() {
           contentContainerStyle={{ paddingBottom: 0 }}
           keyboardShouldPersistTaps="handled"
         >
-          {/* 게시물 내용 */}
           {/* 작성자 정보 */}
           <View style={styles.authorSection}>
             <TouchableOpacity
@@ -964,7 +832,6 @@ export default function PostDetailScreen() {
             <TouchableOpacity
               style={styles.compactStatButton}
               onPress={() => {
-                // 댓글 섹션으로 스크롤 (추후 구현 가능)
                 console.log('댓글로 이동');
               }}
               activeOpacity={0.7}
@@ -1050,7 +917,6 @@ export default function PostDetailScreen() {
           onClose={() => setMenuActionSheetVisible(false)}
           title="게시물"
           actions={[
-            // 작성자의 게시물인 경우 수정/삭제 메뉴 추가
             ...(post?.is_author ? [
               {
                 id: 'edit',
@@ -1069,14 +935,13 @@ export default function PostDetailScreen() {
                 onPress: handleDeletePost,
               },
             ] : []),
-            // 신고는 모든 사용자에게 표시
             {
               id: 'report',
               title: '게시물 신고',
               icon: <ReportIcon size={20} color={colors.ERROR} />,
               color: colors.ERROR,
               onPress: () => {
-                setMenuActionSheetVisible(false);  // 메뉴 닫기
+                setMenuActionSheetVisible(false);
                 setAlertModal({
                   visible: true,
                   title: '게시물 신고',
@@ -1091,7 +956,6 @@ export default function PostDetailScreen() {
                       text: '신고',
                       style: 'destructive',
                       onPress: () => {
-                        // TODO: 신고 API 호출 구현 필요
                         setAlertModal({
                           visible: true,
                           title: '신고 완료',
@@ -1137,8 +1001,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.GRAY_50
   },
-
-  // 로딩 및 에러
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1147,18 +1009,14 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   errorText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY 대신
+    color: colors.GRAY_600,
     textAlign: 'center',
   },
-
-  // 댓글 입력창 wrapper
   commentInputWrapper: {
     backgroundColor: colors.WHITE,
     borderTopWidth: 1,
     borderTopColor: colors.GRAY_200,
   },
-
-  // 작성자 섹션
   authorSection: {
     backgroundColor: colors.WHITE,
     padding: SPACING.MD,
@@ -1192,8 +1050,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     color: colors.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
-
-  // 제목 섹션
   titleSection: {
     backgroundColor: colors.WHITE,
     paddingHorizontal: SPACING.MD,
@@ -1205,13 +1061,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     color: colors.GRAY_900,
     lineHeight: 28,
   },
-
-  // 콘텐츠 섹션
   contentSection: {
     backgroundColor: colors.WHITE,
   },
-
-  // 콘텐츠 블록
   textBlock: {
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
@@ -1228,7 +1080,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   contentImage: {
     width: '100%',
     borderRadius: BORDER_RADIUS.MD,
-    backgroundColor: colors.GRAY_200, // 로딩 시 배경색 표시 최적화
+    backgroundColor: colors.GRAY_200,
   },
   imageLoadingContainer: {
     width: '100%',
@@ -1241,13 +1093,12 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   videoBlock: {
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
+    position: 'relative',
   },
   videoPlayer: {
     width: '100%',
     borderRadius: BORDER_RADIUS.MD,
   },
-
-  // 태그
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1268,8 +1119,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     color: colors.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
-
-  // 컴팩트한 통계 섹션
   compactStatsSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1305,8 +1154,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   loadingText: {
     opacity: 0.6,
   },
-
-  // 메뉴 버튼
   menuButton: {
     padding: SPACING.SM,
   },
@@ -1314,15 +1161,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
 
 // 비디오 컴포넌트용 스타일
 const videoStyles = StyleSheet.create({
-  container: {
-    width: '100%',
-    height: 'auto',
-    position: 'relative' as const,
-  },
-  videoView: {
-    width: '100%',
-    height: 'auto',
-  },
   muteButton: {
     position: 'absolute',
     top: SPACING.SM,
