@@ -11,7 +11,7 @@ export interface FeedContentBlock {
   value: string;
   sequence: number;
   path?: string;
-  thumbnail?: string;  // 비디오 썸네일 URL (video 타입일 때 제공)
+  thumbnail_path?: string;  // 비디오 썸네일 URL (video 타입일 때 제공)
 }
 
 // 피드 작성자 정보

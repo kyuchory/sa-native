@@ -520,7 +520,7 @@ function FeedCard({
                   {block.type === 'video' ? (
                     <EnhancedVideoBlock
                       videoUri={block.value}
-                      thumbnailUri={block.thumbnail}
+                      thumbnailUri={block.thumbnail_path}
                       feedId={feed.id}
                       styles={styles}
                       isVisible={isVisible && currentPage === index}

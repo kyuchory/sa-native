@@ -22,8 +22,6 @@ import { AuthStackParamList } from '../types/navigation';
 import MenuActionSheet from '../components/MenuActionSheet';
 import { MenuIcon, EditIcon, DeleteIcon, ReportIcon, MuteIcon, UnmuteIcon } from '../components/CommonIcons';
 
-// 불필요한 mock import는 제거됨
-
 // 아이콘 imports
 import { HeartIcon, CommentIcon, BookmarkIcon } from '../components/FeedCardIcons';
 
@@ -142,9 +140,10 @@ const formatTimeAgo = (dateString: string): string => {
   }
 };
 
-// Enhanced VideoBlock 컴포넌트 - FeedCard의 최적화된 비디오 컴포넌트 적용
+// Enhanced VideoBlock 컴포넌트 - FeedCard와 동일하게 수정
 interface EnhancedVideoBlockProps {
   videoUri: string;
+  thumbnailUri?: string;
   feedId: number;
   styles: any;
   isVisible?: boolean;
@@ -152,21 +151,30 @@ interface EnhancedVideoBlockProps {
 
 const EnhancedVideoBlock = React.memo(({
   videoUri,
+  thumbnailUri: serverThumbnailUri,
   feedId,
   styles,
   isVisible = true
 }: EnhancedVideoBlockProps) => {
-  const [thumbnailUri, setThumbnailUri] = useState<string | null>(null);
+  const [thumbnailUri, setThumbnailUri] = useState<string | null>(serverThumbnailUri || null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // ✅ 상태 추가
   const playerRef = useRef<any>(null);
 
-  const videoSource = useMemo<VideoSource>(() => ({
-    uri: videoUri,
-    useCaching: true,
-    headers: Platform.OS === 'ios' && videoUri.includes('.m3u8') ? undefined : {}
-  }), [videoUri]);
+  // ✅ 네트워크 상태 고려
+  const networkState = useNetworkState();
+  const { autoPlayMode } = useVideoSettingsStore();
+  const shouldAutoPlay = shouldAutoPlayVideo(networkState.type, autoPlayMode);
 
+  // ✅ FeedCard와 동일하게 videoUri 직접 사용
   useEffect(() => {
+    // 서버 썸네일이 있으면 즉시 사용
+    if (serverThumbnailUri) {
+      setThumbnailUri(serverThumbnailUri);
+      return;
+    }
+
+    // 서버 썸네일이 없으면 클라이언트에서 생성 (폴백)
     const preloadThumbnail = async () => {
       try {
         const thumbnail = await getThumbnailAsync(videoUri, {
@@ -180,27 +188,38 @@ const EnhancedVideoBlock = React.memo(({
     };
 
     preloadThumbnail();
-  }, [videoUri]);
+  }, [videoUri, serverThumbnailUri]);
 
-  const player = useVideoPlayer(videoSource, player => {
+  // ✅ FeedCard와 동일하게 수정
+  const player = useVideoPlayer(videoUri, player => {
     player.loop = true;
     player.muted = true;
-    if (isVisible) {
+    if (isVisible && shouldAutoPlay) { // ✅ shouldAutoPlay 추가
       player.play();
     }
     setIsPlayerReady(true);
     playerRef.current = player;
   });
 
+  // ✅ FeedCard와 동일하게 수정
   useEffect(() => {
     if (!player || !isPlayerReady) return;
 
-    if (isVisible && player.playing === false) {
+    const shouldPlay = isVisible && shouldAutoPlay; // ✅ shouldAutoPlay 고려
+    if (shouldPlay && player.playing === false) {
       player.play();
-    } else if (!isVisible && player.playing === true) {
+    } else if (!shouldPlay && player.playing === true) {
       player.pause();
     }
-  }, [isVisible, player, isPlayerReady]);
+  }, [isVisible, shouldAutoPlay, player, isPlayerReady]); // ✅ 의존성 추가
+
+  // ✅ 음소거 토글 핸들러 추가
+  const handleToggleMute = () => {
+    if (player) {
+      player.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
 
   return (
     <View style={styles.videoContainer}>
@@ -219,26 +238,19 @@ const EnhancedVideoBlock = React.memo(({
         nativeControls={false}
         contentFit="contain"
         surfaceType={Platform.OS === 'android' ? 'textureView' : 'surfaceView'}
-        onFirstFrameRender={() => setThumbnailUri(null)}
       />
 
-      {/* 음소거 토글 버튼 */}
+      {/* ✅ 음소거 토글 버튼 수정 */}
       <TouchableOpacity
-        onPress={() => {
-          if (player) {
-            player.muted = !player.muted;
-          }
-        }}
+        onPress={handleToggleMute}
         activeOpacity={0.9}
         style={videoStyles.muteButton}
       >
-        {
-          player?.muted ? (
-            <MuteIcon size={20} color="#FFFFFF" />
-          ) : (
-            <UnmuteIcon size={20} color="#FFFFFF" />
-          )
-        }
+        {isMuted ? (
+          <MuteIcon size={20} color="#FFFFFF" />
+        ) : (
+          <UnmuteIcon size={20} color="#FFFFFF" />
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -255,11 +267,13 @@ export default function FeedDetailScreen() {
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
 
-
   const feedId = route.params?.feedId || 15;
 
   // expand/collapse 상태 관리
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // ✅ currentPage 상태 추가 (FeedCard와 동일)
+  const [currentPage, setCurrentPage] = useState(0);
 
   // 스크롤 상태 관리
   const scrollX = useSharedValue(0);
@@ -286,8 +300,8 @@ export default function FeedDetailScreen() {
   const [isFeedBookmarkLoading, setIsFeedBookmarkLoading] = useState(false);
 
   //Zustand
-  const { setShouldRefreshFeeds } = useFeedStore(); // 피드 목록 새로고침 플래그 설정용
-  const { setShouldRefreshProfileFeeds } = useProfileStore(); // 프로필 플래그 설정용
+  const { setShouldRefreshFeeds } = useFeedStore();
+  const { setShouldRefreshProfileFeeds } = useProfileStore();
 
   // 데이터 필터링 및 메모이제이션
   const mediaBlocks = useMemo(() => feed ? feed.content_blocks.filter(block => block.type === 'image' || block.type === 'video') : [], [feed]);
@@ -324,7 +338,7 @@ export default function FeedDetailScreen() {
     };
   }, []);
 
-  // 피드 focus 시 데이터 로드 (수정 후 최신 데이터 보장)
+  // 피드 focus 시 데이터 로드
   useFocusEffect(
     useCallback(() => {
       loadFeedDetail();
@@ -370,9 +384,8 @@ export default function FeedDetailScreen() {
 
   // 피드 좋아요 토글
   const onFeedLikePress = async () => {
-    if (isFeedLikeLoading || !feed) return; // 이미 요청 중이거나 피드가 없으면 무시
+    if (isFeedLikeLoading || !feed) return;
 
-    // 낙관적 UI: 즉시 상태 업데이트
     const originalIsLiked = feed.is_liked;
     const originalLikeCount = feed.like_count;
     const newLikeState = !feed.is_liked;
@@ -385,23 +398,15 @@ export default function FeedDetailScreen() {
     setIsFeedLikeLoading(true);
 
     try {
-      // API 호출
       const response = await FeedService.toggleLike(feedId);
-
-      // 서버 응답으로 최종 상태 동기화
       setFeed(prev => prev ? {
         ...prev,
         is_liked: response.is_liked,
         like_count: response.like_count
       } : null);
-
-      // 피드 목록 새로고침 플래그 설정 (좋아요 변경 반영)
       setShouldRefreshFeeds(true);
-
     } catch (error) {
       console.error('피드 좋아요 토글 실패:', error);
-
-      // 실패 시 원래 상태로 롤백
       setFeed(prev => prev ? {
         ...prev,
         is_liked: originalIsLiked,
@@ -412,11 +417,10 @@ export default function FeedDetailScreen() {
     }
   };
 
-  // 피드 북마크 토글 (좋아요 토글과 동일한 패턴)
+  // 피드 북마크 토글
   const onFeedBookmarkToggle = async () => {
-    if (isFeedBookmarkLoading || !feed) return; // 이미 요청 중이거나 피드가 없으면 무시
+    if (isFeedBookmarkLoading || !feed) return;
 
-    // 낙관적 UI: 즉시 상태 업데이트
     const originalIsBookmarked = feed.is_bookmarked;
     const originalBookmarkCount = feed.bookmark_count;
     const newBookmarkState = !feed.is_bookmarked;
@@ -429,23 +433,15 @@ export default function FeedDetailScreen() {
     setIsFeedBookmarkLoading(true);
 
     try {
-      // API 호출
       const response = await FeedService.toggleBookmark(feedId);
-
-      // 서버 응답으로 최종 상태 동기화
       setFeed(prev => prev ? {
         ...prev,
         is_bookmarked: response.is_bookmarked,
         bookmark_count: response.bookmark_count
       } : null);
-
-      // 피드 목록 새로고침 플래그 설정 (북마크 변경 반영)
       setShouldRefreshFeeds(true);
-
     } catch (error) {
       console.error('피드 북마크 토글 실패:', error);
-
-      // 실패 시 원래 상태로 롤백
       setFeed(prev => prev ? {
         ...prev,
         is_bookmarked: originalIsBookmarked,
@@ -458,7 +454,6 @@ export default function FeedDetailScreen() {
 
   // 댓글 좋아요 토글
   const onCommentLikePress = async (commentId: number) => {
-    // 낙관적 UI 업데이트
     const originalComments = [...comments];
 
     setComments(prev => {
@@ -483,10 +478,7 @@ export default function FeedDetailScreen() {
     });
 
     try {
-      // API 호출
       const response = await FeedService.toggleCommentLike(feedId, commentId);
-
-      // 서버 응답으로 최종 동기화
       setComments(prev => {
         const updateComment = (comment: CommentItem): CommentItem => {
           if (comment.id === commentId) {
@@ -509,7 +501,6 @@ export default function FeedDetailScreen() {
       });
     } catch (error) {
       console.error('댓글 좋아요 토글 실패:', error);
-      // 실패 시 원래 상태로 롤백
       setComments(originalComments);
     }
   };
@@ -520,23 +511,14 @@ export default function FeedDetailScreen() {
 
     try {
       setIsCommentLoading(true);
-
-      // API 호출
       await FeedService.createComment(feedId, { content: text });
-
-      // 댓글 목록 새로고침
       const updatedComments = await FeedService.getComments(feedId);
       setComments(updatedComments.items);
       setNextCursor(updatedComments.next_cursor);
-
-      // 피드 목록 새로고침 플래그 설정 (댓글 작성 반영)
       setShouldRefreshFeeds(true);
-
       console.log('댓글 작성 성공:', text);
-
     } catch (error) {
       console.error('댓글 작성 실패:', error);
-      // TODO: 에러 알림
     } finally {
       setIsCommentLoading(false);
     }
@@ -549,31 +531,22 @@ export default function FeedDetailScreen() {
     try {
       setIsCommentLoading(true);
 
-      // 멘션된 사용자 ID 찾기
       const mentionUserId = comments
         .flatMap(c => [c, ...(c.replies || [])])
         .find(c => c.user.nickname === replyingTo.userName)?.user.id;
 
-      // API 호출
       await FeedService.createComment(feedId, {
         content: text,
         parent_comment_id: replyingTo.commentId,
         mention_user_id: mentionUserId || null
       });
 
-      // 댓글 목록 새로고침
       const updatedComments = await FeedService.getComments(feedId);
       setComments(updatedComments.items);
       setNextCursor(updatedComments.next_cursor);
-
-      // 피드 목록 새로고침 플래그 설정 (답글 작성 반영)
       setShouldRefreshFeeds(true);
-
-      // 답글 입력 모드 종료
       setReplyingTo(null);
-
       console.log('답글 작성 성공:', text);
-
     } catch (error) {
       console.error('답글 작성 실패:', error);
     } finally {
@@ -583,7 +556,6 @@ export default function FeedDetailScreen() {
 
   // 답글 입력 시작
   const onReplyPress = (commentId: number, userName: string) => {
-    // 해당 댓글 정보를 찾아 최상위 부모 ID로 몰아넣음 (Post 방식과 동일)
     const targetComment = comments.flatMap(c => [c, ...(c.replies || [])]).find(c => c.id === commentId);
     const parentCommentId = targetComment?.parent_comment_id || commentId;
 
@@ -613,23 +585,14 @@ export default function FeedDetailScreen() {
 
     try {
       setIsCommentLoading(true);
-
-      // API 호출
       const response = await FeedService.updateComment(feedId, editingComment.commentId, { content: text });
-
-      // 댓글 목록 새로고침
       const updatedComments = await FeedService.getComments(feedId);
       setComments(updatedComments.items);
       setNextCursor(updatedComments.next_cursor);
-
-      // 수정 모드 종료
       setEditingComment(null);
-
       console.log('댓글 수정 성공:', response);
-
     } catch (error) {
       console.error('댓글 수정 실패:', error);
-      // TODO: 사용자에게 에러 알림 표시
     } finally {
       setIsCommentLoading(false);
     }
@@ -639,20 +602,13 @@ export default function FeedDetailScreen() {
   const onDeleteComment = async (commentId: number) => {
     try {
       setIsCommentLoading(true);
-
-      // API 호출
       await FeedService.deleteComment(feedId, commentId);
-
-      // 댓글 목록 새로고침
       const updatedComments = await FeedService.getComments(feedId);
       setComments(updatedComments.items);
       setNextCursor(updatedComments.next_cursor);
-
       console.log('댓글 삭제 성공:', commentId);
-
     } catch (error) {
       console.error('댓글 삭제 실패:', error);
-      // TODO: 사용자에게 에러 알림 표시
     } finally {
       setIsCommentLoading(false);
     }
@@ -676,19 +632,13 @@ export default function FeedDetailScreen() {
           onPress: async () => {
             try {
               setLoading(true);
-
-              // API 호출
               await FeedService.deleteFeed(feedId);
-
-              // 목록 새로고침 플래그 설정
               setShouldRefreshFeeds(true);
 
-              // 자신이 작성한 게시물을 삭제하는 경우 프로필 목록도 새로고침
               if (feed?.is_author) {
-                setShouldRefreshProfileFeeds(true); // 자신의 피드 목록 새로고침
+                setShouldRefreshProfileFeeds(true);
               }
 
-              // 삭제 성공 시 이전 화면으로 돌아가기
               setAlertModal({
                 visible: true,
                 title: '삭제 완료',
@@ -717,82 +667,8 @@ export default function FeedDetailScreen() {
       ]
     });
   };
-  
-  // TapPauseVideo 컴포넌트 - 탭하면 재생/일시정지
-  const TapPauseVideo = ({ videoUri }: { videoUri: string }) => {
-    const networkState = useNetworkState();
-    const { autoPlayMode } = useVideoSettingsStore();
-    const shouldAutoPlay = shouldAutoPlayVideo(networkState.type, autoPlayMode);
 
-    const player = useVideoPlayer(videoUri, (player) => {
-      player.loop = true;
-      player.muted = true; // 시작할 때 기본적으로 음소거 상태
-      if (shouldAutoPlay) {
-        player.play(); // 설정에 따라 자동 재생
-      }
-    });
-
-    const [isPlaying, setIsPlaying] = useState(shouldAutoPlay);
-    const [isMuted, setIsMuted] = useState(true); // 음소거 상태 관리
-
-    useEffect(() => {
-      if (!player) return;
-
-      if (shouldAutoPlay && player.playing === false) {
-        player.play();
-        setIsPlaying(true);
-      } else if (!shouldAutoPlay && player.playing === true) {
-        player.pause();
-        setIsPlaying(false);
-      }
-    }, [shouldAutoPlay, player]);
-
-    const handleTogglePlay = () => {
-      if (isPlaying) {
-        player.pause();
-      } else {
-        player.play();
-      }
-      setIsPlaying(!isPlaying);
-    };
-
-    const handleToggleMute = () => {
-      player.muted = !isMuted;
-      setIsMuted(!isMuted);
-    };
-
-    return (
-      <View style={videoStyles.container}>
-        <VideoView
-          player={player}
-          style={videoStyles.videoView}
-          contentFit="contain"
-          nativeControls={false}
-          surfaceType={Platform.OS === 'android' ? 'textureView' : 'surfaceView'}
-        />
-        {/* 음소거 토글 버튼 - 우측 상단 */}
-        <TouchableOpacity
-          onPress={handleToggleMute}
-          activeOpacity={0.9}
-          style={videoStyles.muteButton}
-        >
-          {isMuted ? (
-            <MuteIcon size={20} color="#FFFFFF" />
-          ) : (
-            <UnmuteIcon size={20} color="#FFFFFF" />
-          )}
-        </TouchableOpacity>
-        {/* 터치 오버레이 - VideoView 위에 투명 레이어 */}
-        <TouchableOpacity
-          onPress={handleTogglePlay}
-          activeOpacity={1}
-          style={videoStyles.touchOverlay}
-        />
-      </View>
-    );
-  };
-
-  // 텍스트 더보기/접기 처리 - useCallback으로 메모이제이션
+  // 텍스트 더보기/접기 처리
   const renderContent = useCallback(() => {
     if (!textBlock) return null;
 
@@ -826,7 +702,7 @@ export default function FeedDetailScreen() {
     );
   }, [textBlock, isExpanded, styles.contentText, styles.moreText]);
 
-  // 로딩 상태 (PostDetailScreen과 같은 패턴으로 분리)
+  // 로딩 상태
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -848,7 +724,7 @@ export default function FeedDetailScreen() {
     );
   }
 
-  // feed가 로드되지 않은 경우 (언리치에이블)
+  // feed가 로드되지 않은 경우
   if (!feed) {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -906,21 +782,20 @@ export default function FeedDetailScreen() {
                 onScroll={scrollHandler}
                 scrollEventThrottle={16}
                 decelerationRate="fast"
+                onMomentumScrollEnd={(event) => {
+                  const page = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
+                  setCurrentPage(page); // ✅ currentPage 업데이트
+                }}
               >
                 {mediaBlocks.map((block: any, index: number) => (
                   <View key={block.sequence} style={styles.carouselItem}>
-                    {/* 첫 번째 미디어에만 총 개수 표시 */}
-                    {index === 0 && mediaBlocks.length > 1 && (
-                      <Text style={styles.moreImagesText}>
-                        +{mediaBlocks.length}
-                      </Text>
-                    )}
                     {block.type === 'video' ? (
                       <EnhancedVideoBlock
                         videoUri={block.value}
+                        thumbnailUri={block.thumbnail_path}
                         feedId={feed.id}
-                        styles={{ mainImage: styles.mainImage, videoContainer: videoStyles.container }}
-                        isVisible={true}
+                        styles={{ mainImage: styles.mainImage, videoContainer: styles.videoContainer }}
+                        isVisible={currentPage === index} // ✅ 현재 페이지만 재생
                       />
                     ) : (
                       <Image
@@ -1003,7 +878,7 @@ export default function FeedDetailScreen() {
               </TouchableOpacity>
             </View>
 
-        <View style={styles.rightActions}>
+            <View style={styles.rightActions}>
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={onFeedBookmarkToggle}
@@ -1062,37 +937,37 @@ export default function FeedDetailScreen() {
         />
       </ScrollView>
 
-        {/* 댓글 입력창 */}
-        <View style={[
-          styles.commentInputWrapper,
-          {
-            marginBottom: Platform.OS === 'ios'
-              ? Math.max(0, keyboardHeight - insets.bottom)
-              : keyboardHeight
-          }
-        ]}>
-          {editingComment ? (
-            <CommentEditInput
-              initialText={editingComment.content}
-              onSave={onSaveEdit}
-              onCancel={() => setEditingComment(null)}
-              isLoading={isCommentLoading}
-            />
-          ) : replyingTo ? (
-            <ReplyInput
-              onSendReply={onSendReply}
-              onCancel={() => setReplyingTo(null)}
-              replyToUser={replyingTo.userName}
-              isLoading={isCommentLoading}
-            />
-          ) : (
-            <CommentInput
-              onSendComment={onSendComment}
-              placeholder="댓글을 작성해 보세요."
-              isLoading={isCommentLoading}
-            />
-          )}
-        </View>
+      {/* 댓글 입력창 */}
+      <View style={[
+        styles.commentInputWrapper,
+        {
+          marginBottom: Platform.OS === 'ios'
+            ? Math.max(0, keyboardHeight - insets.bottom)
+            : keyboardHeight
+        }
+      ]}>
+        {editingComment ? (
+          <CommentEditInput
+            initialText={editingComment.content}
+            onSave={onSaveEdit}
+            onCancel={() => setEditingComment(null)}
+            isLoading={isCommentLoading}
+          />
+        ) : replyingTo ? (
+          <ReplyInput
+            onSendReply={onSendReply}
+            onCancel={() => setReplyingTo(null)}
+            replyToUser={replyingTo.userName}
+            isLoading={isCommentLoading}
+          />
+        ) : (
+          <CommentInput
+            onSendComment={onSendComment}
+            placeholder="댓글을 작성해 보세요."
+            isLoading={isCommentLoading}
+          />
+        )}
+      </View>
 
       {/* 메뉴 액션 시트 */}
       <MenuActionSheet
@@ -1136,7 +1011,7 @@ export default function FeedDetailScreen() {
             },
           },
         ]}
-        />
+      />
 
       {/* Custom Alert Modal */}
       {alertModal && (
@@ -1156,17 +1031,14 @@ export default function FeedDetailScreen() {
 const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.GRAY_50, // BG_COLORS.SECONDARY
+    backgroundColor: colors.GRAY_50,
   },
-
   scrollContainer: {
     flex: 1,
   },
   contentContainer: {
     backgroundColor: colors.WHITE,
   },
-
-  // 헤더
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1180,15 +1052,13 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   nickname: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
-    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
+    color: colors.GRAY_900,
   },
   location: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
+    color: colors.GRAY_600,
     marginTop: 2,
   },
-
-  // 이미지 스크롤
   imageScroll: {
     height: screenWidth,
   },
@@ -1197,15 +1067,10 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     width: screenWidth,
     height: screenWidth,
   },
-  imageContainer: {
-    position: 'relative',
-    width: screenWidth,
-    height: screenWidth,
-  },
   mainImage: {
     width: screenWidth,
     height: screenWidth,
-    backgroundColor: colors.GRAY_200, // COLORS.GRAY_200
+    backgroundColor: colors.GRAY_200,
   },
   moreImagesText: {
     position: 'absolute',
@@ -1220,8 +1085,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     zIndex: 10,
   },
-
-  // 액션 버튼들
   actionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1242,7 +1105,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   actionCount: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
+    color: colors.GRAY_900,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     marginRight: SPACING.MD,
   },
@@ -1252,32 +1115,26 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   loadingText: {
     opacity: 0.6,
   },
-
-  // 콘텐츠 텍스트
   contentTextContainer: {
     paddingHorizontal: SPACING.MD,
     paddingBottom: SPACING.SM,
   },
   contentText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
-    color: colors.GRAY_900, // TEXT_COLORS.PRIMARY
+    color: colors.GRAY_900,
     lineHeight: 20,
   },
   moreText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
+    color: colors.GRAY_600,
     marginTop: SPACING.XS,
   },
-
-  // 시간
   timeText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
-    color: colors.GRAY_600, // TEXT_COLORS.SECONDARY
+    color: colors.GRAY_600,
     paddingHorizontal: SPACING.MD,
     paddingBottom: SPACING.MD,
   },
-
-  // 에러 상태
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1290,15 +1147,11 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     color: colors.ERROR,
     textAlign: 'center',
   },
-
-  // 댓글 입력창 wrapper
   commentInputWrapper: {
     backgroundColor: colors.WHITE,
     borderTopWidth: 1,
     borderTopColor: colors.GRAY_200,
   },
-
-  // 메뉴 버튼
   menuButton: {
     padding: SPACING.SM,
   },
@@ -1309,9 +1162,8 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     paddingVertical: SPACING.SM,
     gap: SPACING.XS,
   },
-  // 비디오 컨테이너
   videoContainer: {
-    flex: 1,
+    position: 'relative',
   },
 });
 
@@ -1325,15 +1177,6 @@ const videoStyles = StyleSheet.create({
   videoView: {
     width: screenWidth,
     height: screenWidth,
-  },
-  touchOverlay: {
-    position: 'absolute' as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
-    zIndex: 10,
   },
   muteButton: {
     position: 'absolute' as const,
