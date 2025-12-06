@@ -274,15 +274,16 @@ export default function PostDetailScreen() {
   const { setShouldRefreshPosts } = usePostStore();
   const { setShouldRefreshProfilePosts } = useProfileStore();
 
-  // ✅ ImageViewer용 mediaItems - 이미지만 포함
+  // ✅ ImageViewer용 mediaItems - 이미지와 비디오 모두 포함
   const mediaItems = useMemo(() => {
     if (!post) return [];
     return post.content_blocks
-      .filter(block => block.type === 'image') // ✅ 비디오 제외
+      .filter(block => block.type === 'image' || block.type === 'video')
       .sort((a, b) => a.sequence - b.sequence)
       .map(block => ({
-        type: 'image' as const,
+        type: block.type as 'image' | 'video',
         url: block.value || '',
+        thumbnailUrl: block.type === 'video' ? block.thumbnail_path : undefined,
       }));
   }, [post]);
 
@@ -297,6 +298,7 @@ export default function PostDetailScreen() {
     try {
       setIsLoading(true);
       const postData = await PostService.getPostDetail(postId);
+      console.log('게시물 상세 데이터:', postData);
       setPost(postData);
       setIsLiked(postData.is_liked || false);
       setIsBookmarked(postData.is_bookmarked || false);
@@ -664,9 +666,11 @@ export default function PostDetailScreen() {
 
   // 콘텐츠 블록 렌더링
   const renderContentBlock = (block: PostDetailContentBlock, blockIndex: number, post: PostDetail) => {
-    // 이미지 블록들 중 현재 블록의 인덱스 계산 (비디오 제외)
-    const imageBlocks = post.content_blocks.filter(b => b.type === 'image').sort((a, b) => a.sequence - b.sequence);
-    const imageIndex = imageBlocks.findIndex(b => b.sequence === block.sequence);
+    // 미디어 블록들 중 현재 블록의 인덱스 계산 (이미지 + 비디오)
+    const mediaBlocks = post.content_blocks
+      .filter(b => b.type === 'image' || b.type === 'video')
+      .sort((a, b) => a.sequence - b.sequence);
+    const mediaIndex = mediaBlocks.findIndex(b => b.sequence === block.sequence);
 
     switch (block.type) {
       case 'text':
@@ -683,25 +687,33 @@ export default function PostDetailScreen() {
             colors={colors}
             styles={styles}
             onPress={() => {
-              setImageViewerInitialIndex(imageIndex);
+              setImageViewerInitialIndex(mediaIndex);
               setIsImageViewerVisible(true);
             }}
           />
         );
       case 'video':
-        // ✅ TouchableOpacity 제거, 직접 렌더링
+        // ✅ TouchableOpacity로 감싸서 ImageViewer로 이동
         return (
-          <EnhancedVideoBlock
+          <TouchableOpacity
             key={blockIndex}
-            videoUri={block.value || ''}
-            thumbnailUri={block.thumbnail_path}
-            postId={postId}
-            styles={{
-              videoBlock: styles.videoBlock,
-              videoPlayer: styles.videoPlayer
+            onPress={() => {
+              setImageViewerInitialIndex(mediaIndex);
+              setIsImageViewerVisible(true);
             }}
-            isVisible={true}
-          />
+            activeOpacity={0.9}
+          >
+            <EnhancedVideoBlock
+              videoUri={block.value || ''}
+              thumbnailUri={block.thumbnail_path}
+              postId={postId}
+              styles={{
+                videoBlock: styles.videoBlock,
+                videoPlayer: styles.videoPlayer
+              }}
+              isVisible={true}
+            />
+          </TouchableOpacity>
         );
       default:
         return null;
