@@ -16,6 +16,8 @@ import { formatMessageDate } from '../utils/timeUtils';
 import CommonHeader from '../components/CommonHeader';
 import UserAvatar from '../components/UserAvatar';
 import CustomAlertModal from '../components/CustomAlertModal';
+import useFeedStore from '../stores/feedStore';
+import usePostStore from '../stores/postStore';
 
 export default function BlockedUsersScreen() {
   const navigation = useNavigation();
@@ -92,6 +94,10 @@ export default function BlockedUsersScreen() {
               setAlertModal(null);
               // 차단 해제 API 호출
               await BlockService.unblockUser(user.id);
+
+              // 차단 해제 성공 시 피드 및 게시물 새로고침 플래그 설정
+              useFeedStore.getState().setShouldRefreshFeeds(true);
+              usePostStore.getState().setShouldRefreshPosts(true);
 
               // 목록에서 해당 사용자 제거
               setUsers(prev => prev.filter(u => u.id !== user.id));

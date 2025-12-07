@@ -25,6 +25,7 @@ import { ChatService } from '../services/chatService';
 // 스토어 imports
 import useProfileStore from '../stores/profileStore';
 import useFeedStore from '../stores/feedStore';
+import usePostStore from '../stores/postStore';
 
 // 타입 imports
 import type { Profile, ProfileFeedItem, ProfilePostItem, ProfilePagination, ProfileShortItem } from '../types/profile';
@@ -477,6 +478,11 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
             try {
               // 사용자 차단 API 호출
               await BlockService.blockUser(profileData.id);
+
+              // 차단 성공 시 피드 및 게시물 새로고침 플래그 설정
+              useFeedStore.getState().setShouldRefreshFeeds(true);
+              usePostStore.getState().setShouldRefreshPosts(true);
+
               setAlertModal({
                 visible: true,
                 title: '차단 완료',
