@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, TouchableOpacity, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import {
   HeartIcon,
@@ -22,6 +22,7 @@ interface ShortActionButtonsProps {
   onBookmark: () => void;
   onShare: () => void;
   onUpload: () => void;
+  bottomInsets?: number;
 }
 
 const formatCount = (count: number): string => {
@@ -44,9 +45,13 @@ export const ShortActionButtons = React.memo<ShortActionButtonsProps>(
     onBookmark,
     onShare,
     onUpload,
+    bottomInsets,
   }) => {
-  return (
-    <View style={styles.container}>
+    // 🔥 동적 스타일 생성 (CutDetailScreen에서만 사용)
+    const styles = useMemo(() => bottomInsets ? createDynamicStyles(bottomInsets) : defaultStyles, [bottomInsets]);
+
+    return (
+      <View style={styles.container}>
       {/* 좋아요 */}
       <TouchableOpacity
         style={styles.actionButton}
@@ -140,13 +145,14 @@ export const ShortActionButtons = React.memo<ShortActionButtonsProps>(
 }
 );
 
-const styles = StyleSheet.create({
+// 🔥 기본 스타일 (CutScreen에서 사용)
+const defaultStyles = StyleSheet.create({
   container: {
     position: 'absolute',
     right: SPACING.SM,
     bottom: 150, // bottomOverlay가 차지하는 영역 바로 위에 위치하게 조정
     alignItems: 'center',
-    gap: SPACING.LG,
+    gap: SPACING.MD,
   },
   actionButton: {
     alignItems: 'center',
@@ -168,5 +174,14 @@ const styles = StyleSheet.create({
     height: 28,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+});
+
+// 🔥 동적 스타일을 위한 함수 (CutDetailScreen에서만 사용)
+const createDynamicStyles = (bottomInsets: number) => StyleSheet.create({
+  ...defaultStyles,
+  container: {
+    ...defaultStyles.container,
+    bottom: 150 + bottomInsets,
   },
 });

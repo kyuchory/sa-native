@@ -16,6 +16,7 @@ interface ShortBottomOverlayProps {
   description?: string;
   categories: Category[];
   onProfilePress?: () => void;
+  bottomInsets?: number;
 }
 
 export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
@@ -25,9 +26,13 @@ export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
   description,
   categories,
   onProfilePress,
+  bottomInsets,
 }) => {
   // 🔥 시간 포맷 결과 메모이제이션
   const formattedTime = useMemo(() => formatRelativeTime(createdAt), [createdAt]);
+
+  // 🔥 동적 스타일 생성 (CutDetailScreen에서만 사용)
+  const styles = useMemo(() => bottomInsets ? createDynamicStyles(bottomInsets) : defaultStyles, [bottomInsets]);
 
   return (
     <View style={styles.bottomOverlay}>
@@ -78,7 +83,8 @@ export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
   );
 });
 
-const styles = StyleSheet.create({
+// 🔥 기본 스타일 (CutScreen에서 사용)
+const defaultStyles = StyleSheet.create({
   // 필수 스타일들
   username: {
     fontSize: TYPOGRAPHY.SIZE.MD,
@@ -141,5 +147,14 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.SM,
     color: COLORS.WHITE,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
+});
+
+// 🔥 동적 스타일을 위한 함수 (CutDetailScreen에서만 사용)
+const createDynamicStyles = (bottomInsets: number) => StyleSheet.create({
+  ...defaultStyles,
+  bottomOverlay: {
+    ...defaultStyles.bottomOverlay,
+    marginBottom: bottomInsets + SPACING.SM,
   },
 });

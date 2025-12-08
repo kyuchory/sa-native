@@ -224,6 +224,7 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
         onBookmark={toggleBookmark}
         onShare={handleShare}
         onUpload={onUpload}
+        bottomInsets={extraBottomMargin}
       />
 
       <ShortBottomOverlay
@@ -233,6 +234,7 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
         description={item.description}
         categories={item.categories}
         onProfilePress={handleProfilePress}
+        bottomInsets={extraBottomMargin}
       />
     </View>
   );
