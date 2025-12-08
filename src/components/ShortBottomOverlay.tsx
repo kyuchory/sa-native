@@ -16,9 +16,6 @@ interface ShortBottomOverlayProps {
   description?: string;
   categories: Category[];
   onProfilePress?: () => void;
-  showFollowButton?: boolean;
-  isFollowing?: boolean;
-  onFollowPress?: () => void;
 }
 
 export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
@@ -28,9 +25,6 @@ export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
   description,
   categories,
   onProfilePress,
-  showFollowButton,
-  isFollowing,
-  onFollowPress,
 }) => {
   // 🔥 시간 포맷 결과 메모이제이션
   const formattedTime = useMemo(() => formatRelativeTime(createdAt), [createdAt]);
@@ -58,18 +52,6 @@ export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
           <Text style={styles.timestamp}>{formattedTime}</Text>
         </View>
       </View>
-
-      {showFollowButton && (
-        <TouchableOpacity
-          style={styles.followButton}
-          onPress={onFollowPress}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.followText}>
-            {isFollowing ? '팔로잉' : '팔로우'}
-          </Text>
-        </TouchableOpacity>
-      )}
 
       <View style={styles.descriptionSection}>
         {description && (
@@ -110,17 +92,6 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.MD,
     color: COLORS.WHITE,
     lineHeight: 20,
-  },
-  followButton: {
-    paddingHorizontal: SPACING.SM,
-    paddingVertical: SPACING.XS,
-    backgroundColor: COLORS.PRIMARY,
-    borderRadius: 4,
-  },
-  followText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    color: COLORS.WHITE,
-    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 
   // CutPreview 디자인 스타일들
