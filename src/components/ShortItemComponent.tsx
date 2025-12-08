@@ -233,7 +233,6 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
         description={item.description}
         categories={item.categories}
         onProfilePress={handleProfilePress}
-        extraBottomMargin={extraBottomMargin}
       />
     </View>
   );
