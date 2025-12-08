@@ -40,6 +40,7 @@ import ProfileVisibilityScreen from '../screens/ProfileVisibilityScreen';
 import ThemeModeSettingsScreen from '../screens/ThemeModeSettingsScreen';
 import VideoAutoPlaySettingsScreen from '../screens/VideoAutoPlaySettingsScreen';
 import SupportListScreen from '../screens/SupportListScreen';
+import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
 import SupportCreateScreen from '../screens/SupportCreateScreen';
 import SupportDetailScreen from '../screens/SupportDetailScreen';
 import FollowRequestsScreen from '../screens/FollowRequestsScreen';
@@ -221,6 +222,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="SupportList"
           component={SupportListScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="NotificationSettings"
+          component={NotificationSettingsScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen

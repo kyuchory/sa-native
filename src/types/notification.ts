@@ -105,3 +105,46 @@ export interface UnreadCountResponse {
 
 // 읽지 않은 알림 개수 조회 API 응답 타입
 export type GetUnreadCountApiResponse = ApiResponse<UnreadCountResponse>;
+
+// 알림 설정 인터페이스
+export interface NotificationSettings {
+  follow_notification: boolean;
+  feed_like_notification: boolean;
+  post_like_notification: boolean;
+  short_like_notification: boolean;
+  feed_comment_notification: boolean;
+  post_comment_notification: boolean;
+  short_comment_notification: boolean;
+  dm_notification: boolean;
+  feed_created_notification: boolean;
+  post_created_notification: boolean;
+  short_created_notification: boolean;
+}
+
+// 알림 설정 업데이트 인터페이스 (부분 업데이트를 위한 선택적 필드)
+export interface NotificationSettingsUpdate {
+  follow_notification?: boolean;
+  feed_like_notification?: boolean;
+  post_like_notification?: boolean;
+  short_like_notification?: boolean;
+  feed_comment_notification?: boolean;
+  post_comment_notification?: boolean;
+  short_comment_notification?: boolean;
+  dm_notification?: boolean;
+  feed_created_notification?: boolean;
+  post_created_notification?: boolean;
+  short_created_notification?: boolean;
+}
+
+// 알림 설정 조회 API 응답 타입
+export type GetNotificationSettingsApiResponse = ApiResponse<NotificationSettings>;
+
+// 알림 설정 업데이트 응답 데이터 인터페이스
+export interface UpdateNotificationSettingsData {
+  success: boolean;
+  data: NotificationSettings;
+  message: string;
+}
+
+// 알림 설정 업데이트 API 응답 타입
+export type UpdateNotificationSettingsApiResponse = ApiResponse<UpdateNotificationSettingsData>;

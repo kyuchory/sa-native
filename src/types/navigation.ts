@@ -44,6 +44,7 @@ export type AuthStackParamList = {
   ThemeModeSettings: undefined;
   VideoAutoPlaySettings: undefined;
   SupportList: undefined;
+  NotificationSettings: undefined;
   SupportCreate: undefined;
   SupportDetail: { inquiryId: number };
   FollowRequests: undefined;

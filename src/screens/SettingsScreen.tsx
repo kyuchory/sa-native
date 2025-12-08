@@ -52,7 +52,7 @@ export default function SettingsScreen() {
   };
 
   const handleNotifications = () => {
-    console.log('알림 설정 상세');
+    navigation.navigate('NotificationSettings' as never);
   };
 
   const handleLanguage = () => {
@@ -170,10 +170,9 @@ export default function SettingsScreen() {
             />
             <SettingItem
               title="알림"
-              subtitle="푸시 알림, 마케팅 알림"
-              showToggle={true}
-              toggleValue={isNotifications}
-              onToggleChange={setIsNotifications}
+              subtitle="푸시 알림 설정"
+              showArrow={true}
+              onPress={handleNotifications}
               colors={colors}
             />
             <SettingItem
