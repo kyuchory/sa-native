@@ -78,6 +78,20 @@ export type AuthStackParamList = {
     thumbnailUri?: string;
   };
   CutDetail: { shortId: number };
+  CutPreview: {
+    videoUri: string;
+    trimStart: number;
+    trimEnd: number;
+    cropArea: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
+    thumbnailUri?: string;
+    description: string;
+    selectedCategories: { id: number; name: string }[];
+  };
   SavedItems: undefined;
 };
 

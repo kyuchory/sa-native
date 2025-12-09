@@ -10,6 +10,7 @@ import Animated, { useSharedValue, useAnimatedStyle, useAnimatedProps } from 're
 import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Path, Rect, Defs, Mask } from 'react-native-svg';
 import * as VideoThumbnails from 'expo-video-thumbnails';
+import { manipulateAsync } from 'expo-image-manipulator';
 import { useThemeStore } from '../stores/themeStore';
 import useFeedStore from '../stores/feedStore';
 import usePostStore from '../stores/postStore';
@@ -140,6 +141,7 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
   const [actualVideoOrientation, setActualVideoOrientation] = useState<'landscape' | 'portrait' | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [thumbnailUri, setThumbnailUri] = useState<string | undefined>(undefined);
 
   const player = useVideoPlayer(videoUri ? { uri: videoUri } : null, (player) => {
     player.loop = false;
@@ -187,7 +189,7 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     player.timeUpdateEventInterval = 1 / 60;
-  }, []);
+  }, [thumbnailUri]);
 
   const generateThumbnails = useCallback(async (uri: string, dur: number) => {
     const thumbnailCount = 10;
@@ -197,8 +199,8 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
 
     try {
       for (let i = 0; i < thumbnailCount; i++) {
-        // 끝 프레임 근처에서 깨지는 걸 방지하려고 약간 여유를 둠
-        const rawTime = i * interval;
+        // 첫 번째 썸네일은 trimStart 시간, 나머지는 기존 간격
+        const rawTime = i === 0 ? trimStart : i * interval;
         const time = Math.max(0, Math.min(dur - 200, Math.floor(rawTime)));
 
         try {
@@ -209,14 +211,38 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
 
           thumbs.push(result.uri);
 
+          // 첫 번째 성공한 썸네일을 thumbnailUri로 저장
+          if (!thumbnailUri) {
+            setThumbnailUri(result.uri);
+          }
+
           if (!orientationSet && result.width && result.height) {
             const thumbnailAspectRatio = result.width / result.height;
             const orientation = thumbnailAspectRatio > 1 ? 'landscape' : 'portrait';
+
+            // 즉시 사용하기 위해 로컬 변수 orientation을 사용하고,
+            // state에도 기록해 다음 렌더에서 사용 가능하게 함
             setActualVideoOrientation(orientation);
             setIsVideoReady(true);
             orientationSet = true;
 
-            console.log('🖼️ 썸네일 크기:', result.width, result.height, '방향:', orientation);
+            // correctedCropArea 계산 시 **로컬 orientation**을 바로 전달
+            const correctedCropArea = convertCropAreaForServer(cropArea, videoDimensions, orientation);
+
+            // cropRect를 계산할 때 픽셀 범위를 안전하게 클램프
+            const originX = Math.round(correctedCropArea.x * result.width);
+            const originY = Math.round(correctedCropArea.y * result.height);
+            const cropW = Math.round(correctedCropArea.width * result.width);
+            const cropH = Math.round(correctedCropArea.height * result.height);
+
+            // bounds clamp: (manipulateAsync는 out-of-bounds에서 실패하기 쉬움)
+            const clampedOriginX = Math.max(0, Math.min(result.width - 1, originX));
+            const clampedOriginY = Math.max(0, Math.min(result.height - 1, originY));
+            const clampedCropW = Math.max(1, Math.min(result.width - clampedOriginX, cropW));
+            const clampedCropH = Math.max(1, Math.min(result.height - clampedOriginY, cropH));
+
+            const cropRect = {
+            }
           }
         } catch (err) {
           console.warn('⚠️ 썸네일 1개 생성 실패 (time ms:', time, '):', err);
@@ -344,7 +370,7 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         trimStart,
         trimEnd,
         cropArea: correctedCropArea,
-        thumbnailUri: undefined, // thumbnail not generated yet
+        thumbnailUri,
       };
       console.log('cuts edit result:', result);
 
