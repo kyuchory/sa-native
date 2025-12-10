@@ -10,7 +10,7 @@ interface Category {
 }
 
 interface ShortBottomOverlayProps {
-  username: string;
+  nickname: string;
   profileImg: string | null;
   createdAt: string;
   description?: string;
@@ -20,7 +20,7 @@ interface ShortBottomOverlayProps {
 }
 
 export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
-  username,
+  nickname,
   profileImg,
   createdAt,
   description,
@@ -42,17 +42,17 @@ export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
           activeOpacity={0.7}
           disabled={!onProfilePress}
         >
-          <UserAvatar profileImg={profileImg} nickname={username} size={40} />
+          <UserAvatar profileImg={profileImg} nickname={nickname} size={40} />
         </TouchableOpacity>
 
         <View style={styles.textSection}>
           <TouchableOpacity
-            style={styles.usernameTouchable}
+            style={styles.nicknameTouchable}
             onPress={onProfilePress}
             activeOpacity={0.7}
             disabled={!onProfilePress}
           >
-            <Text style={styles.username}>{username}</Text>
+            <Text style={styles.nickname}>{nickname}</Text>
           </TouchableOpacity>
           <Text style={styles.timestamp}>{formattedTime}</Text>
         </View>
@@ -86,12 +86,12 @@ export const ShortBottomOverlay = React.memo<ShortBottomOverlayProps>(({
 // 🔥 기본 스타일 (CutScreen에서 사용)
 const defaultStyles = StyleSheet.create({
   // 필수 스타일들
-  username: {
+  nickname: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
     color: COLORS.WHITE,
   },
-  usernameTouchable: {
+  nicknameTouchable: {
     alignSelf: 'flex-start',
   },
   description: {

@@ -67,7 +67,7 @@ export default function CutCommentActionSheet({
   const [isLoadMoreLoading, setIsLoadMoreLoading] = useState(false);
   const [isCommentLoading, setIsCommentLoading] = useState(false);
   const [commentLikeLoading, setCommentLikeLoading] = useState<Set<number>>(new Set());
-  const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{ commentId: number; nickname: string } | null>(null);
   const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
@@ -247,7 +247,7 @@ export default function CutCommentActionSheet({
       // 멘션된 사용자 ID 찾기
       const mentionUserId = comments
         .flatMap(c => [c, ...(c.replies || [])])
-        .find(c => c.user.nickname === replyingTo.userName)?.user.id;
+        .find(c => c.user.nickname === replyingTo.nickname)?.user.id;
 
       // 쇼츠 답글 작성 API 호출
       await CutService.createShortComment(short.id, {
@@ -276,14 +276,14 @@ export default function CutCommentActionSheet({
   };
 
   // 답글 입력 시작
-  const onReplyPress = (commentId: number, userName: string) => {
+  const onReplyPress = (commentId: number, nickname: string) => {
     // 해당 댓글 정보를 찾아 최상위 부모 ID로 몰아넣음
     const targetComment = comments.flatMap(c => [c, ...(c.replies || [])]).find(c => c.id === commentId);
     const parentCommentId = targetComment?.parent_comment_id || commentId;
 
     setReplyingTo({
       commentId: parentCommentId,
-      userName
+      nickname
     });
   };
 
@@ -469,13 +469,13 @@ export default function CutCommentActionSheet({
                 <TouchableOpacity onPress={onAuthorPress} activeOpacity={0.7}>
                   <UserAvatar
                     profileImg={short.profile_img}
-                    nickname={short.username}
+                    nickname={short.nickname}
                     size={40}
                   />
                 </TouchableOpacity>
                 <View style={styles.feedContent}>
                   <TouchableOpacity activeOpacity={0.7} onPress={onAuthorPress}>
-                    <Text style={styles.feedUsername}>{short.username}</Text>
+                    <Text style={styles.feednickname}>{short.nickname}</Text>
                   </TouchableOpacity>
                   <Text style={styles.feedTime}>{formatRelativeTime(short.created_at)}</Text>
                   {short.description && (
@@ -533,7 +533,7 @@ export default function CutCommentActionSheet({
               <ReplyInput
                 onSendReply={onSendReply}
                 onCancel={() => setReplyingTo(null)}
-                replyToUser={replyingTo.userName}
+                replyToUser={replyingTo.nickname}
                 isLoading={isCommentLoading}
               />
             ) : (
@@ -616,7 +616,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     flex: 1,
     marginLeft: SPACING.SM,
   },
-  feedUsername: {
+  feednickname: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
     color: colors.GRAY_900,

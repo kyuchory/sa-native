@@ -10,7 +10,7 @@ export interface ShortCategory {
 export interface ShortItem {
   id: number;
   user_id: number;
-  username: string;
+  nickname: string;
   profile_img: string | null;
   type: 'video';
   content_url: string;        // 서버에서 이미 baseUrl 합쳐서 제공

@@ -312,7 +312,7 @@ export default function CutPreviewScreen({ route }: { route: CutPreviewRouteProp
 
           {/* Bottom overlay */}
           <ShortBottomOverlay
-            username="@preview_user"
+            nickname="@preview_user"
             profileImg={null}
             createdAt={new Date().toISOString()}
             description={description}

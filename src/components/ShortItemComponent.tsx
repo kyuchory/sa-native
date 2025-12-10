@@ -228,7 +228,7 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
       />
 
       <ShortBottomOverlay
-        username={item.username}
+        nickname={item.nickname}
         profileImg={item.profile_img}
         createdAt={item.created_at}
         description={item.description}
