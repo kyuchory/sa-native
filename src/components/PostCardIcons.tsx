@@ -55,3 +55,27 @@ export function CommentIcon({ size = 20, color = COLORS.GRAY_400 }: IconProps) {
     </Svg>
   );
 }
+
+// 조회수 아이콘 (눈 모양)
+export function ViewIcon({ size = 20, color = COLORS.GRAY_400 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+        stroke={color}
+        strokeWidth="1.5"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle
+        cx="12"
+        cy="12"
+        r="3"
+        stroke={color}
+        strokeWidth="1.5"
+        fill="none"
+      />
+    </Svg>
+  );
+}

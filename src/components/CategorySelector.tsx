@@ -34,8 +34,8 @@ export default function CategorySelector({
   return (
     <View style={styles.container}>
       {/* 대분류 */}
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.categoryRow}
         contentContainerStyle={styles.categoryContent}
@@ -43,13 +43,27 @@ export default function CategorySelector({
         <TouchableOpacity
           style={[
             styles.categoryItem,
-            !selectedCategoryId && styles.categoryItemActive
+            selectedCategoryId === 999 && styles.categoryItemActive
+          ]}
+          onPress={() => onCategorySelect(999)}
+        >
+          <Text style={[
+            styles.categoryText,
+            selectedCategoryId === 999 && styles.categoryTextActive
+          ]}>
+            메인
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.categoryItem,
+            selectedCategoryId === 0 && styles.categoryItemActive
           ]}
           onPress={() => onCategorySelect(0)}
         >
           <Text style={[
             styles.categoryText,
-            !selectedCategoryId && styles.categoryTextActive
+            selectedCategoryId === 0 && styles.categoryTextActive
           ]}>
             전체
           </Text>

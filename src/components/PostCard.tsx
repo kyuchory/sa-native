@@ -199,9 +199,9 @@ const PostCard = ({
           </Text>
         </View>
 
-        {/* 이미지가 있는 경우 */}
-        {post.preview_image && (
-          <View style={styles.imageContainer}>
+        {/* 이미지 영역 - 이미지가 없어도 앱 아이콘 표시 */}
+        <View style={styles.imageContainer}>
+          {post.preview_image ? (
             <Image
               source={{ uri: post.preview_image }}
               style={styles.postImage}
@@ -209,8 +209,16 @@ const PostCard = ({
               contentFit="cover"
               transition={200}
             />
-          </View>
-        )}
+          ) : (
+            <Image
+              source={require('../../assets/MomTalk_app_icon.png')}
+              style={styles.postImage}
+              cachePolicy="memory-disk"
+              contentFit="cover"
+              transition={200}
+            />
+          )}
+        </View>
       </View>
 
       {/* 하단: 상호작용 버튼들 */}
