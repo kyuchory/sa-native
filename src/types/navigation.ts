@@ -93,6 +93,7 @@ export type AuthStackParamList = {
     selectedCategories: { id: number; name: string }[];
   };
   SavedItems: undefined;
+  PopularPosts: undefined;
 };
 
 export type TabParamList = {

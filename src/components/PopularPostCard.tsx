@@ -4,6 +4,7 @@ import { TYPOGRAPHY, SPACING, BORDER_RADIUS, COLORS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import UserAvatar from './UserAvatar';
 import { EmptyHeartIcon, CommentIcon } from './PostCardIcons';
+import { BookmarkIcon } from './PostIcons';
 import type { PopularPostItem } from '../types/popular';
 
 export type PopularPostCardProps = {
@@ -81,7 +82,7 @@ export default function PopularPostCard({ post, onPress, onUserPress }: PopularP
             {post.content}
           </Text>
 
-          {/* 통계 (좋아요/댓글) */}
+          {/* 통계 (좋아요/댓글/북마크) */}
           <View style={styles.statsInline}>
             <View style={styles.statItem}>
               <EmptyHeartIcon size={16} color={colors.GRAY_400} />
@@ -90,6 +91,10 @@ export default function PopularPostCard({ post, onPress, onUserPress }: PopularP
             <View style={[styles.statItem, styles.marginLeft]}>
               <CommentIcon size={16} color={colors.GRAY_400} />
               <Text style={styles.statText}>{formatNumber(post.comment_count)}</Text>
+            </View>
+            <View style={[styles.statItem, styles.marginLeft]}>
+              <BookmarkIcon size={16} filled={false} color={colors.GRAY_400} />
+              <Text style={styles.statText}>{formatNumber(post.bookmark_count)}</Text>
             </View>
           </View>
         </View>

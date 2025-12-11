@@ -98,9 +98,8 @@ export default function MainScreen({ refreshTrigger }: MainScreenProps) {
   };
 
   const handleSeeMorePosts = () => {
-    // 인기 게시물 전용 화면으로 이동 (존재하지 않으면 전체 게시물로)
-    console.log('See more posts');
-    navigation.navigate('MainApp'); // 임시로 MainApp으로 이동
+    // 인기 게시물 전용 화면으로 이동
+    navigation.navigate('PopularPosts' as any);
   };
 
   const handleSeeMoreCuts = () => {
@@ -148,7 +147,7 @@ export default function MainScreen({ refreshTrigger }: MainScreenProps) {
       <PopularUsersSection
         users={users}
         onUserPress={handleUserPress}
-        onSeeMorePress={handleSeeMoreUsers}
+        onSeeMorePress={undefined}
       />
       </View>
     </ScrollView>

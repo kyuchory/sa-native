@@ -55,6 +55,7 @@ import CutUploadFinalizeScreen from '../screens/CutUploadFinalizeScreen';
 import CutDetailScreen from '../screens/CutDetailScreen';
 import CutPreviewScreen from '../screens/CutPreviewScreen';
 import SavedItemsScreen from '../screens/SavedItemsScreen';
+import PopularPostScreen from '../screens/PopularPostScreen';
 
 // Components for notifications
 import { NotificationBanner } from '../components/NotificationBanner';
@@ -299,6 +300,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="SavedItems"
           component={SavedItemsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="PopularPosts"
+          component={PopularPostScreen}
           options={{ headerShown: false }}
         />
           </>

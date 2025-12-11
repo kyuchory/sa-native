@@ -83,5 +83,26 @@ export interface PopularResponse {
   data: PopularData;
 }
 
+// 인기 게시물 페이징 조회 응답
+export interface PopularPostsPagination {
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
+
+export interface PopularPostsData {
+  posts: PopularPostItem[];
+  pagination: PopularPostsPagination;
+}
+
+export interface PopularPostsResponse {
+  code: number;
+  message: string;
+  data: PopularPostsData;
+}
+
 // 인기 컨텐츠 조회 API 응답
 export type PopularApiResponse = PopularResponse;
