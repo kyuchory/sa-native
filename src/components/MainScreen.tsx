@@ -104,7 +104,8 @@ export default function MainScreen({ refreshTrigger }: MainScreenProps) {
   };
 
   const handleSeeMoreCuts = () => {
-    console.log('See more cuts');
+    // CutTab으로 탭 변경
+    navigation.navigate('CutTab' as any);
   };
 
   const handleSeeMoreUsers = () => {
