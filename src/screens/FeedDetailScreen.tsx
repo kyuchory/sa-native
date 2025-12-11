@@ -767,7 +767,7 @@ export default function FeedDetailScreen() {
             />
             <View style={styles.userInfo}>
               <Text style={styles.nickname}>{feed.user.nickname}</Text>
-              <Text style={styles.location}>대한민국 서울시 (하드코딩)</Text>
+              {/* <Text style={styles.location}>대한민국 서울시 (하드코딩)</Text> */}
             </View>
           </TouchableOpacity>
 

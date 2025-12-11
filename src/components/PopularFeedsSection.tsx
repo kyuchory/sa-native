@@ -7,6 +7,9 @@ import UserAvatar from './UserAvatar';
 import { PopularIcons } from './PopularIcons';
 import type { PopularFeedItem } from '../types/popular';
 
+// Fallback image for feeds without preview
+const DEFAULT_FEED_IMAGE = require('../../assets/MomTalk_app_icon.png');
+
 const { width: screenWidth } = Dimensions.get('window');
 const imageSize = screenWidth / 2.5; // 그리드 스타일이므로 살짝 크게
 
@@ -57,7 +60,7 @@ export default function PopularFeedsSection({
       {/* 미디어 영역 */}
       <View style={styles.mediaContainer}>
         <Image
-          source={{ uri: item.preview_image || '' }}
+          source={item.preview_image ? { uri: item.preview_image } : DEFAULT_FEED_IMAGE}
           style={styles.feedImage}
           resizeMode="cover"
         />
@@ -113,7 +116,7 @@ export default function PopularFeedsSection({
 
       {/* 피드 리스트 */}
       <FlatList
-        data={feeds.slice(0, 6)} // 최대 6개 표시
+        data={feeds.slice(0, 10)} // 최대 6개 표시
         renderItem={renderItem}
         keyExtractor={(item) => item.id.toString()}
         horizontal
