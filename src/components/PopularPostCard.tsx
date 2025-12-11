@@ -99,7 +99,7 @@ export default function PopularPostCard({ post, onPress, onUserPress }: PopularP
           {/* 카테고리 태그 */}
           <View style={styles.categoryTag}>
             <Text style={styles.categoryText}>
-              {post.sub_category.name}
+              {`${post.sub_category.category.name} > ${post.sub_category.name}`}
             </Text>
           </View>
 
@@ -233,7 +233,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     backgroundColor: colors.GRAY_100,
     borderRadius: BORDER_RADIUS.SM,
     paddingHorizontal: SPACING.XS,
-    paddingVertical: 2,
+    // paddingVertical: 2,
     marginBottom: SPACING.XS,
     alignSelf: 'flex-end',
   },

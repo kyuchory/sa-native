@@ -4,6 +4,7 @@ import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import Animated, { useSharedValue, useAnimatedStyle, interpolate, Extrapolation, SharedValue, useAnimatedScrollHandler } from 'react-native-reanimated';
 import PopularPostCard from './PopularPostCard';
+import { PopularIcons } from './PopularIcons';
 import type { PopularPostItem } from '../types/popular';
 
 // MainScreen container 패딩 고려한 실제 사용 가능 너비
@@ -131,7 +132,10 @@ export default function PopularPostsSection({
     <View style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <Text style={styles.title}>인기 게시물</Text>
+        <View style={styles.titleContainer}>
+          <PopularIcons.PostsIcon size={20} />
+          <Text style={styles.title}>인기 게시물</Text>
+        </View>
         {onSeeMorePress && (
           <TouchableOpacity onPress={onSeeMorePress}>
             <Text style={styles.seeMoreText}>더보기 ›</Text>
@@ -195,6 +199,12 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.XS,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.XS,
+    paddingLeft: SPACING.XS,
   },
   title: {
     fontSize: TYPOGRAPHY.SIZE.LG,

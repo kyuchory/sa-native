@@ -4,6 +4,7 @@ import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { EmptyHeartIcon, CommentIcon, ViewIcon } from './PostCardIcons';
 import UserAvatar from './UserAvatar';
+import { PopularIcons } from './PopularIcons';
 import type { PopularShortItem } from '../types/popular';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -39,12 +40,7 @@ export default function PopularCutsSection({
       onPress={() => onCutPress?.(item)}
       activeOpacity={0.8}
     >
-      <Image
-        source={{ uri: item.thumbnail_url || item.content_url }}
-        style={styles.cutImage}
-        resizeMode="cover"
-      />
-      {/* 프로필 영역 (이미지 아래) */}
+      {/* 프로필 영역 (이미지 위) */}
       <TouchableOpacity
         style={styles.profileContainer}
         onPress={() => onUserPress?.({ id: item.user.id, nickname: item.user.nickname })}
@@ -53,12 +49,18 @@ export default function PopularCutsSection({
         <UserAvatar
           profileImg={item.user.profile_img}
           nickname={item.user.nickname}
-          size={20}
+          size={24}
         />
-        <Text style={styles.username} numberOfLines={1}>
+        <Text style={styles.nickname} numberOfLines={1}>
           {item.user.nickname}
         </Text>
       </TouchableOpacity>
+
+      <Image
+        source={{ uri: item.thumbnail_url || item.content_url }}
+        style={styles.cutImage}
+        resizeMode="cover"
+      />
 
       {/* 통계 영역 (좋아요/댓글/조회수) */}
       <View style={styles.statsContainer}>
@@ -95,7 +97,10 @@ export default function PopularCutsSection({
     <View style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <Text style={styles.title}>인기 컷츠</Text>
+        <View style={styles.titleContainer}>
+          <PopularIcons.CutsIcon size={20} />
+          <Text style={styles.title}>인기 컷츠</Text>
+        </View>
         {onSeeMorePress && (
           <TouchableOpacity onPress={onSeeMorePress}>
             <Text style={styles.seeMoreText}>더보기 ›</Text>
@@ -129,6 +134,12 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.XS,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.XS,
+    paddingLeft: SPACING.XS,
+  },
   title: {
     fontSize: TYPOGRAPHY.SIZE.LG,
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
@@ -160,14 +171,14 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   profileContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    marginTop: SPACING.XS,
+    marginBottom: SPACING.XS,
     gap: SPACING.XS,
   },
-  username: {
-    fontSize: TYPOGRAPHY.SIZE.XS,
+  nickname: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     color: colors.GRAY_700,
+    flex: 1,
   },
 
   // 통계 영역 (좋아요/댓글/조회수)

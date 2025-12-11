@@ -4,6 +4,7 @@ import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { EmptyHeartIcon, CommentIcon } from './PostCardIcons';
 import UserAvatar from './UserAvatar';
+import { PopularIcons } from './PopularIcons';
 import type { PopularFeedItem } from '../types/popular';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -99,7 +100,10 @@ export default function PopularFeedsSection({
     <View style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <Text style={styles.title}>인기 피드</Text>
+        <View style={styles.titleContainer}>
+          <PopularIcons.FeedsIcon size={20} />
+          <Text style={styles.title}>인기 피드</Text>
+        </View>
         {onSeeMorePress && (
           <TouchableOpacity onPress={onSeeMorePress}>
             <Text style={styles.seeMoreText}>더보기 ›</Text>
@@ -132,6 +136,12 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.XS,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.XS,
+    paddingLeft: SPACING.XS,
   },
   title: {
     fontSize: TYPOGRAPHY.SIZE.LG,
@@ -193,18 +203,11 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
   },
 
-  // 통계
+  // 통계 (인기 컷츠처럼 간단하게)
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
-    backgroundColor: colors.WHITE,
-    borderRadius: BORDER_RADIUS.SM,
-    padding: SPACING.XS,
-    shadowColor: colors.GRAY_900,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    marginTop: SPACING.XS,
   },
   statItem: {
     flexDirection: 'row',

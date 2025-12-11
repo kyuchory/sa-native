@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import UserAvatar from './UserAvatar';
+import { PopularIcons } from './PopularIcons';
 import type { PopularUserItem } from '../types/popular';
 
 export type PopularUsersSectionProps = {
@@ -66,7 +67,10 @@ export default function PopularUsersSection({
     <View style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <Text style={styles.title}>인기 사용자</Text>
+        <View style={styles.titleContainer}>
+          <PopularIcons.UsersIcon size={20} />
+          <Text style={styles.title}>인기 사용자</Text>
+        </View>
         {onSeeMorePress && (
           <TouchableOpacity onPress={onSeeMorePress}>
             <Text style={styles.seeMoreText}>더보기 ›</Text>
@@ -99,6 +103,12 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.XS,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.XS,
+    paddingLeft: SPACING.XS,
   },
   title: {
     fontSize: TYPOGRAPHY.SIZE.LG,
