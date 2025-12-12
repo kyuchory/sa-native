@@ -3,11 +3,13 @@ import {
   SignUpRequest,
   LoginRequest,
   LogoutRequest,
+  KakaoLoginRequest,
   SignUpApiResponse,
   LoginApiResponse,
   EmailCheckApiResponse,
   NicknameCheckApiResponse,
   LogoutApiResponse,
+  KakaoLoginApiResponse,
 } from '../types/auth';
 
 // 인증 관련 API 서비스
@@ -35,6 +37,11 @@ export class AuthService {
   // 닉네임 중복 체크
   static async checkNickname(nickname: string): Promise<NicknameCheckApiResponse> {
     return apiClient.get<NicknameCheckApiResponse>(`/auth/check-nickname?nickname=${encodeURIComponent(nickname)}`, false);
+  }
+
+  // 카카오 로그인
+  static async kakaoLogin(data: KakaoLoginRequest): Promise<KakaoLoginApiResponse> {
+    return apiClient.post<KakaoLoginApiResponse>('/auth/kakao-login', data, false);
   }
 
   // 토큰 재발급

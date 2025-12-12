@@ -14,6 +14,9 @@ import { useThemeStore } from '../stores/themeStore';
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import { login } from '@react-native-seoul/kakao-login';
+import { AuthService } from '../services/authService';
+
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
@@ -22,7 +25,7 @@ export default function LoginScreen({ navigation }: any) {
   // Custom Alert Modal 상태
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
-  const { loginWithCredentials, isLoading } = useAuthStore();
+  const { loginWithCredentials, loginWithKakao, isLoading } = useAuthStore();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
@@ -61,6 +64,53 @@ export default function LoginScreen({ navigation }: any) {
         visible: true,
         title: '오류',
         message: '로그인 중 오류가 발생했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
+    }
+  };
+
+  const handleKakaoLogin = async () => {
+    try {
+      // 카카오 로그인으로 토큰 받기
+      const tokenResult = await login();
+
+      // 토큰에서 accessToken 추출
+      const { accessToken } = tokenResult;
+
+      // authStore를 통해 카카오 로그인 처리
+      const result = await loginWithKakao({ accessToken });
+
+      if (result.success) {
+        setAlertModal({
+          visible: true,
+          title: '성공',
+          message: '카카오 로그인이 완료되었습니다.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
+      } else {
+        setAlertModal({
+          visible: true,
+          title: '카카오 로그인 오류',
+          message: result.error || '카카오 로그인에 실패했습니다.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
+      }
+
+    } catch (error: any) {
+      console.error('카카오 로그인 오류:', error);
+
+      let errorMessage = '카카오 로그인 중 오류가 발생했습니다.';
+
+      if (error.response?.message) {
+        errorMessage = error.response.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setAlertModal({
+        visible: true,
+        title: '카카오 로그인 오류',
+        message: errorMessage,
         buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
       });
     }
@@ -117,6 +167,11 @@ export default function LoginScreen({ navigation }: any) {
             variant="outline"
             onPress={handleSignUp}
             style={styles.signUpButton}
+          />
+          <CustomButton
+            title="카카오 로그인"
+            onPress={handleKakaoLogin}
+            style={styles.loginButton}
           />
         </View>
         </ScrollView>
