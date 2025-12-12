@@ -206,7 +206,7 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         try {
           const result = await VideoThumbnails.getThumbnailAsync(uri, {
             time,
-            quality: 0.5,
+            quality: 0.8,
           });
 
           thumbs.push(result.uri);
@@ -343,12 +343,12 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
     } else if (uploadService === 'story') {
       try {
         setIsUploading(true);
-        const storyResult = await StoryService.createStory({
-          fileUri: videoUri,
+        const storyResult = await StoryService.uploadStoryVideo(
+          videoUri,
           trimStart,
           trimEnd,
-          cropArea: correctedCropArea,
-        });
+          correctedCropArea
+        );
         console.log("✅ 스토리 생성 성공:", storyResult);
         // 생성된 스토리의 ID로 DailyCutDetailScreen으로 이동
         navigation.replace('DailyCutDetail', { storyId: storyResult.id });

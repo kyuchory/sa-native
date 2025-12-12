@@ -915,10 +915,8 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
       const uri = await captureCanvasWithoutSelection();
       if (!uri) return;
 
-      // 스토리 생성 API 호출
-      const response = await StoryService.createStory({
-        fileUri: uri,
-      });
+      // 스토리 이미지 업로드 API 호출
+      const response = await StoryService.uploadStoryImage(uri);
 
       // 생성된 스토리의 ID로 DailyCutDetailScreen으로 이동
       navigation.replace('DailyCutDetail', { storyId: response.id });

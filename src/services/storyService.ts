@@ -1,8 +1,11 @@
 import { apiClient } from './apiClient';
 import type {
-  CreateStoryRequest,
-  CreateStoryResponse,
-  CreateStoryApiResponse,
+  UploadStoryImageRequest,
+  UploadStoryImageResponse,
+  UploadStoryImageApiResponse,
+  UploadStoryVideoRequest,
+  UploadStoryVideoResponse,
+  UploadStoryVideoApiResponse,
   StoryListResponse,
   StoryListApiResponse,
   StoryDetailResponse,
@@ -20,69 +23,68 @@ import type { ApiResponse } from '../types/api';
 
 // 스토리 관련 API 서비스
 export class StoryService {
-  // 스토리 생성 (파일 업로드)
-  static async createStory(request: CreateStoryRequest): Promise<CreateStoryResponse> {
+  // 스토리 이미지 업로드
+  static async uploadStoryImage(imageUri: string): Promise<UploadStoryImageResponse> {
     try {
-      // FormData 생성
       const formData = new FormData();
 
-      // 파일 URI에서 파일명 추출
-      const fileName = request.fileUri.split('/').pop() || `story_${Date.now()}`;
-
-      // 파일 확장자로 MIME 타입 결정
-      const fileExtension = fileName.split('.').pop()?.toLowerCase();
-      let mimeType = 'image/jpeg'; // 기본값
-
-      if (fileExtension) {
-        // 이미지 MIME 타입
-        if (['jpg', 'jpeg'].includes(fileExtension)) {
-          mimeType = 'image/jpeg';
-        } else if (fileExtension === 'png') {
-          mimeType = 'image/png';
-        } else if (fileExtension === 'gif') {
-          mimeType = 'image/gif';
-        } else if (fileExtension === 'webp') {
-          mimeType = 'image/webp';
-        }
-        // 비디오 MIME 타입
-        else if (fileExtension === 'mp4') {
-          mimeType = 'video/mp4';
-        } else if (fileExtension === 'mov') {
-          mimeType = 'video/quicktime';
-        } else if (fileExtension === 'avi') {
-          mimeType = 'video/x-msvideo';
-        } else if (fileExtension === 'webm') {
-          mimeType = 'video/webm';
-        }
-      }
-
-      // 파일을 FormData에 추가 (field name: 'file')
+      // 이미지 URI를 FormData에 추가
       formData.append('file', {
-        uri: request.fileUri,
-        type: mimeType,
-        name: fileName,
+        uri: imageUri,
+        type: 'image/jpeg',
+        name: `story_${Date.now()}.jpg`,
       } as any);
 
-      // 비디오 편집 파라미터 추가 (선택적)
-      if (request.trimStart !== undefined) {
-        formData.append('trimStart', request.trimStart.toString());
-      }
-      if (request.trimEnd !== undefined) {
-        formData.append('trimEnd', request.trimEnd.toString());
-      }
-      if (request.cropArea) {
-        formData.append('cropArea', JSON.stringify(request.cropArea));
-      }
-
       // API 호출
-      const response = await apiClient.postFormData<CreateStoryApiResponse>(
-        '/stories',
+      const response = await apiClient.postFormData<UploadStoryImageApiResponse>(
+        '/stories/images',
         formData
       );
 
       return response.data!;
     } catch (error) {
-      console.error('스토리 생성 실패:', error);
+      console.error('스토리 이미지 업로드 실패:', error);
+      throw error;
+    }
+  }
+
+  // 스토리 비디오 업로드
+  static async uploadStoryVideo(
+    videoUri: string,
+    trimStart?: number,
+    trimEnd?: number,
+    cropArea?: { x: number; y: number; width: number; height: number }
+  ): Promise<UploadStoryVideoResponse> {
+    try {
+      const formData = new FormData();
+
+      // 비디오 파일 추가
+      formData.append('file', {
+        uri: videoUri,
+        type: 'video/mp4',
+        name: `story_${Date.now()}.mp4`,
+      } as any);
+
+      // 편집 파라미터 추가 (선택적)
+      if (trimStart !== undefined) {
+        formData.append('trimStart', trimStart.toString());
+      }
+      if (trimEnd !== undefined) {
+        formData.append('trimEnd', trimEnd.toString());
+      }
+      if (cropArea) {
+        formData.append('cropArea', JSON.stringify(cropArea));
+      }
+
+      // API 호출
+      const response = await apiClient.postFormData<UploadStoryVideoApiResponse>(
+        '/stories/videos',
+        formData
+      );
+
+      return response.data!;
+    } catch (error) {
+      console.error('스토리 비디오 업로드 실패:', error);
       throw error;
     }
   }

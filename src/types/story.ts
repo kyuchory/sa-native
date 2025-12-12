@@ -1,11 +1,27 @@
 import { ApiResponse } from './api';
 
-// 스토리 생성 요청 (클라이언트에서 파일 URI를 받음)
-export interface CreateStoryRequest {
-  fileUri: string;
-  trimStart?: number; // 자르기 시작 시간 (밀리초) - 영상 파일인 경우
-  trimEnd?: number; // 자르기 종료 시간 (밀리초) - 영상 파일인 경우
-  cropArea?: { // 크롭 영역 정보 - 영상 파일인 경우
+// 스토리 이미지 업로드 요청
+export interface UploadStoryImageRequest {
+  imageUri: string;
+}
+
+// 스토리 이미지 업로드 응답
+export interface UploadStoryImageResponse {
+  id: number;
+  content_url: string;
+  type: 'image';
+  created_at: string;
+}
+
+// 스토리 이미지 업로드 API 응답
+export type UploadStoryImageApiResponse = ApiResponse<UploadStoryImageResponse>;
+
+// 스토리 비디오 업로드 요청
+export interface UploadStoryVideoRequest {
+  videoUri: string;
+  trimStart?: number; // 자르기 시작 시간 (밀리초)
+  trimEnd?: number; // 자르기 종료 시간 (밀리초)
+  cropArea?: { // 크롭 영역 정보
     x: number;
     y: number;
     width: number;
@@ -13,16 +29,16 @@ export interface CreateStoryRequest {
   };
 }
 
-// 스토리 생성 응답 데이터
-export interface CreateStoryResponse {
+// 스토리 비디오 업로드 응답
+export interface UploadStoryVideoResponse {
   id: number;
   content_url: string;
-  type: 'image' | 'video';
+  type: 'video';
   created_at: string;
 }
 
-// 스토리 생성 API 응답
-export type CreateStoryApiResponse = ApiResponse<CreateStoryResponse>;
+// 스토리 비디오 업로드 API 응답
+export type UploadStoryVideoApiResponse = ApiResponse<UploadStoryVideoResponse>;
 
 // 스토리 정보 (조회 등에 사용)
 export interface Story {
