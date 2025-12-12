@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import CustomAlertModal from '../components/CustomAlertModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -168,11 +170,22 @@ export default function LoginScreen({ navigation }: any) {
             onPress={handleSignUp}
             style={styles.signUpButton}
           />
-          <CustomButton
-            title="카카오 로그인"
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>소셜로그인</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TouchableOpacity
             onPress={handleKakaoLogin}
-            style={styles.loginButton}
-          />
+            style={styles.kakaoButton}
+          >
+            <Image
+              source={require('../assets/social/kakao_login_large_wide.png')}
+              style={styles.kakaoImage}
+            />
+          </TouchableOpacity>
         </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -228,9 +241,39 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   loginButton: {
     marginTop: SPACING.SM,
-    marginBottom: SPACING.MD,
+    marginBottom: SPACING.XS,
   },
   signUpButton: {
     marginTop: SPACING.SM,
+    marginBottom: SPACING.XS,
+  },
+  kakaoButton: {
+    marginTop: SPACING.SM,
+    marginBottom: SPACING.MD,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: BORDER_RADIUS.MD,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: SPACING.SM,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.GRAY_200,
+  },
+  dividerText: {
+    paddingHorizontal: SPACING.SM,
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.GRAY_600,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+  },
+  kakaoImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
   },
 });
