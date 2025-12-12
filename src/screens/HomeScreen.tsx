@@ -12,7 +12,7 @@ import CategorySelector from '../components/CategorySelector';
 import PostCard from '../components/PostCard';
 import Pagination from '../components/Pagination';
 import MainHeader from '../components/MainHeader';
-import MainScreen from '../components/MainScreen';
+
 import { WriteIcon } from '../components/HomeHeaderIcons';
 // CommentActionSheet 컴포넌트 import
 import CommentActionSheet from '../components/CommentActionSheet';
@@ -31,7 +31,7 @@ export default function HomeScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number>(999); // 메인 카테고리로 기본 설정
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0);
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number>(0);
   const [posts, setPosts] = useState<PostListItem[]>([]);
   const [pagination, setPagination] = useState({
@@ -45,7 +45,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isFirstLoad, setIsFirstLoad] = useState(true); // 초기 로딩 플래그
-  const [refreshTrigger, setRefreshTrigger] = useState(0); // 메인 카테고리 refresh용
+
 
   // CommentActionSheet 상태 관리
   const [commentSheetVisible, setCommentSheetVisible] = useState(false);
@@ -76,13 +76,14 @@ export default function HomeScreen() {
     const subCategoryId = opts?.subCategoryId ?? selectedSubcategoryId;
 
     try {
+      console.log('@@@ loadPosts 호출:', { page: pageToLoad, categoryId, subCategoryId });
       setIsLoading(true);
       const response = await PostService.getPosts({
         categoryId: categoryId || undefined,
         subCategoryId: subCategoryId || undefined,
         page: pageToLoad,
       });
-
+      console.log('@@@ loadPosts 응답');
       setPosts(response.posts ?? []);
 
       // 서버에서 내려준 pagination이 실제로 다를 때만 상태 업데이트 (참조 변경으로 인한 불필요한 재호출 방지)
@@ -180,17 +181,11 @@ export default function HomeScreen() {
 
   // ---------- 새로고침 ----------
   const handleRefresh = async () => {
-    if (selectedCategoryId === 999) {
-      // 메인 카테고리의 경우 - refreshTrigger 증가시켜 MainScreen에서 데이터 재로드
-      setRefreshTrigger(prev => prev + 1);
-    } else {
-      // 다른 카테고리의 경우
-      setRefreshing(true);
-      try {
-        await loadPosts({ page: pagination.page });
-      } finally {
-        setRefreshing(false);
-      }
+    setRefreshing(true);
+    try {
+      await loadPosts({ page: pagination.page });
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -267,29 +262,6 @@ export default function HomeScreen() {
         <View style={[styles.postList, { justifyContent: 'center', alignItems: 'center' }]}>
           <ActivityIndicator size="large" color={colors.PRIMARY} />
         </View>
-      ) : selectedCategoryId === 999 ? (
-        // 메인 카테고리 - ScrollView로 감싸서 Pull to Refresh 가능하게
-        <FlatList
-          ref={flatListRef}
-          data={[{ key: 'mainScreen' }]} // 단일 아이템으로 MainScreen 표시
-          renderItem={() => <MainScreen refreshTrigger={refreshTrigger} />}
-          keyExtractor={() => 'mainScreen'}
-          style={styles.postList}
-          contentContainerStyle={styles.postListContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={(
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.PRIMARY}
-              colors={[colors.PRIMARY]}
-            />
-          )}
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          initialNumToRender={5}
-        />
       ) : (
         <FlatList
           ref={flatListRef}
