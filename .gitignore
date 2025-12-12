@@ -35,3 +35,6 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# Ignore debug.keystore in android app folder
+android/app/debug.keystore
