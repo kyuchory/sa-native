@@ -47,6 +47,10 @@ target 'MomTalk' do
   pod 'FirebaseCoreInternal', :modular_headers => true
   pod 'FirebaseInstallations', :modular_headers => true
 
+  # 카카오 SDK 추가
+  pod 'KakaoSDKAuth'
+  pod 'KakaoSDKUser'
+
   # Frameworks 설정
   use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']
   use_frameworks! :linkage => ENV['USE_FRAMEWORKS'].to_sym if ENV['USE_FRAMEWORKS']

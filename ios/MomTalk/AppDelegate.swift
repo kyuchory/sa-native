@@ -1,6 +1,8 @@
 import Expo
 import React
 import ReactAppDependencyProvider
+import KakaoSDKCommon
+import KakaoSDKAuth
 
 @UIApplicationMain
 public class AppDelegate: ExpoAppDelegate {
@@ -29,6 +31,8 @@ public class AppDelegate: ExpoAppDelegate {
       launchOptions: launchOptions)
 #endif
 
+    KakaoSDK.initSDK(appKey: Bundle.main.object(forInfoDictionaryKey: "KAKAO_APP_KEY") as! String)
+
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
@@ -38,6 +42,10 @@ public class AppDelegate: ExpoAppDelegate {
     open url: URL,
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
+    if AuthApi.isKakaoTalkLoginUrl(url) {
+      return AuthController.handleOpenUrl(url: url)
+    }
+
     return super.application(app, open: url, options: options) || RCTLinkingManager.application(app, open: url, options: options)
   }
 

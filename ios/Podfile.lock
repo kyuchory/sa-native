@@ -1,4 +1,5 @@
 PODS:
+  - Alamofire (5.9.1)
   - EXApplication (7.0.7):
     - ExpoModulesCore
   - EXAV (16.0.7):
@@ -165,6 +166,22 @@ PODS:
   - hermes-engine (0.81.4):
     - hermes-engine/Pre-built (= 0.81.4)
   - hermes-engine/Pre-built (0.81.4)
+  - kakao-login (5.4.2):
+    - KakaoSDKAuth (= 2.22.0)
+    - KakaoSDKCommon (= 2.22.0)
+    - KakaoSDKUser (= 2.22.0)
+    - React
+  - KakaoSDKAuth (2.22.0):
+    - KakaoSDKCommon (= 2.22.0)
+  - KakaoSDKCommon (2.22.0):
+    - KakaoSDKCommon/Common (= 2.22.0)
+    - KakaoSDKCommon/Network (= 2.22.0)
+  - KakaoSDKCommon/Common (2.22.0)
+  - KakaoSDKCommon/Network (2.22.0):
+    - Alamofire (~> 5.9.0)
+    - KakaoSDKCommon/Common (= 2.22.0)
+  - KakaoSDKUser (2.22.0):
+    - KakaoSDKAuth (= 2.22.0)
   - libavif/core (0.11.1)
   - libavif/libdav1d (0.11.1):
     - libavif/core
@@ -2236,6 +2253,9 @@ DEPENDENCIES:
   - FirebaseInstallations
   - GoogleUtilities
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
+  - "kakao-login (from `../node_modules/@react-native-seoul/kakao-login`)"
+  - KakaoSDKAuth
+  - KakaoSDKUser
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
   - RCTRequired (from `../node_modules/react-native/Libraries/Required`)
   - RCTTypeSafety (from `../node_modules/react-native/Libraries/TypeSafety`)
@@ -2315,6 +2335,7 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - Alamofire
     - Firebase
     - FirebaseCore
     - FirebaseCoreExtension
@@ -2323,6 +2344,9 @@ SPEC REPOS:
     - FirebaseMessaging
     - GoogleDataTransport
     - GoogleUtilities
+    - KakaoSDKAuth
+    - KakaoSDKCommon
+    - KakaoSDKUser
     - libavif
     - libdav1d
     - libwebp
@@ -2377,6 +2401,8 @@ EXTERNAL SOURCES:
   hermes-engine:
     :podspec: "../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec"
     :tag: hermes-2025-07-07-RNv0.81.0-e0fc67142ec0763c6b6153ca2bf96df815539782
+  kakao-login:
+    :path: "../node_modules/@react-native-seoul/kakao-login"
   RCTDeprecation:
     :path: "../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation"
   RCTRequired:
@@ -2529,6 +2555,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
+  Alamofire: f36a35757af4587d8e4f4bfa223ad10be2422b8c
   EXApplication: 296622817d459f46b6c5fe8691f4aac44d2b79e7
   EXAV: e3fefaca88f14624bca01d9a128562a5f8e738f8
   EXConstants: fd688cef4e401dcf798a021cfb5d87c890c30ba3
@@ -2558,6 +2585,10 @@ SPEC CHECKSUMS:
   GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   hermes-engine: 35c763d57c9832d0eef764316ca1c4d043581394
+  kakao-login: c7b882cd279ca11f5b3abd15d0e0fcb41a427108
+  KakaoSDKAuth: 569b377eda622d93d4575240b8031cd658163eef
+  KakaoSDKCommon: d57127c339fc79e73aa8b236a4c77211c29924f1
+  KakaoSDKUser: 043bcd7e91454ebf3bf64f150c430e6f65f0a08d
   libavif: 84bbb62fb232c3018d6f1bab79beea87e35de7b7
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
@@ -2643,6 +2674,6 @@ SPEC CHECKSUMS:
   SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
   Yoga: 051f086b5ccf465ff2ed38a2cf5a558ae01aaaa1
 
-PODFILE CHECKSUM: 5fc33313e00991a5a29b95dd5d186834ba0a97c1
+PODFILE CHECKSUM: 4629bd31868bf8121d9c4fa4619f6ed1302daec0
 
 COCOAPODS: 1.16.2

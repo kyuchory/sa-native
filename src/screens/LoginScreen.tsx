@@ -16,6 +16,7 @@ import { useThemeStore } from '../stores/themeStore';
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
+import { NativeModules } from 'react-native';
 import { login } from '@react-native-seoul/kakao-login';
 import { AuthService } from '../services/authService';
 
@@ -74,7 +75,17 @@ export default function LoginScreen({ navigation }: any) {
   const handleKakaoLogin = async () => {
     try {
       // 카카오 로그인으로 토큰 받기
-      const tokenResult = await login();
+      let tokenResult;
+      if (Platform.OS === 'ios') {
+        console.log('iOS 카카오 로그인 시도');
+        // iOS: 직접 구현한 네이티브 모듈 사용
+        const { KakaoLoginModule } = NativeModules;
+        tokenResult = await KakaoLoginModule.login();
+        console.log('iOS 카카오 로그인 토큰 결과:', tokenResult);
+      } else {
+        // Android: 라이브러리 사용
+        tokenResult = await login();
+      }
 
       // 토큰에서 accessToken 추출
       const { accessToken } = tokenResult;
@@ -93,7 +104,7 @@ export default function LoginScreen({ navigation }: any) {
         setAlertModal({
           visible: true,
           title: '카카오 로그인 오류',
-          message: result.error || '카카오 로그인에 실패했습니다.',
+          message: '다시 시도해주세요. ' + result.error || '다시 시도해주세요. 카카오 로그인에 실패했습니다.',
           buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
         });
       }
@@ -112,7 +123,7 @@ export default function LoginScreen({ navigation }: any) {
       setAlertModal({
         visible: true,
         title: '카카오 로그인 오류',
-        message: errorMessage,
+        message: '다시 시도해주세요.' + errorMessage,
         buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
       });
     }
