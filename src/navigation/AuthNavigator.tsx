@@ -1,10 +1,12 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { setNavigationRef } from '../utils/navigationUtils';
 import { createStackNavigator } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuthStore } from '../stores/authStore';
 import { AuthStackParamList } from '../types/navigation';
+// 권한 체크
+import { checkNotificationPermissionWithSkip, AlertButton } from '../utils/notificationPermission';
 // 🔧 개선된 소켓 초기화 로직으로 더 안정적인 연결 관리
 
 // 소켓 서비스 초기화
@@ -59,6 +61,7 @@ import PopularPostScreen from '../screens/PopularPostScreen';
 
 // Components for notifications
 import { NotificationBanner } from '../components/NotificationBanner';
+import CustomAlertModal from '../components/CustomAlertModal';
 
 // Tab Navigator
 import TabNavigator from './TabNavigator';
@@ -69,6 +72,14 @@ export default function AuthNavigator() {
   const { isAuthenticated, tokens } = useAuthStore();
 
   const navigationRef = useRef<NavigationContainerRef<AuthStackParamList>>(null);
+
+  // 권한 체크 알림 모달 상태
+  const [permissionAlert, setPermissionAlert] = useState<{
+    visible: boolean;
+    title?: string;
+    message: string;
+    buttons: AlertButton[];
+  } | null>(null);
 
   // 앱 상태 감지 및 소켓 재연결 자동 관리
   useSocketAppState();
@@ -93,6 +104,18 @@ export default function AuthNavigator() {
       // FCM 초기화 및 디바이스 토큰 등록
       FCMService.initializeFCMAndRegisterDevice().catch(error => {
         console.error('❌ FCM 초기화 실패:', error);
+      });
+
+      // 푸시 권한 체크
+      checkNotificationPermissionWithSkip(
+        (alertConfig) => {
+          setPermissionAlert({ ...alertConfig, visible: true });
+        },
+        () => {
+          setPermissionAlert(null);
+        }
+      ).catch(error => {
+        console.error('❌ 푸시 권한 체크 실패:', error);
       });
     } else {
       console.log('🔐 로그인되지 않음 또는 토큰 없음 - 서비스 초기화 스킵');
@@ -317,6 +340,17 @@ export default function AuthNavigator() {
         )}
       </Stack.Navigator>
     </NavigationContainer>
+
+    {/* 권한 체크 알림 모달 */}
+    {permissionAlert && (
+      <CustomAlertModal
+        visible={permissionAlert.visible}
+        title={permissionAlert.title}
+        message={permissionAlert.message}
+        buttons={permissionAlert.buttons}
+        onClose={() => setPermissionAlert(null)}
+      />
+    )}
     </GestureHandlerRootView>
   );
 }
