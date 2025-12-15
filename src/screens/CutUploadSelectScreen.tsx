@@ -61,7 +61,7 @@ export default function CutUploadSelectScreen() {
           videoUri,
           aspectRatio: '9:16', // 세로 비율
           uploadService: 'cuts', // 컷츠 전용
-          editMode: 'both', // trim + crop
+          editMode: 'trim', // trim only
           maxDuration: 30000, // 컷츠는 30초 제한 (VideoTrimCrop에서 ms 단위로 전달)
         });
       }
@@ -111,7 +111,7 @@ export default function CutUploadSelectScreen() {
           videoUri,
           aspectRatio: '9:16', // 세로 비율
           uploadService: 'cuts', // 컷츠 전용
-          editMode: 'both', // trim + crop
+          editMode: 'trim', // trim only
           maxDuration: 30000, // 컷츠는 30초 제한 (VideoTrimCrop에서 ms 단위로 전달)
         });
       }
