@@ -32,8 +32,6 @@ export class FCMService {
           ? (await Application.getAndroidId()) ?? 'unknown-android-id'
           : (await Application.getIosIdForVendorAsync()) ?? 'unknown-ios-id';
 
-      console.log('🔢 Device ID:', deviceId);
-
       // 3️⃣ FCM 토큰 가져오기
       const fcmToken = await getToken(messaging);
       if (!fcmToken) {
@@ -41,11 +39,8 @@ export class FCMService {
         return;
       }
 
-      console.log('📱 FCM Token:', fcmToken);
-
       // 5️⃣ 포그라운드 메시지 리스너 설정
       onMessage(messaging, async (remoteMessage) => {
-        console.log('📨 포그라운드 메시지 수신:', remoteMessage);
 
         const { notification } = remoteMessage;
         if (notification) {
@@ -65,19 +60,15 @@ export class FCMService {
 
       // 6️⃣ 백그라운드 알림 터치 핸들러 설정
       onNotificationOpenedApp(messaging, (remoteMessage) => {
-        console.log('🔔 백그라운드 알림 터치:', remoteMessage);
         FCMService.handleNotificationAction(remoteMessage);
       });
 
       // 7️⃣ 앱 종료 상태에서 알림 터치 처리 (초기 로드 시)
       getInitialNotification(messaging).then(remoteMessage => {
         if (remoteMessage) {
-          console.log('🚀 앱 시작 시 알림 터치:', remoteMessage);
           FCMService.handleNotificationAction(remoteMessage);
         }
       });
-
-      console.log('✅ FCM 등록 완료');
     } catch (error) {
       console.error('❌ FCM 초기화 실패:', error);
     }

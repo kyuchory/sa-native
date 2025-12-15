@@ -53,7 +53,6 @@ export const useNotificationStore = create<NotificationState>()(
         // 중복 알림 체크
         const exists = state.notifications.some(n => n.id === notification.id);
         if (exists) {
-          console.log('⚠️ 이미 존재하는 알림 - 중복 추가 방지');
           return state;
         }
 

@@ -98,8 +98,6 @@ export class TokenService {
 
     // 새 토큰 저장 (실제 액세스 토큰만 업데이트)
     await this.setAccessToken(newAccessToken);
-
-    console.log('토큰 재발급 성공');
     return newAccessToken;
   }
 

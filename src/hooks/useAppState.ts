@@ -28,11 +28,8 @@ export const useAppState = (options: UseAppStateOptions = {}) => {
 
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
-      console.log(`📱 앱 상태 변경(chatdetailscreen): ${appState.current} → ${nextAppState}`);
-
       if (appState.current === 'background' && nextAppState === 'active') {
         // 백그라운드 → 포그라운드 (앱 활성화)
-        console.log('🚀 앱이 포그라운드로 전환됨');
 
         // 사용자 정의 포그라운드 콜백 실행
         onForeground?.();
@@ -44,15 +41,11 @@ export const useAppState = (options: UseAppStateOptions = {}) => {
 
       } else if (appState.current === 'active' && nextAppState === 'background') {
         // 포그라운드 → 백그라운드 (앱 비활성화)
-        console.log('😴 앱이 백그라운드로 전환됨');
 
         // 사용자 정의 백그라운드 콜백 실행
         onBackground?.();
 
         // 백그라운드 진입시 소켓 연결 상태 로깅만 (연결 유지)
-        if (isConnected) {
-          console.log('📡 백그라운드 진입 - 소켓 연결 유지됨');
-        }
       }
 
       appState.current = nextAppState;
@@ -72,13 +65,11 @@ export const useAppState = (options: UseAppStateOptions = {}) => {
     try {
       // 소켓 연결 상태 확인
       if (!isConnected) {
-        console.log('🔄 포그라운드 진입(chatdetailscreen) - 소켓 연결이 끊어져 있음, 재연결 시도');
-
         // 소켓 재연결 시도
         await connect();
 
       } else {
-        console.log('✅ 포그라운드 진입 - 소켓 연결 정상 상태');
+        // 소켓 연결 정상 상태
       }
 
     } catch (error) {
@@ -125,8 +116,6 @@ export const useSocketAppState = () => {
     enableSocketReconnection: true,
 
     onForeground: async () => {
-      console.log('🚀 소켓 앱 상태: 포그라운드 진입');
-
       // 소켓 연결 상태 확인 및 재연결
       if (!isConnected) {
         try {
@@ -138,7 +127,6 @@ export const useSocketAppState = () => {
     },
 
     onBackground: () => {
-      console.log('😴 소켓 앱 상태: 백그라운드 진입');
       // 백그라운드에서는 소켓 연결을 유지하되 로그만 남김
     }
   });
