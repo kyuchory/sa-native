@@ -77,16 +77,22 @@
   </dict>
 
   <key>NSCameraUsageDescription</key>
-  <string>Allow $(PRODUCT_NAME) to access your camera</string>
+  <string>$(PRODUCT_NAME)에서 카메라를 사용해 사진 촬영이나 QR코드 스캔을 할 수 있습니다.</string>
 
   <key>NSMicrophoneUsageDescription</key>
-  <string>Allow $(PRODUCT_NAME) to access your microphone</string>
+  <string>$(PRODUCT_NAME)에서 음성 녹음이나 비디오 촬영 시 마이크로폰을 사용할 수 있습니다.</string>
+
+  <key>NSAppleMusicUsageDescription</key>
+  <string>MomTalk에서 음악 라이브러리에 접근하여 미디어 기능을 제공합니다.</string>
 
   <key>NSPhotoLibraryAddUsageDescription</key>
-  <string>Allow $(PRODUCT_NAME) to save photos</string>
+  <string>$(PRODUCT_NAME)에서 사진을 앨범에 저장할 수 있습니다.</string>
+
+  <key>NSUserNotificationsUsageDescription</key>
+  <string>MomTalk에서 새로운 메시지와 업데이트를 받기 위해 알림 권한이 필요합니다.</string>
 
   <key>NSPhotoLibraryUsageDescription</key>
-  <string>Allow $(PRODUCT_NAME) to access your photos</string>
+  <string>$(PRODUCT_NAME)에서 앨범의 사진을 선택하거나 업로드할 수 있습니다.</string>
 
   <key>RCTNewArchEnabled</key>
   <true/>
