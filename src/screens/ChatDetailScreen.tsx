@@ -11,7 +11,8 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-
+import * as ImagePicker from 'expo-image-picker';
+import { openSettings } from 'react-native-permissions';
 import CustomAlertModal from '../components/CustomAlertModal';
 // Components
 import CommonHeader from '../components/CommonHeader';
@@ -54,7 +55,7 @@ import { useAppState } from '../hooks/useAppState';
 import { useChatMessages } from '../hooks/useChatMessages';
 import { useChatSocket } from '../hooks/useChatSocket';
 
-import { selectPhotoFromGallery, selectVideoFromGallery, uploadChatImage, uploadChatVideo } from '../utils/uploadUtils';
+import { uploadChatImage, uploadChatVideo } from '../utils/uploadUtils';
 
 type ChatDetailScreenRouteProp = RouteProp<AuthStackParamList, 'ChatDetail'>;
 type ChatDetailScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ChatDetail'>;
@@ -88,7 +89,7 @@ export default function ChatDetailScreen() {
 
 
   // Alert modal state
-  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string} | null>(null);
+  const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // Keyboard height for input adjustments
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -130,13 +131,13 @@ export default function ChatDetailScreen() {
     onMessageReceive: useCallback((message: Message) => {
       addMessage(message);
     }, [addMessage]),
-    onMessageSent: useCallback((tempId: string, message: Message) => {
-      removePendingMessage(tempId);
-      addMessage(message);
-    }, [removePendingMessage, addMessage]),
+  onMessageSent: useCallback((tempId: string, message: Message) => {
+    removePendingMessage(tempId);
+    addMessage(message);
+  }, [removePendingMessage, addMessage]),
     onMessageFailed: useCallback((tempId: string, error: any) => {
       removePendingMessage(tempId);
-      setAlertModal({ visible: true, title: '전송 실패', message: '메시지를 전송할 수 없습니다. 다시 시도해주세요.' });
+      setAlertModal({ visible: true, title: '전송 실패', message: '메시지를 전송할 수 없습니다. 다시 시도해주세요.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
     }, [removePendingMessage]),
     onTypingUpdate: useCallback((_typingUsers: Array<{ user_id: number; nickname: string; timestamp: number }>) => {
       // 타이핑 상태는 useChatSocket에서 관리
@@ -234,7 +235,7 @@ export default function ChatDetailScreen() {
       stopTypingIndicator();
     } catch (error) {
       removePendingMessage(tempMessageId);
-      setAlertModal({ visible: true, title: '전송 실패', message: '메시지를 전송할 수 없습니다. 다시 시도해주세요.' });
+      setAlertModal({ visible: true, title: '전송 실패', message: '메시지를 전송할 수 없습니다. 다시 시도해주세요.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
     }
   }, [inputText, user, chatRoomId, addPendingMessage, removePendingMessage, sendMessage, stopTypingIndicator]);
 
@@ -267,36 +268,98 @@ export default function ChatDetailScreen() {
 
   const handleSelectGalleryImage = useCallback(async () => {
     try {
-      const asset = await selectPhotoFromGallery();
-      if (asset && user) {
-        await handleSendImageMessage(asset);
+      // 권한 요청
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+      setAlertModal({
+          visible: true,
+          title: '권한 필요',
+          message: '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.',
+          buttons: [{ text: '설정', onPress: () => openSettings() },{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
+        setAttachmentActionSheetVisible(false);
+        return;
+      }
+
+      // 이미지 선택
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: false,
+        allowsEditing: false, // 채팅에서는 편집 없이 바로 선택
+        quality: 0.8, // 적절한 품질로 압축
+        exif: false,
+      });
+
+      if (!result.canceled && result.assets.length > 0 && user) {
+        const selectedImage = result.assets[0];
+        await handleSendImageMessage(selectedImage);
       }
     } catch (error) {
-      setAlertModal({ visible: true, title: '오류', message: '사진 선택에 실패했습니다.' });
+      console.error('이미지 선택 실패:', error);
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '이미지 선택에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
     setAttachmentActionSheetVisible(false);
   }, [user]);
 
   const handleSelectGalleryVideo = useCallback(async () => {
     try {
-      const asset = await selectVideoFromGallery();
-      if (asset && user) {
+      // 권한 요청
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        setAlertModal({
+          visible: true,
+          title: '권한 필요',
+          message: '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.',
+          buttons: [
+            { text: '설정', onPress: () => openSettings() },
+            { text: '확인', onPress: () => setAlertModal(null) }
+          ]
+        });
+        setAttachmentActionSheetVisible(false);
+        return;
+      }
+
+      // 비디오 선택
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['videos'],
+        allowsMultipleSelection: false,
+        allowsEditing: false, // 채팅에서는 편집 없이 바로 선택
+        quality: 0.8, // 적절한 품질로 압축
+        exif: false,
+      });
+
+      if (!result.canceled && result.assets.length > 0 && user) {
+        const selectedVideo = result.assets[0];
+
         // 3분(180초) 초과 비디오 확인
-        if (asset.duration && asset.duration > 180 * 1000) {
-          console.log('⏱️ 선택된 비디오 길이:', asset.duration, '초 - 전송 불가');
+        if (selectedVideo.duration && selectedVideo.duration > 180 * 1000) {
+          console.log('⏱️ 선택된 비디오 길이:', selectedVideo.duration, '초 - 전송 불가');
           setAlertModal({
             visible: true,
             title: '비디오 길이 제한',
-            message: '3분 이하의 비디오만 채팅에서 전송할 수 있습니다.'
+            message: '3분 이하의 비디오만 채팅에서 전송할 수 있습니다.',
+            buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
           });
+          setAttachmentActionSheetVisible(false);
           return; // API 요청 방지
         }
 
         // 바로 비디오 전송 (편집없이)
-        await handleSendVideoMessage(asset);
+        await handleSendVideoMessage(selectedVideo);
       }
     } catch (error) {
-      setAlertModal({ visible: true, title: '오류', message: '비디오 선택에 실패했습니다.' });
+      console.error('비디오 선택 실패:', error);
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '비디오 선택에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
     setAttachmentActionSheetVisible(false);
   }, [user]);
@@ -332,7 +395,7 @@ export default function ChatDetailScreen() {
       await sendMessage(tempMessageId, chatRoomId, 'image', uploadResponse.image_path, []);
     } catch (error) {
       removePendingMessage(tempMessageId);
-      setAlertModal({ visible: true, title: '전송 실패', message: '이미지를 전송할 수 없습니다. 다시 시도해주세요.' });
+      setAlertModal({ visible: true, title: '전송 실패', message: '이미지를 전송할 수 없습니다. 다시 시도해주세요.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
     }
   }, [user, chatRoomId, addPendingMessage, removePendingMessage, uploadChatImage, sendMessage]);
 
@@ -371,7 +434,7 @@ export default function ChatDetailScreen() {
       await sendMessage(tempMessageId, chatRoomId, 'video', content, []);
     } catch (error) {
       removePendingMessage(tempMessageId);
-      setAlertModal({ visible: true, title: '전송 실패', message: '비디오를 전송할 수 없습니다. 다시 시도해주세요.' });
+      setAlertModal({ visible: true, title: '전송 실패', message: '비디오를 전송할 수 없습니다. 다시 시도해주세요.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
     }
   }, [user, chatRoomId, addPendingMessage, removePendingMessage, uploadChatVideo, sendMessage]);
 
@@ -382,9 +445,9 @@ export default function ChatDetailScreen() {
       await ChatService.registerNotice(chatRoomId, {
         content: selectedMessage.content
       });
-      setAlertModal({ visible: true, title: '성공', message: '공지사항이 등록되었습니다.' });
+      setAlertModal({ visible: true, title: '성공', message: '공지사항이 등록되었습니다.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
     } catch (error: any) {
-      setAlertModal({ visible: true, title: '오류', message: error.response?.data?.message || '공지사항 등록에 실패했습니다.' });
+      setAlertModal({ visible: true, title: '오류', message: error.response?.data?.message || '공지사항 등록에 실패했습니다.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
     } finally {
       setSelectedMessage(null);
       setMenuActionSheetVisible(false);
@@ -415,7 +478,7 @@ export default function ChatDetailScreen() {
       });
     } catch (error) {
       console.error('채팅방 멤버 정보 로드 실패:', error);
-      setAlertModal({ visible: true, title: '오류', message: '멤버 정보를 불러오는데 실패했습니다.' });
+      setAlertModal({ visible: true, title: '오류', message: '멤버 정보를 불러오는데 실패했습니다.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
     }
   }, [chatRoomId, navigation]);
 
@@ -425,7 +488,7 @@ export default function ChatDetailScreen() {
     console.log('📝 채팅방 이름 업데이트:', newName);
 
     // 성공 알림 표시
-    setAlertModal({ visible: true, title: '성공', message: '채팅방 이름이 성공적으로 수정되었습니다.' });
+    setAlertModal({ visible: true, title: '성공', message: '채팅방 이름이 성공적으로 수정되었습니다.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
   }, []);
 
   // ✅ 최적화 3: 미디어 리스트를 캐싱하여 재계산 방지
@@ -812,13 +875,15 @@ export default function ChatDetailScreen() {
       />
 
       {/* Alert modal */}
-      <CustomAlertModal
-        visible={alertModal?.visible || false}
-        title={alertModal?.title || ''}
-        message={alertModal?.message || ''}
-        buttons={[{ text: '확인', onPress: () => setAlertModal(null) }]}
-        onClose={() => setAlertModal(null)}
-      />
+      {alertModal && (
+        <CustomAlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          buttons={alertModal.buttons}
+          onClose={() => setAlertModal(null)}
+        />
+      )}
 
     </SafeAreaView>
   );

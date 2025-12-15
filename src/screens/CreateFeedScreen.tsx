@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
+import { openSettings } from 'react-native-permissions';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { AuthStackParamList } from '../types/navigation';
@@ -171,7 +172,7 @@ export default function CreateFeedScreen() {
           visible: true,
           title: '권한 필요',
           message: '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.',
-          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+          buttons: [{ text: '설정', onPress: () => openSettings() }, { text: '확인', onPress: () => setAlertModal(null) }]
         });
         return;
       }
@@ -251,7 +252,7 @@ export default function CreateFeedScreen() {
           visible: true,
           title: '권한 필요',
           message: '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.',
-          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+          buttons: [{ text: '설정', onPress: () => openSettings() }, { text: '확인', onPress: () => setAlertModal(null) }]
         });
         return;
       }
