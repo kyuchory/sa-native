@@ -13,6 +13,7 @@ import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
+import { openSettings } from 'react-native-permissions';
 import { SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import useSupportStore from '../stores/supportStore';
@@ -70,7 +71,7 @@ export default function SupportCreateScreen() {
             visible: true,
             title: '권한 필요',
             message: '갤러리 접근 권한이 필요합니다 . 설정에서 허용해주세요.',
-            buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+            buttons: [{ text: '설정', onPress: () => openSettings() }, { text: '확인', onPress: () => setAlertModal(null) }]
           });
           return;
         }

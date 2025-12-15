@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
+import { openSettings } from 'react-native-permissions';
 import { useThemeStore } from '../stores/themeStore';
 import CommonHeader from '../components/CommonHeader';
 import CustomAlertModal from '../components/CustomAlertModal';
@@ -38,7 +39,7 @@ export default function CutUploadSelectScreen() {
           visible: true,
           title: '권한 필요',
           message: '카메라 사용을 위해 권한이 필요합니다.',
-          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+          buttons: [{ text: '설정', onPress: () => openSettings() }, { text: '확인', onPress: () => setAlertModal(null) }]
         });
         return;
       }
@@ -88,7 +89,7 @@ export default function CutUploadSelectScreen() {
           visible: true,
           title: '권한 필요',
           message: '갤러리 접근을 위해 권한이 필요합니다.',
-          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+          buttons: [{ text: '설정', onPress: () => openSettings() }, { text: '확인', onPress: () => setAlertModal(null) }]
         });
         return;
       }

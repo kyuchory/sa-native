@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { checkNotifications } from 'react-native-permissions';
+import { openSettings } from 'react-native-permissions';
 import { TYPOGRAPHY, SPACING } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import { NotificationService } from '../services/notificationService';
@@ -58,6 +60,12 @@ export default function NotificationSettingsScreen() {
   // 성공 alert 상태
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
+
+  // 권한 체크 alert 상태
+  const [permissionCheckAlert, setPermissionCheckAlert] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
+
+  // 권한 체크 완료 상태
+  const [permissionChecked, setPermissionChecked] = useState(false);
 
   // 컴포넌트 상태 키를 API 필드로 매핑
   const mapping = {
@@ -123,6 +131,45 @@ export default function NotificationSettingsScreen() {
 
     loadNotificationSettings();
   }, []);
+
+  // 시스템 푸시 알림 권한 확인
+  useFocusEffect(
+    React.useCallback(() => {
+      const checkNotificationPermissionStatus = async () => {
+        try {
+          const { status } = await checkNotifications();
+          if (status !== 'granted') {
+            setPermissionCheckAlert({
+              visible: true,
+              title: '푸시 알림 권한이 필요합니다',
+              message: '알림 설정을 변경하려면 푸시 알림 권한이 필요합니다. 설정에서 권한을 허용해주세요.',
+              buttons: [
+                {
+                  text: '설정으로 이동',
+                  onPress: () => openSettings(),
+                },
+                {
+                  text: '뒤로가기',
+                  onPress: () => navigation.goBack(),
+                }
+              ]
+            });
+          } else {
+            // 권한이 있으면 기존 modal 닫기
+            setPermissionCheckAlert(null);
+          }
+        } catch (error) {
+          console.error('푸시 알림 권한 체크 실패:', error);
+        }
+      };
+
+      // 한 번만 체크 (이미 체크했으면 생략)
+      if (!permissionChecked) {
+        checkNotificationPermissionStatus();
+        setPermissionChecked(true);
+      }
+    }, [permissionChecked, navigation])
+  );
 
   // 새로운 알림 토글 핸들러 (API 호출 포함)
   const updateNotification = async (key: string, value: boolean) => {
@@ -406,6 +453,17 @@ export default function NotificationSettingsScreen() {
         ]}
         onClose={() => setAlertVisible(false)}
       />
+
+      {/* 권한 체크 알림 모달 */}
+      {permissionCheckAlert && (
+        <CustomAlertModal
+          visible={permissionCheckAlert.visible}
+          title={permissionCheckAlert.title}
+          message={permissionCheckAlert.message}
+          buttons={permissionCheckAlert.buttons}
+          onClose={() => setPermissionCheckAlert(null)}
+        />
+      )}
     </View>
   );
 }
