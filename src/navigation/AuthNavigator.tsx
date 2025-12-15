@@ -44,6 +44,7 @@ import VideoAutoPlaySettingsScreen from '../screens/VideoAutoPlaySettingsScreen'
 import SupportListScreen from '../screens/SupportListScreen';
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
 import SupportCreateScreen from '../screens/SupportCreateScreen';
+import TermsAndPoliciesScreen from '../screens/TermsAndPoliciesScreen';
 import SupportDetailScreen from '../screens/SupportDetailScreen';
 import FollowRequestsScreen from '../screens/FollowRequestsScreen';
 import FollowListScreen from '../screens/FollowListScreen';
@@ -257,6 +258,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="SupportCreate"
           component={SupportCreateScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="TermsAndPolicies"
+          component={TermsAndPoliciesScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen

@@ -64,7 +64,7 @@ export default function SettingsScreen() {
   };
 
   const handleAppInfo = () => {
-    console.log('앱 정보');
+    navigation.navigate('TermsAndPolicies' as never);
   };
 
   const handleMediaSelectorTest = () => {

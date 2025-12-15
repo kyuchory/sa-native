@@ -46,6 +46,7 @@ export type AuthStackParamList = {
   SupportList: undefined;
   NotificationSettings: undefined;
   SupportCreate: undefined;
+  TermsAndPolicies: undefined;
   SupportDetail: { inquiryId: number };
   FollowRequests: undefined;
   FollowList: { userId: number; initialTab: 'followers' | 'following' };
