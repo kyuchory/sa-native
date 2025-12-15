@@ -15,30 +15,30 @@
 
   <queries>
     <!-- 기존 https 스킴 조회 -->
-    <intent>
+    <!-- <intent>
       <action android:name="android.intent.action.VIEW"/>
       <category android:name="android.intent.category.BROWSABLE"/>
       <data android:scheme="https"/>
-    </intent>
+    </intent> -->
 
     <!-- 카카오톡 호출용 패키지 조회 -->
-    <package android:name="com.kakao.talk" />
+    <!-- <package android:name="com.kakao.talk" /> -->
 
     <!-- 카카오톡 앱 스킴 -->
-    <intent>
+    <!-- <intent>
       <action android:name="android.intent.action.VIEW"/>
       <category android:name="android.intent.category.BROWSABLE"/>
       <data android:scheme="kakaotalk" />
-    </intent>
+    </intent> -->
 
     <!-- 카카오 로그인 redirect 스킴 조회 -->
-    <intent>
+    <!-- <intent>
       <action android:name="android.intent.action.VIEW"/>
       <category android:name="android.intent.category.BROWSABLE"/>
       <data
         android:scheme="kakao44929c6b1f02b27200d4245c8c09f869"
         android:host="oauth" />
-    </intent>
+    </intent> -->
   </queries>
 
   <application
@@ -72,14 +72,14 @@
       </intent-filter>
 
       <!-- 카카오 로그인 redirect 처리 -->
-      <intent-filter>
+      <!-- <intent-filter>
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
         <data
           android:scheme="kakao44929c6b1f02b27200d4245c8c09f869"
           android:host="oauth" />
-      </intent-filter>
+      </intent-filter> -->
 
     </activity>
 
