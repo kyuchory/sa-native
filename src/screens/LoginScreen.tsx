@@ -77,11 +77,9 @@ export default function LoginScreen({ navigation }: any) {
       // 카카오 로그인으로 토큰 받기
       let tokenResult;
       if (Platform.OS === 'ios') {
-        console.log('iOS 카카오 로그인 시도');
         // iOS: 직접 구현한 네이티브 모듈 사용
         const { KakaoLoginModule } = NativeModules;
         tokenResult = await KakaoLoginModule.login();
-        console.log('iOS 카카오 로그인 토큰 결과:', tokenResult);
       } else {
         // Android: 라이브러리 사용
         tokenResult = await login();

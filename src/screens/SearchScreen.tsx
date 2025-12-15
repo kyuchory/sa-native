@@ -88,7 +88,7 @@ export default function SearchScreen() {
 
   const handleSearch = () => {
     if (searchText.trim()) {
-      console.log('검색어:', searchText);
+      performSearch(searchText.trim());
     }
   };
 
@@ -129,7 +129,7 @@ export default function SearchScreen() {
       // UserProfile로 이동
       navigation.navigate('UserProfile', { userId: item.id.toString() });
     } else {
-      console.log('Item pressed:', item);
+      // 기타 탭은 아직 구현되지 않음
     }
   };
 

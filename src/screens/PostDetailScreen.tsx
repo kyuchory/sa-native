@@ -298,7 +298,6 @@ export default function PostDetailScreen() {
     try {
       setIsLoading(true);
       const postData = await PostService.getPostDetail(postId);
-      console.log('게시물 상세 데이터:', postData);
       setPost(postData);
       setIsLiked(postData.is_liked || false);
       setIsBookmarked(postData.is_bookmarked || false);
@@ -844,7 +843,7 @@ export default function PostDetailScreen() {
             <TouchableOpacity
               style={styles.compactStatButton}
               onPress={() => {
-                console.log('댓글로 이동');
+                // 댓글 섹션으로 스크롤
               }}
               activeOpacity={0.7}
             >

@@ -516,7 +516,6 @@ export default function FeedDetailScreen() {
       setComments(updatedComments.items);
       setNextCursor(updatedComments.next_cursor);
       setShouldRefreshFeeds(true);
-      console.log('댓글 작성 성공:', text);
     } catch (error) {
       console.error('댓글 작성 실패:', error);
     } finally {
@@ -546,7 +545,6 @@ export default function FeedDetailScreen() {
       setNextCursor(updatedComments.next_cursor);
       setShouldRefreshFeeds(true);
       setReplyingTo(null);
-      console.log('답글 작성 성공:', text);
     } catch (error) {
       console.error('답글 작성 실패:', error);
     } finally {
@@ -590,7 +588,6 @@ export default function FeedDetailScreen() {
       setComments(updatedComments.items);
       setNextCursor(updatedComments.next_cursor);
       setEditingComment(null);
-      console.log('댓글 수정 성공:', response);
     } catch (error) {
       console.error('댓글 수정 실패:', error);
     } finally {
@@ -606,7 +603,6 @@ export default function FeedDetailScreen() {
       const updatedComments = await FeedService.getComments(feedId);
       setComments(updatedComments.items);
       setNextCursor(updatedComments.next_cursor);
-      console.log('댓글 삭제 성공:', commentId);
     } catch (error) {
       console.error('댓글 삭제 실패:', error);
     } finally {

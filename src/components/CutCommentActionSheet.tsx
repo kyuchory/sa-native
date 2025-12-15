@@ -133,7 +133,6 @@ export default function CutCommentActionSheet({
     try {
       setIsLoading(true);
       const response = await CutService.getShortComments(short.id);
-      console.log('로드된 댓글:', response.data.items);
       setComments(response.data.items);
       setNextCursor(response.data.next_cursor);
     } catch (error) {

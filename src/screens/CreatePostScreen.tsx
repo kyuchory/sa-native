@@ -66,7 +66,6 @@ export default function CreatePostScreen() {
   useFocusEffect(
     React.useCallback(() => {
       if (videoEditResult) {
-        console.log('videoResult:', videoEditResult);
         // 비디오 블록 추가
         const newVideoBlock: ContentBlock = {
           id: `video_${Date.now()}`,

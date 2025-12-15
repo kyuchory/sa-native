@@ -177,7 +177,6 @@ export default function ChatDetailScreen() {
       didMarkReadRef.current = true;
       try {
         await ChatService.markAsRead(chatRoomId);
-        console.log('✅ 뒤로가기 버튼에서 읽음 처리 완료');
       } catch (error) {
         console.error('❌ 뒤로가기 읽음 처리 실패:', error);
       }
@@ -338,7 +337,6 @@ export default function ChatDetailScreen() {
 
         // 3분(180초) 초과 비디오 확인
         if (selectedVideo.duration && selectedVideo.duration > 180 * 1000) {
-          console.log('⏱️ 선택된 비디오 길이:', selectedVideo.duration, '초 - 전송 불가');
           setAlertModal({
             visible: true,
             title: '비디오 길이 제한',
@@ -485,7 +483,6 @@ export default function ChatDetailScreen() {
   const handleChatNameUpdate = useCallback((newName: string) => {
     // 채팅방 이름이 변경되었을 때 헤더 등에 반영 (낙관적 업데이트)
     setLocalChatRoomName(newName);
-    console.log('📝 채팅방 이름 업데이트:', newName);
 
     // 성공 알림 표시
     setAlertModal({ visible: true, title: '성공', message: '채팅방 이름이 성공적으로 수정되었습니다.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
@@ -514,7 +511,6 @@ export default function ChatDetailScreen() {
             });
           } else if (message.isSending) {
             // 낙관적 메시지 (전송 중)인 경우 미디어 캐싱에서 제외
-            console.log('📤 낙관적 비디오 메시지 - 미디어 캐싱 스킵 (전송 중)');
           } else {
             // 기타 경우 (알 수 없는 포맷)
             console.warn('⚠️ 알 수 없는 비디오 content 포맷:', message.content);
@@ -615,7 +611,6 @@ export default function ChatDetailScreen() {
   // VideoTrimCropScreen 결과 처리
   useEffect(() => {
     if (isVideoEditResult && editedVideoUri && user) {
-      console.log('🎬 VideoTrimCrop 결과 처리:', { editedVideoUri, trimStart, trimEnd });
 
       // 비디오 전송 처리
       handleSendVideoMessage({
@@ -675,7 +670,6 @@ export default function ChatDetailScreen() {
         didMarkReadRef.current = true;
         try {
           await ChatService.markAsRead(chatRoomId);
-          console.log('✅ beforeRemove에서 읽음 처리 완료');
         } catch (error) {
           console.error('❌ beforeRemove 읽음 처리 실패:', error);
         }

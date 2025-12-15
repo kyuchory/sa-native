@@ -20,19 +20,16 @@ class NotificationSocketService {
   private setupSocketConnectionListener() {
     socketService.onConnectionChange((connected: boolean) => {
       if (connected) {
-        console.log('🔌 NotificationSocketService: 소켓 연결됨, 알림 이벤트 리스너 설정');
         // 재연결 시 플래그 리셋 (중요!)
         this.eventListenersSetup = false;
         this.setupNotificationListeners();
       } else {
-        console.log('🔌 NotificationSocketService: 소켓 연결 해제됨');
         this.clearAllEventListeners();
       }
     });
 
     // 초기 연결 상태에 따라 설정
     if (socketService.isConnected) {
-      console.log('🔌 NotificationSocketService: 초기 소켓 연결됨, 알림 이벤트 리스너 설정');
       this.setupNotificationListeners();
     }
   }
@@ -46,8 +43,6 @@ class NotificationSocketService {
   private setupNotificationListeners() {
     if (this.eventListenersSetup) return;
 
-    console.log('🎧 NotificationSocketService: 알림 이벤트 리스너 설정 시작');
-
     // 기존 리스너 제거 (알림 수신용만 유지)
     this.clearAllEventListeners();
 
@@ -59,212 +54,83 @@ class NotificationSocketService {
 
     // 피드 좋아요 알림 수신
     socketService.on('notification:feed_liked', (data) => {
-      console.log('🔔 피드 좋아요 알림 수신:', {
-        알림ID: data.id,
-        타입: data.type,
-        보낸사람: `${data.sender.nickname} (ID: ${data.sender.id})`,
-        피드ID: data.feed.id,
-        피드제목: data.feed.title,
-        읽음여부: data.is_read,
-        생성시간: data.created_at
-      });
-
       // 실제 알림 처리 로직
       this.handleRealtimeNotification(data);
-
-      console.log('📢 피드 좋아요 알림 처리 완료');
     });
 
     // 팔로우 알림 수신
     socketService.on('notification:followed', (data) => {
-      console.log('🔔 팔로우 알림 수신:', {
-        알림ID: data.id,
-        타입: data.type,
-        보낸사람: `${data.sender.nickname} (ID: ${data.sender.id})`,
-        읽음여부: data.is_read,
-        생성시간: data.created_at
-      });
-
       // 실제 알림 처리 로직
       this.handleRealtimeNotification(data);
-
-      console.log('📢 팔로우 알림 처리 완료');
     });
 
     // 피드 댓글 알림 수신
     socketService.on('notification:feed_commented', (data) => {
-      console.log('🔔 피드 댓글 알림 수신:', {
-        알림ID: data.id,
-        타입: data.type,
-        보낸사람: `${data.sender.nickname} (ID: ${data.sender.id})`,
-        피드ID: data.feed?.id || data.reference_id,
-        댓글내용: data.comment.content.substring(0, 50) + '...',
-        읽음여부: data.is_read,
-        생성시간: data.created_at
-      });
-
       // 실제 알림 처리 로직
       this.handleRealtimeNotification(data);
-
-      console.log('📢 피드 댓글 알림 처리 완료');
     });
 
     // 포스트 댓글 알림 수신
     socketService.on('notification:post_commented', (data) => {
-      console.log('🔔 포스트 댓글 알림 수신:', {
-        알림ID: data.id,
-        타입: data.type,
-        보낸사람: `${data.sender.nickname} (ID: ${data.sender.id})`,
-        포스트ID: data.post?.id || data.reference_id,
-        댓글내용: data.comment.content.substring(0, 50) + '...',
-        읽음여부: data.is_read,
-        생성시간: data.created_at
-      });
-
       // 실제 알림 처리 로직
       this.handleRealtimeNotification(data);
-
-      console.log('📢 포스트 댓글 알림 처리 완료');
     });
 
     // 읽지 않은 알림 개수 업데이트 수신
     socketService.on('notification:unread_count', (data) => {
-      console.log('🔔 읽지 않은 알림 개수 업데이트:', {
-        읽지않은알림개수: data.unread_count,
-        업데이트시간: data.updated_at
-      });
-
       // Zustand 스토어를 통해 실시간 업데이트
       useNotificationStore.getState().setUnreadCount(data.unread_count);
-
-      console.log('📢 읽지 않은 알림 개수 업데이트 처리 완료');
     });
 
     // 피드 생성 알림 수신
     socketService.on('notification:feed_created', (data) => {
-      console.log('🔔 피드 생성 알림 수신:', {
-        알림ID: data.id,
-        타입: data.type,
-        보낸사람: `${data.sender.nickname} (ID: ${data.sender.id})`,
-        피드ID: data.feed.id,
-        피드제목: data.feed.title,
-        읽음여부: data.is_read,
-        생성시간: data.created_at
-      });
-
       // 실제 알림 처리 로직
       this.handleRealtimeNotification(data);
-
-      console.log('📢 피드 생성 알림 처리 완료');
     });
 
     // 포스트 생성 알림 수신
     socketService.on('notification:post_created', (data) => {
-      console.log('🔔 포스트 생성 알림 수신:', {
-        알림ID: data.id,
-        타입: data.type,
-        보낸사람: `${data.sender.nickname} (ID: ${data.sender.id})`,
-        포스트ID: data.post.id,
-        포스트제목: data.post.title,
-        읽음여부: data.is_read,
-        생성시간: data.created_at
-      });
-
       // 실제 알림 처리 로직
       this.handleRealtimeNotification(data);
-
-      console.log('📢 포스트 생성 알림 처리 완료');
     });
 
     // 메시지 알림 수신
     socketService.on('notification:message', (data) => {
-      console.log('🔔 메시지 알림 수신:', {
-        알림ID: data.id,
-        타입: data.type,
-        보낸사람: `${data.sender.nickname} (ID: ${data.sender.id})`,
-        읽음여부: data.is_read,
-        생성시간: data.created_at
-      });
-
       // 실제 알림 처리 로직
       this.handleRealtimeNotification(data);
-
-      console.log('📢 메시지 알림 처리 완료');
     });
 
     // 쇼츠 좋아요 알림 수신
     socketService.on('notification:short_liked', (data) => {
-      console.log('🔔 쇼츠 좋아요 알림 수신:', {
-        알림ID: data.id,
-        타입: data.type,
-        보낸사람: `${data.sender.nickname} (ID: ${data.sender.id})`,
-        컷츠ID: data.reference_id,
-        읽음여부: data.is_read,
-        생성시간: data.created_at
-      });
-
       // 실제 알림 처리 로직
       this.handleRealtimeNotification(data);
-
-      console.log('📢 쇼츠 좋아요 알림 처리 완료');      console.log('📢 쇼츠 좋아요 알림 처리 완료');
     });
 
     // 컷츠 댓글 알림 수신
     socketService.on('notification:short_commented', (data) => {
-      console.log('🔔 컷츠 댓글 알림 수신:', {
-        알림ID: data.id,
-        타입: data.type,
-        보낸사람: `${data.sender.nickname} (ID: ${data.sender.id})`,
-        컷츠ID: data.reference_id,
-        읽음여부: data.is_read,
-        생성시간: data.created_at
-      });
-
       // 실제 알림 처리 로직
       this.handleRealtimeNotification(data);
-
-      console.log('📢 컷츠 댓글 알림 처리 완료');
     });
 
     // 컷츠 생성 알림 수신
     socketService.on('notification:short_created', (data) => {
-      console.log('🔔 컷츠 생성 알림 수신:', {
-        알림ID: data.id,
-        타입: data.type,
-        보낸사람: `${data.sender.nickname} (ID: ${data.sender.id})`,
-        컷츠ID: data.reference_id,
-        읽음여부: data.is_read,
-        생성시간: data.created_at
-      });
-
       // 실제 알림 처리 로직
       this.handleRealtimeNotification(data);
-
-      console.log('📢 컷츠 생성 알림 처리 완료');
     });
 
     // 채팅 배지 알림 수신 (새 메시지 도착 시)
     socketService.on('notification:chat_badge', (data) => {
-      console.log('🔔 채팅 배지 알림 수신:', {
-        새메시지여부: data.hasNewMessage,
-        업데이트시간: data.updated_at
-      });
-
       // 새 메시지가 도착한 경우 채팅 읽지 않은 개수 증가
       if (data.hasNewMessage) {
         useChatStore.getState().incrementUnreadCount();
-        console.log('📢 채팅 읽지 않은 개수 증가 처리 완료');
       }
     });
 
     this.eventListenersSetup = true;
-    console.log('🎧 NotificationSocketService: 알림 이벤트 리스너 설정 완료');
   }
 
   // 모든 이벤트 리스너 제거 (연결별 정리용)
   private clearAllEventListeners() {
-    console.log('🧹 NotificationSocketService: 모든 이벤트 리스너 정리');
-
     // 기존 리스너 제거 (알림 수신용만 유지)
     socketService.off('notification:unread_count');
     socketService.off('notification:message_badge');

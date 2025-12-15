@@ -83,7 +83,6 @@ export default function CutDetailScreen() {
 
   // 댓글 보기
   const handleComment = useCallback(() => {
-    console.log('댓글 보기:', shortId);
     if (short) {
       setCommentSheetVisible(true);
     }
@@ -91,7 +90,6 @@ export default function CutDetailScreen() {
 
   // 공유하기
   const handleShare = useCallback(() => {
-    console.log('공유하기:', shortId);
     setAlertModal({
       visible: true,
       title: '공유하기',
@@ -171,7 +169,6 @@ export default function CutDetailScreen() {
   // 컷 신고 핸들러
   const handleReportCut = useCallback(() => {
     if (short) {
-      console.log('컷 신고 터치:', short.id);
       setMenuActionSheetVisible(false);
     }
   }, [short]);
@@ -209,18 +206,13 @@ export default function CutDetailScreen() {
     shortId: number,
     viewData: RecordShortViewRequest
   ) => {
-    console.log(`📊 시청 기록 전송 시작 - 쇼츠 ID: ${shortId}`);
-    console.log('📊 전송 데이터:', viewData);
-
     // 3초 이상 시청한 경우에만 기록
     if (viewData.watched_seconds < 3) {
-      console.log(`⏭️ 시청 시간이 3초 미만으로 기록 건너뜀 - 쇼츠 ID: ${shortId} (${viewData.watched_seconds}초)`);
       return;
     }
 
     try {
       await CutService.recordShortView(shortId, viewData);
-      console.log(`✅ 시청 기록 저장 성공 - 쇼츠 ID: ${shortId}`);
     } catch (error) {
       console.error(`❌ 시청 기록 저장 실패 - 쇼츠 ID: ${shortId}:`, error);
     }

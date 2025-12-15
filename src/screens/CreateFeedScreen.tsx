@@ -62,8 +62,6 @@ export default function CreateFeedScreen() {
           originalValue: videoEditResult.videoPath, // 서버 전송용 비디오 경로
           thumbnailPath: videoEditResult.thumbnailPath, // 서버 전송용 썸네일 경로
         };
-        console.log('videoResult:',videoEditResult)
-        console.log('newVideoBlock:', newVideoBlock);
 
         setContentBlocks(prev => [...prev, newVideoBlock]);
 

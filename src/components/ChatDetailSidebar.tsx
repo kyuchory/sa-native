@@ -173,19 +173,12 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
         try {
           setLoading(true);
           const detail = await ChatService.getChatRoomDetail(chatRoomId);
-          console.log('📝 사이드바 채팅방 상세 정보 로드 중:', detail);
           setChatRoomDetail(detail);
 
           // API 응답의 name을 우선적으로 사용
           if (detail.name) {
             setLocalChatRoomName(detail.name);
           }
-
-          console.log('📝 사이드바에서 채팅방 상세 정보 로드 완료:', {
-            members: detail.members.length,
-            notices: detail.latest_notices.length,
-            media: detail.chat_room_images_videos.length,
-          });
         } catch (error) {
           console.error('사이드바 채팅방 상세 정보 로드 실패:', error);
         } finally {
@@ -281,8 +274,7 @@ const ChatDetailSidebar: React.FC<ChatDetailSidebarProps> = ({
 
       // 모달 닫기
       setIsEditChatNameModalVisible(false);
-
-      console.log('✅ 채팅방 이름 수정 성공:', newName);
+      
     } catch (error) {
       // 실패 시 롤백
       setLocalChatRoomName(previousChatRoomName);

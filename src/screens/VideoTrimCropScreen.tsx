@@ -93,7 +93,6 @@ function convertCropAreaForServer(
   }
 
   if (!rotationInfo.isRotated) {
-    console.log('✅ 회전 없음, 원본 좌표 사용');
     return screenCropArea;
   }
 
@@ -289,7 +288,6 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
           trimEnd,
           correctedCropArea
         );
-        console.log("✅ 비디오 편집 업로드 성공:", uploadResult);
 
         setFeedVideoEditResult({
           videoPath: uploadResult.editedVideo.path,
@@ -319,7 +317,6 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
           trimEnd,
           correctedCropArea
         );
-        console.log("✅ 포스트 비디오 편집 업로드 성공:", uploadResult);
 
         setPostVideoEditResult({
           videoPath: uploadResult.editedVideo.path,
@@ -349,7 +346,6 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
           trimEnd,
           correctedCropArea
         );
-        console.log("✅ 스토리 생성 성공:", storyResult);
         // 생성된 스토리의 ID로 DailyCutDetailScreen으로 이동
         navigation.replace('DailyCutDetail', { storyId: storyResult.id });
       } catch (error) {
@@ -372,7 +368,6 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         cropArea: correctedCropArea,
         thumbnailUri,
       };
-      console.log('cuts edit result:', result);
 
       navigation.replace('CutUploadFinalize', result);
     } else {
@@ -383,7 +378,6 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         cropArea: correctedCropArea,
         duration: trimEnd - trimStart,
       };
-      console.log('📝 편집 결과:', result);
       setAlertModal({
         visible: true,
         title: '편집 완료',

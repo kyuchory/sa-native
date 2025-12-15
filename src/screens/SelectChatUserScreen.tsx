@@ -173,12 +173,9 @@ export default function SelectChatUserScreen() {
       const memberIds = users.map(user => user.id);
       const response = await ChatService.createGroupChat(name, memberIds);
 
-      console.log('그룹 채팅방 생성 API:', response);
-
       const { chatRoomId } = response;
 
       // 항상 새로운 채팅방이므로 바로 이동
-      console.log('새 그룹 채팅방 생성됨:', chatRoomId);
 
       // 채팅방으로 이동 (네비게이션 스택에서 현재 화면 교체)
       navigation.replace('ChatDetail', {
@@ -205,16 +202,9 @@ export default function SelectChatUserScreen() {
       setIsLoading(true);
       const response = await ChatService.createPrivateChat(user.id);
 
-      console.log('채팅방 생성 API:', response);
-
       const { chatRoomId, isNewlyCreated } = response;
 
       // 기존 채팅방이면 알림 표시, 새 채팅방이면 조용히 이동
-      if (!isNewlyCreated) {
-        console.log('기존 채팅방으로 이동:', chatRoomId);
-      } else {
-        console.log('새 채팅방 생성됨:', chatRoomId);
-      }
 
       // 채팅방으로 이동 (네비게이션 스택에서 현재 화면 교체)
       navigation.replace('ChatDetail', {

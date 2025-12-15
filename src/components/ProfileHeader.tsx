@@ -195,9 +195,9 @@ export default function ProfileHeader({
             {showBackButton && (
               <TouchableOpacity
                 style={styles.backButton}
-                onPress={onBackPress || (() => {
-                  console.log('Back button pressed but no handler provided');
-                })}
+                // onPress={onBackPress || (() => {
+                //   console.log('Back button pressed but no handler provided');
+                // })}
                 activeOpacity={0.7}
               >
                 <BackIcon size={24} color={colors.GRAY_700} />

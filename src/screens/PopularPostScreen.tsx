@@ -85,8 +85,7 @@ export default function PopularPostScreen() {
 
   // 댓글 클릭 핸들러
   const handleCommentPress = (post: any) => {
-    // CommentActionSheet나 댓글 화면으로 이동할 수 있도록 처리
-    console.log('댓글 클릭:', post.id);
+    // TODO CommentActionSheet나 댓글 화면으로 이동할 수 있도록 처리
   };
 
   // 작성자 클릭 핸들러

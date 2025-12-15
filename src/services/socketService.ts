@@ -78,7 +78,6 @@ class SocketService {
 
     // 연결 성공
     this.socket.on('connect', () => {
-      console.log('✅ 소켓 연결 성공');
       this._isConnecting = false;
       this.reconnectAttempts = 0;
       this.notifyConnectionCallbacks(true);
@@ -90,11 +89,8 @@ class SocketService {
 
       // 인증 관련 에러 처리 (API처럼 재발급 먼저 시도)
       if (this.isAuthError(error)) {
-        console.log('🔐 소켓 연결 중 토큰 만료 감지, 자동 재발급 시도...');
-
         const reconnected = await this.handleAuthError();
         if (reconnected) {
-          console.log('✅ 인증 에러 해결 후 재연결 성공');
           return;
         } else {
           const errorMessage = error?.message || '알 수 없는 인증 에러';
@@ -113,7 +109,6 @@ class SocketService {
 
     // 연결 해제
     this.socket.on('disconnect', (reason: string) => {
-      console.log('🔌 소켓 연결 해제:', reason);
       this._isConnecting = false;
 
       // 의도적 해제가 아닌 경우 자동 재연결은 Socket.io가 처리
@@ -127,14 +122,12 @@ class SocketService {
 
     // 재연결 시도
     this.socket.on('reconnect_attempt', (attemptNumber: number) => {
-      console.log(`🔄 재연결 시도 중... (${attemptNumber}/${this.maxReconnectAttempts})`);
       this._isConnecting = true;
       this.reconnectAttempts = attemptNumber;
     });
 
     // 재연결 성공
     this.socket.on('reconnect', (attemptNumber: number) => {
-      console.log(`✅ 재연결 성공 (${attemptNumber}번째 시도)`);
       this._isConnecting = false;
       this.reconnectAttempts = 0;
       this.notifyConnectionCallbacks(true);
@@ -151,7 +144,6 @@ class SocketService {
 
     // 서버 연결 응답
     this.socket.on('connected', (data: any) => {
-      console.log(`🎉 서버 연결 완료: ${data.nickname}`);
       this.serverConnected = true;
     });
 
@@ -184,8 +176,6 @@ class SocketService {
   // 인증 에러 처리 (토큰 재발급)
   private async handleAuthError(): Promise<boolean> {
     try {
-      console.log('🔐 토큰 재발급 시도...');
-
       // 기존 apiClient의 refreshToken 로직 활용
       await apiClient.refreshToken();
 
@@ -224,7 +214,6 @@ class SocketService {
   // 연결
   async connect(): Promise<void> {
     if (this._isConnecting || this.isConnected) {
-      console.log('이미 연결중이거나 연결되어 있습니다.');
       return;
     }
 

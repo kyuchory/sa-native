@@ -151,7 +151,6 @@ export default function FeedScreen() {
 
   // 헤더 액션 핸들러들
   const handleFeedPress = useCallback(() => {
-    console.log('피드 작성 버튼 클릭');
     navigation.navigate('CreateFeed');
   }, [navigation]);
 
@@ -175,18 +174,15 @@ export default function FeedScreen() {
   }, [navigation]);
 
   const handleAddStoryPress = useCallback(() => {
-    console.log('데일리 컷 추가');
     navigation.navigate('DailyCutAdd');
   }, [navigation]);
 
   // 피드 액션 핸들러들
   const handleLikePress = (feedId: number) => {
-    console.log('좋아요 클릭:', feedId);
     // TODO: 좋아요 API 호출
   };
 
   const handleCommentPress = (feedId: number) => {
-    console.log('댓글 클릭:', feedId);
     // 댓글 액션 시트 열기 위해 피드 찾기
     const feed = feedState.feeds.find(f => f.id === feedId);
     if (feed) {
@@ -196,7 +192,6 @@ export default function FeedScreen() {
   };
 
   const handleBookmarkPress = (feedId: number) => {
-    console.log('북마크 클릭:', feedId);
     // TODO: 북마크 API 호출
   };
 
@@ -213,7 +208,6 @@ export default function FeedScreen() {
   }, []);
 
   const handleUserPress = (userId: number) => {
-    console.log('사용자 프로필 클릭:', userId);
     navigation.navigate('UserProfile', { userId: String(userId) });
   };
 

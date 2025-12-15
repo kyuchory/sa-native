@@ -283,7 +283,6 @@ export default function CutScreen() {
   const handleReportCut = useCallback(() => {
     const currentShort = shorts[currentIndex];
     if (currentShort) {
-      console.log('컷 신고 터치:', currentShort.id);
       setMenuActionSheetVisible(false);
     }
   }, [shorts, currentIndex]);

@@ -22,19 +22,15 @@ let isInitialized = false;
  */
 export const initializeSocketServices = async (): Promise<void> => {
   if (isInitialized) {
-    console.log('🔄 소켓 서비스 이미 초기화됨');
     return;
   }
 
   try {
-    console.log('🚀 소켓 서비스 초기화 시작...');
-
     // 1. 소켓 스토어 초기화 (이벤트 리스너 설정)
     initializeSocketStore();
 
     // 2. 앱 상태가 active인지 확인
     const currentAppState = AppState.currentState;
-    console.log(`📱 현재 앱 상태: ${currentAppState}`);
 
     // 3. 로그인 토큰 확인 후 자동 연결 시도
     // 주의: 여기서는 실제 로그인 상태를 확인하는 로직이 필요함
@@ -42,22 +38,13 @@ export const initializeSocketServices = async (): Promise<void> => {
     const hasValidToken = await checkLoginStatus();
 
     if (hasValidToken && currentAppState === 'active') {
-      console.log('🔗 로그인 상태 확인됨, 소켓 연결 시도...');
-      console.log(`🔑 인증 토큰 존재 여부: ${!!tokenService.getAccessToken()}`);
-      console.log(`📱 앱 상태: ${currentAppState}`);
-
       try {
         // 소켓 연결 시도 (실패시 예외 발생하지 않도록 try-catch)
         await useSocketStore.getState().connect();
-        console.log('🚀 소켓 초기 연결 성공');
       } catch (error) {
         console.warn('소켓 초기 연결 실패 (백그라운드에서 시도할 수 있음):', error);
         // 초기 연결 실패는 치명적이지 않으므로 로그만 남김
       }
-    } else if (!hasValidToken) {
-      console.log('🔐 로그인되지 않음 - 소켓 연결 스킵');
-    } else if (currentAppState !== 'active') {
-      console.log('📱 앱이 백그라운드 상태 - 소켓 연결 대기');
     }
 
     // 4. 인증 이벤트 리스너 등록
@@ -65,7 +52,6 @@ export const initializeSocketServices = async (): Promise<void> => {
 
     // 5. 초기화 완료 표시
     isInitialized = true;
-    console.log('✅ 소켓 서비스 초기화 완료');
 
   } catch (error) {
     console.error('❌ 소켓 서비스 초기화 실패:', error);
@@ -83,8 +69,6 @@ export const cleanupSocketServices = (): void => {
   }
 
   try {
-    console.log('🧹 소켓 서비스 정리 시작...');
-
     // 소켓 스토어 정리
     cleanupSocketStore();
 
@@ -93,8 +77,6 @@ export const cleanupSocketServices = (): void => {
 
     // 초기화 상태 초기화
     isInitialized = false;
-
-    console.log('✅ 소켓 서비스 정리 완료');
 
   } catch (error) {
     console.error('❌ 소켓 서비스 정리 실패:', error);
@@ -139,7 +121,6 @@ export const handleAppForeground = async (): Promise<void> => {
     const hasValidToken = await checkLoginStatus();
 
     if (hasValidToken && !useSocketStore.getState().isConnected) {
-      console.log('🔄 앱 포그라운드 - 소켓 재연결 시도');
       await useSocketStore.getState().connect();
     }
 
@@ -157,7 +138,6 @@ export const connectSocketAfterLogin = async (): Promise<void> => {
   }
 
   try {
-    console.log('🔗 로그인 후 소켓 연결 시도');
     await useSocketStore.getState().connect();
 
   } catch (error) {
@@ -171,7 +151,6 @@ export const connectSocketAfterLogin = async (): Promise<void> => {
  */
 export const disconnectSocketAfterLogout = (): void => {
   try {
-    console.log('🔌 로그아웃 - 소켓 연결 해제');
     useSocketStore.getState().disconnect();
 
   } catch (error) {
@@ -186,10 +165,8 @@ export const disconnectSocketAfterLogout = (): void => {
 const setupAuthEventListeners = (): void => {
   // 로그인 이벤트 리스너
   onAuthLogin(async (data) => {
-    console.log('🔐 로그인 이벤트 수신, 소켓 연결 시도...');
     try {
       await useSocketStore.getState().connect();
-      console.log('✅ 로그인 후 소켓 연결 성공');
     } catch (error) {
       console.error('❌ 로그인 후 소켓 연결 실패:', error);
       // 로그인 성공 자체는 유지하므로 에러를 throw하지 않음
@@ -198,10 +175,8 @@ const setupAuthEventListeners = (): void => {
 
   // 로그아웃 이벤트 리스너
   onAuthLogout((data) => {
-    console.log('🚪 로그아웃 이벤트 수신, 소켓 연결 해제...');
     try {
       useSocketStore.getState().disconnect();
-      console.log('✅ 로그아웃 후 소켓 연결 해제 완료');
     } catch (error) {
       console.error('❌ 로그아웃 후 소켓 연결 해제 실패:', error);
     }

@@ -71,12 +71,10 @@ export default function MainHeader({ leftButtons = [], rightButtons = [] }: Main
   );
 
   const handleNotificationPress = () => {
-    console.log('알림 버튼 클릭');
     navigation.navigate('Notifications' as never);
   };
 
   const handleChatPress = () => {
-    console.log('채팅 버튼 클릭');
     navigation.navigate('Chat' as never);
   };
 

@@ -95,8 +95,6 @@ export default function AuthNavigator() {
   // 소켓 서비스 초기화 (로그인 상태 확인 후)
   useEffect(() => {
     if (isAuthenticated && tokens?.accessToken) {
-      console.log('🔗 로그인 확인됨, 서비스 초기화 시작...');
-
       // 소켓 서비스 초기화 (비동기로 실행)
       initializeSocketServices().catch(error => {
         console.error('❌ 소켓 서비스 초기화 실패:', error);
@@ -118,8 +116,6 @@ export default function AuthNavigator() {
       ).catch(error => {
         console.error('❌ 푸시 권한 체크 실패:', error);
       });
-    } else {
-      console.log('🔐 로그인되지 않음 또는 토큰 없음 - 서비스 초기화 스킵');
     }
   }, [isAuthenticated, tokens?.accessToken]);
 

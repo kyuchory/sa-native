@@ -95,7 +95,6 @@ export default function ChatScreen() {
         return [updatedRoom, ...otherRooms];
       });
 
-      console.log(`📨 ChatScreen 요약 메시지 처리 + 재정렬: 채팅방 ${chat_room_id} → 맨 위 이동 - ${last_message.sender_nickname}`);
     });
 
     return unsubscribeSummaryMessage;
@@ -112,18 +111,14 @@ export default function ChatScreen() {
         if (existingRoomIndex === -1) {
           // 목록에 없는 채팅방 -> 맨 위에 추가
           const newRooms = [room_info, ...prevRooms];
-          console.log(`🆕 채팅방 추가 (${reason}): ${room_info.name || room_info.other_user?.nickname} - ID: ${room_info.id}`);
           return newRooms;
         } else {
           // 이미 있는 채팅방 -> 정보 업데이트 (읽음 처리 등으로 방 정보가 변경될 수 있음)
           const updatedRooms = [...prevRooms];
           updatedRooms[existingRoomIndex] = room_info;
-          console.log(`🔄 채팅방 업데이트 (${reason}): ${room_info.name || room_info.other_user?.nickname} - ID: ${room_info.id}`);
           return updatedRooms;
         }
       });
-
-      console.log(`📪 ChatScreen 채팅방 업데이트 처리 (${reason}): ${room_info.name || room_info.other_user?.nickname}`);
     });
 
     return unsubscribeRoomUpdated;
@@ -140,16 +135,12 @@ export default function ChatScreen() {
         if (existingRoomIndex === -1) {
           // 목록에 없는 채팅방 -> 맨 위에 추가
           const newRooms = [room_info, ...prevRooms];
-          console.log(`🎉 채팅방 생성: ${room_info.name || room_info.other_user?.nickname} - ID: ${room_info.id}`);
           return newRooms;
         } else {
           // 이미 있는 채팅방 -> 무시 (중복 방지)
-          console.log(`⚠️ 이미 존재하는 채팅방 생성 이벤트 무시: ${room_info.name || room_info.other_user?.nickname} - ID: ${room_info.id}`);
           return prevRooms;
         }
       });
-
-      console.log(`📬 ChatScreen 채팅방 생성 처리: ${room_info.name || room_info.other_user?.nickname}`);
     });
 
     return unsubscribeRoomCreated;
@@ -167,7 +158,6 @@ export default function ChatScreen() {
         loadChatRooms(false); // 로딩 없이 데이터만 적용
       }
 
-      console.log('📍 ChatScreen 포커스됨 - 채팅 목록 요약 메시지 수신 활성화');
       // 요약 메시지 수신 활성화 (chatScreenSocketService에서 관리)
       chatScreenSocketService.subscribeToChatList();
 
@@ -175,7 +165,6 @@ export default function ChatScreen() {
       useChatStore.getState().setShouldLoadUnreadCount(true);
 
       return () => {
-        console.log('📍 ChatScreen 포커스 해제됨 - 채팅 목록 요약 메시지 수신 비활성화');
         chatScreenSocketService.unsubscribeFromChatList();
       };
     }, [])
@@ -184,8 +173,6 @@ export default function ChatScreen() {
   // 백그라운드↔포그라운드 시 구독 복원 (ChatDetailScreen과 동일한 패턴)
   useAppState({
     onForeground: async () => {
-      console.log('🚀 ChatScreen 앱 포그라운드 - 채팅 목록 리프레시');
-
       // 채팅 목록 다시 로드 (최신 상태 반영) - 로딩 없이 데이터만 적용
       await loadChatRooms(false);
 
@@ -193,7 +180,6 @@ export default function ChatScreen() {
       chatScreenSocketService.subscribeToChatList();
     },
     onBackground: () => {
-      console.log('😴 ChatScreen 앱 백그라운드');
       // 백그라운드에서는 요약 메시지 수신 비활성화
       chatScreenSocketService.unsubscribeFromChatList();
     },
@@ -205,7 +191,6 @@ export default function ChatScreen() {
     try {
       if (showLoading) setIsLoading(true);
       const data = await ChatService.getChatRooms();
-      console.log('📋 채팅방 목록 데이터 수신:', data);
 
       // 로컬 상태 업데이트 (페이징 정보 포함)
       setAllChatRooms(data.chat_rooms);
@@ -215,7 +200,6 @@ export default function ChatScreen() {
       // TODO: ChatStore 업데이트 (새로 구현 예정)
       // setChatRooms(data.chat_rooms);
 
-      console.log('📋 채팅방 목록 로드 완료:', data.chat_rooms.length, '개');
     } catch (error: any) {
       console.error('채팅방 목록 로드 실패:', error);
       setAlertModal({
@@ -242,7 +226,6 @@ export default function ChatScreen() {
       setHasMoreRooms(data.hasNext);
       setNextCursor(data.nextCursor);
 
-      console.log('📋 추가 채팅방 로드 완료:', data.chat_rooms.length, '개');
     } catch (error: any) {
       console.error('추가 채팅방 로드 실패:', error);
       setAlertModal({
@@ -296,11 +279,9 @@ export default function ChatScreen() {
           text: '나가기',
           onPress: async () => {
             try {
-              console.log('선택된 채팅방 아이디:', selectedChatRoom.id);
               await ChatService.leaveChatRoom(selectedChatRoom.id);
               // 성공 시 로컬 상태에서 제거
               setAllChatRooms(prev => prev.filter(room => room.id !== selectedChatRoom.id));
-              console.log('선택된 채팅방 나가기 성공');
               setAlertModal({
                 visible: true,
                 title: '성공',
@@ -347,7 +328,6 @@ export default function ChatScreen() {
         )
       );
 
-      console.log('읽음 처리 성공:', currentSelectedChatRoom.id);
     } catch (error: any) {
       console.error('읽음 처리 실패:', error);
 
@@ -377,7 +357,6 @@ export default function ChatScreen() {
         {
           text: '알림 끄기',
           onPress: () => {
-            console.log('알림 끄기:', selectedChatRoom.id);
             // TODO: API 호출 및 상태 업데이트
             setAlertModal(null);
           }

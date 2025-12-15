@@ -61,10 +61,8 @@ class ChatScreenSocketService {
   private setupSocketConnectionListener() {
     socketService.onConnectionChange((connected: boolean) => {
       if (connected) {
-        console.log('🔌 ChatScreenSocketService: 소켓 연결됨, 요약 메시지 이벤트 리스너 설정');
         this.setupSummaryEventListeners();
       } else {
-        console.log('🔌 ChatScreenSocketService: 소켓 연결 해제됨');
         this.clearAllEventListeners();
         this.isSubscribed = false;
         this.isSubscribing = false;
@@ -74,7 +72,6 @@ class ChatScreenSocketService {
 
     // 초기 연결 상태에 따라 설정
     if (socketService.isConnected) {
-      console.log('🔌 ChatScreenSocketService: 초기 소켓 연결됨, 요약 메시지 이벤트 리스너 설정');
       this.setupSummaryEventListeners();
     }
   }
@@ -82,8 +79,6 @@ class ChatScreenSocketService {
   // 요약 채팅 메시지 이벤트 리스너 설정
   private setupSummaryEventListeners() {
     if (this.eventListenersSetup) return;
-
-    console.log('🎧 ChatScreenSocketService: 요약 메시지 이벤트 리스너 설정 시작');
 
     // 기존 핸들러 제거 (명시적 참조로 안전하게)
     Object.keys(this.eventHandlers).forEach(eventName => {
@@ -104,7 +99,6 @@ class ChatScreenSocketService {
         created_at: string;
       };
     }) => {
-      console.log(`📨 요약 메시지 수신: 채팅방 ${data.chat_room_id} - ${data.last_message.sender_nickname} - ${data.last_message.content}`);
       this.notifySummaryMessageCallbacks(data);
     };
     socketService.on('chat:summary:receive', this.eventHandlers['chat:summary:receive']);
@@ -115,7 +109,6 @@ class ChatScreenSocketService {
       room_info: any;
       reason: string;
     }) => {
-      console.log(`🔄 채팅방 업데이트 수신 (${data.reason}): 채팅방 ${data.room_info.id} - ${data.room_info.name || data.room_info.other_user?.nickname}`);
       this.notifyRoomUpdatedCallbacks(data);
     };
     socketService.on('chat:room:updated', this.eventHandlers['chat:room:updated']);
@@ -125,13 +118,11 @@ class ChatScreenSocketService {
       event: 'created';
       room_info: any;
     }) => {
-      console.log(`🆕 채팅방 생성 수신: 채팅방 ${data.room_info.id} - ${data.room_info.name || data.room_info.other_user?.nickname}`);
       this.notifyRoomCreatedCallbacks(data);
     };
     socketService.on('chat:room:created', this.eventHandlers['chat:room:created']);
 
     this.eventListenersSetup = true;
-    console.log('🎧 ChatScreenSocketService: 요약 메시지 이벤트 리스너 설정 완료');
   }
 
   // 요약 메시지 콜백 알림
@@ -160,13 +151,11 @@ class ChatScreenSocketService {
   async subscribeToChatList(): Promise<void> {
     // ChatScreen은 특정 채팅방을 구독하지 않고 모든 요약 메시지를 수신함
     // 따라서 별도 구독 로직 없이 이벤트 리스너만 활성화
-    console.log('📍 ChatScreen 요약 메시지 수신 활성화');
     this.isSubscribed = true;
     this.error = null;
   }
 
   async unsubscribeFromChatList(): Promise<void> {
-    console.log('📍 ChatScreen 요약 메시지 수신 비활성화');
     this.isSubscribed = false;
     this.error = null;
   }
@@ -258,7 +247,6 @@ class ChatScreenSocketService {
 
   // 모든 이벤트 리스너 제거 (연결별 정리용)
   private clearAllEventListeners() {
-    console.log('🧹 ChatScreenSocketService: 모든 이벤트 리스너 정리');
     Object.keys(this.eventHandlers).forEach(eventName => {
       const handler = this.eventHandlers[eventName];
       socketService.off(eventName, handler);

@@ -76,14 +76,12 @@ export default function HomeScreen() {
     const subCategoryId = opts?.subCategoryId ?? selectedSubcategoryId;
 
     try {
-      console.log('@@@ loadPosts 호출:', { page: pageToLoad, categoryId, subCategoryId });
       setIsLoading(true);
       const response = await PostService.getPosts({
         categoryId: categoryId || undefined,
         subCategoryId: subCategoryId || undefined,
         page: pageToLoad,
       });
-      console.log('@@@ loadPosts 응답');
       setPosts(response.posts ?? []);
 
       // 서버에서 내려준 pagination이 실제로 다를 때만 상태 업데이트 (참조 변경으로 인한 불필요한 재호출 방지)
@@ -117,7 +115,6 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       if (shouldRefreshPosts) {
-        console.log('게시물 목록 새로고침 필요 - 포커스 시 로드');
         // 현재 페이지로 새로고침
         loadPosts({ page: pagination.page, categoryId: selectedCategoryId, subCategoryId: selectedSubcategoryId });
         setShouldRefreshPosts(false);

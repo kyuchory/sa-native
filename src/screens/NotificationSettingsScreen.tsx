@@ -173,7 +173,6 @@ export default function NotificationSettingsScreen() {
 
   // 새로운 알림 토글 핸들러 (API 호출 포함)
   const updateNotification = async (key: string, value: boolean) => {
-    console.log('updateNotification called:', key, value);
 
     // 이미 로딩 중이면 무시
     if (notificationLoadingStates[key]) return;
@@ -216,7 +215,6 @@ export default function NotificationSettingsScreen() {
   };
 
   const handleGlobalToggle = async (value: boolean) => {
-    console.log('handleGlobalToggle called:', value);
 
     // 이미 로딩 중이면 무시
     if (globalNotificationLoading) return;

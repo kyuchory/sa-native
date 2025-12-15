@@ -143,9 +143,6 @@ export default function CutPreviewScreen({ route }: { route: CutPreviewRouteProp
         cropArea,
       };
 
-      // 최종 업로드 데이터 로그 출력
-      console.log('🚀 컷츠 업로드 FormData 최종 데이터:', uploadData);
-
       // 실제 업로드 호출 (현재 API 없으므로 목데이터 응답)
       const response: ShortUploadResponse = await CutService.uploadShorts(uploadData);
 

@@ -400,7 +400,6 @@ function FeedCard({
       setIsBookmarked(response.is_bookmarked);
       setBookmarkCount(response.bookmark_count);
       onBookmarkPress?.(feed.id);
-      console.log('북마크 토글 성공:', { feedId: feed.id, is_bookmarked: response.is_bookmarked });
     } catch (error) {
       console.error('북마크 토글 실패:', error);
       setIsBookmarked(originalIsBookmarked);

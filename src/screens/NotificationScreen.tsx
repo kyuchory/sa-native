@@ -70,7 +70,6 @@ export default function NotificationScreen() {
       const response = await NotificationService.readAll();
 
       if (response.code === 200 && response.data) {
-        console.log(`✅ 모든 알림 읽음 처리 완료: ${response.data.affectedRows}개`);
 
         // Store를 통해 상태 업데이트
         markAllNotificationsAsRead();
