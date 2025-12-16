@@ -38,7 +38,31 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
 
   useEffect(() => {
     if (player) {
-      player.loop = true;
+      player.loop = false; // 🔥 loop 비활성화
+
+      const handleStatusChange = (payload: any) => {
+        if (payload.status === 'readyToPlay') {
+          player.seekBy(0.1);
+          player.removeListener('statusChange', handleStatusChange);
+        }
+      };
+
+      // 🔥 영상 종료 시 처음으로 돌아가기 (iOS 검은 화면 방지)
+      const handlePlayToEnd = () => {
+        // 영상이 끝났을 때
+        if (isMountedRef.current && !isCleaningUpRef.current) {
+          player.currentTime = 0.1; // 검은 프레임을 스킵한 위치로 즉시 이동
+          player.play(); // 자동으로 재생 시작
+        }
+      };
+
+      player.addListener('statusChange', handleStatusChange);
+      player.addListener('playToEnd', handlePlayToEnd);
+
+      return () => {
+        player.removeListener('statusChange', handleStatusChange);
+        player.removeListener('playToEnd', handlePlayToEnd);
+      };
     }
   }, [player]);
 
