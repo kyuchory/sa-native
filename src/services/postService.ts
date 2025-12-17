@@ -8,11 +8,6 @@ import type {
   PostDetail,
   CommentsResponse,
   Comment,
-  ImageUploadResponse,
-  UploadedImage,
-  VideoUploadResponse,
-  UploadedVideo,
-  UploadedThumbnail,
   PostListResponse,
   PostListItem,
   PostLikeResponse,
@@ -21,8 +16,6 @@ import type {
   DeletePostResponse,
   UpdatePostRequest,
   UpdatePostResponse,
-  PostVideoEditUploadResponse,
-  PostVideoEditUploadApiResponse,
   BookmarkPostListResponse,
   BookmarkPostListApiResponse
 } from '../types/post';
@@ -69,10 +62,24 @@ export class PostService {
     }
   }
 
-  // 게시물 작성
+  // 게시물 작성 (기존)
   static async createPost(postData: CreatePostRequest): Promise<CreatePostResponse> {
     try {
       const response = await apiClient.post<ApiResponse<CreatePostResponse>>('/posts', postData);
+      return response.data!;
+    } catch (error) {
+      console.error('게시물 작성 실패:', error);
+      throw error;
+    }
+  }
+
+  // 게시물 작성 (통합 파일 업로드)
+  static async createPostWithFiles(formData: FormData): Promise<CreatePostResponse> {
+    try {
+      const response = await apiClient.postFormData<ApiResponse<CreatePostResponse>>(
+        '/posts/create-with-files',
+        formData
+      );
       return response.data!;
     } catch (error) {
       console.error('게시물 작성 실패:', error);
@@ -92,108 +99,7 @@ export class PostService {
     }
   }
 
-  // 이미지 업로드
-  static async uploadImages(imageUris: string[]): Promise<UploadedImage[]> {
-    try {
-      // FormData 생성
-      const formData = new FormData();
-      
-      imageUris.forEach((imageUri, index) => {
-        const fileName = imageUri.split('/').pop() || `image_${index}.jpg`;
-        
-        formData.append('images', {
-          uri: imageUri,
-          type: 'image/jpeg', // 기본값, 실제로는 asset.type 사용 권장
-          name: fileName,
-        } as any);
-      });
 
-      // API 호출
-      const response = await apiClient.postFormData<ApiResponse<ImageUploadResponse>>(
-        '/posts/upload/images', 
-        formData
-      );
-
-      return response.data.files || [];
-    } catch (error) {
-      console.error('이미지 업로드 실패:', error);
-      throw error;
-    }
-  }
-
-  // 단일 이미지 업로드 (편의 함수)
-  static async uploadImage(imageUri: string): Promise<UploadedImage> {
-    const results = await this.uploadImages([imageUri]);
-    return results[0];
-  }
-
-  // 비디오 업로드
-  static async uploadVideo(videoUri: string): Promise<{ video: UploadedVideo; thumbnail: UploadedThumbnail | null }> {
-    try {
-      // FormData 생성
-      const formData = new FormData();
-
-      // 파일명 추출 (URI에서 마지막 부분)
-      const fileName = videoUri.split('/').pop() || `video_${Date.now()}.mp4`;
-
-      formData.append('video', {
-        uri: videoUri,
-        type: 'video/mp4', // 기본값, 실제로는 asset.type 사용 권장
-        name: fileName,
-      } as any);
-
-      // API 호출
-      const response = await apiClient.postFormData<ApiResponse<VideoUploadResponse>>(
-        '/posts/upload/video',
-        formData
-      );
-
-      return {
-        video: response.data.video,
-        thumbnail: response.data.thumbnail
-      };
-    } catch (error) {
-      console.error('비디오 업로드 실패:', error);
-      throw error;
-    }
-  }
-
-  // 게시글 비디오 편집 업로드 (trim + crop)
-  static async uploadVideoEdit(
-    videoUri: string,
-    trimStart: number,
-    trimEnd: number,
-    cropArea: { x: number; y: number; width: number; height: number }
-  ): Promise<PostVideoEditUploadResponse> {
-    try {
-      const formData = new FormData();
-
-      // 비디오 파일 추가
-      const fileName = videoUri.split('/').pop() || `video_edit_${Date.now()}.mp4`;
-      formData.append('video', {
-        uri: videoUri,
-        type: 'video/mp4',
-        name: fileName,
-      } as any);
-
-      // 편집 파라미터들 추가
-      formData.append('trimStart', trimStart.toString());
-      formData.append('trimEnd', trimEnd.toString());
-
-      // cropArea JSON으로 추가 (API 명세에 따라)
-      formData.append('cropArea', JSON.stringify(cropArea));
-
-      const response = await apiClient.postFormData<PostVideoEditUploadApiResponse>(
-        '/posts/upload/video/edit',
-        formData
-      );
-
-      return response.data!;
-    } catch (error) {
-      console.error('게시글 비디오 편집 업로드 실패:', error);
-      throw error;
-    }
-  }
 
   // === 댓글 관련 API ===
 
@@ -344,10 +250,20 @@ export class PostService {
     }
   }
 
-  // 게시글 수정
+  // 게시글 수정 (기존)
   static async updatePost(postId: number, updateData: UpdatePostRequest): Promise<void> {
     try {
       await apiClient.put<ApiResponse<UpdatePostResponse>>(`/posts/${postId}`, updateData);
+    } catch (error) {
+      console.error('게시글 수정 실패:', error);
+      throw error;
+    }
+  }
+
+  // 게시글 수정 (통합 파일 업로드)
+  static async updatePostWithFiles(postId: number, formData: FormData): Promise<void> {
+    try {
+      await apiClient.putFormData<ApiResponse<UpdatePostResponse>>(`/posts/${postId}/update-with-files`, formData);
     } catch (error) {
       console.error('게시글 수정 실패:', error);
       throw error;

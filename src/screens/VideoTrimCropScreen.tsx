@@ -309,34 +309,16 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         setIsUploading(false);
       }
     } else if (uploadService === 'post') {
-      try {
-        setIsUploading(true);
-        const uploadResult = await PostService.uploadVideoEdit(
-          videoUri,
+      // 게시물 작성용: 로컬 편집 정보만 저장
+      setPostVideoEditResult({
+        videoUri,
+        editInfo: {
           trimStart,
           trimEnd,
-          correctedCropArea
-        );
-
-        setPostVideoEditResult({
-          videoPath: uploadResult.editedVideo.path,
-          videoUrl: uploadResult.editedVideo.url,
-          thumbnailPath: uploadResult.thumbnail.path,
-          thumbnailUrl: uploadResult.thumbnail.url,
-        });
-
-        navigation.goBack();
-      } catch (error) {
-        console.error('❌ 포스트 비디오 편집 업로드 실패:', error);
-        setAlertModal({
-          visible: true,
-          title: '업로드 실패',
-          message: '비디오 편집 업로드에 실패했습니다. 다시 시도해주세요.',
-          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
-        });
-      } finally {
-        setIsUploading(false);
-      }
+          cropArea: correctedCropArea
+        }
+      });
+      navigation.goBack();
     } else if (uploadService === 'story') {
       try {
         setIsUploading(true);

@@ -8,12 +8,14 @@ interface PostState {
   // 선택된 카테고리/서브카테고리
   selectedCategoryId?: number;
   selectedSubcategoryId?: number;
-  // 비디오 편집 결과
+  // 비디오 편집 결과 (로컬 데이터)
   videoEditResult: {
-    videoPath: string;
-    videoUrl: string;
-    thumbnailPath: string;
-    thumbnailUrl: string;
+    videoUri: string;
+    editInfo: {
+      trimStart: number;
+      trimEnd: number;
+      cropArea: { x: number; y: number; width: number; height: number };
+    };
   } | null;
 
   // 액션들

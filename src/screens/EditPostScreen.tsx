@@ -17,7 +17,7 @@ import { useThemeStore } from '../stores/themeStore';
 import usePostStore from '../stores/postStore';
 import useProfileStore from '../stores/profileStore';
 import { AuthStackParamList } from '../types/navigation';
-import type { ContentBlock, ContentBlockType, Category, PostDetail } from '../types/post';
+import type { ContentBlock, ContentBlockType, Category, PostDetail, UpdatePostContentBlock } from '../types/post';
 
 // Components
 import CommonHeader from '../components/CommonHeader';
@@ -59,8 +59,6 @@ export default function EditPostScreen() {
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number>(0);
   const [contentBlocks, setContentBlocks] = useState<EditContentBlock[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isLoadingPost, setIsLoadingPost] = useState(true);
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
@@ -87,7 +85,8 @@ export default function EditPostScreen() {
         type: block.type,
         value: block.value ? String(block.value) : '', // value가 있을 때는 string으로, 없으면 빈 문자열
         sequence: index, // 클라이언트에서 관리하는 sequence로 재설정
-        ...(block.path ? { path: String(block.path) } : {}) // path가 있으면 저장
+        ...(block.path ? { path: String(block.path) } : {}), // path가 있으면 저장
+        ...(block.thumbnail_path ? { thumbnailPath: String(block.thumbnail_path) } : {}) // 썸네일 path가 있으면 저장
       }));
 
       setContentBlocks(convertedBlocks);
@@ -117,18 +116,17 @@ export default function EditPostScreen() {
     loadPostData();
   }, [postId]);
 
-  // 비디오 편집 결과 처리
+  // 비디오 편집 결과 처리 (로컬 데이터만 저장)
   useFocusEffect(
     React.useCallback(() => {
       if (videoEditResult) {
-        // 비디오 블록 추가
+        // 비디오 블록 추가 (로컬 URI와 편집 정보 저장)
         const newVideoBlock: EditContentBlock = {
           id: `video_${Date.now()}`,
           type: 'video',
-          value: videoEditResult.videoUrl, // 실제 비디오 URL 사용 (썸네일이 아닌 영상 재생용)
+          value: videoEditResult.videoUri, // 로컬 비디오 URI
           sequence: contentBlocks.length,
-          originalValue: videoEditResult.videoPath, // 서버 전송용 비디오 경로
-          thumbnailPath: videoEditResult.thumbnailPath, // 서버 전송용 썸네일 경로
+          editInfo: videoEditResult.editInfo, // 편집 정보
         };
 
         setContentBlocks(prev => [...prev, newVideoBlock]);
@@ -226,7 +224,7 @@ export default function EditPostScreen() {
     });
   };
 
-  // 이미지 선택 및 업로드
+  // 이미지 선택
   const handleImageSelection = async () => {
     try {
       // 권한 요청
@@ -252,43 +250,15 @@ export default function EditPostScreen() {
       if (!result.canceled && result.assets.length > 0) {
         const selectedImage = result.assets[0];
 
-        // 이미지 블록 추가 (임시)
+        // 이미지 블록 추가 (로컬 URI만 저장)
         const newImageBlock: EditContentBlock = {
           id: `image_${Date.now()}`,
           type: 'image',
-          value: selectedImage.uri, // 임시로 URI 저장 (표시용)
+          value: selectedImage.uri, // 로컬 URI 저장
           sequence: contentBlocks.length,
         };
 
         setContentBlocks(prev => [...prev, newImageBlock]);
-
-        // 이미지 업로드
-        try {
-          setIsUploadingImage(true);
-          setIsLoading(true);
-          const uploadedImage = await PostService.uploadImage(selectedImage.uri);
-
-          // 업로드된 이미지로 블록 업데이트 (표시용 url, 제출용 path 저장)
-          setContentBlocks(prev =>
-            prev.map(block =>
-              block.id === newImageBlock.id
-                ? { ...block, value: uploadedImage.url, originalValue: uploadedImage.path }
-                : block
-            )
-          );
-
-        } catch (uploadError) {
-          console.error('이미지 업로드 실패:', uploadError);
-          setAlertModal({
-            visible: true,
-            title: '오류',
-            message: '이미지 업로드에 실패했습니다.',
-            buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
-          });
-
-          // 업로드 실패 시 블록 제거
-          setContentBlocks(prev => prev.filter(block => block.id !== newImageBlock.id));
-        }
       }
     } catch (error) {
       console.error('이미지 선택 실패:', error);
@@ -298,9 +268,6 @@ export default function EditPostScreen() {
         message: '이미지 선택에 실패했습니다.',
         buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
       });
-    } finally {
-      setIsLoading(false);
-      setIsUploadingImage(false);
     }
   };
 
@@ -396,26 +363,70 @@ export default function EditPostScreen() {
     try {
       setIsLoading(true);
 
-      // 서버 전송용 데이터 변환
-      const updateData = {
-        title: title.trim(),
-        sub_category_id: selectedSubcategoryId,
-        content_blocks: contentBlocks
-          .filter(block => block.value.trim()) // 빈 블록 제외
-          .map(({ id, originalValue, thumbnailPath, ...block }, index) => ({
-            ...block,
-            value: originalValue || block.value,
-            sequence: index,
-            ...(thumbnailPath && { thumbnail_path: thumbnailPath }) // 비디오 블록인 경우 썸네일 경로 추가
-          })), // id, originalValue, thumbnailPath 제거, 원래 value 사용
-        tags: [], // 추후 태그 기능 추가시 사용
-      };
+      // content_blocks 준비 (서버 전송용)
+      const processedBlocks: UpdatePostContentBlock[] = contentBlocks
+        .filter(block => block.value.trim()) // 빈 블록 제외
+        .map(({ id, path, thumbnailPath, ...block }, index) => ({
+          type: block.type,
+          value: block.value.startsWith('file://') ? null : (path || block.value), // 새 파일은 null, 기존 파일은 path
+          sequence: index,
+          ...(block.editInfo && { editInfo: block.editInfo }), // 비디오 편집 정보
+          ...(thumbnailPath && { thumbnail_url: thumbnailPath }) // 기존 비디오 썸네일 URL
+        }));
 
-      await PostService.updatePost(postId, updateData);
+      // FormData 구성
+      const formData = new FormData();
+
+      // 디버깅용 로그
+      console.log('=== 게시물 수정 데이터 ===');
+      console.log('Post ID:', postId);
+      console.log('Title:', title.trim());
+      console.log('SubCategory ID:', selectedSubcategoryId);
+
+      formData.append('title', title.trim());
+      formData.append('sub_category_id', selectedSubcategoryId.toString());
+      formData.append('content_blocks', JSON.stringify(processedBlocks));
+
+      console.log('Processed Blocks:', processedBlocks);
+
+      // 새로 추가된 파일들만 FormData에 포함 (기존 파일은 URL로 전송)
+      const newImageBlocks = contentBlocks.filter(b =>
+        b.type === 'image' && b.value.startsWith('file://')
+      );
+      const newVideoBlocks = contentBlocks.filter(b =>
+        b.type === 'video' && b.value.startsWith('file://')
+      );
+
+      console.log('New Image Blocks Count:', newImageBlocks.length);
+      console.log('New Video Blocks Count:', newVideoBlocks.length);
+      console.log('FormData files:');
+
+      newImageBlocks.forEach((block, index) => {
+        const fileData = {
+          uri: block.value,
+          type: 'image/jpeg',
+          name: `image_${index}.jpg`
+        } as any;
+        formData.append('images', fileData);
+        console.log(`  images[${index}]:`, fileData);
+      });
+
+      newVideoBlocks.forEach((block, index) => {
+        const fileData = {
+          uri: block.value,
+          type: 'video/mp4',
+          name: `video_${index}.mp4`
+        } as any;
+        formData.append('videos', fileData);
+        console.log(`  videos[${index}]:`, fileData);
+      });
+
+      // 통합 API 호출
+      await PostService.updatePostWithFiles(postId, formData);
 
       // 목록 새로고침 플래그 설정
       setShouldRefreshPosts(true);
-      setShouldRefreshProfilePosts(true); // 자신의 게시물 목록 새로고침 플래그
+      setShouldRefreshProfilePosts(true);
 
       setAlertModal({
         visible: true,
@@ -426,7 +437,6 @@ export default function EditPostScreen() {
           onPress: () => {
             setAlertModal(null);
             navigation.goBack();
-            // 선택적으로 수정된 게시물로 이동할 수 있음
           }
         }]
       });
@@ -565,7 +575,7 @@ export default function EditPostScreen() {
       {/* 로딩 오버레이 */}
       <LoadingOverlay
         visible={isLoading}
-        message={isUploadingImage ? '이미지를 업로드중입니다...' : isUploadingVideo ? '비디오를 업로드중입니다...' : undefined}
+        message="게시물을 수정중입니다..."
       />
 
       {/* Custom Alert Modal */}

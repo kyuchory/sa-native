@@ -47,8 +47,6 @@ export default function CreatePostScreen() {
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number>(0);
   const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
@@ -62,18 +60,17 @@ export default function CreatePostScreen() {
     addDefaultTextBlock();
   }, []);
 
-  // 비디오 편집 결과 처리
+  // 비디오 편집 결과 처리 (로컬 데이터만 저장)
   useFocusEffect(
     React.useCallback(() => {
       if (videoEditResult) {
-        // 비디오 블록 추가
+        // 비디오 블록 추가 (로컬 URI와 편집 정보 저장)
         const newVideoBlock: ContentBlock = {
           id: `video_${Date.now()}`,
           type: 'video',
-          value: videoEditResult.videoUrl, // 실제 비디오 URL 사용 (썸네일이 아닌 영상 재생용)
+          value: videoEditResult.videoUri, // 로컬 비디오 URI
           sequence: contentBlocks.length,
-          originalValue: videoEditResult.videoPath, // 서버 전송용 비디오 경로
-          thumbnailPath: videoEditResult.thumbnailPath, // 서버 전송용 썸네일 경로
+          editInfo: videoEditResult.editInfo, // 편집 정보
         };
 
         setContentBlocks(prev => [...prev, newVideoBlock]);
@@ -184,13 +181,12 @@ export default function CreatePostScreen() {
 
 
 
-  // 이미지 선택 및 업로드
+  // 이미지 선택
   const handleImageSelection = async () => {
     try {
       // 권한 요청
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-
         setAlertModal({
           visible: true,
           title: '권한 필요',
@@ -210,56 +206,25 @@ export default function CreatePostScreen() {
 
       if (!result.canceled && result.assets.length > 0) {
         const selectedImage = result.assets[0];
-        
-        // 이미지 블록 추가
+
+        // 이미지 블록 추가 (로컬 URI만 저장)
         const newImageBlock: ContentBlock = {
           id: `image_${Date.now()}`,
           type: 'image',
-          value: selectedImage.uri, // 임시로 URI 저장
-          sequence: contentBlocks.length, // 현재 블록 개수를 sequence로 사용
+          value: selectedImage.uri, // 로컬 URI 저장
+          sequence: contentBlocks.length,
         };
-        
+
         setContentBlocks(prev => [...prev, newImageBlock]);
-
-        // 이미지 업로드
-        try {
-          setIsUploadingImage(true);
-          setIsLoading(true);
-          const uploadedImage = await PostService.uploadImage(selectedImage.uri);
-          
-          // 업로드된 이미지로 블록 업데이트 (표시용 url, 제출용 path 저장)
-          setContentBlocks(prev =>
-            prev.map(block =>
-              block.id === newImageBlock.id
-                ? { ...block, value: uploadedImage.url, originalValue: uploadedImage.path }
-                : block
-            )
-          );
-
-        } catch (uploadError) {
-          console.error('이미지 업로드 실패:', uploadError);
-          setAlertModal({
-            visible: true,
-            title: '오류',
-            message: '이미지 업로드에 실패했습니다.',
-            buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
-          });
-
-          // 업로드 실패 시 블록 제거
-          setContentBlocks(prev => prev.filter(block => block.id !== newImageBlock.id));
-        }
       }
     } catch (error) {
+      setAlertModal({
+        visible: true,
+        title: '오류',
+        message: '이미지 선택에 실패했습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
       console.error('이미지 선택 실패:', error);
-          setAlertModal({
-            visible: true,
-            title: '오류',
-            message: '이미지 선택에 실패했습니다.',
-            buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
-          });
-    } finally {
-      setIsLoading(false);
-      setIsUploadingImage(false);
     }
   };
 
@@ -354,27 +319,65 @@ export default function CreatePostScreen() {
 
     try {
       setIsLoading(true);
-      
-      // 서버 전송용 데이터 변환
-      const postData = {
-        title: title.trim(),
-        sub_category_id: selectedSubcategoryId,
-        content_blocks: contentBlocks
-          .filter(block => block.value.trim()) // 빈 블록 제외
-          .map(({ id, originalValue, thumbnailPath, ...block }, index) => ({ 
-            ...block, 
-            value: originalValue || block.value, 
-            sequence: index,
-            ...(thumbnailPath && { thumbnail_path: thumbnailPath }) // 비디오 블록인 경우 썸네일 경로 추가
-          })), // id, originalValue, thumbnailPath 제거, 원래 value 사용
-        tags: [], // 추후 태그 기능 추가시 사용
-      };
 
-      const result = await PostService.createPost(postData);
+      // content_blocks 준비 (서버 전송용)
+      const processedBlocks = contentBlocks
+        .filter(block => block.value.trim()) // 빈 블록 제외
+        .map(({ id, ...block }, index) => ({
+          type: block.type,
+          value: block.type === 'text' ? block.value : null, // 미디어는 null
+          sequence: index,
+          ...(block.editInfo && { editInfo: block.editInfo }) // 비디오 편집 정보
+        }));
+
+      // FormData 구성
+      const formData = new FormData();
+
+      // 디버깅용 로그
+      console.log('=== 게시물 생성 데이터 ===');
+      console.log('Title:', title.trim());
+      console.log('SubCategory ID:', selectedSubcategoryId);
+
+      formData.append('title', title.trim());
+      formData.append('sub_category_id', selectedSubcategoryId.toString());
+      formData.append('content_blocks', JSON.stringify(processedBlocks));
+
+      console.log('Processed Blocks:', processedBlocks);
+
+      // 미디어 파일들 추가
+      const imageBlocks = contentBlocks.filter(b => b.type === 'image');
+      const videoBlocks = contentBlocks.filter(b => b.type === 'video');
+
+      console.log('Image Blocks Count:', imageBlocks.length);
+      console.log('Video Blocks Count:', videoBlocks.length);
+      console.log('FormData files:');
+
+      imageBlocks.forEach((block, index) => {
+        const fileData = {
+          uri: block.value,
+          type: 'image/jpeg',
+          name: `image_${index}.jpg`
+        } as any;
+        formData.append('images', fileData);
+        console.log(`  images[${index}]:`, fileData);
+      });
+
+      videoBlocks.forEach((block, index) => {
+        const fileData = {
+          uri: block.value,
+          type: 'video/mp4',
+          name: `video_${index}.mp4`
+        } as any;
+        formData.append('videos', fileData);
+        console.log(`  videos[${index}]:`, fileData);
+      });
+
+      // 통합 API 호출
+      const result = await PostService.createPostWithFiles(formData);
 
       // 목록 새로고침 플래그 설정
       setShouldRefreshPosts(true);
-      setShouldRefreshProfilePosts(true); // 자신의 게시물 목록 새로고침 플래그
+      setShouldRefreshProfilePosts(true);
 
       // 성공 alert 표시
       setAlertModal({
@@ -515,7 +518,7 @@ export default function CreatePostScreen() {
       {/* 로딩 오버레이 */}
       <LoadingOverlay
         visible={isLoading}
-        message={isUploadingImage ? '이미지를 업로드중입니다...' : isUploadingVideo ? '비디오를 업로드중입니다...' : undefined}
+        message="게시물을 작성중입니다..."
       />
 
       {/* Custom Alert Modal */}

@@ -12,6 +12,11 @@ export interface ContentBlock {
   sequence: number;
   originalValue?: string; // 서버 제출용 원래 value
   thumbnailPath?: string; // 서버 제출용 썸네일 경로 (비디오 블록용)
+  editInfo?: { // 비디오 편집 정보
+    trimStart: number;
+    trimEnd: number;
+    cropArea: { x: number; y: number; width: number; height: number };
+  };
 }
 
 // 🚨 BREAKING CHANGE: post_type과 item_snapshots 필드가 API에서 제거됨
@@ -208,7 +213,7 @@ export interface PostListResponse {
   pagination: Pagination;
 }
 
-// 게시글 수정 요청
+// 게시글 수정 요청 (기존)
 export interface UpdatePostRequest {
   title?: string;
   sub_category_id?: number;
@@ -216,37 +221,41 @@ export interface UpdatePostRequest {
   tags?: string[];
 }
 
-// 이미지 업로드 관련 타입
-export interface UploadedImage {
-  filename: string;
-  path: string;
-  url: string;
-  size: number;
+// 게시물 수정 (통합 파일 업로드) 요청
+export interface UpdatePostWithFilesRequest {
+  title: string;
+  sub_category_id: number;
+  content_blocks: UpdatePostContentBlock[];
+  tags?: string[];
 }
 
-export interface ImageUploadResponse {
-  files: UploadedImage[];
+// 서버 전송용 콘텐츠 블록 (게시물 수정)
+export interface UpdatePostContentBlock {
+  type: ContentBlockType;
+  value: string | null; // 기존 파일 URL 또는 null (새 파일)
+  sequence: number;
+  editInfo?: VideoEditInfo;
+  thumbnail_url?: string; // 비디오 썸네일 URL
 }
 
-// 비디오 업로드 관련 타입
-export interface UploadedVideo {
-  filename: string;
-  path: string;
-  url: string;
-  size: number;
+// 비디오 편집 정보
+export interface VideoEditInfo {
+  trimStart: number;
+  trimEnd: number;
+  cropArea: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 }
 
-export interface UploadedThumbnail {
-  filename: string;
-  path: string;
-  url: string;
-  size: number;
-}
-
-export interface VideoUploadResponse {
-  video: UploadedVideo;
-  thumbnail: UploadedThumbnail | null;
-}
+// 이미지 업로드 관련 타입 (더 이상 사용하지 않음 - 통합 API로 대체)
+// export interface UploadedImage { ... }
+// export interface ImageUploadResponse { ... }
+// export interface UploadedVideo { ... }
+// export interface UploadedThumbnail { ... }
+// export interface VideoUploadResponse { ... }
 
 // 게시글 좋아요 토글 응답
 export interface PostLikeResponse {
@@ -274,24 +283,9 @@ export type DeletePostResponse = null;
 // 게시글 수정 응답 (data는 null)
 export type UpdatePostResponse = null;
 
-// 게시글 비디오 편집 업로드 응답 데이터 (새 API: /posts/upload/video/edit)
-export interface PostVideoEditUploadResponse {
-  editedVideo: {
-    filename: string;
-    path: string;
-    url: string;
-    size: number;
-  };
-  thumbnail: {
-    filename: string;
-    path: string;
-    url: string;
-    size: number;
-  };
-}
-
-// 게시글 비디오 편집 업로드 API 응답
-export type PostVideoEditUploadApiResponse = ApiResponse<PostVideoEditUploadResponse>;
+// 게시글 비디오 편집 업로드 관련 타입 (더 이상 사용하지 않음 - 통합 API로 대체)
+// export interface PostVideoEditUploadResponse { ... }
+// export type PostVideoEditUploadApiResponse = ApiResponse<PostVideoEditUploadResponse>;
 
 // 게시글 북마크 목록 아이템
 export interface BookmarkPostListItem {

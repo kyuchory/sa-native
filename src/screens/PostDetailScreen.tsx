@@ -298,6 +298,7 @@ export default function PostDetailScreen() {
     try {
       setIsLoading(true);
       const postData = await PostService.getPostDetail(postId);
+      console.log('게시물 상세 데이터:', postData);
       setPost(postData);
       setIsLiked(postData.is_liked || false);
       setIsBookmarked(postData.is_bookmarked || false);
