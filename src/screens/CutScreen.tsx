@@ -174,8 +174,8 @@ export default function CutScreen() {
     }
   }, [LIMIT]);
 
-  const onCommentRef = useRef<(shortId: number) => void>(() => {});
-  const onShareRef = useRef<(shortId: number) => void>(() => {});
+  const onCommentRef = useRef<(short: ShortItem) => void>(() => {});
+  const onShareRef = useRef<(short: ShortItem) => void>(() => {});
   const onUploadRef = useRef<() => void>(() => {});
   const onViewCompleteRef = useRef<(shortId: number, data: RecordShortViewRequest) => void>(() => {});
   const onProfilePressRef = useRef<(userId: string) => void>(() => {});
@@ -190,16 +190,12 @@ export default function CutScreen() {
     return () => subscription.remove();
   }, [handleTabRePress]);
 
-  const handleComment = useCallback((shortId: number) => {
-    const short = shorts.find(s => s.id === shortId);
-    if (short) {
-      setSelectedShort(short);
-      setCommentSheetVisible(true);
-    }
-  }, [shorts]);
+  const handleComment = useCallback((short: ShortItem) => {
+    setSelectedShort(short);
+    setCommentSheetVisible(true);
+  }, []);
 
-  const handleShare = useCallback((shortId: number) => {
-    const short = shorts.find(s => s.id === shortId);
+  const handleShare = useCallback((short: ShortItem) => {
     setAlertModal({
       visible: true,
       title: '공유하기',
@@ -210,7 +206,7 @@ export default function CutScreen() {
         onPress: () => setAlertModal(null)
       }]
     });
-  }, [shorts, colors]);
+  }, []);
 
   const handleGoBack = useCallback(() => {
     navigation.goBack();
@@ -369,8 +365,8 @@ export default function CutScreen() {
           key={`${item.id}-${refreshKey}`} // 🔥 key prop 추가
           item={item}
           isActive={isFocused && index === currentIndex}
-          onComment={(id) => onCommentRef.current(id)}
-          onShare={(id) => onShareRef.current(id)}
+          onComment={(short) => onCommentRef.current(short)}
+          onShare={(short) => onShareRef.current(short)}
           onUpload={() => onUploadRef.current()}
           onViewComplete={(id, data) => onViewCompleteRef.current(id, data)}
           onProfilePress={(userId) => onProfilePressRef.current(userId)}

@@ -12,8 +12,8 @@ import { COLORS } from '../constants/theme';
 interface ShortItemProps {
   item: ShortItem;
   isActive: boolean;
-  onComment: (shortId: number) => void;
-  onShare: (shortId: number) => void;
+  onComment: (short: ShortItem) => void;
+  onShare: (short: ShortItem) => void;
   onUpload: () => void;
   onViewComplete: (shortId: number, data: RecordShortViewRequest) => void;
   onProfilePress: (userId: string) => void;
@@ -33,7 +33,7 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
   // 🔥 videoSource를 useMemo로 안정화
   const videoSource = React.useMemo(() => item.content_url || '', [item.content_url]);
 
-  // 🔥 비디오 플레이어 - 안정적인 source 사용 + 플레이어 재사용으로 최적화
+  // 🔥 비디오 플레이어 - 최상위에서 Hook 호출 (규칙 준수)
   const player = useVideoPlayer(videoSource);
 
   useEffect(() => {
@@ -100,7 +100,7 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
 
   const triggerOverlay = useCallback((isPlayingNow: boolean) => {
     if (!isMountedRef.current) return;
-    
+
     if (overlayAnimationRef.current) {
       overlayAnimationRef.current.stop();
     }
@@ -118,7 +118,8 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
     overlayAnimationRef.current.start(({ finished }) => {
       if (finished && isMountedRef.current) setShowOverlayIcon(false);
     });
-  }, [overlayOpacity]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 🔥 의존성 제거 - overlayOpacity는 ref이므로 안정적
 
   // 🔥 안전한 pause 함수
   const safePause = useCallback(() => {
@@ -133,7 +134,8 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
     } catch (error) {
       // 무시
     }
-  }, [player]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 🔥 player 의존성 제거
 
   // 🔥 재생/정지 제어 - 개선된 버전
   useEffect(() => {
@@ -200,10 +202,11 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
     } catch (error) {
       console.warn('Toggle play error:', error);
     }
-  }, [isActive, player, triggerOverlay, safePause]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, triggerOverlay, safePause]); // 🔥 player 의존성 제거
 
-  const handleComment = useCallback(() => onComment(item.id), [onComment, item.id]);
-  const handleShare = useCallback(() => onShare(item.id), [onShare, item.id]);
+  const handleComment = useCallback(() => onComment(item), [onComment, item]);
+  const handleShare = useCallback(() => onShare(item), [onShare, item]);
   const handleProfilePress = useCallback(() => onProfilePress(item.user_id.toString()), [onProfilePress, item.user_id]);
 
   // 비디오 타입

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CutService } from '../services/cutService';
 
 interface UseShortInteractionsProps {
@@ -17,9 +17,28 @@ export const useShortInteractions = ({
   const [isLiked, setIsLiked] = useState(initialLiked);
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
-
   const [isBookmarked, setIsBookmarked] = useState(initialBookmarked);
   const [isBookmarkLoading, setIsBookmarkLoading] = useState(false);
+
+  // 🔥 ref로 최신 상태 추적 (의존성 배열 최소화)
+  const stateRef = useRef({
+    isLiked,
+    likeCount,
+    isLikeLoading,
+    isBookmarked,
+    isBookmarkLoading,
+  });
+
+  // 🔥 ref 동기화
+  useEffect(() => {
+    stateRef.current = {
+      isLiked,
+      likeCount,
+      isLikeLoading,
+      isBookmarked,
+      isBookmarkLoading,
+    };
+  });
 
   // Props 변경 시 동기화
   useEffect(() => {
@@ -31,12 +50,14 @@ export const useShortInteractions = ({
     setIsBookmarked(initialBookmarked);
   }, [initialBookmarked]);
 
+  // 🔥 최적화: 의존성 배열에서 상태 제거
   const toggleLike = useCallback(async () => {
-    if (isLikeLoading) return;
+    const state = stateRef.current;
+    if (state.isLikeLoading) return;
 
-    const originalIsLiked = isLiked;
-    const originalLikeCount = likeCount;
-    const newLikeState = !isLiked;
+    const originalIsLiked = state.isLiked;
+    const originalLikeCount = state.likeCount;
+    const newLikeState = !state.isLiked;
 
     setIsLiked(newLikeState);
     setLikeCount(prev => newLikeState ? prev + 1 : Math.max(0, prev - 1));
@@ -53,13 +74,15 @@ export const useShortInteractions = ({
     } finally {
       setIsLikeLoading(false);
     }
-  }, [shortId, isLiked, likeCount, isLikeLoading]);
+  }, [shortId]); // 🔥 shortId만 의존
 
+  // 🔥 최적화: 의존성 배열에서 상태 제거
   const toggleBookmark = useCallback(async () => {
-    if (isBookmarkLoading) return;
+    const state = stateRef.current;
+    if (state.isBookmarkLoading) return;
 
-    const originalIsBookmarked = isBookmarked;
-    const newBookmarkState = !isBookmarked;
+    const originalIsBookmarked = state.isBookmarked;
+    const newBookmarkState = !state.isBookmarked;
 
     setIsBookmarked(newBookmarkState);
     setIsBookmarkLoading(true);
@@ -73,7 +96,7 @@ export const useShortInteractions = ({
     } finally {
       setIsBookmarkLoading(false);
     }
-  }, [shortId, isBookmarked, isBookmarkLoading]);
+  }, [shortId]); // 🔥 shortId만 의존
 
   return {
     isLiked,
