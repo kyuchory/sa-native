@@ -31,13 +31,7 @@ import {
   ToggleBookmarkApiResponse,
   BookmarkFeedListResponse,
   BookmarkFeedListApiResponse,
-  DeleteFeedResponse,
-  FeedImageUploadResponse,
-  FeedImageUploadApiResponse,
-  FeedVideoUploadResponse,
-  FeedVideoUploadApiResponse,
-  FeedVideoEditUploadResponse,
-  FeedVideoEditUploadApiResponse
+  DeleteFeedResponse
 } from '../types/feed';
 import type { ApiResponse } from '../types/api';
 
@@ -258,89 +252,7 @@ export class FeedService {
     }
   }
 
-  // 피드 이미지 업로드
-  static async uploadImages(imageUris: string[]): Promise<FeedImageUploadResponse> {
-    try {
-      const formData = new FormData();
-      
-      // 이미지 URI들을 FormData에 추가
-      imageUris.forEach((uri, index) => {
-        formData.append('images', {
-          uri,
-          type: 'image/jpeg',
-          name: `image_${Date.now()}_${index}.jpg`,
-        } as any);
-      });
 
-      const response = await apiClient.postFormData<FeedImageUploadApiResponse>(
-        '/feeds/upload/images',
-        formData
-      );
-      
-      return response.data!;
-    } catch (error) {
-      console.error('피드 이미지 업로드 실패:', error);
-      throw error;
-    }
-  }
 
-  // 피드 비디오 업로드
-  static async uploadVideo(videoUri: string): Promise<FeedVideoUploadResponse> {
-    try {
-      const formData = new FormData();
-      
-      // 비디오 URI를 FormData에 추가
-      formData.append('video', {
-        uri: videoUri,
-        type: 'video/mp4',
-        name: `video_${Date.now()}.mp4`,
-      } as any);
 
-      const response = await apiClient.postFormData<FeedVideoUploadApiResponse>(
-        '/feeds/upload/video',
-        formData
-      );
-      
-      return response.data!;
-    } catch (error) {
-      console.error('피드 비디오 업로드 실패:', error);
-      throw error;
-    }
-  }
-
-  // 피드 비디오 편집 업로드 (trim + crop)
-  static async uploadVideoEdit(
-    videoUri: string,
-    trimStart: number,
-    trimEnd: number,
-    cropArea: { x: number; y: number; width: number; height: number }
-  ): Promise<FeedVideoEditUploadResponse> {
-    try {
-      const formData = new FormData();
-
-      // 비디오 파일 추가
-      formData.append('video', {
-        uri: videoUri,
-        type: 'video/mp4',
-        name: `video_edit_${Date.now()}.mp4`,
-      } as any);
-
-      // 편집 파라미터들 추가
-      formData.append('trimStart', trimStart.toString());
-      formData.append('trimEnd', trimEnd.toString());
-
-      // cropArea JSON으로 추가 (API 명세에 따라)
-      formData.append('cropArea', JSON.stringify(cropArea));
-
-      const response = await apiClient.postFormData<FeedVideoEditUploadApiResponse>(
-        '/feeds/upload/video/edit',
-        formData
-      );
-
-      return response.data!;
-    } catch (error) {
-      console.error('피드 비디오 편집 업로드 실패:', error);
-      throw error;
-    }
-  }
 }

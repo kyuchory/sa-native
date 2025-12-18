@@ -76,28 +76,43 @@ export class ProfileService {
   }
 
   // 프로필 이미지 업로드
-  static async uploadProfileImages(imageUris: string[]): Promise<UploadedImage[]> {
+  static async uploadProfileImages(imageUris: string[]): Promise<ProfileImageUploadResponse[]> {
     try {
       // FormData 생성
       const formData = new FormData();
-      
+
+      console.log('=== ProfileService.uploadProfileImages ===');
+      console.log('전송할 이미지 URIs:', imageUris);
+
       imageUris.forEach((imageUri, index) => {
         const fileName = imageUri.split('/').pop() || `profile_image_${index}.jpg`;
-        
-        formData.append('profile_image', {
+
+        const fileData = {
           uri: imageUri,
           type: 'image/jpeg', // 기본값, 실제로는 asset.type 사용 권장
           name: fileName,
-        } as any);
+        } as any;
+
+        formData.append('profile_image', fileData);
+
+        console.log(`FormData에 추가되는 파일 ${index}:`, {
+          uri: fileData.uri,
+          type: fileData.type,
+          name: fileData.name
+        });
       });
+
+      console.log('최종 FormData 생성 완료');
 
       // API 호출
       const response = await apiClient.postFormData<ApiResponse<ProfileImageUploadResponse>>(
-        '/profiles/upload/image', 
+        '/profiles/upload/image',
         formData
       );
 
-      return response.data.file ? [response.data.file] : [];
+      console.log('API 응답:', response);
+
+      return [response.data];
     } catch (error) {
       console.error('프로필 이미지 업로드 실패:', error);
       throw error;
@@ -105,7 +120,7 @@ export class ProfileService {
   }
 
   // 단일 프로필 이미지 업로드 (편의 함수)
-  static async uploadProfileImage(imageUri: string): Promise<UploadedImage> {
+  static async uploadProfileImage(imageUri: string): Promise<ProfileImageUploadResponse> {
     const results = await this.uploadProfileImages([imageUri]);
     return results[0];
   }

@@ -107,6 +107,11 @@ export default function CutDetailScreen() {
     navigation.goBack();
   }, [navigation]);
 
+  // 업로드 화면으로 이동
+  const handleUpload = useCallback(() => {
+    navigation.navigate('CutUploadSelect');
+  }, [navigation]);
+
   // 메뉴 버튼 핸들러
   const handleMorePress = useCallback(() => {
     setMenuActionSheetVisible(true);
@@ -300,7 +305,7 @@ export default function CutDetailScreen() {
           isActive={isFocused}
           onComment={handleComment}
           onShare={handleShare}
-          onUpload={() => {}}
+          onUpload={handleUpload}
           onViewComplete={handleViewComplete}
           onProfilePress={(userId: string) => navigation.navigate('UserProfile', { userId })}
           extraBottomMargin={insets.bottom}

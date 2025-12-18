@@ -13,7 +13,6 @@ import { ProfileService } from '../services/profileService';
 
 // Components
 import CommonHeader from '../components/CommonHeader';
-import CustomButton from '../components/CustomButton';
 import CustomAlertModal from '../components/CustomAlertModal';
 import { ProfileEditIcon } from '../components/ProfileIcons';
 import UserAvatar from '../components/UserAvatar';
@@ -35,7 +34,6 @@ export default function ProfileImageEditScreen() {
   // 이미지 상태 - props로 받은 currentImageUrl 사용
   const [currentImageUri, setCurrentImageUri] = useState<string | null>(currentImageUrl);
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
-  const [uploadedImagePath, setUploadedImagePath] = useState<string | null>(null); // 서버 저장용
   const [isUploading, setIsUploading] = useState(false);
   const [showImageSelectModal, setShowImageSelectModal] = useState(false); // 이미지 선택 모달
   const [showNotificationModal, setShowNotificationModal] = useState(false); // 알림 모달
@@ -111,16 +109,29 @@ export default function ProfileImageEditScreen() {
   const uploadProfileImage = async (imageUri: string) => {
     try {
       setIsUploading(true);
-      
+
+      console.log('=== 프로필 이미지 업로드 시작 ===');
+      console.log('이미지 URI:', imageUri);
+
       // 프로필 이미지 업로드
       const uploadedImage = await ProfileService.uploadProfileImage(imageUri);
-      // 업로드된 이미지 - 화면 표시용은 URL, 저장용은 path를 따로 저장
-      setSelectedImageUri(uploadedImage.url); // 표시용: 완전한 URL
-      setUploadedImagePath(uploadedImage.path); // 저장용: 경로만
 
+      console.log('업로드된 프로필 정보:', uploadedImage);
+
+      // 업로드와 동시에 DB 저장 완료됨 - 바로 프로필 정보 업데이트
+      setSelectedImageUri(uploadedImage.profile_img); // 표시용: 프로필 이미지 URL
+
+      console.log('업데이트된 프로필 이미지 URL:', uploadedImage.profile_img);
+
+      // 업로드와 동시에 DB 저장 완료됨 - 바로 스토어 업데이트
+      if (user) {
+        setUser({ ...user, profile_img: uploadedImage.profile_img });
+      }
+
+      // 성공 모달 표시 후 화면 닫기
       setNotificationModalContent({
         title: '성공',
-        message: '프로필 이미지가 업로드되었습니다.',
+        message: '프로필 이미지가 업데이트되었습니다.',
       });
       setShowNotificationModal(true);
     } catch (error) {
@@ -153,49 +164,6 @@ export default function ProfileImageEditScreen() {
   const handleCameraSelect = () => {
     setShowImageSelectModal(false);
     takePhoto();
-  };
-
-  // 저장 버튼 처리
-  const handleSave = async () => {
-    if (selectedImageUri) {
-      try {
-        setIsUploading(true);
-        
-        // 저장용 경로 사용 (서버에 보낼 때는 path만)
-        const imagePath = uploadedImagePath || '';
-
-        // 프로필 이미지 업데이트
-        await ProfileService.updateProfile({
-          profile_img: imagePath
-        });
-
-        // 스토어 업데이트 추가 (표시용 URL 사용)
-        if (user) {
-          setUser({ ...user, profile_img: selectedImageUri });
-        }
-
-        setNotificationModalContent({
-          title: '저장 완료',
-          message: '프로필 이미지가 저장되었습니다.',
-        });
-        setShowNotificationModal(true);
-      } catch (error) {
-        console.error('프로필 업데이트 실패:', error);
-        setNotificationModalContent({
-          title: '오류',
-          message: '프로필 저장에 실패했습니다. 다시 시도해주세요.',
-        });
-        setShowNotificationModal(true);
-      } finally {
-        setIsUploading(false);
-      }
-    }
-  };
-
-  // 취소 버튼 처리
-  const handleCancel = () => {
-    setSelectedImageUri(null);
-    navigation.goBack();
   };
 
   // 사용 중인 이미지 결정 (선택된 이미지가 있으면 우선)
@@ -238,7 +206,7 @@ export default function ProfileImageEditScreen() {
             text: '확인',
             onPress: () => {
               setShowNotificationModal(false);
-              if (notificationModalContent.title === '저장 완료') {
+              if (notificationModalContent.title === '성공') {
                 navigation.goBack();
               }
             },
@@ -246,7 +214,7 @@ export default function ProfileImageEditScreen() {
         ]}
         onClose={() => {
           setShowNotificationModal(false);
-          if (notificationModalContent.title === '저장 완료') {
+          if (notificationModalContent.title === '성공') {
             navigation.goBack();
           }
         }}
@@ -266,25 +234,8 @@ export default function ProfileImageEditScreen() {
             </View>
           </TouchableOpacity>
           <Text style={styles.helperText}>
-            선택된 이미지
+            탭하여 이미지 선택
           </Text>
-        </View>
-
-        {/* 액션 버튼들 */}
-        <View style={styles.actionSection}>
-          <CustomButton
-            title="취소"
-            onPress={handleCancel}
-            variant="tertiary"
-            style={styles.cancelButton}
-          />
-          <CustomButton
-            title={isUploading ? "저장 중..." : "저장"}
-            onPress={handleSave}
-            variant="primary"
-            style={styles.saveButton}
-            disabled={!selectedImageUri || isUploading}
-          />
         </View>
       </ScrollView>
     </View>
@@ -328,18 +279,5 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.SM,
     color: colors.GRAY_500, // COLORS.GRAY_500
     textAlign: 'center' as const,
-  },
-
-  // 액션 섹션
-  actionSection: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    gap: SPACING.SM,
-  },
-  cancelButton: {
-    flex: 1,
-  },
-  saveButton: {
-    flex: 1,
   },
 });

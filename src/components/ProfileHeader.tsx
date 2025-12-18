@@ -241,12 +241,12 @@ export default function ProfileHeader({
           {/* 통계 정보 */}
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{formatNumber(user.stats.post_count)}</Text>
-              <Text style={styles.statLabel}>게시물</Text>
-            </View>
-            <View style={styles.statItem}>
               <Text style={styles.statNumber}>{formatNumber(user.stats.feed_count)}</Text>
               <Text style={styles.statLabel}>피드</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{formatNumber(user.stats.post_count)}</Text>
+              <Text style={styles.statLabel}>게시물</Text>
             </View>
             <TouchableOpacity
               style={styles.statItem}

@@ -158,9 +158,13 @@ export interface ProfileShortsResponse {
   };
 }
 
-// 프로필 이미지 업로드 관련 타입
+// 프로필 이미지 업로드 관련 타입 (업로드와 동시에 DB 저장 완료)
 export interface ProfileImageUploadResponse {
-  file: UploadedImage;
+  id: number;
+  nickname: string;
+  profile_img: string | null;
+  bio: string | null;
+  updated_at: string;
 }
 
 // 업로드된 이미지 정보 (post.ts의 UploadedImage와 동일)
