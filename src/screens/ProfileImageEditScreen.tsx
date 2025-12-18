@@ -109,19 +109,12 @@ export default function ProfileImageEditScreen() {
   const uploadProfileImage = async (imageUri: string) => {
     try {
       setIsUploading(true);
-
-      console.log('=== 프로필 이미지 업로드 시작 ===');
-      console.log('이미지 URI:', imageUri);
-
       // 프로필 이미지 업로드
       const uploadedImage = await ProfileService.uploadProfileImage(imageUri);
 
-      console.log('업로드된 프로필 정보:', uploadedImage);
 
       // 업로드와 동시에 DB 저장 완료됨 - 바로 프로필 정보 업데이트
       setSelectedImageUri(uploadedImage.profile_img); // 표시용: 프로필 이미지 URL
-
-      console.log('업데이트된 프로필 이미지 URL:', uploadedImage.profile_img);
 
       // 업로드와 동시에 DB 저장 완료됨 - 바로 스토어 업데이트
       if (user) {

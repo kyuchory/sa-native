@@ -333,24 +333,13 @@ export default function CreatePostScreen() {
       // FormData 구성
       const formData = new FormData();
 
-      // 디버깅용 로그
-      console.log('=== 게시물 생성 데이터 ===');
-      console.log('Title:', title.trim());
-      console.log('SubCategory ID:', selectedSubcategoryId);
-
       formData.append('title', title.trim());
       formData.append('sub_category_id', selectedSubcategoryId.toString());
       formData.append('content_blocks', JSON.stringify(processedBlocks));
 
-      console.log('Processed Blocks:', processedBlocks);
-
       // 미디어 파일들 추가
       const imageBlocks = contentBlocks.filter(b => b.type === 'image');
       const videoBlocks = contentBlocks.filter(b => b.type === 'video');
-
-      console.log('Image Blocks Count:', imageBlocks.length);
-      console.log('Video Blocks Count:', videoBlocks.length);
-      console.log('FormData files:');
 
       imageBlocks.forEach((block, index) => {
         const fileData = {
@@ -359,7 +348,6 @@ export default function CreatePostScreen() {
           name: `image_${index}.jpg`
         } as any;
         formData.append('images', fileData);
-        console.log(`  images[${index}]:`, fileData);
       });
 
       videoBlocks.forEach((block, index) => {
@@ -369,7 +357,6 @@ export default function CreatePostScreen() {
           name: `video_${index}.mp4`
         } as any;
         formData.append('videos', fileData);
-        console.log(`  videos[${index}]:`, fileData);
       });
 
       // 통합 API 호출

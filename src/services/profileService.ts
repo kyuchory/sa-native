@@ -81,9 +81,6 @@ export class ProfileService {
       // FormData 생성
       const formData = new FormData();
 
-      console.log('=== ProfileService.uploadProfileImages ===');
-      console.log('전송할 이미지 URIs:', imageUris);
-
       imageUris.forEach((imageUri, index) => {
         const fileName = imageUri.split('/').pop() || `profile_image_${index}.jpg`;
 
@@ -94,23 +91,13 @@ export class ProfileService {
         } as any;
 
         formData.append('profile_image', fileData);
-
-        console.log(`FormData에 추가되는 파일 ${index}:`, {
-          uri: fileData.uri,
-          type: fileData.type,
-          name: fileData.name
-        });
       });
-
-      console.log('최종 FormData 생성 완료');
 
       // API 호출
       const response = await apiClient.postFormData<ApiResponse<ProfileImageUploadResponse>>(
         '/profiles/upload/image',
         formData
       );
-
-      console.log('API 응답:', response);
 
       return [response.data];
     } catch (error) {

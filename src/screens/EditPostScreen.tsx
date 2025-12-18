@@ -377,17 +377,10 @@ export default function EditPostScreen() {
       // FormData 구성
       const formData = new FormData();
 
-      // 디버깅용 로그
-      console.log('=== 게시물 수정 데이터 ===');
-      console.log('Post ID:', postId);
-      console.log('Title:', title.trim());
-      console.log('SubCategory ID:', selectedSubcategoryId);
-
       formData.append('title', title.trim());
       formData.append('sub_category_id', selectedSubcategoryId.toString());
       formData.append('content_blocks', JSON.stringify(processedBlocks));
 
-      console.log('Processed Blocks:', processedBlocks);
 
       // 새로 추가된 파일들만 FormData에 포함 (기존 파일은 URL로 전송)
       const newImageBlocks = contentBlocks.filter(b =>
@@ -397,9 +390,6 @@ export default function EditPostScreen() {
         b.type === 'video' && b.value.startsWith('file://')
       );
 
-      console.log('New Image Blocks Count:', newImageBlocks.length);
-      console.log('New Video Blocks Count:', newVideoBlocks.length);
-      console.log('FormData files:');
 
       newImageBlocks.forEach((block, index) => {
         const fileData = {
@@ -408,7 +398,6 @@ export default function EditPostScreen() {
           name: `image_${index}.jpg`
         } as any;
         formData.append('images', fileData);
-        console.log(`  images[${index}]:`, fileData);
       });
 
       newVideoBlocks.forEach((block, index) => {
@@ -418,7 +407,6 @@ export default function EditPostScreen() {
           name: `video_${index}.mp4`
         } as any;
         formData.append('videos', fileData);
-        console.log(`  videos[${index}]:`, fileData);
       });
 
       // 통합 API 호출

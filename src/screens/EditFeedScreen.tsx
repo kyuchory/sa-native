@@ -335,13 +335,7 @@ export default function EditFeedScreen() {
       // FormData 구성
       const formData = new FormData();
 
-      // 디버깅용 로그
-      console.log('=== 피드 수정 데이터 ===');
-      console.log('Feed ID:', feedId);
-
       formData.append('content_blocks', JSON.stringify(processedBlocks));
-
-      console.log('Processed Blocks:', processedBlocks);
 
       // 새로 추가된 파일들만 FormData에 포함 (기존 파일은 URL로 전송)
       const newImageBlocks = contentBlocks.filter(b =>
@@ -351,10 +345,6 @@ export default function EditFeedScreen() {
         b.type === 'video' && b.value.startsWith('file://')
       );
 
-      console.log('New Image Blocks Count:', newImageBlocks.length);
-      console.log('New Video Blocks Count:', newVideoBlocks.length);
-      console.log('FormData files:');
-
       newImageBlocks.forEach((block, index) => {
         const fileData = {
           uri: block.value,
@@ -362,7 +352,6 @@ export default function EditFeedScreen() {
           name: `image_${index}.jpg`
         } as any;
         formData.append('images', fileData);
-        console.log(`  images[${index}]:`, fileData);
       });
 
       newVideoBlocks.forEach((block, index) => {
@@ -372,7 +361,6 @@ export default function EditFeedScreen() {
           name: `video_${index}.mp4`
         } as any;
         formData.append('videos', fileData);
-        console.log(`  videos[${index}]:`, fileData);
       });
 
       // 통합 API 호출
