@@ -41,26 +41,23 @@ export default function CreateFeedScreen() {
   // 상태 관리
   const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // Zustand 스토어
   const { setShouldRefreshFeeds, videoEditResult, setVideoEditResult } = useFeedStore();
   const { setShouldRefreshProfileFeeds } = useProfileStore();
 
-  // 비디오 편집 결과 처리
+  // 비디오 편집 결과 처리 (로컬 URI와 편집 정보 저장)
   useFocusEffect(
     React.useCallback(() => {
       if (videoEditResult) {
-        // 비디오 블록 추가
+        // 비디오 블록 추가 (로컬 URI와 편집 정보 저장)
         const newVideoBlock: ContentBlock = {
           id: `video_${Date.now()}`,
           type: 'video',
-          value: videoEditResult.videoUrl, // 실제 비디오 URL 사용 (썸네일이 아닌 영상 재생용)
+          value: videoEditResult.videoUri, // 로컬 비디오 URI
           sequence: contentBlocks.length,
-          originalValue: videoEditResult.videoPath, // 서버 전송용 비디오 경로
-          thumbnailPath: videoEditResult.thumbnailPath, // 서버 전송용 썸네일 경로
+          editInfo: videoEditResult.editInfo, // 편집 정보
         };
 
         setContentBlocks(prev => [...prev, newVideoBlock]);
@@ -160,7 +157,7 @@ export default function CreateFeedScreen() {
     });
   }, []);
 
-  // 이미지 선택 및 업로드
+  // 이미지 선택 (로컬 URI만 저장 - 통합 업로드에서 처리)
   const handleImageSelection = async () => {
     try {
       // 권한 요청
@@ -170,7 +167,7 @@ export default function CreateFeedScreen() {
           visible: true,
           title: '권한 필요',
           message: '갤러리 접근 권한이 필요합니다. 설정에서 허용해주세요.',
-          buttons: [{ text: '설정', onPress: () => openSettings() }, { text: '확인', onPress: () => setAlertModal(null) }]
+          buttons: [{ text: '설정', onPress: () => openSettings() },{ text: '확인', onPress: () => setAlertModal(null) }]
         });
         return;
       }
@@ -186,45 +183,16 @@ export default function CreateFeedScreen() {
 
       if (!result.canceled && result.assets.length > 0) {
         const selectedImage = result.assets[0];
-        
-        // 이미지 블록 추가
+
+        // 이미지 블록 추가 (로컬 URI만 저장)
         const newImageBlock: ContentBlock = {
           id: `image_${Date.now()}`,
           type: 'image',
-          value: selectedImage.uri, // 임시로 URI 저장
+          value: selectedImage.uri,
           sequence: contentBlocks.length,
         };
-        
+
         setContentBlocks(prev => [...prev, newImageBlock]);
-
-        // 이미지 업로드
-        try {
-          setIsUploadingImage(true);
-          setIsLoading(true);
-          const uploadResult = await FeedService.uploadImages([selectedImage.uri]);
-          const uploadedImage = uploadResult.files[0];
-          
-          // 업로드된 이미지로 블록 업데이트 (표시용 url, 제출용 path 저장)
-          setContentBlocks(prev =>
-            prev.map(block =>
-              block.id === newImageBlock.id
-                ? { ...block, value: uploadedImage.url, originalValue: uploadedImage.path }
-                : block
-            )
-          );
-
-        } catch (uploadError) {
-          console.error('이미지 업로드 실패:', uploadError);
-          setAlertModal({
-            visible: true,
-            title: '오류',
-            message: '이미지 업로드에 실패했습니다.',
-            buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
-          });
-
-          // 업로드 실패 시 블록 제거
-          setContentBlocks(prev => prev.filter(block => block.id !== newImageBlock.id));
-        }
       }
     } catch (error) {
       console.error('이미지 선택 실패:', error);
@@ -234,9 +202,6 @@ export default function CreateFeedScreen() {
         message: '이미지 선택에 실패했습니다.',
         buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
       });
-    } finally {
-      setIsLoading(false);
-      setIsUploadingImage(false);
     }
   };
 
@@ -287,7 +252,7 @@ export default function CreateFeedScreen() {
     }
   };
 
-  // 피드 작성 완료
+  // 피드 작성 완료 (통합 파일 업로드)
   const handleCreateFeed = async () => {
     // 유효성 검사
     const textBlock = contentBlocks.find(block => block.type === 'text');
@@ -312,36 +277,59 @@ export default function CreateFeedScreen() {
       return;
     }
 
-    // 업로드 완료 확인
-    const unuploadedBlocks = mediaBlocks.filter(block => !block.originalValue);
-    if (unuploadedBlocks.length > 0) {
-      setAlertModal({
-        visible: true,
-        title: '업로드 중',
-        message: '미디어 업로드가 완료될 때까지 기다려주세요.',
-        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
-      });
-      return;
-    }
-
     try {
       setIsLoading(true);
 
-      // 서버 전송용 데이터 변환
-      const contentBlocksForServer = contentBlocks
+      // content_blocks 준비 (서버 전송용)
+      const processedBlocks = contentBlocks
         .filter(block => block.value.trim()) // 빈 블록 제외
-        .map(({ id, originalValue, thumbnailPath, ...block }, index) => ({ 
-          ...block, 
-          value: originalValue || block.value, 
+        .map(({ id, ...block }, index) => ({
+          type: block.type,
+          value: block.type === 'text' ? block.value : null, // 미디어는 null
           sequence: index,
-          ...(thumbnailPath && { thumbnail_path: thumbnailPath }) // 비디오 블록인 경우 썸네일 경로 추가
+          ...(block.editInfo && { editInfo: block.editInfo }) // 비디오 편집 정보
         }));
 
-      const feedData = {
-        content_blocks: contentBlocksForServer,
-      };
+      // FormData 구성
+      const formData = new FormData();
 
-      const result = await FeedService.createFeed(feedData);
+      // 디버깅용 로그
+      console.log('=== 피드 생성 데이터 ===');
+
+      formData.append('content_blocks', JSON.stringify(processedBlocks));
+
+      console.log('Processed Blocks:', processedBlocks);
+
+      // 미디어 파일들 추가
+      const imageBlocks = contentBlocks.filter(b => b.type === 'image');
+      const videoBlocks = contentBlocks.filter(b => b.type === 'video');
+
+      console.log('Image Blocks Count:', imageBlocks.length);
+      console.log('Video Blocks Count:', videoBlocks.length);
+      console.log('FormData files:');
+
+      imageBlocks.forEach((block, index) => {
+        const fileData = {
+          uri: block.value,
+          type: 'image/jpeg',
+          name: `image_${index}.jpg`
+        } as any;
+        formData.append('images', fileData);
+        console.log(`  images[${index}]:`, fileData);
+      });
+
+      videoBlocks.forEach((block, index) => {
+        const fileData = {
+          uri: block.value,
+          type: 'video/mp4',
+          name: `video_${index}.mp4`
+        } as any;
+        formData.append('videos', fileData);
+        console.log(`  videos[${index}]:`, fileData);
+      });
+
+      // 통합 API 호출
+      const result = await FeedService.createFeedWithFiles(formData);
 
       // 목록 새로고침 플래그 설정
       setShouldRefreshFeeds(true);
@@ -445,7 +433,7 @@ export default function CreateFeedScreen() {
       {/* 로딩 오버레이 */}
       <LoadingOverlay
         visible={isLoading}
-        message={isUploadingImage ? '이미지를 업로드중입니다...' : isUploadingVideo ? '비디오를 업로드중입니다...' : undefined}
+        message="피드를 작성중입니다..."
       />
 
       {/* Custom Alert Modal */}

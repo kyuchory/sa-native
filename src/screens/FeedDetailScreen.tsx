@@ -351,6 +351,7 @@ export default function FeedDetailScreen() {
       setLoading(true);
       setError(null);
       const feedResponse = await FeedService.getFeed(feedId);
+      console.log('피드 상세 데이터:', feedResponse);
       setFeed(feedResponse);
 
       // 댓글 데이터 로드

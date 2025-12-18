@@ -11,7 +11,8 @@ export interface FeedContentBlock {
   value: string;
   sequence: number;
   path?: string;
-  thumbnail_path?: string;  // 비디오 썸네일 URL (video 타입일 때 제공)
+  thumbnail_value?: string;  // 비디오 썸네일 전체 URL (video 타입일 때 제공)
+  thumbnail_path?: string;   // 비디오 썸네일 상대 경로 (video 타입일 때 제공)
 }
 
 // 피드 작성자 정보
@@ -68,6 +69,23 @@ export interface CreateFeedResponse {
 
 // 피드 작성 API 응답
 export type CreateFeedApiResponse = ApiResponse<CreateFeedResponse>;
+
+// 피드 작성 (통합 파일 업로드) 응답 데이터 - 기존과 동일
+export interface CreateFeedWithFilesResponse {
+  feedId: number;
+  created_at: string;
+}
+
+// 피드 작성 (통합 파일 업로드) API 응답
+export type CreateFeedWithFilesApiResponse = ApiResponse<CreateFeedWithFilesResponse>;
+
+// 피드 수정 (통합 파일 업로드) 응답 데이터
+export interface UpdateFeedWithFilesResponse {
+  feedId: number;
+}
+
+// 피드 수정 (통합 파일 업로드) API 응답
+export type UpdateFeedWithFilesApiResponse = ApiResponse<UpdateFeedWithFilesResponse>;
 
 // 피드 수정 요청 데이터 (필요한 필드만 포함)
 export interface UpdateFeedRequest {

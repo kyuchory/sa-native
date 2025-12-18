@@ -4,6 +4,8 @@ import {
   FeedListResponse,
   CreateFeedRequest,
   CreateFeedApiResponse,
+  CreateFeedWithFilesApiResponse,
+  UpdateFeedWithFilesApiResponse,
   UpdateFeedRequest,
   UpdateFeedApiResponse,
   UpdateFeedResponse,
@@ -38,7 +40,6 @@ import {
   FeedVideoEditUploadApiResponse
 } from '../types/feed';
 import type { ApiResponse } from '../types/api';
-import type { UploadedImage, ImageUploadResponse } from '../types/post';
 
 // 피드 관련 API 서비스
 export class FeedService {
@@ -77,10 +78,38 @@ export class FeedService {
     }
   }
 
+  // 피드 작성 (통합 파일 업로드)
+  static async createFeedWithFiles(formData: FormData): Promise<CreateFeedResponse> {
+    try {
+      const response = await apiClient.postFormData<CreateFeedWithFilesApiResponse>(
+        '/feeds/create-with-files',
+        formData
+      );
+      return response.data!;
+    } catch (error) {
+      console.error('피드 작성 실패:', error);
+      throw error;
+    }
+  }
+
   // 피드 수정
   static async updateFeed(feedId: number, feedData: UpdateFeedRequest): Promise<UpdateFeedResponse> {
     try {
       const response = await apiClient.put<UpdateFeedApiResponse>(`/feeds/${feedId}`, feedData);
+      return response.data!;
+    } catch (error) {
+      console.error('피드 수정 실패:', error);
+      throw error;
+    }
+  }
+
+  // 피드 수정 (통합 파일 업로드)
+  static async updateFeedWithFiles(feedId: number, formData: FormData): Promise<{ feedId: number }> {
+    try {
+      const response = await apiClient.putFormData<UpdateFeedWithFilesApiResponse>(
+        `/feeds/${feedId}/update-with-files`,
+        formData
+      );
       return response.data!;
     } catch (error) {
       console.error('피드 수정 실패:', error);
