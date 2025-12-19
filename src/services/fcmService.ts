@@ -21,7 +21,7 @@ export class FCMService {
       if (!enabled) {
         Alert.alert(
           '알림 권한이 필요합니다',
-          'MomTalk에서 푸시 알림을 받기 위해 권한을 허용해주세요.'
+          'AnimalTalk에서 푸시 알림을 받기 위해 권한을 허용해주세요.'
         );
         return;
       }

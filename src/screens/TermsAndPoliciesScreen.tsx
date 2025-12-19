@@ -26,14 +26,14 @@ export default function TermsAndPoliciesScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.textContainer}>
           <Text style={styles.introduction}>
-            MomTalk은 여성 사용자 간의 소통과 정보 공유를 위한 커뮤니티 플랫폼입니다.
+            AnimalTalk은 애완동물을 기르거나 동물을 사랑하는 모든 사용자를 위한 소통과 정보 공유를 위한 커뮤니티 플랫폼입니다.
             {'\n'}안전하고 건전한 서비스 이용을 위해 다음 약관을 준수해 주시기 바랍니다.
           </Text>
 
           {/* 1. 서비스 소개 */}
           <Text style={styles.sectionTitle}>1. 서비스 소개</Text>
           <Text style={styles.sectionContent}>
-            MomTalk은 일상생활, 여가생활, 여행, 맛집, 요리, 패션, 뷰티 등 다양한 여성들의 관심사를 공유하고 소통할 수 있는 플랫폼입니다.
+            AnimalTalk은 애완동물 돌보기, 반려동물 일상, 반려동물 여행, 반려동물 식품, 반려동물 건강 등 다양한 동물 관련 관심사를 공유하고 소통할 수 있는 플랫폼입니다.
             {'\n'}사용자는 사진, 게시글, 채팅 등을 통해 서로 소통하고 지원할 수 있습니다.
           </Text>
 
@@ -60,7 +60,7 @@ export default function TermsAndPoliciesScreen() {
           <Text style={styles.sectionTitle}>4. 게시물 규칙</Text>
           <Text style={styles.sectionContent}>
             모든 게시물은 다음과 같은 기준을 준수해야 합니다:{'\n\n'}
-            • 벗다, 신체적 매혹, 성적인 표현이 포함된 게시물은 제한됩니다.{'\n'}
+            • 신체적 노출, 성적인 표현이 포함된 게시물은 제한됩니다.{'\n'}
             • 폭력적, 혐오적인 콘텐츠는 금지됩니다.{'\n'}
             • 타인의 권리를 침해하는 내용은 즉시 삭제될 수 있습니다.{'\n'}
             • 과도한 상업적 광고는 제한됩니다.{'\n'}
@@ -81,25 +81,25 @@ export default function TermsAndPoliciesScreen() {
           {/* 6. 커뮤니티 가이드라인 */}
           <Text style={styles.sectionTitle}>6. 커뮤니티 가이드라인</Text>
           <Text style={styles.sectionContent}>
-            MomTalk은 모든 사용자가 안전하고 쾌적하게 소통할 수 있는 공간입니다:{'\n\n'}
+            AnimalTalk은 모든 사용자가 안전하고 쾌적하게 소통할 수 있는 공간입니다:{'\n\n'}
             • 서로를 존중하고 배려하는 태도를 유지합니다.{'\n'}
-            • 임신/육아 경험과 노하우를 안전하게 공유하고 응원합니다.{'\n'}
-            • 다양한 관심사(요리, 여행, 패션, 뷰티 등)를 자유롭게 공유합니다.{'\n'}
+            • 반려동물 돌보기 경험과 노하우를 안전하게 공유하고 응원합니다.{'\n'}
+            • 다양한 관심사(반려동물 건강, 여행, 식품, 훈련 등)를 자유롭게 공유합니다.{'\n'}
             • 개인정보 공유는 최소화하여 사생활 보호에 주의합니다.{'\n'}
-            • 건강, 안전, 영양 정보는 전문가의 검증된 내용을 공유합니다.{'\n'}
-            • 여성들의 일상 경험과 지혜를 나누는 소통의 장입니다.
+            • 동물 건강, 안전, 영양 정보는 전문가의 검증된 내용을 공유합니다.{'\n'}
+            • 반려동물을 기르는 사람들의 일상 경험과 지혜를 나누는 소통의 장입니다.
           </Text>
 
           {/* 7. 카테고리별 주제 */}
           <Text style={styles.sectionTitle}>7. 카테고리별 주제</Text>
           <Text style={styles.sectionContent}>
-            MomTalk은 다음과 같은 주제의 콘텐츠 공유를 장려합니다:{'\n\n'}
-            • 일상생활: 사진 촬영 팁, 정리수납, 홈 인테리어{'\n'}
-            • 여가생활: 독서, 취미 활동, 문화생활{'\n'}
-            • 여행: 국내/해외 여행 후기, 숙소 추천, 꿀팁 공유{'\n'}
-            • 맛집/요리: 레시피 공유, 맛집 리뷰, 다이어트 식단{'\n'}
-            • 패션/뷰티: 옷차림, 메이크업, 패션 트렌드{'\n'}
-            • 기타: 각자의 전문 분야, 취미, 관심사 공유
+            AnimalTalk은 다음과 같은 주제의 콘텐츠 공유를 장려합니다:{'\n\n'}
+            • 반려동물 일상: 반려동물 사진 촬영 팁, 반려동물 용품 정리, 반려동물 공간 인테리어{'\n'}
+            • 반려동물 여가: 반려동물과 함께하는 산책, 반려동물 놀이, 반려동물 문화생활{'\n'}
+            • 반려동물 여행: 국내/해외 반려동물 동반 여행 후기, 반려동물 친화 숙소 추천, 반려동물 여행 꿀팁 공유{'\n'}
+            • 반려동물 식품/건강: 반려동물 레시피 공유, 반려동물 식품 리뷰, 반려동물 건강 식단{'\n'}
+            • 반려동물 케어: 반려동물 미용, 반려동물 건강 관리, 반려동물 트렌드{'\n'}
+            • 기타: 각자의 반려동물 관련 전문 분야, 취미, 관심사 공유
           </Text>
 
           {/* 8. 금지 행위 */}
@@ -119,7 +119,7 @@ export default function TermsAndPoliciesScreen() {
           {/* 9. 개인정보 보호 */}
           <Text style={styles.sectionTitle}>9. 개인정보 보호</Text>
           <Text style={styles.sectionContent}>
-            MomTalk은 사용자 개인정보 보호를 최우선으로 합니다:{'\n\n'}
+            AnimalTalk은 사용자 개인정보 보호를 최우선으로 합니다:{'\n\n'}
             • 수집된 개인정보는 서비스 제공 및 개선을 위해서만 사용됩니다.{'\n'}
             • 개인정보는 본인의 동의 없이 제3자에게 제공되지 않습니다.{'\n'}
             • 개인정보 수집 및 이용에 대한 자세한 내용은 개인정보처리방침을 참고해주세요.
@@ -128,7 +128,7 @@ export default function TermsAndPoliciesScreen() {
           {/* 10. 서비스 이용 제한 */}
           <Text style={styles.sectionTitle}>10. 서비스 이용 제한</Text>
           <Text style={styles.sectionContent}>
-            MomTalk은 건전한 서비스 환경을 유지하기 위해 다음과 같은 조치를 취할 수 있습니다:{'\n\n'}
+            AnimalTalk은 건전한 서비스 환경을 유지하기 위해 다음과 같은 조치를 취할 수 있습니다:{'\n\n'}
             • 가이드라인 위반 시 사전 경고 후 계정 일시 정지{'\n'}
             • 반복 위반 시 영구 계정 삭제{'\n'}
             • 긴급한 경우 사전 통지 없이 조치 가능
@@ -137,7 +137,7 @@ export default function TermsAndPoliciesScreen() {
           {/* 11. 약관 변경 */}
           <Text style={styles.sectionTitle}>11. 약관 변경</Text>
           <Text style={styles.sectionContent}>
-            MomTalk은 서비스 개선을 위해 약관을 변경할 수 있습니다.{'\n\n'}
+            AnimalTalk은 서비스 개선을 위해 약관을 변경할 수 있습니다.{'\n\n'}
             • 중요한 변경 사항은 앱 내 공지 및 푸시 알림으로 사전 안내됩니다.{'\n'}
             • 약관 변경 후 지속 이용 시 동의한 것으로 간주합니다.{'\n'}
             • 변경된 약관은 이전 약관과 함께 적용될 수 있습니다.
