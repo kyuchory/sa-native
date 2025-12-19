@@ -71,16 +71,11 @@ export default function ChatRoomImageEditModal({
     try {
       setIsLoading(true);
 
-      // 이미지 업로드
-      const uploadResponse = await ChatService.uploadChatImage(selectedImage);
-
-      // 채팅방 이미지 업데이트
-      await ChatService.updateChatRoom(chatRoomId, {
-        avatar_url: uploadResponse.image_path
-      });
+      // 단일 API로 이미지 업로드 + 채팅방 아바타 설정
+      const response = await ChatService.uploadChatRoomAvatar(chatRoomId, selectedImage);
 
       // 부모 컴포넌트에 알림
-      onImageUpdate(uploadResponse.url);
+      onImageUpdate(response.avatar_url);
 
       // 모달 닫기
       handleClose();
@@ -90,6 +85,11 @@ export default function ChatRoomImageEditModal({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // 선택 취소 (이미지 선택 단계로 돌아감)
+  const handleCancelSelection = () => {
+    setSelectedImage(null);
   };
 
   // 모달 닫기
@@ -144,17 +144,16 @@ export default function ChatRoomImageEditModal({
           </Text>
 
           {/* 버튼들 */}
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
-              onPress={handleClose}
-              activeOpacity={0.7}
-              disabled={isLoading}
-            >
-              <Text style={styles.cancelButtonText}>취소</Text>
-            </TouchableOpacity>
-
-            {!selectedImage ? (
+          {!selectedImage ? (
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton]}
+                onPress={handleClose}
+                activeOpacity={0.7}
+                disabled={isLoading}
+              >
+                <Text style={styles.cancelButtonText}>취소</Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.button, styles.selectButton]}
                 onPress={handleSelectImage}
@@ -162,9 +161,19 @@ export default function ChatRoomImageEditModal({
               >
                 <Text style={styles.selectButtonText}>이미지 선택</Text>
               </TouchableOpacity>
-            ) : (
+            </View>
+          ) : (
+            <View style={styles.buttonRow}>
               <TouchableOpacity
-                style={[styles.button, styles.applyButton]}
+                style={[styles.button, styles.cancelButton]}
+                onPress={handleCancelSelection}
+                activeOpacity={0.7}
+                disabled={isLoading}
+              >
+                <Text style={styles.cancelButtonText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.confirmButton]}
                 onPress={handleApplyImage}
                 activeOpacity={0.7}
                 disabled={isLoading}
@@ -172,11 +181,11 @@ export default function ChatRoomImageEditModal({
                 {isLoading ? (
                   <ActivityIndicator size="small" color={colors.WHITE} />
                 ) : (
-                  <Text style={styles.applyButtonText}>변경</Text>
+                  <Text style={styles.applyButtonText}>확인</Text>
                 )}
               </TouchableOpacity>
-            )}
-          </View>
+            </View>
+          )}
         </View>
 
         {/* Custom Alert Modal */}
@@ -251,6 +260,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     gap: SPACING.SM,
     width: '100%',
   },
+  singleButtonContainer: {
+    width: '100%',
+  },
   button: {
     flex: 1,
     paddingVertical: SPACING.SM,
@@ -280,6 +292,14 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     backgroundColor: colors.PRIMARY,
   },
   applyButtonText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: colors.WHITE,
+  },
+  confirmButton: {
+    backgroundColor: colors.PRIMARY,
+  },
+  confirmButtonText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
     color: colors.WHITE,

@@ -220,14 +220,6 @@ export interface UnreadChatCountResponse extends ApiResponse<{
   unread_count: number;
 }> {}
 
-// 채팅 이미지 업로드 응답 타입
-export interface ChatImageUploadResponse {
-  image_path: string;
-  url: string;
-  filename: string;
-  size: number;
-}
-
 // 채팅 비디오 업로드 응답 타입
 export interface ChatVideoUploadResponse {
   video_path: string;
@@ -257,3 +249,11 @@ export interface InviteUserRequest {
 export interface InviteUserResponse extends ApiResponse<{
   success: boolean;
 }> {}
+
+// 채팅방 아바타 업로드 응답 타입
+export interface ChatRoomAvatarUploadResponse {
+  avatar_url: string;
+  path: string;
+  filename: string;
+  size: number;
+}
