@@ -17,9 +17,9 @@ export const DARK_COLORS = {
   GRAY_900: '#F2F2F7',
 
   // 대표 색상 - 다크에 맞춰 조정
-  PRIMARY: '#8E45FF', // 더 밝은 퍼플
-  PRIMARY_LIGHT: '#B29FFF',
-  PRIMARY_DARK: '#6B2CFF',
+  PRIMARY: '#5C6B21', // 더 밝은 퍼플
+  PRIMARY_LIGHT: '#7A8A29',
+  PRIMARY_DARK: '#475418',
 
   // 액센트 색상 (다크용 조정)
   ACCENT: '#FF5573',

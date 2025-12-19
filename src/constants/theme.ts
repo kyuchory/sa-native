@@ -18,9 +18,10 @@ export const COLORS = {
   
   // 대표 색상 - 추후 변경 가능
   // PRIMARY: '#9C27B0',      // 보라색 (현재 사용 중)
-  PRIMARY: '#c03525',      // 메이플스토리 색상 (현재 사용 중)
-  PRIMARY_LIGHT: '#BA68C8', // 연한 보라색
-  PRIMARY_DARK: '#7B1FA2',  // 진한 보라색
+  // PRIMARY: '#c03525',      // 메이플스토리 색상 (현재 사용 중)
+  PRIMARY: '#748C2B',    // 머스타드 느낌 섞인 올리브
+  PRIMARY_LIGHT: '#9BB94E', // 연한 보라색
+  PRIMARY_DARK: '#5A6A20',  // 진한 보라색
   
   // 액센트 색상
   ACCENT: '#FF4081',       // 핑크 (좋아요, 하트 등)
