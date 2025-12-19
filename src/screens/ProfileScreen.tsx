@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useFocusEffect, useNavigation, NavigationProp, RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../types/navigation';
 import { useThemeStore } from '../stores/themeStore';
@@ -14,6 +14,8 @@ import ProfilePostsList from '../components/ProfilePostsList';
 import MenuActionSheet from '../components/MenuActionSheet';
 import CustomAlertModal from '../components/CustomAlertModal';
 import { ReportEyeSlashIcon } from '../components/CommonIcons';
+import { WriteIcon } from '../components/HomeHeaderIcons';
+import { CutEmptyIcon } from '../components/CutIcons';
 
 // 서비스 imports
 import { ProfileService } from '../services/profileService';
@@ -66,6 +68,7 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
   const [shortsLoading, setShortsLoading] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
+  const [createActionSheetVisible, setCreateActionSheetVisible] = useState(false);
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
   const isFirstFocusRef = useRef(true);
 
@@ -520,6 +523,52 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
     }
   };
 
+  // 콘텐츠 생성 핸들러들
+  const handleCreatePost = () => {
+    navigation.navigate('CreatePost');
+    setCreateActionSheetVisible(false);
+  };
+
+  const handleCreateFeed = () => {
+    navigation.navigate('CreateFeed');
+    setCreateActionSheetVisible(false);
+  };
+
+  const handleCreateCut = () => {
+    navigation.navigate('CutUploadSelect');
+    setCreateActionSheetVisible(false);
+  };
+
+  // 플로팅 버튼 핸들러
+  const handleFloatingButtonPress = () => {
+    setCreateActionSheetVisible(true);
+  };
+
+  // 콘텐츠 생성 액션들
+  const createActions = useMemo(() => [
+    {
+      id: 'create_post',
+      title: '게시물 작성',
+      icon: <WriteIcon size={20} color={colors.PRIMARY} />,
+      color: colors.GRAY_700,
+      onPress: handleCreatePost,
+    },
+    {
+      id: 'create_feed',
+      title: '피드 작성',
+      icon: <WriteIcon size={20} color={colors.PRIMARY} />,
+      color: colors.GRAY_700,
+      onPress: handleCreateFeed,
+    },
+    {
+      id: 'create_cut',
+      title: '컷츠 생성',
+      icon: <CutEmptyIcon size={20} color={colors.PRIMARY} />,
+      color: colors.GRAY_700,
+      onPress: handleCreateCut,
+    },
+  ], [colors.PRIMARY, colors.GRAY_700, handleCreatePost, handleCreateFeed, handleCreateCut]);
+
   // 로딩 중이거나 프로필 데이터가 없으면 기본값 사용
   if (loading || !profileUser) {
     return (
@@ -629,6 +678,25 @@ export default function ProfileScreen({ route }: { route: RouteProp<AuthStackPar
           onClose={() => setAlertModal(null)}
         />
       )}
+
+      {/* 콘텐츠 생성 액션 시트 */}
+      <MenuActionSheet
+        visible={createActionSheetVisible}
+        onClose={() => setCreateActionSheetVisible(false)}
+        title="콘텐츠 작성"
+        actions={createActions}
+      />
+
+      {/* 플로팅 액션 버튼 - 자신의 프로필에서만 표시 */}
+      {isOwnProfile && (
+        <TouchableOpacity
+          style={[styles.floatingButton, { backgroundColor: colors.PRIMARY }]}
+          onPress={handleFloatingButtonPress}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.floatingButtonText}>+</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -654,5 +722,28 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   otherProfileHeader: {
     // 약간의 패딩으로 프로필 헤더를 감싸기
     paddingHorizontal: 0,
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.27,
+    shadowRadius: 4.65,
+  },
+  floatingButtonText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });
