@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "MomTalk",
-    "slug": "momtalk",
+    "name": "AnimalTalk",
+    "slug": "animaltalk",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/MomTalk_app_icon.png",
+    "icon": "./assets/AnimalTalk_app_icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/MomTalk_app_icon.png",
+      "image": "./assets/AnimalTalk_app_icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -18,7 +18,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/MomTalk_app_icon.png",
+        "foregroundImage": "./assets/AnimalTalk_app_icon.png",
         "backgroundColor": "#ffffff",
         "softwareKeyboardLayoutMode": "resize"
       },
@@ -26,7 +26,7 @@
       "package": "com.anonymous.xMomTalk"
     },
     "web": {
-      "favicon": "./assets/MomTalk_app_icon.png"
+      "favicon": "./assets/AnimalTalk_app_icon.png"
     },
     "plugins": [
       "expo-video"
