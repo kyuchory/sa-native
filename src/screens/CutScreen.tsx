@@ -226,7 +226,7 @@ export default function CutScreen() {
 
     setAlertModal({
       visible: true,
-      title: '컷 삭제',
+      title: '컷츠 삭제',
       message: '정말 이 컷츠를 삭제하시겠습니까? 삭제된 컷츠는 복구할 수 없습니다.',
       buttons: [
         {
@@ -277,11 +277,32 @@ export default function CutScreen() {
   }, [shorts, currentIndex, colors]);
 
   const handleReportCut = useCallback(() => {
-    const currentShort = shorts[currentIndex];
-    if (currentShort) {
-      setMenuActionSheetVisible(false);
-    }
-  }, [shorts, currentIndex]);
+    setMenuActionSheetVisible(false);
+    setAlertModal({
+      visible: true,
+      title: '컷츠 신고',
+      message: '이 컷을 신고하시겠습니까?',
+      buttons: [
+        {
+          text: '취소',
+          style: 'cancel',
+          onPress: () => setAlertModal(null)
+        },
+        {
+          text: '신고',
+          style: 'destructive',
+          onPress: () => {
+            setAlertModal({
+              visible: true,
+              title: '신고 완료',
+              message: '컷이 신고되었습니다.',
+              buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+            });
+          }
+        }
+      ]
+    });
+  }, []);
 
   const menuActions = useCallback(() => {
     const currentShort = shorts[currentIndex];
@@ -290,7 +311,7 @@ export default function CutScreen() {
     const actions = [
       {
         id: 'report',
-        title: '컷 신고',
+        title: '컷츠 신고',
         icon: <ReportIcon size={20} color={colors.ERROR} />,
         color: colors.ERROR,
         onPress: handleReportCut,
@@ -300,7 +321,7 @@ export default function CutScreen() {
     if (currentShort.is_owner) {
       actions.unshift({
         id: 'delete',
-        title: '컷 삭제',
+        title: '컷츠 삭제',
         icon: <DeleteIcon size={20} color={colors.ERROR} />,
         color: colors.ERROR,
         onPress: handleDeleteCut,

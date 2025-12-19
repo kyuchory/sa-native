@@ -123,7 +123,7 @@ export default function CutDetailScreen() {
 
     setAlertModal({
       visible: true,
-      title: '컷 삭제',
+      title: '컷츠 삭제',
       message: '정말 이 컷츠를 삭제하시겠습니까? 삭제된 컷츠는 복구할 수 없습니다.',
       buttons: [
         {
@@ -173,10 +173,32 @@ export default function CutDetailScreen() {
 
   // 컷 신고 핸들러
   const handleReportCut = useCallback(() => {
-    if (short) {
-      setMenuActionSheetVisible(false);
-    }
-  }, [short]);
+    setMenuActionSheetVisible(false);
+    setAlertModal({
+      visible: true,
+      title: '컷츠 신고',
+      message: '이 컷츠를 신고하시겠습니까?',
+      buttons: [
+        {
+          text: '취소',
+          style: 'cancel',
+          onPress: () => setAlertModal(null)
+        },
+        {
+          text: '신고',
+          style: 'destructive',
+          onPress: () => {
+            setAlertModal({
+              visible: true,
+              title: '신고 완료',
+              message: '컷츠가 신고되었습니다.',
+              buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+            });
+          }
+        }
+      ]
+    });
+  }, []);
 
   // 메뉴 액션 배열 (동적 생성)
   const menuActions = useCallback(() => {
@@ -185,7 +207,7 @@ export default function CutDetailScreen() {
     const actions = [
       {
         id: 'report',
-        title: '컷 신고',
+        title: '컷츠 신고',
         icon: <ReportIcon size={20} color={colors.ERROR} />,
         color: colors.ERROR,
         onPress: handleReportCut,
@@ -196,7 +218,7 @@ export default function CutDetailScreen() {
     if (short.is_owner) {
       actions.unshift({
         id: 'delete',
-        title: '컷 삭제',
+        title: '컷츠 삭제',
         icon: <DeleteIcon size={20} color={colors.ERROR} />,
         color: colors.ERROR,
         onPress: handleDeleteCut,

@@ -682,9 +682,10 @@ export default function ChatDetailScreen() {
   // Header right component
   const renderHeaderRight = useCallback(() => (
     <View style={styles.headerRightContainer}>
-      <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
+      {/* 검색 기능 미지원으로 주석 처리 */}
+      {/* <TouchableOpacity style={styles.headerIconButton} activeOpacity={0.7}>
         <SearchIcon size={20} color={colors.GRAY_700} />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
       <TouchableOpacity
         style={styles.headerIconButton}
         activeOpacity={0.7}

@@ -532,7 +532,7 @@ export default function ChatScreen() {
         actions={[
           {
             id: 'read',
-            title: '읽음으로 표시',
+            title: '읽음 처리',
             icon: <CheckIcon size={20} color={colors.PRIMARY} />,
             color: colors.PRIMARY,
             onPress: handleMarkAsRead,

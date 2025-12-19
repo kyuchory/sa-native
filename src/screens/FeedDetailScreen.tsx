@@ -997,13 +997,31 @@ export default function FeedDetailScreen() {
             icon: <ReportIcon size={20} color={colors.ERROR} />,
             color: colors.ERROR,
             onPress: () => {
+              setMenuActionSheetVisible(false);
               setAlertModal({
                 visible: true,
-                title: '신고',
-                message: '피드 신고 기능이 구현 예정입니다.',
-                buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+                title: '피드 신고',
+                message: '이 피드를 신고하시겠습니까?',
+                buttons: [
+                  {
+                    text: '취소',
+                    style: 'cancel',
+                    onPress: () => setAlertModal(null)
+                  },
+                  {
+                    text: '신고',
+                    style: 'destructive',
+                    onPress: () => {
+                      setAlertModal({
+                        visible: true,
+                        title: '신고 완료',
+                        message: '피드가 신고되었습니다.',
+                        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+                      });
+                    }
+                  }
+                ]
               });
-              setMenuActionSheetVisible(false);
             },
           },
         ]}
