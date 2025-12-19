@@ -1,12 +1,11 @@
 import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import { useCallback, useRef, useState } from 'react';
 import { TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
 import { NotificationIcon, WriteIcon } from './HomeHeaderIcons';
-import { CreateFeedIcon, ChatIcon } from './CommonIcons';
-import Svg, { Path } from 'react-native-svg';
+import { ChatIcon } from './CommonIcons';
 import { useThemeStore } from '../stores/themeStore';
 import { useAuthStore } from '../stores/authStore';
 import { useNotificationStore } from '../stores/notificationStore';
@@ -120,8 +119,12 @@ export default function MainHeader({ leftButtons = [], rightButtons = [] }: Main
 
           {/* 로고 영역 */}
           <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>Mom</Text>
+            <Text style={styles.logoText}>Animal</Text>
             <Text style={styles.logoSubText}>Talk</Text>
+            <Image
+              source={require('../../assets/AnimalTalk_logo_icon.png')}
+              style={styles.logoImage}
+            />
           </View>
 
           {/* 우측 버튼들 */}
@@ -201,6 +204,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   logoContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
+    position: 'relative',
   },
   logoText: {
     fontSize: TYPOGRAPHY.SIZE.XXL,
@@ -212,6 +216,15 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.LG,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     color: colors.GRAY_600,
+  },
+  logoImage: {
+    width: 60,
+    height: 45,
+    resizeMode: 'contain',
+    position: 'absolute',
+    right: -58,
+    top: '50%',
+    transform: [{ translateY: -26 }],
   },
 
   // 우측 액션 버튼들

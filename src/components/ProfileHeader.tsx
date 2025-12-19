@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TYPOGRAPHY, SPACING, SHADOWS, BORDER_RADIUS } from '../constants/theme';
-import { SettingsIcon, MenuIcon, FollowIcon, ChatIcon } from './ProfileIcons';
+import { SettingsIcon, MenuIcon, FollowIcon } from './ProfileIcons';
+import { ChatIcon } from './CommonIcons';
 import { BackIcon, FollowersOnlyIcon } from './CommonIcons';
 import { useThemeStore } from '../stores/themeStore';
 import ProfileButton from './ProfileButton';
@@ -329,7 +330,7 @@ export default function ProfileHeader({
                 onPress={onChatPress}
                 variant="outline"
                 size="medium"
-                icon={<ChatIcon size={16} color={colors.PRIMARY} />}
+                icon={<ChatIcon size={18} color={colors.PRIMARY} />}
                 style={styles.button}
               />
             </>

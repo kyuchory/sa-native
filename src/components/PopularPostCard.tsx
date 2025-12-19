@@ -118,7 +118,7 @@ export default function PopularPostCard({ post, onPress, onUserPress }: PopularP
               />
             ) : (
               <Image
-                source={require('../../assets/MomTalk_app_icon.png')}
+                source={require('../../assets/AnimalTalk_app_icon.png')}
                 style={styles.previewImage}
                 resizeMode="cover"
               />

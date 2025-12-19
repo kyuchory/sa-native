@@ -142,11 +142,16 @@ export default function LoginScreen({ navigation }: any) {
           showsVerticalScrollIndicator={false}
         >
         <View style={styles.header}>
-          <Text style={styles.title}>Mom Talk</Text>
+          <Text style={styles.title}>Animal Talk</Text>
           <Text style={styles.subtitle}>SNS에 오신 것을 환영합니다</Text>
         </View>
 
-        <View style={styles.formContainer}>
+        <View style={styles.formWrapper}>
+          <Image
+            source={require('../../assets/AnimalTalk_logo_icon.png')}
+            style={styles.logo}
+          />
+          <View style={styles.formContainer}>
           <CustomInput
             label="이메일"
             placeholder="이메일을 입력하세요"
@@ -195,6 +200,7 @@ export default function LoginScreen({ navigation }: any) {
               style={styles.kakaoImage}
             />
           </TouchableOpacity>
+          </View>
         </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -229,7 +235,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: SPACING.XXL + SPACING.SM,
+    marginBottom: SPACING.LG,
   },
   title: {
     fontSize: TYPOGRAPHY.SIZE.XXXL,
@@ -241,6 +247,17 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.MD,
     color: colors.GRAY_600,
     textAlign: 'center',
+  },
+  formWrapper: {
+    position: 'relative',
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    resizeMode: 'contain',
+    position: 'absolute',
+    top: -180,
+    alignSelf: 'center',
   },
   formContainer: {
     backgroundColor: colors.WHITE,

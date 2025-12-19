@@ -8,7 +8,7 @@ import { PopularIcons } from './PopularIcons';
 import type { PopularFeedItem } from '../types/popular';
 
 // Fallback image for feeds without preview
-const DEFAULT_FEED_IMAGE = require('../../assets/MomTalk_app_icon.png');
+const DEFAULT_FEED_IMAGE = require('../../assets/AnimalTalk_app_icon.png');
 
 const { width: screenWidth } = Dimensions.get('window');
 const imageSize = screenWidth / 2.5; // 그리드 스타일이므로 살짝 크게

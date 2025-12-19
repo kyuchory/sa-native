@@ -152,7 +152,7 @@ export const NotificationBanner: React.FC = () => {
           {/* 아이콘 영역 */}
           <View style={styles.iconContainer}>
             <Image
-              source={require('../assets/main/MomTalk_app_icon.png')}
+              source={require('../assets/main/AnimalTalk_app_icon.png')}
               style={styles.iconImage}
               cachePolicy="memory-disk"
             />

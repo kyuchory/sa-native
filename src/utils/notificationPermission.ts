@@ -73,7 +73,7 @@ function showDismissiblePermissionAlert(
 ) {
   onShowAlert({
     title: '푸시 알림을 허용해주세요',
-    message: 'MomTalk에서 새로운 메시지, 팔로워 소식, 게시물 업데이트 등\n균형있는 소식을 빠르게 받아보세요!\n\n알림 권한을 허용하지 않으면 중요한 알림을 놓칠 수 있습니다.',
+    message: 'AnimalTalk에서 새로운 메시지, 팔로워 소식, 게시물 업데이트 등\n균형있는 소식을 빠르게 받아보세요!\n\n알림 권한을 허용하지 않으면 중요한 알림을 놓칠 수 있습니다.',
     buttons: [
       {
         text: '3일간 보지 않기',
