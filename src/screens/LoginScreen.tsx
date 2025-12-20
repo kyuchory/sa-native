@@ -143,7 +143,7 @@ export default function LoginScreen({ navigation }: any) {
         >
         <View style={styles.header}>
           <Text style={styles.title}>Animal Talk</Text>
-          <Text style={styles.subtitle}>SNS에 오신 것을 환영합니다</Text>
+          <Text style={styles.subtitle}>귀여운 동물 친구들을 만나보세요</Text>
         </View>
 
         <View style={styles.formWrapper}>
