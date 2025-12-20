@@ -444,6 +444,7 @@ export default function CreatePostScreen() {
                 selectedSubcategoryId={selectedSubcategoryId}
                 onCategorySelect={handleCategorySelect}
                 onSubcategorySelect={setSelectedSubcategoryId}
+                showAllOption={false}
               />
             )}
           </View>

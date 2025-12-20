@@ -502,6 +502,7 @@ export default function EditPostScreen() {
                 selectedSubcategoryId={selectedSubcategoryId}
                 onCategorySelect={handleCategorySelect}
                 onSubcategorySelect={setSelectedSubcategoryId}
+                showAllOption={false}
               />
             )}
           </View>

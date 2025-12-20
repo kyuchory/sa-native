@@ -10,6 +10,7 @@ interface CategoryPickerProps {
   selectedSubcategoryId?: number;
   onCategorySelect: (categoryId: number) => void;
   onSubcategorySelect: (subcategoryId: number) => void;
+  showAllOption?: boolean;
 }
 
 export default function CategoryPicker({
@@ -18,6 +19,7 @@ export default function CategoryPicker({
   selectedSubcategoryId,
   onCategorySelect,
   onSubcategorySelect,
+  showAllOption = true,
 }: CategoryPickerProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
@@ -32,21 +34,23 @@ export default function CategoryPicker({
         style={styles.categoryRow}
         contentContainerStyle={styles.categoryContent}
       >
-        <TouchableOpacity
-          style={[
-            styles.categoryItem,
-            !selectedCategoryId && styles.categoryItemActive
-          ]}
-          onPress={() => onCategorySelect(0)}
-        >
-          <Text style={[
-            styles.categoryText,
-            !selectedCategoryId && styles.categoryTextActive
-          ]}>
-            전체
-          </Text>
-        </TouchableOpacity>
-        
+        {showAllOption && (
+          <TouchableOpacity
+            style={[
+              styles.categoryItem,
+              !selectedCategoryId && styles.categoryItemActive
+            ]}
+            onPress={() => onCategorySelect(0)}
+          >
+            <Text style={[
+              styles.categoryText,
+              !selectedCategoryId && styles.categoryTextActive
+            ]}>
+              전체
+            </Text>
+          </TouchableOpacity>
+        )}
+
         {categories.map((category) => (
           <TouchableOpacity
             key={category.id}
@@ -74,21 +78,23 @@ export default function CategoryPicker({
           style={styles.subcategoryRow}
           contentContainerStyle={styles.subcategoryContent}
         >
-          <TouchableOpacity
-            style={[
-              styles.subcategoryItem,
-              !selectedSubcategoryId && styles.subcategoryItemActive
-            ]}
-            onPress={() => onSubcategorySelect(0)}
-          >
-            <Text style={[
-              styles.subcategoryText,
-              !selectedSubcategoryId && styles.subcategoryTextActive
-            ]}>
-              전체
-            </Text>
-          </TouchableOpacity>
-          
+          {showAllOption && (
+            <TouchableOpacity
+              style={[
+                styles.subcategoryItem,
+                !selectedSubcategoryId && styles.subcategoryItemActive
+              ]}
+              onPress={() => onSubcategorySelect(0)}
+            >
+              <Text style={[
+                styles.subcategoryText,
+                !selectedSubcategoryId && styles.subcategoryTextActive
+              ]}>
+                전체
+              </Text>
+            </TouchableOpacity>
+          )}
+
           {selectedCategory.subCategories.map((subcategory) => (
             <TouchableOpacity
               key={subcategory.id}
