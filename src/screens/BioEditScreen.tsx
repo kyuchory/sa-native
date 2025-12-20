@@ -12,6 +12,7 @@ import { useAuthStore } from '../stores/authStore';
 
 // Components
 import CommonHeader from '../components/CommonHeader';
+import CommonHeaderButton from '../components/CommonHeaderButton';
 import CustomInput from '../components/CustomInput';
 import CustomAlertModal from '../components/CustomAlertModal';
 
@@ -63,34 +64,18 @@ export default function BioEditScreen() {
     }
   };
 
-  const getSaveButton = () => (
-    <TouchableOpacity
-      style={[
-        styles.saveButton,
-        (bio.length > 150 || bio === originalBio) && styles.disabledButton
-      ]}
-      onPress={handleSave}
-      disabled={loading || bio.length > 150 || bio === originalBio}
-      activeOpacity={0.7}
-    >
-      {loading ? (
-        <ActivityIndicator size="small" color={colors.WHITE} />
-      ) : (
-        <Text style={[
-          styles.saveButtonText,
-          (bio.length > 150 || bio === originalBio) && styles.disabledButtonText
-        ]}>
-          완료
-        </Text>
-      )}
-    </TouchableOpacity>
-  );
-
   return (
     <View style={styles.container}>
       <CommonHeader
         title="소개 수정"
-        rightComponent={getSaveButton()}
+        rightComponent={
+          <CommonHeaderButton
+            title="완료"
+            onPress={handleSave}
+            disabled={bio.length > 150 || bio === originalBio}
+            loading={loading}
+          />
+        }
       />
       <View style={styles.content}>
         <View style={styles.inputContainer}>

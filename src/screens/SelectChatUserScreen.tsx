@@ -15,9 +15,9 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 // Components
 import CommonHeader from '../components/CommonHeader';
+import CommonHeaderButton from '../components/CommonHeaderButton';
 import { SearchIcon, ClearSearchIcon, UserIcon } from '../components/SearchIcons';
 import UserAvatar from '../components/UserAvatar';
-import { PlusCircleIcon } from '../components/ChatDetailIcons';
 import GroupChatNameInputModal from '../components/GroupChatNameInputModal';
 import CustomAlertModal from '../components/CustomAlertModal';
 
@@ -335,13 +335,10 @@ export default function SelectChatUserScreen() {
         showBackButton={true}
         rightComponent={
           selectedUserList.length > 0 ? (
-            <TouchableOpacity
-              style={styles.createButton}
+            <CommonHeaderButton
+              title={mode === 'invite' ? '초대' : '완료'}
               onPress={handleCreateChatWithSelected}
-              activeOpacity={0.7}
-            >
-              <PlusCircleIcon size={18} color={colors.PRIMARY} />
-            </TouchableOpacity>
+            />
           ) : null
         }
       />

@@ -12,6 +12,7 @@ import { useAuthStore } from '../stores/authStore';
 
 // Components
 import CommonHeader from '../components/CommonHeader';
+import CommonHeaderButton from '../components/CommonHeaderButton';
 import CustomInput from '../components/CustomInput';
 import CustomAlertModal from '../components/CustomAlertModal';
 
@@ -69,34 +70,18 @@ export default function NicknameEditScreen() {
     }
   };
 
-  const getSaveButton = () => (
-    <TouchableOpacity
-      style={[
-        styles.saveButton,
-        (!nickname.trim() || nickname === originalNickname) && styles.disabledButton
-      ]}
-      onPress={handleSave}
-      disabled={loading || !nickname.trim() || nickname === originalNickname}
-      activeOpacity={0.7}
-    >
-      {loading ? (
-        <ActivityIndicator size="small" color={colors.WHITE} />
-      ) : (
-        <Text style={[
-          styles.saveButtonText,
-          (!nickname.trim() || nickname === originalNickname) && styles.disabledButtonText
-        ]}>
-          완료
-        </Text>
-      )}
-    </TouchableOpacity>
-  );
-
   return (
     <View style={styles.container}>
       <CommonHeader
         title="닉네임 수정"
-        rightComponent={getSaveButton()}
+        rightComponent={
+          <CommonHeaderButton
+            title="완료"
+            onPress={handleSave}
+            disabled={!nickname.trim() || nickname === originalNickname}
+            loading={loading}
+          />
+        }
       />
       <View style={styles.content}>
         <View style={styles.inputContainer}>

@@ -18,6 +18,7 @@ import { SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import useSupportStore from '../stores/supportStore';
 import CommonHeader from '../components/CommonHeader';
+import CommonHeaderButton from '../components/CommonHeaderButton';
 import { SupportService } from '../services/supportService';
 import { CreateInquiryRequest } from '../types/support';
 import { AddImageIcon, DeleteIcon } from '../components/CommonIcons';
@@ -224,34 +225,21 @@ export default function SupportCreateScreen() {
     }
   };
 
-  const getSaveButton = () => (
-    <TouchableOpacity
-      style={[
-        styles.saveButton,
-        (!title.trim() || !content.trim() || !category || loading) && styles.disabledButton
-      ]}
-      onPress={handleSubmit}
-      disabled={loading || !title.trim() || !content.trim() || !category}
-      activeOpacity={0.7}
-    >
-      {loading ? (
-        <ActivityIndicator size="small" color={colors.WHITE} />
-      ) : (
-        <Text style={[
-          styles.saveButtonText,
-          (!title.trim() || !content.trim() || !category) && styles.disabledButtonText
-        ]}>
-          저장
-        </Text>
-      )}
-    </TouchableOpacity>
-  );
+  // 버튼 활성화 조건 계산
+  const isButtonEnabled = title.trim().length > 0 && content.trim().length > 0 && category.length > 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <CommonHeader
         title="문의 작성"
-        rightComponent={getSaveButton()}
+        rightComponent={
+          <CommonHeaderButton
+            title="저장"
+            onPress={handleSubmit}
+            disabled={!isButtonEnabled}
+            loading={loading}
+          />
+        }
       />
 
       <ScrollView
@@ -262,7 +250,12 @@ export default function SupportCreateScreen() {
       >
         {/* 제목 입력 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>제목</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>제목</Text>
+            {title.trim() === '' && (
+              <Text style={styles.hintText}>제목을 입력해주세요</Text>
+            )}
+          </View>
           <TextInput
             style={styles.titleInput}
             value={title}
@@ -276,7 +269,12 @@ export default function SupportCreateScreen() {
 
         {/* 카테고리 선택 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>카테고리</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>카테고리</Text>
+            {category === '' && (
+              <Text style={styles.hintText}>카테고리를 선택해주세요</Text>
+            )}
+          </View>
           <View style={styles.categoryContainer}>
             {CATEGORIES.map((item) => (
               <TouchableOpacity
@@ -330,7 +328,12 @@ export default function SupportCreateScreen() {
 
         {/* 내용 입력 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>내용</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>내용</Text>
+            {content.trim() === '' && (
+              <Text style={styles.hintText}>내용을 입력해주세요</Text>
+            )}
+          </View>
           <TextInput
             style={styles.contentInput}
             value={content}
@@ -413,11 +416,24 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   section: {
     marginBottom: SPACING.LG,
   },
+  // 섹션 헤더 (라벨 + 힌트 텍스트)
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.SM,
+  },
+  // 섹션 라벨
   sectionTitle: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
     color: colors.GRAY_900,
-    marginBottom: SPACING.SM,
+  },
+  // 힌트 텍스트
+  hintText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.REGULAR,
+    color: colors.PRIMARY,
   },
   titleInput: {
     backgroundColor: colors.WHITE,
@@ -540,25 +556,5 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     color: colors.GRAY_600,
     marginLeft: SPACING.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
-  },
-
-  saveButton: {
-    paddingHorizontal: SPACING.MD,
-    paddingVertical: SPACING.SM,
-    borderRadius: BORDER_RADIUS.MD,
-    backgroundColor: colors.PRIMARY,
-    minWidth: 60,
-    alignItems: 'center' as const,
-  },
-  disabledButton: {
-    backgroundColor: colors.GRAY_300,
-  },
-  saveButtonText: {
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
-    color: colors.WHITE,
-  },
-  disabledButtonText: {
-    color: colors.GRAY_500,
   },
 });

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { TYPOGRAPHY, SPACING, SHADOWS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
 import CommonHeader from './CommonHeader';
-import { PlusCircleIcon } from './ChatDetailIcons';
+import CommonHeaderButton from './CommonHeaderButton';
 
 
 
@@ -20,13 +20,10 @@ export default function ChatHeader({ onCreateChat }: ChatHeaderProps) {
       <CommonHeader
         title="채팅"
         rightComponent={
-          <TouchableOpacity
-            style={styles.createButton}
+          <CommonHeaderButton
+            title="채팅 추가"
             onPress={onCreateChat}
-            activeOpacity={0.7}
-          >
-            <PlusCircleIcon size={18} color={colors.PRIMARY} />
-          </TouchableOpacity>
+          />
         }
       />
     </View>

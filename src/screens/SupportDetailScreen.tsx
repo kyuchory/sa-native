@@ -101,6 +101,7 @@ import { AuthStackParamList } from '../types/navigation';
 import { useAuthStore } from '../stores/authStore';
 import useSupportStore from '../stores/supportStore';
 import CustomAlertModal from '../components/CustomAlertModal';
+import { ImageViewerModal } from '../components/ImageViewerModal';
 
 type SupportDetailRouteProp = RouteProp<AuthStackParamList, 'SupportDetail'>;
 
@@ -121,6 +122,8 @@ export default function SupportDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   // 문의 상세 정보 로드
   useEffect(() => {
@@ -309,13 +312,8 @@ export default function SupportDetailScreen() {
                   style={styles.imageContainer}
                   activeOpacity={0.8}
                   onPress={() => {
-                    // TODO: 이미지 확대 보기 구현
-                    setAlertModal({
-                      visible: true,
-                      title: '이미지 보기',
-                      message: `${attachment.original_name} 이미지를 확대합니다.`,
-                      buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
-                    });
+                    setSelectedImageIndex(index);
+                    setImageViewerVisible(true);
                   }}
                 >
                   <Image
@@ -406,6 +404,18 @@ export default function SupportDetailScreen() {
           onClose={() => setAlertModal(null)}
         />
       )}
+
+      {/* Image Viewer Modal */}
+      <ImageViewerModal
+        visible={imageViewerVisible}
+        mediaItems={inquiry.attachments?.map(attachment => ({
+          type: 'image' as const,
+          url: attachment.file_url,
+        })) || []}
+        initialIndex={selectedImageIndex}
+        title="문의 첨부 이미지"
+        onClose={() => setImageViewerVisible(false)}
+      />
     </SafeAreaView>
   );
 }

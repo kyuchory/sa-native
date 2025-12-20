@@ -9,6 +9,7 @@ import { useThemeStore } from '../stores/themeStore';
 
 // 컴포넌트 imports
 import CommonHeader from '../components/CommonHeader';
+import CommonHeaderButton from '../components/CommonHeaderButton';
 import NotificationListItem from '../components/NotificationListItem';
 import { CheckIcon } from '../components/CommonIcons';
 
@@ -198,19 +199,13 @@ export default function NotificationScreen() {
     />
   );
 
-  // 헤더 우측 버튼 (모두 읽음 - 체크 아이콘)
+  // 헤더 우측 버튼 (모두 읽음)
   const renderHeaderRight = () => (
-    <TouchableOpacity
-      style={[styles.markAllButton, unreadCount === 0 && styles.disabledButton]}
+    <CommonHeaderButton
+      title="모두 읽음"
       onPress={handleMarkAllAsRead}
       disabled={unreadCount === 0}
-      activeOpacity={0.7}
-    >
-      <CheckIcon
-        size={20}
-        color={unreadCount === 0 ? colors.GRAY_400 : colors.GRAY_700}
-      />
-    </TouchableOpacity>
+    />
   );
 
   // 로딩 상태 렌더링

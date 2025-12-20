@@ -15,6 +15,7 @@ import { useThemeStore } from '../stores/themeStore';
 import { StoryService } from '../services/storyService';
 import { SPACING, BORDER_RADIUS } from '../constants/theme';
 import CommonHeader from '../components/CommonHeader';
+import CommonHeaderButton from '../components/CommonHeaderButton';
 import LoadingOverlay from '../components/LoadingOverlay';
 import CustomAlertModal from '../components/CustomAlertModal';
 
@@ -1042,13 +1043,11 @@ export default function CanvasEditorScreen({ route, navigation }: Props) {
         title="Edit"
         onBackPress={() => navigation?.goBack?.()}
         rightComponent={
-          <TouchableOpacity onPress={submitAsStory} style={styles.submitButton} disabled={isUploading}>
-            {isUploading ? (
-              <ActivityIndicator size="small" color={colors.PRIMARY} />
-            ) : (
-              <CheckIcon size={24} color={colors.PRIMARY} />
-            )}
-          </TouchableOpacity>
+          <CommonHeaderButton
+            title="완료"
+            onPress={submitAsStory}
+            loading={isUploading}
+          />
         }
       />
       <View style={styles.container}>

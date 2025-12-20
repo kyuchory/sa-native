@@ -21,10 +21,10 @@ import type { ContentBlock, ContentBlockType, Category, PostDetail, UpdatePostCo
 
 // Components
 import CommonHeader from '../components/CommonHeader';
+import CommonHeaderButton from '../components/CommonHeaderButton';
 import CategoryPicker from '../components/CategoryPicker';
 import { ContentBlockComponent } from '../components/ContentBlocks';
 import { AddTextIcon, AddImageIcon, AddVideoIcon } from '../components/CommonIcons';
-import { WriteIcon } from '../components/HomeHeaderIcons';
 import LoadingOverlay from '../components/LoadingOverlay';
 import CustomAlertModal from '../components/CustomAlertModal';
 
@@ -451,19 +451,20 @@ export default function EditPostScreen() {
     );
   }
 
+  // 버튼 활성화 조건 계산
+  const isButtonEnabled = title.trim().length > 0 && selectedSubcategoryId > 0 && contentBlocks.some(block => block.value.trim());
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* 헤더 */}
       <CommonHeader
         title="게시물 수정"
         rightComponent={
-          <TouchableOpacity
-            style={styles.publishButton}
+          <CommonHeaderButton
+            title="수정"
             onPress={handleUpdatePost}
-            activeOpacity={0.7}
-          >
-            <WriteIcon size={20} color={colors.PRIMARY} />
-          </TouchableOpacity>
+            disabled={!isButtonEnabled}
+          />
         }
       />
 
@@ -474,7 +475,12 @@ export default function EditPostScreen() {
       >
         {/* 제목 입력 */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>제목</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>제목</Text>
+            {title.trim() === '' && (
+              <Text style={styles.hintText}>제목을 입력해주세요</Text>
+            )}
+          </View>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.titleInput}
@@ -489,7 +495,12 @@ export default function EditPostScreen() {
 
         {/* 카테고리 선택 */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>카테고리</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>카테고리</Text>
+            {selectedSubcategoryId === 0 && (
+              <Text style={styles.hintText}>카테고리를 선택해주세요</Text>
+            )}
+          </View>
           <View style={styles.categoryContainer}>
             {isLoadingCategories ? (
               <View style={styles.loadingContainer}>
@@ -510,7 +521,12 @@ export default function EditPostScreen() {
 
         {/* 콘텐츠 블록들 */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>내용</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>내용</Text>
+            {!contentBlocks.some(block => block.value.trim()) && (
+              <Text style={styles.hintText}>하나 이상의 내용을 입력해주세요</Text>
+            )}
+          </View>
           <View style={styles.contentContainer}>
             {contentBlocks.map((block, index) => (
               <ContentBlockComponent
@@ -603,12 +619,24 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     marginTop: SPACING.MD,
   },
 
+  // 섹션 헤더 (라벨 + 힌트 텍스트)
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.SM,
+  },
   // 섹션 라벨
   sectionLabel: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
     color: colors.GRAY_900,
-    marginBottom: SPACING.SM,
+  },
+  // 힌트 텍스트
+  hintText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.REGULAR,
+    color: colors.PRIMARY,
   },
 
   // 입력 컨테이너

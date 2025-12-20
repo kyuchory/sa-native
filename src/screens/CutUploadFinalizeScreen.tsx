@@ -15,6 +15,7 @@ import { useThemeStore } from '../stores/themeStore';
 import { useCutStore } from '../stores/cutStore';
 import { ShortCategory } from '../types/cut';
 import CommonHeader from '../components/CommonHeader';
+import CommonHeaderButton from '../components/CommonHeaderButton';
 import CustomAlertModal from '../components/CustomAlertModal';
 import { SPACING, TYPOGRAPHY, COLORS, BORDER_RADIUS } from '../constants/theme';
 
@@ -101,12 +102,11 @@ export default function CutUploadFinalizeScreen() {
           title="컷츠 게시"
           onBackPress={() => navigation.goBack()}
           rightComponent={
-            <TouchableOpacity
+            <CommonHeaderButton
+              title="미리보기"
               onPress={handlePreviewPress}
-              style={styles.uploadButton}
-            >
-              <Text style={styles.uploadButtonText}>미리보기</Text>
-            </TouchableOpacity>
+              disabled={selectedCategories.length === 0}
+            />
           }
         />
 
@@ -207,20 +207,6 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     paddingHorizontal: SPACING.MD,
     paddingTop: SPACING.MD,
     paddingBottom: SPACING.XL,
-  },
-  uploadButton: {
-    backgroundColor: colors.PRIMARY,
-    borderRadius: BORDER_RADIUS.XL,
-    minWidth: 80,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.SM,
-  },
-  uploadButtonText: {
-    color: colors.WHITE,
-    fontSize: TYPOGRAPHY.SIZE.SM,
-    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
 
   // 입력 섹션

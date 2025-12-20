@@ -19,6 +19,7 @@ import { PostService } from '../services/postService';
 import { StoryService } from '../services/storyService';
 import { SPACING } from '../constants/theme';
 import CommonHeader from '../components/CommonHeader';
+import CommonHeaderButton from '../components/CommonHeaderButton';
 import CustomAlertModal from '../components/CustomAlertModal';
 import LoadingOverlay from '../components/LoadingOverlay';
 
@@ -357,9 +358,11 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
         title="영상 편집"
         onBackPress={() => navigation?.goBack()}
         rightComponent={
-          <TouchableOpacity onPress={handleConfirm}>
-            <CheckIcon size={24} color={colors.GRAY_700} />
-          </TouchableOpacity>
+          <CommonHeaderButton
+            title="완료"
+            onPress={handleConfirm}
+            loading={isUploading}
+          />
         }
       />
 

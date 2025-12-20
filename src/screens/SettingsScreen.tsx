@@ -122,12 +122,12 @@ export default function SettingsScreen() {
         {/* 계정 관리 섹션 */}
         <View style={styles.section}>
           <View style={styles.sectionContainer}>
-            <SettingItem
+            {/* <SettingItem
               title="내 정보 수정"
               showArrow={true}
               onPress={handleProfileEdit}
               colors={colors}
-            />
+            /> */}
             <SettingItem
               title="비밀번호 변경"
               showArrow={true}

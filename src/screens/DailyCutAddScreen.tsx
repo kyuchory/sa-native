@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useThemeStore } from '../stores/themeStore';
 import CommonHeader from '../components/CommonHeader';
+import CommonHeaderButton from '../components/CommonHeaderButton';
 import MediaSelector from '../components/MediaSelector';
 import { CheckIcon } from '../components/CommonIcons';
 import * as MediaLibrary from 'expo-media-library';
@@ -27,37 +28,35 @@ export default function DailyCutAddScreen() {
     setSelectedMedias(selections);
   };
 
+  const handleSelectMedia = async () => {
+    const selectedMedia = selectedMedias[0];
+    if (selectedMedia?.mediaType === 'photo') {
+      // PHAsset URI를 file URI로 변환 후 CanvasEditor로 전달
+      const realUri = await convertPhToFileUri(selectedMedia.uri);
+      navigation.replace('CanvasEditor' as never, { imageUri: realUri });
+    } else if (selectedMedia?.mediaType === 'video') {
+      // PHAsset URI를 file URI로 변환 후 VideoTrimCrop으로 비디오 전달
+      const realUri = await convertPhToFileUri(selectedMedia.uri);
+      navigation.replace('VideoTrimCrop' as never, {
+        videoUri: realUri,
+        videoDuration: selectedMedia.duration ? selectedMedia.duration * 1000 : undefined,
+        editMode: 'both',
+        maxDuration: 30000,
+        uploadService: 'story',
+      });
+    }
+  };
+
   return (
     <View style={styles.container}>
       <CommonHeader
         title="데일리 컷 추가"
-      rightComponent={
-          selectedMedias.length > 0 ? (
-            <TouchableOpacity
-              style={styles.checkButton}
-              onPress={async () => {
-                const selectedMedia = selectedMedias[0];
-                if (selectedMedia?.mediaType === 'photo') {
-                  // PHAsset URI를 file URI로 변환 후 CanvasEditor로 전달
-                  const realUri = await convertPhToFileUri(selectedMedia.uri);
-                  navigation.replace('CanvasEditor' as never, { imageUri: realUri });
-                } else if (selectedMedia?.mediaType === 'video') {
-                  // PHAsset URI를 file URI로 변환 후 VideoTrimCrop으로 비디오 전달
-                  const realUri = await convertPhToFileUri(selectedMedia.uri);
-                  navigation.replace('VideoTrimCrop' as never, {
-                    videoUri: realUri,
-                    videoDuration: selectedMedia.duration ? selectedMedia.duration * 1000 : undefined,
-                    editMode: 'both',
-                    maxDuration: 30000,
-                    uploadService: 'story',
-                  });
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <CheckIcon size={24} color={colors.PRIMARY} />
-            </TouchableOpacity>
-          ) : null
+        rightComponent={
+          <CommonHeaderButton
+            title="선택"
+            disabled={selectedMedias.length === 0}
+            onPress={handleSelectMedia}
+          />
         }
       />
       <View style={styles.content}>

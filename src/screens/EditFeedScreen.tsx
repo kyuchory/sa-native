@@ -27,9 +27,9 @@ interface EditContentBlock extends ContentBlock {
 
 // Components
 import CommonHeader from '../components/CommonHeader';
+import CommonHeaderButton from '../components/CommonHeaderButton';
 import { ContentBlockComponent } from '../components/ContentBlocks';
 import { AddImageIcon, AddVideoIcon } from '../components/CommonIcons';
-import { CreateFeedIcon } from '../components/CommonIcons';
 import LoadingOverlay from '../components/LoadingOverlay';
 import CustomAlertModal from '../components/CustomAlertModal';
 
@@ -404,19 +404,21 @@ export default function EditFeedScreen() {
     );
   }
 
+  // 버튼 활성화 조건 계산
+  const isButtonEnabled = contentBlocks.some(block => block.type === 'text' && block.value.trim()) &&
+                         contentBlocks.some(block => block.type === 'image' || block.type === 'video');
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* 헤더 */}
       <CommonHeader
         title="피드 수정"
         rightComponent={
-          <TouchableOpacity
-            style={styles.publishButton}
+          <CommonHeaderButton
+            title="수정"
             onPress={handleUpdateFeed}
-            activeOpacity={0.7}
-          >
-            <CreateFeedIcon size={20} color={colors.PRIMARY} />
-          </TouchableOpacity>
+            disabled={!isButtonEnabled}
+          />
         }
       />
 
@@ -427,7 +429,17 @@ export default function EditFeedScreen() {
       >
         {/* 콘텐츠 블록들 */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>피드 내용</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>피드 내용</Text>
+            <View style={styles.hintContainer}>
+              {!contentBlocks.some(block => block.type === 'text' && block.value.trim()) && (
+                <Text style={styles.hintText}>한 글자 이상의 텍스트를 입력해주세요</Text>
+              )}
+              {!contentBlocks.some(block => block.type === 'image' || block.type === 'video') && (
+                <Text style={styles.hintText}>이미지 또는 영상을 최소 1개 이상 선택해주세요</Text>
+              )}
+            </View>
+          </View>
           <View style={styles.contentContainer}>
             {contentBlocks.map((block, index) => (
               <ContentBlockComponent
@@ -513,12 +525,29 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     marginTop: SPACING.MD,
   },
 
+  // 섹션 헤더 (라벨 + 힌트 텍스트)
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.SM,
+  },
   // 섹션 라벨
   sectionLabel: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
     color: colors.GRAY_900,
-    marginBottom: SPACING.SM,
+  },
+  // 힌트 컨테이너
+  hintContainer: {
+    alignItems: 'flex-end',
+    gap: SPACING.XS,
+  },
+  // 힌트 텍스트
+  hintText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.REGULAR,
+    color: colors.PRIMARY,
   },
 
   // 콘텐츠 컨테이너

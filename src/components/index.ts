@@ -10,6 +10,7 @@ export { default as ChatEditActionBar } from './ChatEditActionBar';
 // Existing components
 export { default as CategoryPicker } from './CategoryPicker';
 export { default as CategorySelector } from './CategorySelector';
+export { default as CommonHeaderButton } from './CommonHeaderButton';
 export * from './ChatActionIcons';
 export { default as ChatActionSheet } from './MenuActionSheet';
 export { MenuIcon, PlusCircleIcon, SendIcon } from './ChatDetailIcons';
