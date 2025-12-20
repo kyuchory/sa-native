@@ -6,6 +6,15 @@ import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { Category, SubCategory } from '../types/post';
 import { useThemeStore } from '../stores/themeStore';
 
+// 햄버거 메뉴 아이콘 컴포넌트
+const HamburgerIcon = ({ size = 20, color = '#666' }: { size?: number; color?: string }) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <View style={{ width: size * 0.9, height: 2, backgroundColor: color, marginVertical: 2 }} />
+    <View style={{ width: size * 0.9, height: 2, backgroundColor: color, marginVertical: 2 }} />
+    <View style={{ width: size * 0.9, height: 2, backgroundColor: color, marginVertical: 2 }} />
+  </View>
+);
+
 export interface Subcategory {
   id: string;
   name: string;
@@ -18,6 +27,7 @@ interface CategorySelectorProps {
   selectedSubcategoryId?: number;
   onCategorySelect: (categoryId: number) => void;
   onSubcategorySelect: (subcategoryId: number) => void;
+  onMenuPress?: () => void;
 }
 
 export default function CategorySelector({
@@ -26,6 +36,7 @@ export default function CategorySelector({
   selectedSubcategoryId,
   onCategorySelect,
   onSubcategorySelect,
+  onMenuPress,
 }: CategorySelectorProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
@@ -34,59 +45,56 @@ export default function CategorySelector({
   return (
     <View style={styles.container}>
       {/* 대분류 */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoryRow}
-        contentContainerStyle={styles.categoryContent}
-      >
+      <View style={styles.categoryRow}>
+        {/* 햄버거 메뉴 아이콘 */}
         <TouchableOpacity
-          style={[
-            styles.categoryItem,
-            !selectedCategoryId && styles.categoryItemActive
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          ]}
-          onPress={() => onCategorySelect(0)}
+          style={styles.hamburgerButton}
+          onPress={onMenuPress}
         >
-          <Text style={[
-            styles.categoryText,
-            !selectedCategoryId && styles.categoryTextActive
-          ]}>
-            전체
-          </Text>
+          <HamburgerIcon size={20} color={colors.GRAY_600} />
         </TouchableOpacity>
 
-        {categories.map((category) => (
+        {/* 카테고리 스크롤 영역 */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryContent}
+          style={styles.categoryScroll}
+        >
           <TouchableOpacity
-            key={category.id}
             style={[
               styles.categoryItem,
-              selectedCategoryId === category.id && styles.categoryItemActive
+              !selectedCategoryId && styles.categoryItemActive
             ]}
-            onPress={() => onCategorySelect(category.id)}
+            onPress={() => onCategorySelect(0)}
           >
             <Text style={[
               styles.categoryText,
-              selectedCategoryId === category.id && styles.categoryTextActive
+              !selectedCategoryId && styles.categoryTextActive
             ]}>
-              {category.name}
+              전체
             </Text>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+
+          {categories.map((category) => (
+            <TouchableOpacity
+              key={category.id}
+              style={[
+                styles.categoryItem,
+                selectedCategoryId === category.id && styles.categoryItemActive
+              ]}
+              onPress={() => onCategorySelect(category.id)}
+            >
+              <Text style={[
+                styles.categoryText,
+                selectedCategoryId === category.id && styles.categoryTextActive
+              ]}>
+                {category.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* 소분류 */}
       {selectedCategory && selectedCategory.subCategories.length > 0 && (
@@ -144,10 +152,20 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
 
   // 대분류 스타일
   categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: SPACING.SM,
   },
-  categoryContent: {
+  hamburgerButton: {
     paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.SM,
+  },
+  categoryScroll: {
+    flex: 1,
+  },
+  categoryContent: {
+    paddingLeft: 0,
+    paddingRight: SPACING.MD,
     gap: SPACING.SM,
   },
   categoryItem: {
@@ -157,6 +175,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     backgroundColor: colors.GRAY_100,
     minWidth: 60,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   categoryItemActive: {
     backgroundColor: colors.PRIMARY,

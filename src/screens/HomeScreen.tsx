@@ -9,6 +9,7 @@ import { useThemeStore } from '../stores/themeStore';
 import usePostStore from '../stores/postStore';
 
 import CategorySelector from '../components/CategorySelector';
+import CategoryModal from '../components/CategoryModal';
 import PostCard from '../components/PostCard';
 import Pagination from '../components/Pagination';
 import MainHeader from '../components/MainHeader';
@@ -53,6 +54,9 @@ export default function HomeScreen() {
 
   // Custom Alert Modal 상태
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
+
+  // Category Modal 상태
+  const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
 
   const { shouldRefreshPosts, setShouldRefreshPosts } = usePostStore();
 
@@ -230,6 +234,21 @@ export default function HomeScreen() {
     setCommentSheetVisible(false);
   }, [selectedCommentItem, navigation]);
 
+  // Category Modal 핸들러
+  const handleMenuPress = () => {
+    setIsCategoryModalVisible(true);
+  };
+
+  const handleCategoryModalClose = () => {
+    setIsCategoryModalVisible(false);
+  };
+
+  const handleCategoryModalSelect = (categoryId: number, subcategoryId?: number) => {
+    setSelectedCategoryId(categoryId);
+    setSelectedSubcategoryId(subcategoryId || 0);
+    setIsCategoryModalVisible(false);
+  };
+
   const headerRightButtons = [
     { key: 'write', onPress: handleWritePress, IconComponent: WriteIcon },
   ];
@@ -253,6 +272,7 @@ export default function HomeScreen() {
         selectedSubcategoryId={selectedSubcategoryId}
         onCategorySelect={handleCategorySelect}
         onSubcategorySelect={handleSubcategorySelect}
+        onMenuPress={handleMenuPress}
       />
 
       {isLoading ? (
@@ -328,6 +348,16 @@ export default function HomeScreen() {
           onClose={() => setAlertModal(null)}
         />
       )}
+
+      {/* Category Modal */}
+      <CategoryModal
+        visible={isCategoryModalVisible}
+        onClose={handleCategoryModalClose}
+        categories={categories}
+        selectedCategoryId={selectedCategoryId}
+        selectedSubcategoryId={selectedSubcategoryId}
+        onCategorySelect={handleCategoryModalSelect}
+      />
     </View>
   );
 }
