@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 
@@ -42,6 +42,58 @@ export default function CategorySelector({
   const styles = createStyles(colors);
   const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
 
+  // ScrollView ref 추가
+  const categoryScrollRef = useRef<ScrollView>(null);
+  const subcategoryScrollRef = useRef<ScrollView>(null);
+
+  // 각 카테고리 아이템의 레이아웃 정보를 저장
+  const categoryLayoutsRef = useRef<Map<number, { x: number; width: number }>>(new Map());
+  const subcategoryLayoutsRef = useRef<Map<number, { x: number; width: number }>>(new Map());
+
+  // 선택된 카테고리로 자동 스크롤
+  useEffect(() => {
+    if (selectedCategoryId !== undefined && categoryLayoutsRef.current.has(selectedCategoryId)) {
+      const layout = categoryLayoutsRef.current.get(selectedCategoryId);
+      if (layout && categoryScrollRef.current) {
+        // 화면 중앙에 위치하도록 스크롤
+        categoryScrollRef.current.scrollTo({
+          x: Math.max(0, layout.x - 50), // 약간의 여백을 두고 스크롤
+          animated: true,
+        });
+      }
+    }
+  }, [selectedCategoryId]);
+
+  // 선택된 소분류로 자동 스크롤 (0이 아닌 실제 소분류만)
+  useEffect(() => {
+    if (selectedSubcategoryId && selectedSubcategoryId !== 0 && subcategoryLayoutsRef.current.has(selectedSubcategoryId)) {
+      const layout = subcategoryLayoutsRef.current.get(selectedSubcategoryId);
+      if (layout && subcategoryScrollRef.current) {
+        subcategoryScrollRef.current.scrollTo({
+          x: Math.max(0, layout.x - 20),
+          animated: true,
+        });
+      }
+    } else if (selectedSubcategoryId === 0 && subcategoryScrollRef.current) {
+      // "전체" 선택 시 맨 앞으로 스크롤 (선택적)
+      subcategoryScrollRef.current.scrollTo({
+        x: 0,
+        animated: true,
+      });
+    }
+  }, [selectedSubcategoryId]);
+
+  // 레이아웃 측정 핸들러
+  const handleCategoryLayout = (categoryId: number, event: any) => {
+    const { x, width } = event.nativeEvent.layout;
+    categoryLayoutsRef.current.set(categoryId, { x, width });
+  };
+
+  const handleSubcategoryLayout = (subcategoryId: number, event: any) => {
+    const { x, width } = event.nativeEvent.layout;
+    subcategoryLayoutsRef.current.set(subcategoryId, { x, width });
+  };
+
   return (
     <View style={styles.container}>
       {/* 대분류 */}
@@ -56,6 +108,7 @@ export default function CategorySelector({
 
         {/* 카테고리 스크롤 영역 */}
         <ScrollView
+          ref={categoryScrollRef}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryContent}
@@ -67,6 +120,7 @@ export default function CategorySelector({
               !selectedCategoryId && styles.categoryItemActive
             ]}
             onPress={() => onCategorySelect(0)}
+            onLayout={(event) => handleCategoryLayout(0, event)}
           >
             <Text style={[
               styles.categoryText,
@@ -84,6 +138,7 @@ export default function CategorySelector({
                 selectedCategoryId === category.id && styles.categoryItemActive
               ]}
               onPress={() => onCategorySelect(category.id)}
+              onLayout={(event) => handleCategoryLayout(category.id, event)}
             >
               <Text style={[
                 styles.categoryText,
@@ -99,6 +154,7 @@ export default function CategorySelector({
       {/* 소분류 */}
       {selectedCategory && selectedCategory.subCategories.length > 0 && (
         <ScrollView 
+          ref={subcategoryScrollRef}
           horizontal 
           showsHorizontalScrollIndicator={false}
           style={styles.subcategoryRow}
@@ -110,6 +166,7 @@ export default function CategorySelector({
               !selectedSubcategoryId && styles.subcategoryItemActive
             ]}
             onPress={() => onSubcategorySelect(0)}
+            onLayout={(event) => handleSubcategoryLayout(0, event)}
           >
             <Text style={[
               styles.subcategoryText,
@@ -127,6 +184,7 @@ export default function CategorySelector({
                 selectedSubcategoryId === subcategory.id && styles.subcategoryItemActive
               ]}
               onPress={() => onSubcategorySelect(subcategory.id)}
+              onLayout={(event) => handleSubcategoryLayout(subcategory.id, event)}
             >
               <Text style={[
                 styles.subcategoryText,
@@ -208,7 +266,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   },
   subcategoryItemActive: {
     borderColor: colors.PRIMARY,
-    backgroundColor: colors.GRAY_50, // 투명도 대신 연한 회색 배경으로 변경
+    backgroundColor: colors.GRAY_50,
   },
   subcategoryText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
