@@ -71,7 +71,7 @@ export default function ProfileTabNavigation({
   const tabs = [
     { id: 'feed' as ProfileTabType, icon: GridIcon, label: '피드' },
     { id: 'posts' as ProfileTabType, icon: ListIcon, label: '게시물' },
-    { id: 'videos' as ProfileTabType, icon: VideoIcon, label: '컷' },
+    { id: 'videos' as ProfileTabType, icon: VideoIcon, label: '컷츠' },
   ];
 
   return (
