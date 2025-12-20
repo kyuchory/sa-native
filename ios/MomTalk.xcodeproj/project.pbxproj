@@ -13,6 +13,7 @@
 		9764602563519EC968AE4665 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 0101E3345D3ADADE81168273 /* PrivacyInfo.xcprivacy */; };
 		B01B37392EED73A1008075AD /* KakaoLoginModule.m in Sources */ = {isa = PBXBuildFile; fileRef = B01B37382EED73A1008075AD /* KakaoLoginModule.m */; };
 		B01B373B2EED73AD008075AD /* KakaoLoginModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = B01B373A2EED73AD008075AD /* KakaoLoginModule.swift */; };
+		B0B25C422EF56CD000BF7043 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B0B25C412EF56CD000BF7043 /* SplashScreen.storyboard */; platformFilter = ios; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
@@ -27,6 +28,7 @@
 		89A463E8B637974748C11722 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-MomTalk/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		B01B37382EED73A1008075AD /* KakaoLoginModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KakaoLoginModule.m; sourceTree = "<group>"; };
 		B01B373A2EED73AD008075AD /* KakaoLoginModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakaoLoginModule.swift; sourceTree = "<group>"; };
+		B0B25C412EF56CD000BF7043 /* SplashScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = SplashScreen.storyboard; sourceTree = "<group>"; };
 		B7212694CEC0639424E41326 /* Pods-MomTalk.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MomTalk.release.xcconfig"; path = "Target Support Files/Pods-MomTalk/Pods-MomTalk.release.xcconfig"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
@@ -49,6 +51,7 @@
 		13B07FAE1A68108700A75B9A /* MomTalk */ = {
 			isa = PBXGroup;
 			children = (
+				B0B25C412EF56CD000BF7043 /* SplashScreen.storyboard */,
 				B01B373A2EED73AD008075AD /* KakaoLoginModule.swift */,
 				B01B37382EED73A1008075AD /* KakaoLoginModule.m */,
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
@@ -197,6 +200,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
+				B0B25C422EF56CD000BF7043 /* SplashScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				9764602563519EC968AE4665 /* PrivacyInfo.xcprivacy in Resources */,
 			);
