@@ -648,15 +648,25 @@ export default function ChatDetailScreen() {
   useAppState({
     onForeground: async () => {
       try {
+        // 메시지 다시 로드
         setIsInitialLoading(true);
         const response = await ChatService.getMessages(chatRoomId);
         setIsInitialLoading(false);
+
+        // 채팅방 구독 상태 확인 및 재구독 (백그라운드 복귀 시 구독 복원)
+        if (!subscriptionStatus.isSubscribed && !subscriptionStatus.error) {
+          try {
+            await subscribeToChat();
+          } catch (error) {
+            console.error('❌ 백그라운드 복귀 채팅방 구독 실패:', error);
+          }
+        }
       } catch (error) {
         setIsInitialLoading(false);
       }
     },
     onBackground: () => {},
-    enableSocketReconnection: false
+    enableSocketReconnection: true
   });
 
   // 채팅방 나가기 시 읽음 처리 (beforeRemove 이벤트)
