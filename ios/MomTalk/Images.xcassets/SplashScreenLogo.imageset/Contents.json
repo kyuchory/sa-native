@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "image.png",
+      "filename" : "AnimalTalk_simple_app_logo_tinted.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
@@ -12,12 +12,12 @@
           "value" : "dark"
         }
       ],
-      "filename" : "image 1.png",
+      "filename" : "AnimalTalk_simple_app_logo_tinted 3.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "image@2x.png",
+      "filename" : "AnimalTalk_simple_app_logo_tinted 1.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
@@ -28,12 +28,12 @@
           "value" : "dark"
         }
       ],
-      "filename" : "image@2x 1.png",
+      "filename" : "AnimalTalk_simple_app_logo_tinted 4.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "image@3x.png",
+      "filename" : "AnimalTalk_simple_app_logo_tinted 2.png",
       "idiom" : "universal",
       "scale" : "3x"
     },
@@ -44,7 +44,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "image@3x 1.png",
+      "filename" : "AnimalTalk_simple_app_logo_tinted 5.png",
       "idiom" : "universal",
       "scale" : "3x"
     }

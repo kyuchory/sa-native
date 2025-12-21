@@ -211,7 +211,7 @@ const PostCard = ({
             />
           ) : (
             <Image
-              source={require('../../assets/AnimalTalk_app_icon.png')}
+              source={require('../assets/main/AnimalTalk_app_icon.png')}
               style={styles.postImage}
               cachePolicy="memory-disk"
               contentFit="cover"
