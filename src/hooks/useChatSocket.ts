@@ -72,7 +72,6 @@ export const useChatSocket = ({
       }
       // 상대방 메시지 수신
       else if (type === 'receive' && data.chat_room_id === chatRoomId) {
-        console.log(`📨 상대방 메시지 정상 수신:`, data);
 
         const newMessage: Message = {
           id: data.id,

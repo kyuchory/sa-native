@@ -83,7 +83,6 @@ export const useChatMessages = ({
 
     try {
       setIsLoadingMessages(true);
-      console.log('📨 이전 메시지 로드 시작...');
 
       const response = await ChatService.getMessages(chatRoomId, nextCursor);
 
@@ -92,8 +91,6 @@ export const useChatMessages = ({
       setHasMoreMessages(response.hasNext);
       setNextCursor(response.nextCursor);
       setIsLoadingMessages(false);
-
-      console.log(`📨 이전 메시지 로드 완료: ${response.messages.length}개`);
     } catch (error) {
       console.error('더 많은 메시지 로드 실패:', error);
       setIsLoadingMessages(false);
@@ -115,7 +112,6 @@ export const useChatMessages = ({
         setNextCursor(response.nextCursor);
 
         setIsInitialLoading(false);
-        console.log(`📨 초기 메시지 로드 완료: ${response.messages.length}개`);
 
       } catch (error) {
         console.error('채팅방 초기화 실패:', error);

@@ -55,7 +55,7 @@ import { useAppState } from '../hooks/useAppState';
 import { useChatMessages } from '../hooks/useChatMessages';
 import { useChatSocket } from '../hooks/useChatSocket';
 
-import { uploadChatImage, uploadChatVideo } from '../utils/uploadUtils';
+// uploadUtils에서 uploadChatImage와 uploadChatVideo를 ChatService로 이동했음
 
 type ChatDetailScreenRouteProp = RouteProp<AuthStackParamList, 'ChatDetail'>;
 type ChatDetailScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'ChatDetail'>;
@@ -389,13 +389,13 @@ export default function ChatDetailScreen() {
     addPendingMessage(optimisticMessage);
 
     try {
-      const uploadResponse = await uploadChatImage(asset.uri);
+      const uploadResponse = await ChatService.uploadChatImage(asset.uri);
       await sendMessage(tempMessageId, chatRoomId, 'image', uploadResponse.image_path, []);
     } catch (error) {
       removePendingMessage(tempMessageId);
       setAlertModal({ visible: true, title: '전송 실패', message: '이미지를 전송할 수 없습니다. 다시 시도해주세요.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
     }
-  }, [user, chatRoomId, addPendingMessage, removePendingMessage, uploadChatImage, sendMessage]);
+  }, [user, chatRoomId, addPendingMessage, removePendingMessage, sendMessage]);
 
   const handleSendVideoMessage = useCallback(async (asset: any) => {
     if (!user) return;
@@ -424,7 +424,7 @@ export default function ChatDetailScreen() {
     addPendingMessage(optimisticMessage);
 
     try {
-      const uploadResponse = await uploadChatVideo(asset.uri);
+      const uploadResponse = await ChatService.uploadChatVideo(asset.uri);
       const content = JSON.stringify({
         video_path: uploadResponse.video_path,
         thumbnail_path: uploadResponse.thumbnail_path
@@ -434,7 +434,7 @@ export default function ChatDetailScreen() {
       removePendingMessage(tempMessageId);
       setAlertModal({ visible: true, title: '전송 실패', message: '비디오를 전송할 수 없습니다. 다시 시도해주세요.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
     }
-  }, [user, chatRoomId, addPendingMessage, removePendingMessage, uploadChatVideo, sendMessage]);
+  }, [user, chatRoomId, addPendingMessage, removePendingMessage, sendMessage]);
 
   const handleRegisterNotice = useCallback(async () => {
     if (!selectedMessage) return;
