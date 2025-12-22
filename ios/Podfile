@@ -33,7 +33,7 @@ platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
 
 # ⬇️ uncomment the permissions you need
 setup_permissions([
-  # 'AppTrackingTransparency',
+  'AppTrackingTransparency',
   # 'Bluetooth',
   # 'Calendars',
   # 'CalendarsWriteOnly',
