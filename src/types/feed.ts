@@ -56,8 +56,18 @@ export type FeedListApiResponse = ApiResponse<FeedListResponse>;
 export interface CreateFeedRequest {
   content_blocks: Array<{
     type: string;
-    value: string;
+    value: string | null;
     sequence: number;
+    editInfo?: {
+      trimStart: number;
+      trimEnd: number;
+      cropArea: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      };
+    };
   }>;
 }
 
