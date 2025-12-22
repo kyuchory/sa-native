@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo } from 'react';
-import { StatusBar, useColorScheme } from 'react-native';
+import { StatusBar, useColorScheme, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import mobileAds from 'react-native-google-mobile-ads';
 import AuthNavigator from './src/navigation/AuthNavigator';
 import { useThemeStore } from './src/stores/themeStore';
 import { setApiClientAuthErrorHandler } from './src/services/apiClient';
@@ -31,6 +33,29 @@ export default function App() {
     setApiClientAuthErrorHandler(() => {
       useAuthStore.getState().logout();
     });
+  }, []);
+
+  // Google Mobile Ads SDK 초기화
+  useEffect(() => {
+    async function setupAds() {
+      try {
+        // iOS에서 App Tracking Transparency 권한 요청
+        if (Platform.OS === 'ios') {
+          const result = await check(PERMISSIONS.IOS.APP_TRACKING_TRANSPARENCY);
+          if (result === RESULTS.DENIED) {
+            await request(PERMISSIONS.IOS.APP_TRACKING_TRANSPARENCY);
+          }
+        }
+
+        // Google Mobile Ads SDK 초기화
+        await mobileAds().initialize();
+        console.log('Google Mobile Ads SDK 초기화 완료');
+      } catch (error) {
+        console.error('Google Mobile Ads SDK 초기화 실패:', error);
+      }
+    }
+
+    setupAds();
   }, []);
 
   return (

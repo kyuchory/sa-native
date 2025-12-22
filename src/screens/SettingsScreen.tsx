@@ -79,6 +79,10 @@ export default function SettingsScreen() {
     navigation.navigate('VideoTrimCrop' as never);
   };
 
+  const handleTestAdScreen = () => {
+    navigation.navigate('TestAd' as never);
+  };
+
   const handleLogout = () => {
     setAlertModal({
       visible: true,
@@ -230,6 +234,20 @@ export default function SettingsScreen() {
               subtitle="버전 및 약관"
               showArrow={true}
               onPress={handleAppInfo}
+              colors={colors}
+              isLast={true}
+            />
+          </View>
+        </View>
+
+        {/* 개발자 도구 섹션 */}
+        <View style={styles.section}>
+          <View style={styles.sectionContainer}>
+            <SettingItem
+              title="광고 테스트"
+              subtitle="Google Mobile Ads 테스트"
+              showArrow={true}
+              onPress={handleTestAdScreen}
               colors={colors}
               isLast={true}
             />

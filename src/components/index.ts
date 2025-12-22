@@ -25,4 +25,5 @@ export { default as FollowTabNavigation } from './FollowTabNavigation';
 
 // Add more exports as needed...
 export { default as CustomAlertModal } from './CustomAlertModal';
+export { default as PostAdCard } from './PostAdCard';
 // Other existing exports remain unchanged

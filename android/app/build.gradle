@@ -28,7 +28,7 @@ android {
         applicationId 'com.anonymous.xMomTalk'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        versionCode 6
         versionName "1.0.0"
     }
 
@@ -39,12 +39,18 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            storeFile file("animaltalk.keystore")
+            storePassword "@rbcjf5122"
+            keyAlias "animaltalk"
+            keyPassword "@rbcjf5122"
+        }
     }
 
     buildTypes {
         debug { signingConfig signingConfigs.debug }
         release {
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"

@@ -18,6 +18,7 @@ export type AuthStackParamList = {
     nickname: string;
   };
   Settings: undefined;
+  TestAd: undefined;
   Notifications: undefined;
   Chat: undefined;
   SelectChatUser: {

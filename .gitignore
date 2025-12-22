@@ -38,3 +38,5 @@ yarn-error.*
 
 # Ignore debug.keystore in android app folder
 android/app/debug.keystore
+
+android/app/*.keystore

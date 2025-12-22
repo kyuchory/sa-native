@@ -59,6 +59,7 @@ import CutDetailScreen from '../screens/CutDetailScreen';
 import CutPreviewScreen from '../screens/CutPreviewScreen';
 import SavedItemsScreen from '../screens/SavedItemsScreen';
 import PopularPostScreen from '../screens/PopularPostScreen';
+import TestAdScreen from '../screens/TestAdScreen';
 
 // Components for notifications
 import { NotificationBanner } from '../components/NotificationBanner';
@@ -194,6 +195,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="Settings"
           component={SettingsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="TestAd"
+          component={TestAdScreen}
           options={{ headerShown: false }}
         />
                 <Stack.Screen
