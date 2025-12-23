@@ -83,6 +83,10 @@ export default function SettingsScreen() {
     navigation.navigate('TestAd' as never);
   };
 
+  const handleTestCutsAdScreen = () => {
+    navigation.navigate('TestCutsAd' as never);
+  };
+
   const handleLogout = () => {
     setAlertModal({
       visible: true,
@@ -248,6 +252,13 @@ export default function SettingsScreen() {
               subtitle="Google Mobile Ads 테스트"
               showArrow={true}
               onPress={handleTestAdScreen}
+              colors={colors}
+            />
+            <SettingItem
+              title="Cuts 광고 테스트"
+              subtitle="숏츠 스타일 네이티브 광고 테스트"
+              showArrow={true}
+              onPress={handleTestCutsAdScreen}
               colors={colors}
               isLast={true}
             />

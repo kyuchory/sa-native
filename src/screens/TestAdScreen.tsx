@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useThemeStore } from '../stores/themeStore';
 import CommonHeader from '../components/CommonHeader';
-import { PostAdCard } from '../components';
+import { PostAdCard, FeedAdCard } from '../components';
 import { TestIds, NativeAd, NativeAdEventType } from 'react-native-google-mobile-ads';
 
 export default function TestAdScreen() {
@@ -71,6 +71,18 @@ export default function TestAdScreen() {
         <Text style={[styles.info, { color: colors.GRAY_600 }]}>
           이 광고는 PostCard와 유사한 스타일로 디자인되었습니다.{'\n'}
           실제 앱에서는 실제 광고 단위 ID를 사용하세요.
+        </Text>
+
+        <Text style={[styles.title, { color: colors.GRAY_900 }]}>
+          FeedCard 스타일 네이티브 광고 테스트
+        </Text>
+
+        {/* FeedAdCard를 사용한 네이티브 광고 표시 */}
+        <FeedAdCard nativeAd={nativeAd} />
+
+        <Text style={[styles.info, { color: colors.GRAY_600 }]}>
+          이 광고는 FeedCard와 유사한 스타일로 디자인되었습니다.{'\n'}
+          피드 화면에 자연스럽게 녹아들도록 설계되었습니다.
         </Text>
       </ScrollView>
     </View>
