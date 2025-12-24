@@ -32,6 +32,7 @@ import NicknameEditScreen from '../screens/NicknameEditScreen';
 import BioEditScreen from '../screens/BioEditScreen';
 import ProfileImageEditScreen from '../screens/ProfileImageEditScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import AccountDeleteScreen from '../screens/AccountDeleteScreen';
 import ChatScreen from '../screens/ChatScreen';
 import SelectChatUserScreen from '../screens/SelectChatUserScreen';
 import ChatDetailScreen from '../screens/ChatDetailScreen';
@@ -196,6 +197,11 @@ export default function AuthNavigator() {
         <Stack.Screen
           name="Settings"
           component={SettingsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="AccountDelete"
+          component={AccountDeleteScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen

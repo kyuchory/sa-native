@@ -18,6 +18,7 @@ export type AuthStackParamList = {
     nickname: string;
   };
   Settings: undefined;
+  AccountDelete: undefined;
   TestAd: undefined;
   TestCutsAd: undefined;
   Notifications: undefined;

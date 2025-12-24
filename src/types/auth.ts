@@ -105,4 +105,5 @@ export type TokenRefreshApiResponse = ApiResponse<TokenRefreshResponse>;
 export type EmailCheckApiResponse = ApiResponse<EmailCheckResponse>;
 export type NicknameCheckApiResponse = ApiResponse<NicknameCheckResponse>;
 export type LogoutApiResponse = ApiResponse<null>;
+export type DeleteAccountApiResponse = ApiResponse<null>;
 export type KakaoLoginApiResponse = ApiResponse<KakaoLoginResponseData>;

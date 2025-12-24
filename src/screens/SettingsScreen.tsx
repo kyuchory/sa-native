@@ -31,8 +31,7 @@ export default function SettingsScreen() {
   };
 
   const handleAccountDelete = () => {
-    // 계정 삭제는 확인 팝업 필요
-    console.log('계정 삭제');
+    navigation.navigate('AccountDelete' as never);
   };
 
   const handleBlockedUsers = () => {

@@ -9,6 +9,7 @@ import {
   EmailCheckApiResponse,
   NicknameCheckApiResponse,
   LogoutApiResponse,
+  DeleteAccountApiResponse,
   KakaoLoginApiResponse,
 } from '../types/auth';
 
@@ -42,6 +43,11 @@ export class AuthService {
   // 카카오 로그인
   static async kakaoLogin(data: KakaoLoginRequest): Promise<KakaoLoginApiResponse> {
     return apiClient.post<KakaoLoginApiResponse>('/auth/kakao-login', data, false);
+  }
+
+  // 계정 삭제
+  static async deleteAccount(): Promise<DeleteAccountApiResponse> {
+    return apiClient.delete<DeleteAccountApiResponse>('/auth/delete-account');
   }
 
   // 토큰 재발급
