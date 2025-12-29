@@ -311,8 +311,11 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
           trimEnd,
           correctedCropArea
         );
-        // 생성된 스토리의 ID로 DailyCutDetailScreen으로 이동
-        navigation.replace('DailyCutDetail', { storyId: storyResult.id });
+        // 생성된 스토리의 ID로 DailyCutDetailScreen으로 이동 (자신의 스토리로 표시)
+        navigation.replace('DailyCutDetail', {
+          storyId: storyResult.id,
+          isMyStory: true
+        });
       } catch (error) {
         console.error('❌ 스토리 생성 실패:', error);
         setAlertModal({
