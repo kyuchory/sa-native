@@ -6,6 +6,7 @@ import {
   BookmarkIcon,
   ShareIcon,
   UploadIcon,
+  ViewIcon,
 } from './CutIcons';
 import { COLORS, TYPOGRAPHY, SPACING } from '../constants/theme';
 
@@ -108,15 +109,11 @@ export const ShortActionButtons = React.memo<ShortActionButtonsProps>(
         </Text>
       </TouchableOpacity>
 
-      {/* 공유 */}
-      <TouchableOpacity
-        style={styles.actionButton}
-        onPress={onShare}
-        activeOpacity={0.8}
-      >
-        <ShareIcon size={28} color={COLORS.WHITE} />
+      {/* 조회수 (터치 불가능) */}
+      <View style={styles.actionButton}>
+        <ViewIcon size={24} color={COLORS.WHITE} />
         <Text style={styles.actionText}>{formatCount(viewCount)}</Text>
-      </TouchableOpacity>
+      </View>
 
       {/* 업로드 */}
       <TouchableOpacity

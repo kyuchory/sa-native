@@ -347,6 +347,22 @@ export const BookmarkIcon = ({ size = 28, color = '#FFFFFF', filled = false }: I
   </View>
 );
 
+// 조회수 아이콘 (눈 모양)
+export const ViewIcon = ({ size = 24, color = '#FFFFFF' }: IconProps) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <Svg width={size * 0.9} height={size * 0.9} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx="12" cy="12" r="3" stroke={color} strokeWidth={2} />
+    </Svg>
+  </View>
+);
+
 // 빈 컷츠 상태 아이콘 (영화 플레이 버튼 스타일)
 export const CutEmptyIcon = ({ size = 24, color = '#000' }: IconProps) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
