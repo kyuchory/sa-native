@@ -249,6 +249,8 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   imageContainer: {
     width: 120,
     height: 120,
+    borderRadius: BORDER_RADIUS.MD,
+    overflow: 'hidden',
   },
   postImage: {
     width: '100%',

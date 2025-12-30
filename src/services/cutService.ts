@@ -20,6 +20,7 @@ import {
   ShortDeleteResponse,
   BookmarkShortListResponse,
   BookmarkShortListApiResponse,
+  ShortItem,
 } from '../types/cut';
 import type { ApiResponse } from '../types/api';
 
@@ -291,6 +292,31 @@ export class CutService {
       return response;
     } catch (error) {
       console.error('쇼츠 삭제 실패:', error);
+      throw error;
+    }
+  }
+
+  // 랜덤 쇼츠 조회 (피드에 랜덤으로 끼워넣기용)
+  static async getRandomCut(excludeIds: number[] = []): Promise<ShortItem | null> {
+    try {
+      const queryParams = new URLSearchParams();
+
+      if (excludeIds.length > 0) {
+        queryParams.append('exclude_ids', excludeIds.join(','));
+      }
+
+      const queryString = queryParams.toString();
+      const url = queryString ? `/shorts/random?${queryString}` : '/shorts/random';
+
+      const response = await apiClient.get<{
+        code: number;
+        message: string;
+        data: ShortItem | null;
+      }>(url);
+
+      return response.data;
+    } catch (error) {
+      console.error('랜덤 쇼츠 조회 실패:', error);
       throw error;
     }
   }

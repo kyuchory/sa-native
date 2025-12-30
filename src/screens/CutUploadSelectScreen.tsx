@@ -142,6 +142,12 @@ export default function CutUploadSelectScreen() {
             <Text style={styles.subtitle}>
               내 영상을 많은 사람들과 공유해 보세요!
             </Text>
+            <Text style={styles.subtitle}>
+              귀여운 동물, 일상, 여행, 풍경,
+            </Text>
+            <Text style={styles.subtitle}>
+              재미난 순간 어떤 영상이라도 좋아요!
+            </Text>
           </View>
 
           <View style={styles.optionsContainer}>

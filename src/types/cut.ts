@@ -12,10 +12,11 @@ export interface ShortItem {
   user_id: number;
   nickname: string;
   profile_img: string | null;
-  type: 'video';
+  type: 'image' | 'video';
   content_url: string;        // 서버에서 이미 baseUrl 합쳐서 제공
   thumbnail_url?: string;     // 서버에서 이미 baseUrl 합쳐서 제공
   description?: string;
+  duration_seconds?: number;  // 영상 길이 (초) - 랜덤 API에서 추가
   view_count: number;
   like_count: number;
   comment_count: number;

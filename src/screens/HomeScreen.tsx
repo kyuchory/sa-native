@@ -11,6 +11,7 @@ import usePostStore from '../stores/postStore';
 import CategorySelector from '../components/CategorySelector';
 import CategoryModal from '../components/CategoryModal';
 import PostCard from '../components/PostCard';
+import PostAdCard from '../components/PostAdCard';
 import Pagination from '../components/Pagination';
 import MainHeader from '../components/MainHeader';
 
@@ -21,6 +22,9 @@ import CommentActionSheet from '../components/CommentActionSheet';
 // 서비스 imports
 import { PostService } from '../services/postService';
 import type { PostListItem, Category } from '../types/post';
+
+// AdMob imports
+import { NativeAd, TestIds } from 'react-native-google-mobile-ads';
 
 type HomeNavigationProp = StackNavigationProp<AuthStackParamList, 'MainApp'>;
 
@@ -59,6 +63,12 @@ export default function HomeScreen() {
   const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
 
   const { shouldRefreshPosts, setShouldRefreshPosts } = usePostStore();
+
+  // 광고 상태
+  const [ads, setAds] = useState<NativeAd[]>([]);
+
+  // 피드 아이템 상태 (포스트 + 광고)
+  const [feedItems, setFeedItems] = useState<Array<{type: 'post', data: PostListItem} | {type: 'ad', data: NativeAd}>>([]);
 
   // ---------- Helper: shallow compare pagination fields ----------
   const isSamePagination = (a: typeof pagination, b: Partial<typeof pagination>) => {
@@ -152,6 +162,95 @@ export default function HomeScreen() {
     init();
     // 빈 deps -> 마운트 시 1회만 실행, 로드는 category effect에서 담당
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---------- 광고 로드 ----------
+  useEffect(() => {
+    const loadAds = async () => {
+      try {
+        const adPromises = [];
+        for (let i = 0; i < 8; i++) {
+          adPromises.push(
+            NativeAd.createForAdRequest(TestIds.NATIVE, {
+              aspectRatio: 1,
+              adChoicesPlacement: 0,
+              startVideoMuted: true,
+            })
+          );
+        }
+        const loadedAds = await Promise.all(adPromises);
+        setAds(loadedAds);
+        console.log('광고 로드 성공:', loadedAds.length);
+      } catch (error) {
+        console.error('광고 로드 실패:', error);
+        setAds([]);
+      }
+    };
+
+    loadAds();
+  }, []);
+
+  // ---------- 광고 위치 계산 함수 ----------
+  const getAdPositions = (postCount: number): number[] => {
+    if (postCount <= 3) {
+      // 3개 이하 게시물일 땐 광고 없음
+      return [];
+    }
+
+    if (postCount >= 4 && postCount <= 7) {
+      // 4~7개 게시물일 땐
+      // 1번째 게시물 뒤(0), 2번째 뒤(1), ..., 마지막 바로 전 게시물 뒤(postCount - 2) 까지 광고 삽입
+      const positions = [];
+      for (let i = 0; i <= postCount - 2; i++) {
+        positions.push(i);
+      }
+      return positions;
+    }
+
+    if (postCount >= 8 && postCount <= 9) {
+      // 8~9개 게시물일 땐 광고 1개
+      // 7번째 게시물 뒤 (인덱스 6)
+      return [6];
+    }
+
+    if (postCount >= 10) {
+      // 10개 이상 게시물일 땐 광고 2개
+      // 7번째 게시물 뒤(6), 마지막 게시물 뒤(postCount -1)
+      return [6, postCount - 1];
+    }
+
+    return [];
+  };
+
+  // ---------- 피드 아이템 생성 (포스트 + 광고) ----------
+  useEffect(() => {
+    const createFeedItems = () => {
+      const items: Array<{type: 'post', data: PostListItem} | {type: 'ad', data: NativeAd}> = [];
+      const postCount = posts.length;
+
+      const adPositions = getAdPositions(postCount);
+
+      let adIndex = 0;
+
+      for (let i = 0; i < postCount; i++) {
+        items.push({
+          type: 'post',
+          data: posts[i],
+        });
+
+        if (adPositions.includes(i) && ads.length > 0) {
+          items.push({
+            type: 'ad',
+            data: ads[adIndex % ads.length],
+          });
+          adIndex++;
+        }
+      }
+
+      setFeedItems(items);
+    };
+
+    createFeedItems();
+  }, [posts, ads]);
 
   // ---------- 카테고리/소분류 변경: 페이지를 1로 리셋하고 1페이지 로드 ----------
   useEffect(() => {
@@ -253,14 +352,20 @@ export default function HomeScreen() {
     { key: 'write', onPress: handleWritePress, IconComponent: WriteIcon },
   ];
 
-  const renderPost = useCallback(({ item }: { item: PostListItem }) => (
-    <PostCard
-      post={item}
-      onPress={() => handlePostPress(item)}
-      onCommentPress={() => handleCommentPress(item)}
-      onAuthorPress={() => handleAuthorPress(item)}
-    />
-  ), [handlePostPress, handleCommentPress, handleAuthorPress]);
+  const renderFeedItem = useCallback(({ item }: { item: {type: 'post', data: PostListItem} | {type: 'ad', data: NativeAd} }) => {
+    if (item.type === 'post') {
+      return (
+        <PostCard
+          post={item.data}
+          onPress={() => handlePostPress(item.data)}
+          onCommentPress={() => handleCommentPress(item.data)}
+          onAuthorPress={() => handleAuthorPress(item.data)}
+        />
+      );
+    } else {
+      return <PostAdCard nativeAd={item.data} />;
+    }
+  }, [handlePostPress, handleCommentPress, handleAuthorPress]);
 
   return (
     <View style={styles.container}>
@@ -282,9 +387,15 @@ export default function HomeScreen() {
       ) : (
         <FlatList
           ref={flatListRef}
-          data={posts}
-          renderItem={renderPost}
-          keyExtractor={(item) => item.id.toString()}
+          data={feedItems}
+          renderItem={renderFeedItem}
+          keyExtractor={(item, index) => {
+            if (item.type === 'post') {
+              return item.data.id.toString();
+            } else {
+              return `ad-${index}`;
+            }
+          }}
           style={styles.postList}
           contentContainerStyle={styles.postListContent}
           showsVerticalScrollIndicator={false}
@@ -300,11 +411,6 @@ export default function HomeScreen() {
           maxToRenderPerBatch={10}
           windowSize={10}
           initialNumToRender={5}
-          getItemLayout={(data, index) => ({
-            length: 200,
-            offset: 200 * index,
-            index,
-          })}
           ListFooterComponent={(
             <Pagination
               pagination={pagination}

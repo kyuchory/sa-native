@@ -25,6 +25,7 @@ import { ShortItem, RecordShortViewRequest } from '../types/cut';
 import { CutService } from '../services/cutService';
 import CutCommentActionSheet from '../components/CutCommentActionSheet';
 import { ShortItemComponent } from '../components/ShortItemComponent';
+import { ShortItemAdComponent } from '../components/ShortItemAdComponent';
 import MenuActionSheet from '../components/MenuActionSheet';
 import { DeleteIcon, ReportIcon } from '../components/CommonIcons';
 import CustomAlertModal from '../components/CustomAlertModal';
@@ -34,7 +35,11 @@ import {
   BackIcon,
   MoreVerticalIcon,
   CutEmptyIcon,
+  ShareIcon,
 } from '../components/CutIcons';
+
+// AdMob imports
+import { NativeAd, TestIds } from 'react-native-google-mobile-ads';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -63,7 +68,13 @@ export default function CutScreen() {
   
   // 🔥 리프레시 키 추가 - 리프레시 시마다 변경하여 컴포넌트 강제 재마운트
   const [refreshKey, setRefreshKey] = useState(0);
-  
+
+  // 광고 상태
+  const [ads, setAds] = useState<NativeAd[]>([]);
+
+  // 숏츠 + 광고 아이템 상태
+  const [items, setItems] = useState<Array<{type: 'short', data: ShortItem} | {type: 'ad', data: NativeAd}>>([]);
+
   const flatListRef = useRef<any>(null);
   const fetchMoreTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -141,6 +152,60 @@ export default function CutScreen() {
   useEffect(() => {
     fetchInitial();
   }, []);
+
+  // ---------- 광고 로드 ----------
+  useEffect(() => {
+    const loadAds = async () => {
+      try {
+        const adPromises = [];
+        for (let i = 0; i < 8; i++) {
+          adPromises.push(
+            NativeAd.createForAdRequest(TestIds.NATIVE, {
+              aspectRatio: 1,
+              adChoicesPlacement: 0,
+              startVideoMuted: true,
+            })
+          );
+        }
+        const loadedAds = await Promise.all(adPromises);
+        setAds(loadedAds);
+        console.log('컷츠 광고 로드 성공:', loadedAds.length);
+      } catch (error) {
+        console.error('컷츠 광고 로드 실패:', error);
+        setAds([]);
+      }
+    };
+
+    loadAds();
+  }, []);
+
+  // ---------- 숏츠 + 광고 아이템 생성 ----------
+  useEffect(() => {
+    const createItems = () => {
+      const newItems: Array<{type: 'short', data: ShortItem} | {type: 'ad', data: NativeAd}> = [];
+      const shortCount = shorts.length;
+
+      if (shortCount < 6) {
+        // 6개 미만: 숏츠만
+        newItems.push(...shorts.map(short => ({ type: 'short' as const, data: short })));
+      } else {
+        // 6개 이상: 광고 삽입 (6번째마다)
+        let adIndex = 0;
+        for (let i = 0; i < shortCount; i++) {
+          newItems.push({ type: 'short', data: shorts[i] });
+
+        if ((i + 1) % 6 === 0 && ads.length > 0) {
+          newItems.push({ type: 'ad', data: ads[adIndex % ads.length] });
+          adIndex++;
+        }
+        }
+      }
+
+      setItems(newItems);
+    };
+
+    createItems();
+  }, [shorts, ads]);
 
   // 🔥 Pull to refresh - 수정된 버전
   const onRefresh = useCallback(async () => {
@@ -310,6 +375,16 @@ export default function CutScreen() {
 
     const actions = [
       {
+        id: 'share',
+        title: '공유하기',
+        icon: <ShareIcon size={20} color={colors.GRAY_700} />,
+        color: colors.GRAY_700,
+        onPress: () => {
+          setMenuActionSheetVisible(false);
+          handleShare(currentShort);
+        },
+      },
+      {
         id: 'report',
         title: '컷츠 신고',
         icon: <ReportIcon size={20} color={colors.ERROR} />,
@@ -329,7 +404,7 @@ export default function CutScreen() {
     }
 
     return actions;
-  }, [shorts, currentIndex, colors, handleDeleteCut, handleReportCut]);
+  }, [shorts, currentIndex, colors, handleDeleteCut, handleReportCut, handleShare]);
 
   const handleViewComplete = useCallback(async (
     shortId: number,
@@ -379,22 +454,31 @@ export default function CutScreen() {
     [refreshKey]
   );
 
-  const renderShortItem = useCallback(
-    ({ item, index }: { item: ShortItem; index: number }) => (
+  const renderItem = useCallback(
+    ({ item, index }: { item: {type: 'short', data: ShortItem} | {type: 'ad', data: NativeAd}; index: number }) => (
       <View style={itemContainerStyle}>
-        <ShortItemComponent
-          key={`${item.id}-${refreshKey}`} // 🔥 key prop 추가
-          item={item}
-          isActive={isFocused && index === currentIndex}
-          onComment={(short) => onCommentRef.current(short)}
-          onShare={(short) => onShareRef.current(short)}
-          onUpload={() => onUploadRef.current()}
-          onViewComplete={(id, data) => onViewCompleteRef.current(id, data)}
-          onProfilePress={(userId) => onProfilePressRef.current(userId)}
-        />
+        {item.type === 'short' ? (
+          <ShortItemComponent
+            key={`${item.data.id}-${refreshKey}`}
+            item={item.data}
+            isActive={isFocused && index === currentIndex}
+            onComment={(short) => onCommentRef.current(short)}
+            onShare={(short) => onShareRef.current(short)}
+            onUpload={() => onUploadRef.current()}
+            onViewComplete={(id, data) => onViewCompleteRef.current(id, data)}
+            onProfilePress={(userId) => onProfilePressRef.current(userId)}
+          />
+        ) : (
+          <ShortItemAdComponent
+            nativeAd={item.data}
+            onComment={() => {}}
+            onShare={() => {}}
+            onUpload={() => {}}
+          />
+        )}
       </View>
     ),
-    [itemContainerStyle, isFocused, currentIndex, refreshKey] // 🔥 refreshKey 의존성 추가
+    [itemContainerStyle, isFocused, currentIndex, refreshKey]
   );
 
   // 로딩 중
@@ -494,9 +578,15 @@ export default function CutScreen() {
 
       <FlashList
         ref={flatListRef}
-        data={shorts}
-        renderItem={renderShortItem}
-        keyExtractor={keyExtractor}
+        data={items}
+        renderItem={renderItem}
+        keyExtractor={(item, index) => {
+          if (item.type === 'short') {
+            return `${item.data.id}-${refreshKey}`;
+          } else {
+            return `ad-${index}`;
+          }
+        }}
         pagingEnabled
         showsVerticalScrollIndicator={false}
         viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}

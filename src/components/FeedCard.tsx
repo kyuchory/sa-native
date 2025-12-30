@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Platform, ScrollView, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Platform, ScrollView, NativeScrollEvent, NativeSyntheticEvent, Animated } from 'react-native';
 import { Image } from 'expo-image';
 import { VideoView, useVideoPlayer, VideoSource } from 'expo-video';
 import { getThumbnailAsync } from 'expo-video-thumbnails';
-import Animated, { useSharedValue, useAnimatedStyle, interpolate, Extrapolation, useAnimatedScrollHandler, SharedValue } from 'react-native-reanimated';
+import AnimatedReanimated, { useSharedValue, useAnimatedStyle, interpolate, Extrapolation, useAnimatedScrollHandler, SharedValue } from 'react-native-reanimated';
 import { TYPOGRAPHY, SPACING, COLORS } from '../constants/theme';
 import { FeedListItem } from '../types/feed';
 import { FeedService } from '../services/feedService';
@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../types/navigation';
 import { MenuIcon, MuteIcon, UnmuteIcon } from './CommonIcons';
+import { PlayIcon, PauseIcon } from './CutIcons';
 import useFeedStore from '../stores/feedStore';
 import useProfileStore from '../stores/profileStore';
 import { useNetworkState, shouldAutoPlayVideo } from '../hooks/useNetworkState';
@@ -27,6 +28,7 @@ interface FeedCardProps {
   onUserPress?: (userId: number) => void;
   onMenuPress?: (feed: FeedListItem) => void;
   isVisible?: boolean;
+  isRecommended?: boolean;
 }
 
 type FeedCardNavigationProp = StackNavigationProp<AuthStackParamList>;
@@ -34,15 +36,16 @@ type FeedCardNavigationProp = StackNavigationProp<AuthStackParamList>;
 import { HeartIcon, CommentIcon, BookmarkIcon } from './FeedCardIcons';
 import UserAvatar from './UserAvatar';
 
-const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
+const AnimatedScrollView = AnimatedReanimated.ScrollView;
 
 // 애니메이션 페이지 인디케이터 - 스크롤 오프셋 기반
 const AnimatedPageIndicator: React.FC<{
   index: number;
   totalPages: number;
   scrollX: SharedValue<number>;
-  colors: Record<string, string>;
-}> = ({ index, totalPages, scrollX, colors }) => {
+  activeColor: string;
+  inactiveColor: string;
+}> = ({ index, totalPages, scrollX, activeColor, inactiveColor }) => {
   
   const animatedStyle = useAnimatedStyle(() => {
     'worklet';
@@ -109,14 +112,14 @@ const AnimatedPageIndicator: React.FC<{
     'worklet';
     const currentPage = Math.round(scrollX.value / screenWidth);
     const isActive = currentPage === index;
-    
+
     return {
-      backgroundColor: isActive ? colors.PRIMARY : colors.GRAY_400,
+      backgroundColor: isActive ? activeColor : inactiveColor,
     };
   });
   
   return (
-    <Animated.View
+    <AnimatedReanimated.View
       style={[
         {
           height: 6,
@@ -136,42 +139,169 @@ const TapPauseVideo = ({ videoUri, isVisible }: { videoUri: string; isVisible?: 
   const shouldAutoPlay = shouldAutoPlayVideo(networkState.type, autoPlayMode);
 
   const player = useVideoPlayer(videoUri, (player) => {
-    player.loop = true;
+    player.loop = false; // 🔥 loop 비활성화 (CutScreen 방식)
     player.muted = true;
-    if (isVisible && shouldAutoPlay) {
-      player.play();
-    }
   });
+
+  // 🔥 CutScreen 방식의 이벤트 리스너 추가
+  useEffect(() => {
+    if (player) {
+      const handleStatusChange = (payload: any) => {
+        if (payload.status === 'readyToPlay') {
+          player.seekBy(0.1); // 영상 시작을 0.1초부터
+          player.removeListener('statusChange', handleStatusChange);
+        }
+      };
+
+      // 🔥 영상 종료 시 처음으로 돌아가기 (iOS 검은 화면 방지)
+      const handlePlayToEnd = () => {
+        // 영상이 끝났을 때
+        if (isMountedRef.current && !isCleaningUpRef.current) {
+          player.currentTime = 0.1; // 검은 프레임을 스킵한 위치로 즉시 이동
+          player.play(); // 자동으로 재생 시작
+        }
+      };
+
+      player.addListener('statusChange', handleStatusChange);
+      player.addListener('playToEnd', handlePlayToEnd);
+
+      return () => {
+        player.removeListener('statusChange', handleStatusChange);
+        player.removeListener('playToEnd', handlePlayToEnd);
+      };
+    }
+  }, [player]);
 
   const [isPlaying, setIsPlaying] = useState(shouldAutoPlay);
   const [isMuted, setIsMuted] = useState(true);
+  const [showOverlayIcon, setShowOverlayIcon] = useState(false);
+  const [overlayIsPlaying, setOverlayIsPlaying] = useState(false);
 
+  // 🔥 cleanup 플래그 추가 (ShortItemComponent 방식)
+  const isCleaningUpRef = useRef(false);
+  const isMountedRef = useRef(true);
+  const hasCalledPauseRef = useRef(false); // 🔥 pause 호출 여부 추적
+  const hasPlayedOnceRef = useRef(false); // 🔥 한 번이라도 재생됐는지 추적
+
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const overlayAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  const triggerOverlay = useCallback((isPlayingNow: boolean) => {
+    if (!isMountedRef.current) return;
+
+    if (overlayAnimationRef.current) {
+      overlayAnimationRef.current.stop();
+    }
+
+    setOverlayIsPlaying(isPlayingNow);
+    setShowOverlayIcon(true);
+    overlayOpacity.setValue(1);
+
+    overlayAnimationRef.current = Animated.timing(overlayOpacity, {
+      toValue: 0,
+      duration: 1000,
+      useNativeDriver: true,
+    });
+
+    overlayAnimationRef.current.start(({ finished }) => {
+      if (finished && isMountedRef.current) setShowOverlayIcon(false);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 🔥 의존성 제거 - overlayOpacity는 ref이므로 안정적
+
+  // 🔥 안전한 pause 함수 (ShortItemComponent 방식)
+  const safePause = useCallback(() => {
+    if (hasCalledPauseRef.current) return; // 이미 pause 호출됨
+    if (isCleaningUpRef.current) return; // cleanup 중
+
+    try {
+      if (player && typeof player.pause === 'function') {
+        player.pause();
+        hasCalledPauseRef.current = true; // 🔥 pause 호출 기록
+      }
+    } catch (error) {
+      // 무시
+    }
+  }, [player]);
+
+  // 🔥 개선된 재생/정지 제어 (CutScreen 방식 적용)
   useEffect(() => {
-    if (!player) return;
+    if (isCleaningUpRef.current) return;
 
-    const shouldPlay = isVisible && shouldAutoPlay;
-    if (shouldPlay && player.playing === false) {
-      player.play();
-      setIsPlaying(true);
-    } else if (!shouldPlay && player.playing === true) {
-      player.pause();
+    // 🔥 isVisible이 true일 때
+    if (isVisible) {
+      // 첫 재생인 경우: shouldAutoPlay 체크
+      // 이미 재생된 적이 있는 경우: 무조건 재생 (탭 전환 후 돌아왔을 때)
+      const shouldPlay = hasPlayedOnceRef.current || shouldAutoPlay;
+
+      if (shouldPlay) {
+        hasCalledPauseRef.current = false;
+
+        const playTimer = setTimeout(() => {
+          if (!isCleaningUpRef.current && isMountedRef.current) {
+            try {
+              player?.play();
+              setIsPlaying(true);
+              hasPlayedOnceRef.current = true; // 🔥 재생 기록
+            } catch (error) {
+              console.warn('Video auto-play error:', error);
+            }
+          }
+        }, 50);
+
+        return () => {
+          clearTimeout(playTimer);
+        };
+      }
+    } else {
+      // isVisible이 false일 때: 일시정지
+      safePause();
       setIsPlaying(false);
     }
-  }, [isVisible, shouldAutoPlay, player]);
+  }, [isVisible, shouldAutoPlay, player, safePause]); // 🔥 shouldAutoPlay는 의존성으로 유지
 
-  const handleTogglePlay = () => {
-    if (isPlaying) {
-      player.pause();
-    } else {
-      player.play();
+  const handleTogglePlay = useCallback(() => {
+    if (isCleaningUpRef.current) return;
+
+    try {
+      if (isPlaying) {
+        safePause(); // 🔥 safePause 사용
+        setIsPlaying(false);
+        triggerOverlay(false);
+      } else {
+        hasCalledPauseRef.current = false; // play 시 플래그 리셋
+        hasPlayedOnceRef.current = true; // 🔥 수동 재생도 기록
+        player?.play();
+        setIsPlaying(true);
+        triggerOverlay(true);
+      }
+    } catch (error) {
+      console.warn('Toggle play error:', error);
     }
-    setIsPlaying(!isPlaying);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying, safePause, player, triggerOverlay]); // 🔥 triggerOverlay 의존성 추가
 
   const handleToggleMute = () => {
     player.muted = !isMuted;
     setIsMuted(!isMuted);
   };
+
+  // 🔥 언마운트 시 정리 (ShortItemComponent 방식)
+  useEffect(() => {
+    return () => {
+      // 🔥 cleanup 플래그 설정
+      isCleaningUpRef.current = true;
+      isMountedRef.current = false;
+
+      // 애니메이션 정리
+      if (overlayAnimationRef.current) {
+        overlayAnimationRef.current.stop();
+      }
+
+      // 🔥 safePause 사용 (중복 방지)
+      safePause();
+    };
+  }, [safePause]);
 
   return (
     <View style={videoStyles.container}>
@@ -198,6 +328,17 @@ const TapPauseVideo = ({ videoUri, isVisible }: { videoUri: string; isVisible?: 
         activeOpacity={1}
         style={videoStyles.touchOverlay}
       />
+      {showOverlayIcon && (
+        <Animated.View style={[videoStyles.overlay, { opacity: overlayOpacity }]}>
+          <View style={videoStyles.overlayIcon}>
+            {overlayIsPlaying ? (
+              <PlayIcon size={48} color={COLORS.WHITE} filled />
+            ) : (
+              <PauseIcon size={48} color={COLORS.WHITE} filled />
+            )}
+          </View>
+        </Animated.View>
+      )}
     </View>
   );
 };
@@ -217,101 +358,6 @@ const formatTimeAgo = (dateString: string): string => {
   }
 };
 
-// Enhanced VideoBlock 컴포넌트
-interface EnhancedVideoBlockProps {
-  videoUri: string;
-  thumbnailUri?: string;  // 서버에서 제공한 썸네일 URL
-  feedId: number;
-  styles: any;
-  isVisible?: boolean;
-}
-
-const EnhancedVideoBlock = React.memo(({
-  videoUri,
-  thumbnailUri: serverThumbnailUri,
-  feedId,
-  styles,
-  isVisible = true
-}: EnhancedVideoBlockProps) => {
-  const [thumbnailUri, setThumbnailUri] = useState<string | null>(serverThumbnailUri || null);
-  const [isPlayerReady, setIsPlayerReady] = useState(false);
-  const playerRef = useRef<any>(null);
-
-  const videoSource = useMemo<VideoSource>(() => ({
-    uri: videoUri,
-    useCaching: true,
-    headers: Platform.OS === 'ios' && videoUri.includes('.m3u8') ? undefined : {}
-  }), [videoUri]);
-
-  useEffect(() => {
-    // 서버 썸네일이 있으면 즉시 사용
-    if (serverThumbnailUri) {
-      setThumbnailUri(serverThumbnailUri);
-      return;
-    }
-
-    // 서버 썸네일이 없으면 클라이언트에서 생성 (폴백)
-    const preloadThumbnail = async () => {
-      try {
-        const thumbnail = await getThumbnailAsync(videoUri, {
-          time: 0.0,
-          quality: 0.5
-        });
-        setThumbnailUri(thumbnail.uri);
-      } catch (error) {
-        console.warn('썸네일 생성 실패:', error);
-      }
-    };
-
-    preloadThumbnail();
-  }, [videoUri, serverThumbnailUri]);
-
-  const player = useVideoPlayer(videoSource, player => {
-    player.loop = true;
-    player.muted = true;
-    if (isVisible) {
-      player.play();
-    }
-    setIsPlayerReady(true);
-    playerRef.current = player;
-  });
-
-  useEffect(() => {
-    if (!player || !isPlayerReady) return;
-
-    if (isVisible && player.playing === false) {
-      player.play();
-    } else if (!isVisible && player.playing === true) {
-      player.pause();
-    }
-  }, [isVisible, player, isPlayerReady]);
-
-  return (
-    <View style={styles.videoContainer}>
-      {!isPlayerReady && thumbnailUri && (
-        <Image
-          source={{ uri: thumbnailUri }}
-          style={styles.mainImage}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-        />
-      )}
-
-      <VideoView
-        player={player}
-        style={styles.mainImage}
-        nativeControls={false}
-        contentFit="contain"
-        surfaceType={Platform.OS === 'android' ? 'textureView' : 'surfaceView'}
-        onFirstFrameRender={() => setThumbnailUri(null)}
-      />
-    </View>
-  );
-}, (prevProps, nextProps) => {
-  return prevProps.feedId === nextProps.feedId &&
-         prevProps.videoUri === nextProps.videoUri &&
-         prevProps.isVisible === nextProps.isVisible;
-});
 
 function FeedCard({
   feed,
@@ -320,7 +366,8 @@ function FeedCard({
   onBookmarkPress,
   onUserPress,
   onMenuPress,
-  isVisible = true
+  isVisible = true,
+  isRecommended = false
 }: FeedCardProps) {
   const { colors } = useThemeStore();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -461,6 +508,9 @@ function FeedCard({
           />
           <View style={styles.userInfo}>
             <Text style={styles.nickname}>{feed.user.nickname}</Text>
+            {isRecommended && (
+              <Text style={styles.recommendedText}>추천 피드</Text>
+            )}
           </View>
         </TouchableOpacity>
 
@@ -517,11 +567,8 @@ function FeedCard({
                     </Text>
                   )}
                   {block.type === 'video' ? (
-                    <EnhancedVideoBlock
+                    <TapPauseVideo
                       videoUri={block.value}
-                      thumbnailUri={block.thumbnail_path}
-                      feedId={feed.id}
-                      styles={styles}
                       isVisible={isVisible && currentPage === index}
                     />
                   ) : (
@@ -549,7 +596,8 @@ function FeedCard({
               index={index}
               totalPages={mediaBlocks.length}
               scrollX={scrollX}
-              colors={colors}
+              activeColor={colors.PRIMARY}
+              inactiveColor={colors.GRAY_400}
             />
           ))}
         </View>
@@ -678,6 +726,12 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   location: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     color: colors.GRAY_600,
+    marginTop: 2,
+  },
+  recommendedText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.PRIMARY,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     marginTop: 2,
   },
   imageContainer: {
@@ -818,6 +872,25 @@ const videoStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 20,
+  },
+  overlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    pointerEvents: 'box-none',
+    zIndex: 15,
+  },
+  overlayIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

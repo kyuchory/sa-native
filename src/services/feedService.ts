@@ -2,6 +2,7 @@ import { apiClient } from './apiClient';
 import {
   FeedListApiResponse,
   FeedListResponse,
+  FeedListItem,
   CreateFeedRequest,
   CreateFeedApiResponse,
   CreateFeedWithFilesApiResponse,
@@ -252,7 +253,28 @@ export class FeedService {
     }
   }
 
+  // 랜덤 인기 피드 조회
+  static async getRandomFeed(excludeIds: number[] = []): Promise<FeedListItem | null> {
+    try {
+      const queryParams = new URLSearchParams();
 
+      if (excludeIds.length > 0) {
+        queryParams.append('exclude_ids', excludeIds.join(','));
+      }
 
+      const queryString = queryParams.toString();
+      const url = queryString ? `/feeds/random?${queryString}` : '/feeds/random';
 
+      const response = await apiClient.get<{
+        code: number;
+        message: string;
+        data: FeedListItem | null;
+      }>(url);
+
+      return response.data;
+    } catch (error) {
+      console.error('랜덤 인기 피드 조회 실패:', error);
+      throw error;
+    }
+  }
 }
