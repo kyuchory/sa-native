@@ -2,7 +2,6 @@ import { apiClient } from './apiClient';
 import type {
   CreatePostRequest,
   CreatePostResponse,
-  CategoriesResponse,
   Category,
   PostDetailResponse,
   PostDetail,

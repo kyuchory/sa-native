@@ -12,6 +12,7 @@ export * from './notificationService';
 export * from './notificationSocketService';
 export * from './postService';
 export * from './profileService';
+export * from './reportService';
 export * from './searchService';
 export * from './socketService';
 export * from './storyService';

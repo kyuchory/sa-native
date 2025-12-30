@@ -38,12 +38,15 @@ import { ReplyInput } from '../components/ReplyInput';
 import { CommentEditInput } from '../components/CommentEditInput';
 import MenuActionSheet from '../components/MenuActionSheet';
 import CustomAlertModal from '../components/CustomAlertModal';
+import ReportModal from '../components/ReportModal';
 import { MenuIcon, ReportIcon, EditIcon, DeleteIcon, MuteIcon, UnmuteIcon } from '../components/CommonIcons';
 
 import { Comment } from '../types/post';
+import { ReportTargetType } from '../types/report';
 import { useAuthStore } from '../stores/authStore';
 import usePostStore from '../stores/postStore';
 import useProfileStore from '../stores/profileStore';
+import { ReportService } from '../services/reportService';
 import { useNetworkState, shouldAutoPlayVideo } from '../hooks/useNetworkState';
 import { useVideoSettingsStore } from '../stores/videoSettingsStore';
 
@@ -265,6 +268,9 @@ export default function PostDetailScreen() {
 
   // Custom Alert Modal 상태
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
+
+  // 신고 모달 상태
+  const [reportModalVisible, setReportModalVisible] = useState(false);
 
   // ImageViewerModal 상태
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
@@ -599,6 +605,29 @@ export default function PostDetailScreen() {
         }
       ]
     });
+  };
+
+  // 신고 제출 핸들러
+  const handleReportSubmit = async (reportData: any) => {
+    try {
+      await ReportService.createReport({
+        target_type: reportData.targetType,
+        target_id: reportData.targetId,
+        category: reportData.category,
+        reason: reportData.reason,
+      });
+
+      // 성공 메시지 표시
+      setAlertModal({
+        visible: true,
+        title: '신고 완료',
+        message: '신고가 접수되었습니다. 검토 후 조치하겠습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
+    } catch (error) {
+      // 에러는 ReportModal 내부에서 처리됨
+      throw error;
+    }
   };
 
   // 게시물 삭제
@@ -953,30 +982,7 @@ export default function PostDetailScreen() {
               color: colors.ERROR,
               onPress: () => {
                 setMenuActionSheetVisible(false);
-                setAlertModal({
-                  visible: true,
-                  title: '게시물 신고',
-                  message: '이 게시물을 신고하시겠습니까?',
-                  buttons: [
-                    {
-                      text: '취소',
-                      style: 'cancel',
-                      onPress: () => setAlertModal(null)
-                    },
-                    {
-                      text: '신고',
-                      style: 'destructive',
-                      onPress: () => {
-                        setAlertModal({
-                          visible: true,
-                          title: '신고 완료',
-                          message: '게시물이 신고되었습니다.',
-                          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
-                        });
-                      }
-                    }
-                  ]
-                });
+                setReportModalVisible(true);
               },
             },
           ]}
@@ -1000,6 +1006,15 @@ export default function PostDetailScreen() {
           initialIndex={imageViewerInitialIndex}
           title={post.title}
           onClose={() => setIsImageViewerVisible(false)}
+        />
+
+        {/* 신고 모달 */}
+        <ReportModal
+          visible={reportModalVisible}
+          targetType={ReportTargetType.POST}
+          targetId={postId}
+          onSubmit={handleReportSubmit}
+          onClose={() => setReportModalVisible(false)}
         />
 
       </View>

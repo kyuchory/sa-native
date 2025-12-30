@@ -19,10 +19,13 @@ import { useThemeStore } from '../stores/themeStore';
 import useProfileStore from '../stores/profileStore';
 import { AuthStackParamList } from '../types/navigation';
 import { ShortItem, RecordShortViewRequest } from '../types/cut';
+import { ReportTargetType } from '../types/report';
 import { CutService } from '../services/cutService';
+import { ReportService } from '../services/reportService';
 import CutCommentActionSheet from '../components/CutCommentActionSheet';
 import { ShortItemComponent } from '../components/ShortItemComponent';
 import MenuActionSheet from '../components/MenuActionSheet';
+import ReportModal from '../components/ReportModal';
 
 // Components
 import {
@@ -57,6 +60,7 @@ export default function CutDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [commentSheetVisible, setCommentSheetVisible] = useState(false);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // 쇼츠 상세 정보 조회
@@ -117,6 +121,29 @@ export default function CutDetailScreen() {
     setMenuActionSheetVisible(true);
   }, []);
 
+  // 신고 제출 핸들러
+  const handleReportSubmit = async (reportData: any) => {
+    try {
+      await ReportService.createReport({
+        target_type: reportData.targetType,
+        target_id: reportData.targetId,
+        category: reportData.category,
+        reason: reportData.reason,
+      });
+
+      // 성공 메시지 표시
+      setAlertModal({
+        visible: true,
+        title: '신고 완료',
+        message: '신고가 접수되었습니다. 검토 후 조치하겠습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
+    } catch (error) {
+      // 에러는 ReportModal 내부에서 처리됨
+      throw error;
+    }
+  };
+
   // 컷 삭제 핸들러
   const handleDeleteCut = useCallback(async () => {
     if (!short) return;
@@ -174,30 +201,7 @@ export default function CutDetailScreen() {
   // 컷 신고 핸들러
   const handleReportCut = useCallback(() => {
     setMenuActionSheetVisible(false);
-    setAlertModal({
-      visible: true,
-      title: '컷츠 신고',
-      message: '이 컷츠를 신고하시겠습니까?',
-      buttons: [
-        {
-          text: '취소',
-          style: 'cancel',
-          onPress: () => setAlertModal(null)
-        },
-        {
-          text: '신고',
-          style: 'destructive',
-          onPress: () => {
-            setAlertModal({
-              visible: true,
-              title: '신고 완료',
-              message: '컷츠가 신고되었습니다.',
-              buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
-            });
-          }
-        }
-      ]
-    });
+    setReportModalVisible(true);
   }, []);
 
   // 메뉴 액션 배열 (동적 생성)
@@ -363,6 +367,15 @@ export default function CutDetailScreen() {
           onClose={() => setAlertModal(null)}
         />
       )}
+
+      {/* 신고 모달 */}
+      <ReportModal
+        visible={reportModalVisible}
+        targetType={ReportTargetType.SHORT}
+        targetId={shortId}
+        onSubmit={handleReportSubmit}
+        onClose={() => setReportModalVisible(false)}
+      />
     </View>
   );
 }

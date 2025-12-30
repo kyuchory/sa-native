@@ -20,6 +20,7 @@ import UserAvatar from '../components/UserAvatar';
 import { CommentItem, FeedDetailResponse } from '../types/feed';
 import { AuthStackParamList } from '../types/navigation';
 import MenuActionSheet from '../components/MenuActionSheet';
+import ReportModal from '../components/ReportModal';
 import { MenuIcon, EditIcon, DeleteIcon, ReportIcon, MuteIcon, UnmuteIcon } from '../components/CommonIcons';
 
 // 아이콘 imports
@@ -27,6 +28,8 @@ import { HeartIcon, CommentIcon, BookmarkIcon } from '../components/FeedCardIcon
 
 // 서비스 imports
 import { FeedService } from '../services/feedService';
+import { ReportTargetType } from '../types/report';
+import { ReportService } from '../services/reportService';
 import useFeedStore from '../stores/feedStore';
 import useProfileStore from '../stores/profileStore';
 import { useNetworkState, shouldAutoPlayVideo } from '../hooks/useNetworkState';
@@ -294,6 +297,9 @@ export default function FeedDetailScreen() {
 
   // Custom Alert Modal 상태
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
+
+  // 신고 모달 상태
+  const [reportModalVisible, setReportModalVisible] = useState(false);
 
   // 좋아요/북마크 로딩 상태
   const [isFeedLikeLoading, setIsFeedLikeLoading] = useState(false);
@@ -592,6 +598,29 @@ export default function FeedDetailScreen() {
       console.error('댓글 수정 실패:', error);
     } finally {
       setIsCommentLoading(false);
+    }
+  };
+
+  // 신고 제출 핸들러
+  const handleReportSubmit = async (reportData: any) => {
+    try {
+      await ReportService.createReport({
+        target_type: reportData.targetType,
+        target_id: reportData.targetId,
+        category: reportData.category,
+        reason: reportData.reason,
+      });
+
+      // 성공 메시지 표시
+      setAlertModal({
+        visible: true,
+        title: '신고 완료',
+        message: '신고가 접수되었습니다. 검토 후 조치하겠습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
+    } catch (error) {
+      // 에러는 ReportModal 내부에서 처리됨
+      throw error;
     }
   };
 
@@ -998,30 +1027,7 @@ export default function FeedDetailScreen() {
             color: colors.ERROR,
             onPress: () => {
               setMenuActionSheetVisible(false);
-              setAlertModal({
-                visible: true,
-                title: '피드 신고',
-                message: '이 피드를 신고하시겠습니까?',
-                buttons: [
-                  {
-                    text: '취소',
-                    style: 'cancel',
-                    onPress: () => setAlertModal(null)
-                  },
-                  {
-                    text: '신고',
-                    style: 'destructive',
-                    onPress: () => {
-                      setAlertModal({
-                        visible: true,
-                        title: '신고 완료',
-                        message: '피드가 신고되었습니다.',
-                        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
-                      });
-                    }
-                  }
-                ]
-              });
+              setReportModalVisible(true);
             },
           },
         ]}
@@ -1037,6 +1043,15 @@ export default function FeedDetailScreen() {
           onClose={() => setAlertModal(null)}
         />
       )}
+
+      {/* 신고 모달 */}
+      <ReportModal
+        visible={reportModalVisible}
+        targetType={ReportTargetType.FEED_POST}
+        targetId={feedId}
+        onSubmit={handleReportSubmit}
+        onClose={() => setReportModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }

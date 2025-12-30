@@ -22,11 +22,14 @@ import { useThemeStore } from '../stores/themeStore';
 import useProfileStore from '../stores/profileStore';
 import { AuthStackParamList } from '../types/navigation';
 import { ShortItem, RecordShortViewRequest } from '../types/cut';
+import { ReportTargetType } from '../types/report';
 import { CutService } from '../services/cutService';
+import { ReportService } from '../services/reportService';
 import CutCommentActionSheet from '../components/CutCommentActionSheet';
 import { ShortItemComponent } from '../components/ShortItemComponent';
 import { ShortItemAdComponent } from '../components/ShortItemAdComponent';
 import MenuActionSheet from '../components/MenuActionSheet';
+import ReportModal from '../components/ReportModal';
 import { DeleteIcon, ReportIcon } from '../components/CommonIcons';
 import CustomAlertModal from '../components/CustomAlertModal';
 
@@ -64,6 +67,7 @@ export default function CutScreen() {
   const [commentSheetVisible, setCommentSheetVisible] = useState(false);
   const [selectedShort, setSelectedShort] = useState<ShortItem | null>(null);
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
   
   // 🔥 리프레시 키 추가 - 리프레시 시마다 변경하여 컴포넌트 강제 재마운트
@@ -285,6 +289,29 @@ export default function CutScreen() {
     setMenuActionSheetVisible(true);
   }, []);
 
+  // 신고 제출 핸들러
+  const handleReportSubmit = async (reportData: any) => {
+    try {
+      await ReportService.createReport({
+        target_type: reportData.targetType,
+        target_id: reportData.targetId,
+        category: reportData.category,
+        reason: reportData.reason,
+      });
+
+      // 성공 메시지 표시
+      setAlertModal({
+        visible: true,
+        title: '신고 완료',
+        message: '신고가 접수되었습니다. 검토 후 조치하겠습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
+    } catch (error) {
+      // 에러는 ReportModal 내부에서 처리됨
+      throw error;
+    }
+  };
+
   const handleDeleteCut = useCallback(async () => {
     const currentShort = shorts[currentIndex];
     if (!currentShort) return;
@@ -343,30 +370,7 @@ export default function CutScreen() {
 
   const handleReportCut = useCallback(() => {
     setMenuActionSheetVisible(false);
-    setAlertModal({
-      visible: true,
-      title: '컷츠 신고',
-      message: '이 컷을 신고하시겠습니까?',
-      buttons: [
-        {
-          text: '취소',
-          style: 'cancel',
-          onPress: () => setAlertModal(null)
-        },
-        {
-          text: '신고',
-          style: 'destructive',
-          onPress: () => {
-            setAlertModal({
-              visible: true,
-              title: '신고 완료',
-              message: '컷이 신고되었습니다.',
-              buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
-            });
-          }
-        }
-      ]
-    });
+    setReportModalVisible(true);
   }, []);
 
   const menuActions = useCallback(() => {
@@ -642,6 +646,15 @@ export default function CutScreen() {
           onClose={() => setAlertModal(null)}
         />
       )}
+
+      {/* 신고 모달 */}
+      <ReportModal
+        visible={reportModalVisible}
+        targetType={ReportTargetType.SHORT}
+        targetId={shorts[currentIndex]?.id || 0}
+        onSubmit={handleReportSubmit}
+        onClose={() => setReportModalVisible(false)}
+      />
     </View>
   );
 }

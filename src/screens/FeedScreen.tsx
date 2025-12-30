@@ -10,6 +10,7 @@ import useProfileStore from '../stores/profileStore';
 import useStoryStore from '../stores/storyStore';
 
 import CustomAlertModal from '../components/CustomAlertModal';
+import ReportModal from '../components/ReportModal';
 import CutCommentActionSheet from '../components/CutCommentActionSheet';
 
 // 컴포넌트 imports
@@ -26,8 +27,10 @@ import { EditIcon, DeleteIcon, ReportIcon } from '../components/CommonIcons';
 // 데이터 imports
 import { FeedListItem } from '../types/feed';
 import { ShortItem } from '../types/cut';
+import { ReportTargetType } from '../types/report';
 import { FeedService } from '../services/feedService';
 import { CutService } from '../services/cutService';
+import { ReportService } from '../services/reportService';
 
 // AdMob imports
 import { NativeAd, TestIds } from 'react-native-google-mobile-ads';
@@ -78,6 +81,10 @@ export default function FeedScreen() {
 
   // Custom Alert Modal 상태
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
+
+  // 신고 모달 상태
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{type: ReportTargetType, id: number} | null>(null);
 
   // feeds 참조로 viewability 핸들러 최적화
   const feedsRef = useRef<FeedListItem[]>([]);
@@ -441,6 +448,36 @@ export default function FeedScreen() {
     navigation.navigate('UserProfile', { userId: String(userId) });
   };
 
+  // 신고 제출 핸들러
+  const handleReportSubmit = async (reportData: any) => {
+    try {
+      await ReportService.createReport({
+        target_type: reportData.targetType,
+        target_id: reportData.targetId,
+        category: reportData.category,
+        reason: reportData.reason,
+      });
+
+      // 성공 메시지 표시
+      setAlertModal({
+        visible: true,
+        title: '신고 완료',
+        message: '신고가 접수되었습니다. 검토 후 조치하겠습니다.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
+    } catch (error) {
+      // 에러는 ReportModal 내부에서 처리됨
+      throw error;
+    }
+  };
+
+  // 신고 메뉴 핸들러
+  const handleReportPress = (targetType: ReportTargetType, targetId: number) => {
+    setReportTarget({ type: targetType, id: targetId });
+    setReportModalVisible(true);
+    setMenuActionSheetVisible(false);
+  };
+
 
 
   const handleMenuPress = (feed: FeedListItem) => {
@@ -743,31 +780,9 @@ export default function FeedScreen() {
             icon: <ReportIcon size={20} color={colors.ERROR} />,
             color: colors.ERROR,
             onPress: () => {
-              setMenuActionSheetVisible(false);
-              setAlertModal({
-                visible: true,
-                title: '피드 신고',
-                message: '이 피드를 신고하시겠습니까?',
-                buttons: [
-                  {
-                    text: '취소',
-                    style: 'cancel',
-                    onPress: () => setAlertModal(null)
-                  },
-                  {
-                    text: '신고',
-                    style: 'destructive',
-                    onPress: () => {
-                      setAlertModal({
-                        visible: true,
-                        title: '신고 완료',
-                        message: '피드가 신고되었습니다.',
-                        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
-                      });
-                    }
-                  }
-                ]
-              });
+              if (selectedFeed) {
+                handleReportPress(ReportTargetType.FEED_POST, selectedFeed.id);
+              }
             },
           },
         ]}
@@ -810,6 +825,20 @@ export default function FeedScreen() {
           message={alertModal.message}
           buttons={alertModal.buttons}
           onClose={() => setAlertModal(null)}
+        />
+      )}
+
+      {/* 신고 모달 */}
+      {reportTarget && (
+        <ReportModal
+          visible={reportModalVisible}
+          targetType={reportTarget.type}
+          targetId={reportTarget.id}
+          onSubmit={handleReportSubmit}
+          onClose={() => {
+            setReportModalVisible(false);
+            setReportTarget(null);
+          }}
         />
       )}
     </View>
