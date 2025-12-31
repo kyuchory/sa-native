@@ -41,10 +41,11 @@ export type SearchPagination = {
   has_next: boolean;
 };
 
-// 게시글 검색 결과 아이템
+// 게시글 검색 결과 아이템 (PostListItem과 동일한 구조로 통일)
 export interface PostSearchResult {
   id: number;
   title: string;
+  animal_type: import('./post').AnimalType;
   content: string;
   created_at: string;
   user: {
@@ -62,9 +63,10 @@ export interface PostSearchResult {
   };
   like_count: number;
   comment_count: number;
+  bookmark_count: number;
   preview_image: string | null;
-  is_liked?: boolean;
-  is_bookmarked?: boolean;
+  is_liked: boolean;
+  is_bookmarked: boolean;
 }
 
 // 게시글 검색 응답

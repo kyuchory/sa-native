@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { SPACING, BORDER_RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,7 +7,7 @@ import { useThemeStore } from '../stores/themeStore';
 import { SearchInput, SearchInputRef } from '../components';
 import PeopleTab from '../components/PeopleTab';
 import FeedTab, { FeedItem } from '../components/FeedTab';
-import PostTab from '../components/PostTab';
+import PostCard from '../components/PostCard';
 import { SearchService } from '../services/searchService';
 import { UserSearchResult, PostSearchResult, FeedSearchResult } from '../types/search';
 import { AuthStackParamList } from '../types/navigation';
@@ -211,8 +211,30 @@ export default function SearchScreen() {
                 <View style={styles.errorContainer}>
                   <Text style={styles.errorText}>{searchError}</Text>
                 </View>
+              ) : postSearchResults.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>게시글이 없습니다.</Text>
+                </View>
               ) : (
-                <PostTab data={postSearchResults} onItemPress={handleItemPress} />
+                <FlatList
+                  data={postSearchResults}
+                  renderItem={({ item }) => (
+                    <PostCard
+                      post={item}
+                      onPress={() => handleItemPress(item)}
+                      onCommentPress={() => {
+                        // TODO: 댓글 화면으로 이동
+                        console.log('댓글 화면으로 이동:', item.id);
+                      }}
+                      onAuthorPress={() => {
+                        navigation.navigate('UserProfile', { userId: item.user.id.toString() });
+                      }}
+                    />
+                  )}
+                  keyExtractor={(item) => item.id.toString()}
+                  contentContainerStyle={styles.listContent}
+                  showsVerticalScrollIndicator={false}
+                />
               )
             )}
 
@@ -355,6 +377,23 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   errorText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     color: colors.ERROR,
+    textAlign: 'center',
+  },
+
+  // 리스트 및 빈 상태
+  listContent: {
+    paddingVertical: SPACING.SM,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SPACING.XXL,
+    marginHorizontal: SPACING.MD,
+  },
+  emptyText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
     textAlign: 'center',
   },
 });
