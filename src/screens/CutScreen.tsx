@@ -495,7 +495,6 @@ export default function CutScreen() {
           setContainerHeight(height);
         }}
       >
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.PRIMARY} />
           <Text style={styles.loadingText}>컷츠 불러오는 중...</Text>
@@ -514,7 +513,6 @@ export default function CutScreen() {
           setContainerHeight(height);
         }}
       >
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>🎬</Text>
           <Text style={styles.errorMessage}>{error}</Text>
@@ -536,8 +534,6 @@ export default function CutScreen() {
           setContainerHeight(height);
         }}
       >
-        <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleGoBack} activeOpacity={0.8}>
             <BackIcon size={24} color={colors.GRAY_900} />
@@ -568,8 +564,6 @@ export default function CutScreen() {
         setContainerHeight(height);
       }}
     >
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleGoBack} activeOpacity={0.8}>
           <BackIcon size={24} color={COLORS.WHITE} />

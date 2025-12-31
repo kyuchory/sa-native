@@ -269,7 +269,6 @@ export default function CutDetailScreen() {
           setContainerHeight(height);
         }}
       >
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>🎬</Text>
           <Text style={styles.errorMessage}>{error}</Text>
@@ -288,7 +287,6 @@ export default function CutDetailScreen() {
         const { height } = e.nativeEvent.layout;
         setContainerHeight(height);
       }}>
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleGoBack} activeOpacity={0.8}>
             <BackIcon size={24} color={COLORS.WHITE} />
@@ -313,8 +311,6 @@ export default function CutDetailScreen() {
         setContainerHeight(height);
       }}
     >
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleGoBack} activeOpacity={0.8}>
           <BackIcon size={24} color={COLORS.WHITE} />

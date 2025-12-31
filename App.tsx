@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
-import { StatusBar, useColorScheme, Platform } from 'react-native';
+import { StatusBar, useColorScheme, Platform, StatusBarStyle } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useNavigationContainerRef } from '@react-navigation/native';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import mobileAds from 'react-native-google-mobile-ads';
 import AuthNavigator from './src/navigation/AuthNavigator';
@@ -11,9 +12,16 @@ import { useAuthStore } from './src/stores/authStore';
 export default function App() {
   const { setSystemColorScheme, themeMode } = useThemeStore();
   const systemColorScheme = useColorScheme();
+  const [currentRoute, setCurrentRoute] = React.useState<string>('');
 
-  // StatusBar 스타일을 실제 모드와 시스템 설정에 따라 결정
-  const statusBarStyle = useMemo(() => {
+  // StatusBar 스타일을 결정 (배경색은 헤더가 있어서 투명 고정)
+  const statusBarStyle: StatusBarStyle = useMemo(() => {
+    // 영상 재생 화면에서는 강제 light-content (검은 배경 때문)
+    const forceLightScreens = ['CutTab', 'CutDetail', 'CutPreview'];
+    if (forceLightScreens.includes(currentRoute)) {
+      return 'light-content';
+    }
+
     if (themeMode === 'system') {
       // 시스템 모드: useColorScheme 직접 사용 (타이밍 문제 해결)
       return systemColorScheme === 'dark' ? 'light-content' : 'dark-content';
@@ -21,7 +29,7 @@ export default function App() {
       // 수동 모드: themeMode에 따라 결정
       return themeMode === 'dark' ? 'light-content' : 'dark-content';
     }
-  }, [themeMode, systemColorScheme]);
+  }, [themeMode, systemColorScheme, currentRoute]);
 
   // 앱 시작 시 시스템 색상 스키마를 themeStore에 동기화
   useEffect(() => {
@@ -62,9 +70,22 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar
         barStyle={statusBarStyle}
-        backgroundColor="transparent" // iOS 무시, Android 투명
+        backgroundColor="transparent"
       />
-      <AuthNavigator />
+      <AuthNavigator onStateChange={(state) => {
+        if (state) {
+          const route = state.routes[state.index];
+          if (route) {
+            // 탭 네비게이터의 경우 중첩된 구조 처리
+            if (route.state) {
+              const tabRoute = route.state.routes[route.state.index];
+              setCurrentRoute(tabRoute?.name || '');
+            } else {
+              setCurrentRoute(route.name);
+            }
+          }
+        }
+      }} />
     </SafeAreaProvider>
   );
 }

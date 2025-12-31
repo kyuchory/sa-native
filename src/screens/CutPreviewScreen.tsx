@@ -235,8 +235,6 @@ export default function CutPreviewScreen({ route }: { route: CutPreviewRouteProp
         setContainerHeight(height);
       }}
     >
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-
       {/* Header - identical to CutScreen */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleGoBack} activeOpacity={0.8}>

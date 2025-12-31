@@ -72,7 +72,7 @@ import TabNavigator from './TabNavigator';
 
 const Stack = createStackNavigator<AuthStackParamList>();
 
-export default function AuthNavigator() {
+export default function AuthNavigator({ onStateChange }: { onStateChange?: (state: any) => void }) {
   const { isAuthenticated, tokens } = useAuthStore();
 
   const navigationRef = useRef<NavigationContainerRef<AuthStackParamList>>(null);
@@ -125,7 +125,7 @@ export default function AuthNavigator() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NotificationBanner />
-      <NavigationContainer ref={navigationRef}>
+      <NavigationContainer ref={navigationRef} onStateChange={onStateChange}>
         <Stack.Navigator
           screenOptions={{
             headerShown: false
