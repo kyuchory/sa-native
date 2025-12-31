@@ -53,8 +53,6 @@ export class PostService {
     page?: number;
   }): Promise<PostListResponse> {
     try {
-      console.log('📡 게시글 조회 파라미터:', params);
-
       const queryParams = new URLSearchParams();
 
       if (params?.categoryId) {
@@ -71,7 +69,6 @@ export class PostService {
       }
 
       const endpoint = `/posts${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      console.log('🌐 최종 API 엔드포인트:', endpoint);
 
       const response = await apiClient.get<ApiResponse<PostListResponse>>(endpoint);
 
