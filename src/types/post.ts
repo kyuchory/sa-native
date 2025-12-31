@@ -1,6 +1,20 @@
 // 게시물 작성 관련 타입 정의
 import { ApiResponse } from './api';
 
+// 동물 타입 enum
+export type AnimalType = 'dog' | 'cat' | 'small_pet' | 'bird' | 'reptile' | 'fish' | 'other';
+
+// 동물 타입 옵션
+export interface AnimalTypeOption {
+  value: AnimalType;
+  label: string;
+}
+
+// 동물 타입 목록 조회 응답
+export interface AnimalTypesResponse {
+  animal_types: AnimalTypeOption[];
+}
+
 // 콘텐츠 블록 타입
 export type ContentBlockType = 'text' | 'image' | 'video';
 
@@ -26,18 +40,23 @@ export interface ContentBlock {
 export interface Category {
   id: number;
   name: string;
+  description?: string;
+  sort_order: number;
   subCategories: SubCategory[];
 }
 
 export interface SubCategory {
   id: number;
   name: string;
+  description?: string;
+  sort_order: number;
 }
 
 // 게시물 작성 요청 데이터
 export interface CreatePostRequest {
   title: string;
   sub_category_id: number;
+  animal_type: AnimalType;
   content_blocks: Omit<ContentBlock, 'id'>[]; // 서버에는 id 제외하고 전송
   tags?: string[];
 }
@@ -45,11 +64,6 @@ export interface CreatePostRequest {
 // 게시물 작성 응답 데이터
 export interface CreatePostResponse {
   postId: number;
-}
-
-// 카테고리 조회 응답 데이터  
-export interface CategoriesResponse {
-  categories: Category[];
 }
 
 // 게시물 상세 조회 관련 타입
@@ -87,6 +101,7 @@ export interface PostTag {
 export interface PostDetail {
   id: number;
   title: string;
+  animal_type: AnimalType;
   created_at: string;
   updated_at: string;
   user: PostDetailUser;
@@ -176,6 +191,7 @@ export interface CommentLikeResponse {
 export interface PostListItem {
   id: number;
   title: string;
+  animal_type: AnimalType;
   content: string;
   created_at: string;
   user: {
@@ -217,6 +233,7 @@ export interface PostListResponse {
 export interface UpdatePostRequest {
   title?: string;
   sub_category_id?: number;
+  animal_type?: AnimalType;
   content_blocks?: Omit<ContentBlock, 'id'>[];
   tags?: string[];
 }
@@ -225,6 +242,7 @@ export interface UpdatePostRequest {
 export interface UpdatePostWithFilesRequest {
   title: string;
   sub_category_id: number;
+  animal_type: AnimalType;
   content_blocks: UpdatePostContentBlock[];
   tags?: string[];
 }
@@ -291,6 +309,7 @@ export type UpdatePostResponse = null;
 export interface BookmarkPostListItem {
   id: number;
   title: string;
+  animal_type: AnimalType;
   created_at: string;
   created_at_bookmark: string;
   user: {

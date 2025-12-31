@@ -7,6 +7,7 @@ import { EmptyHeartIcon, FilledHeartIcon } from './PostCardIcons';
 import { CommentIcon, BookmarkIcon } from './PostIcons';
 import { PostService } from '../services/postService';
 import { useThemeStore } from '../stores/themeStore';
+import usePostStore from '../stores/postStore';
 
 interface PostCardProps {
   post: PostListItem;
@@ -23,6 +24,7 @@ const PostCard = ({
   onAuthorPress
 }: PostCardProps) => {
   const { colors } = useThemeStore();
+  const { animalTypes } = usePostStore();
   const styles = createStyles(colors);
 
   // 로컬 상태 관리
@@ -140,6 +142,13 @@ const PostCard = ({
     return num.toString();
   }, []); // 빈 deps → 컴포넌트 생명주기 동안 동일한 함수 참조
 
+  // 동물 타입 라벨 가져오기 - useMemo 메모이제이션
+  const animalTypeLabel = useMemo(() => {
+    if (!post.animal_type || post.animal_type === 'other') return null;
+    const animalTypeOption = animalTypes.find(type => type.value === post.animal_type);
+    return animalTypeOption?.label || null;
+  }, [post.animal_type, animalTypes]);
+
   return (
     <TouchableOpacity
       style={styles.container}
@@ -182,9 +191,14 @@ const PostCard = ({
           </View>
         </View>
         <View style={styles.categoryInfo}>
-          <Text style={styles.categoryText}>
-            {post.sub_category.category.name} {'>'} {post.sub_category.name}
-          </Text>
+          <View style={styles.categoryContainer}>
+            <Text style={styles.categoryText}>
+             [ {post.sub_category.category.name} {'>'} {post.sub_category.name} ]
+            </Text>
+            {animalTypeLabel && (
+              <Text style={styles.animalTypeText}>[ {animalTypeLabel} ]</Text>
+            )}
+          </View>
         </View>
       </View>
 
@@ -292,6 +306,7 @@ export default React.memo(PostCard, (prevProps, nextProps) => {
     prevProps.post.id === nextProps.post.id &&
     prevProps.post.title === nextProps.post.title &&
     prevProps.post.content === nextProps.post.content &&
+    prevProps.post.animal_type === nextProps.post.animal_type &&
     prevProps.post.like_count === nextProps.post.like_count &&
     prevProps.post.bookmark_count === nextProps.post.bookmark_count &&
     prevProps.post.comment_count === nextProps.post.comment_count &&
@@ -361,9 +376,18 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  categoryContainer: {
+    alignItems: 'flex-end',
+  },
   categoryText: {
     fontSize: TYPOGRAPHY.SIZE.XS,
     color: colors.PRIMARY,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    marginBottom: 1,
+  },
+  animalTypeText: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    color: colors.SECONDARY || colors.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
 

@@ -25,6 +25,7 @@ import { ContentBlockComponent } from '../components/ContentBlocks';
 import { AddTextIcon, AddImageIcon, AddVideoIcon } from '../components/CommonIcons';
 import LoadingOverlay from '../components/LoadingOverlay';
 import CustomAlertModal from '../components/CustomAlertModal';
+import AnimalTypeSelector from '../components/AnimalTypeSelector';
 
 // Services
 import { PostService } from '../services/postService';
@@ -45,13 +46,14 @@ export default function CreatePostScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0);
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number>(0);
+  const [selectedAnimalType, setSelectedAnimalType] = useState<string>('other');
   const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // Zustand 스토어
-  const { setShouldRefreshPosts, videoEditResult, setVideoEditResult } = usePostStore();
+  const { setShouldRefreshPosts, videoEditResult, setVideoEditResult, animalTypes } = usePostStore();
   const { setShouldRefreshProfilePosts } = useProfileStore();
 
   // 컴포넌트 마운트 시 카테고리 로드 및 기본 텍스트 블록 추가
@@ -304,6 +306,7 @@ export default function CreatePostScreen() {
 
       formData.append('title', title.trim());
       formData.append('sub_category_id', selectedSubcategoryId.toString());
+      formData.append('animal_type', selectedAnimalType);
       formData.append('content_blocks', JSON.stringify(processedBlocks));
 
       // 미디어 파일들 추가
@@ -363,7 +366,7 @@ export default function CreatePostScreen() {
   };
 
   // 버튼 활성화 조건 계산
-  const isButtonEnabled = title.trim().length > 0 && selectedSubcategoryId > 0 && contentBlocks.some(block => block.value.trim());
+  const isButtonEnabled = title.trim().length > 0 && selectedSubcategoryId > 0 && selectedAnimalType && contentBlocks.some(block => block.value.trim());
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -429,6 +432,13 @@ export default function CreatePostScreen() {
             )}
           </View>
         </View>
+
+        {/* 동물 타입 선택 */}
+        <AnimalTypeSelector
+          selectedType={selectedAnimalType}
+          onTypeSelect={setSelectedAnimalType}
+          animalTypes={animalTypes}
+        />
 
         {/* 콘텐츠 블록들 */}
         <View style={styles.section}>
@@ -569,6 +579,52 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.GRAY_200,
     overflow: 'hidden' as const,
+  },
+
+  // 동물 타입 컨테이너
+  animalTypeContainer: {
+    backgroundColor: colors.WHITE,
+    borderRadius: BORDER_RADIUS.MD,
+    borderWidth: 1,
+    borderColor: colors.GRAY_200,
+    overflow: 'hidden' as const,
+  },
+  animalTypeDescription: {
+    paddingHorizontal: SPACING.MD,
+    paddingTop: SPACING.MD,
+    paddingBottom: SPACING.SM,
+  },
+  animalTypeDescriptionText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.REGULAR,
+    color: colors.GRAY_600,
+    lineHeight: TYPOGRAPHY.SIZE.MD + 4,
+    textAlign: 'center' as const,
+  },
+  animalTypeContent: {
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.SM,
+    gap: SPACING.SM,
+  },
+  animalTypeItem: {
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.SM,
+    borderRadius: BORDER_RADIUS.ROUND,
+    backgroundColor: colors.GRAY_100,
+    minWidth: 70,
+    alignItems: 'center' as const,
+  },
+  animalTypeItemActive: {
+    backgroundColor: colors.PRIMARY,
+  },
+  animalTypeText: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    color: colors.GRAY_700,
+  },
+  animalTypeTextActive: {
+    color: colors.WHITE,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
 
   // 콘텐츠 컨테이너

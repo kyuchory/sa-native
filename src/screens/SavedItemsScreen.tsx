@@ -118,6 +118,7 @@ export default function SavedItemsScreen() {
     return {
       id: bookmarkPost.id,
       title: bookmarkPost.title,
+      animal_type: bookmarkPost.animal_type,
       content: '북마크된 게시물입니다.', // 북마크 API에서 내용이 제공되지 않으므로 placeholder 사용
       created_at: bookmarkPost.created_at,
       user: bookmarkPost.user,

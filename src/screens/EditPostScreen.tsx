@@ -27,6 +27,7 @@ import { ContentBlockComponent } from '../components/ContentBlocks';
 import { AddTextIcon, AddImageIcon, AddVideoIcon } from '../components/CommonIcons';
 import LoadingOverlay from '../components/LoadingOverlay';
 import CustomAlertModal from '../components/CustomAlertModal';
+import AnimalTypeSelector from '../components/AnimalTypeSelector';
 
 // Services
 import { PostService } from '../services/postService';
@@ -46,7 +47,7 @@ export default function EditPostScreen() {
   const route = useRoute<EditPostRouteProp>();
   const navigation = useNavigation<EditPostNavigationProp>();
   const { colors } = useThemeStore();
-  const { setShouldRefreshPosts, videoEditResult, setVideoEditResult } = usePostStore(); // Zustand 스토어에서 액션 가져오기
+  const { setShouldRefreshPosts, videoEditResult, setVideoEditResult, animalTypes } = usePostStore(); // Zustand 스토어에서 액션 가져오기
   const { setShouldRefreshProfilePosts } = useProfileStore();
   const styles = createStyles(colors);
 
@@ -57,6 +58,7 @@ export default function EditPostScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0);
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number>(0);
+  const [selectedAnimalType, setSelectedAnimalType] = useState<string>('other');
   const [contentBlocks, setContentBlocks] = useState<EditContentBlock[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
@@ -77,6 +79,9 @@ export default function EditPostScreen() {
       // 카테고리 정보 설정
       setSelectedCategoryId(postData.sub_category.category.id);
       setSelectedSubcategoryId(postData.sub_category.id);
+
+      // 동물 타입 설정
+      setSelectedAnimalType(postData.animal_type);
 
       // 콘텐츠 블록 변환 - 각 블록마다 고유한 ID 생성 (서버에서 id 제공하지 않음)
       const baseTimestamp = Date.now(); // 모든 블록에 동일한 timestamp 사용
@@ -379,6 +384,7 @@ export default function EditPostScreen() {
 
       formData.append('title', title.trim());
       formData.append('sub_category_id', selectedSubcategoryId.toString());
+      formData.append('animal_type', selectedAnimalType);
       formData.append('content_blocks', JSON.stringify(processedBlocks));
 
 
@@ -518,6 +524,13 @@ export default function EditPostScreen() {
             )}
           </View>
         </View>
+
+        {/* 동물 타입 선택 */}
+        <AnimalTypeSelector
+          selectedType={selectedAnimalType}
+          onTypeSelect={setSelectedAnimalType}
+          animalTypes={animalTypes}
+        />
 
         {/* 콘텐츠 블록들 */}
         <View style={styles.section}>
@@ -707,6 +720,48 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+
+  // 동물 타입 스타일
+  animalTypeContainer: {
+    backgroundColor: colors.WHITE,
+    borderRadius: BORDER_RADIUS.MD,
+    borderWidth: 1,
+    borderColor: colors.GRAY_200,
+    padding: SPACING.MD,
+  },
+  animalTypeDescription: {
+    marginBottom: SPACING.MD,
+  },
+  animalTypeDescriptionText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.REGULAR,
+    color: colors.GRAY_600,
+    lineHeight: TYPOGRAPHY.SIZE.MD + 4,
+  },
+  animalTypeContent: {
+    gap: SPACING.SM,
+  },
+  animalTypeItem: {
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.SM,
+    borderRadius: BORDER_RADIUS.ROUND,
+    backgroundColor: colors.GRAY_100,
+    minWidth: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  animalTypeItemActive: {
+    backgroundColor: colors.PRIMARY,
+  },
+  animalTypeText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    color: colors.GRAY_600,
+  },
+  animalTypeTextActive: {
+    color: colors.WHITE,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
   addButton: {
     alignItems: 'center' as const,

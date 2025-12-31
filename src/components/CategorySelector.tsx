@@ -15,6 +15,32 @@ const HamburgerIcon = ({ size = 20, color = '#666' }: { size?: number; color?: s
   </View>
 );
 
+// 필터 삼각형 아이콘 컴포넌트 (SVG 스타일)
+const FilterChevronIcon = ({ size = 12, color = '#666', isOpen = false }: { size?: number; color?: string; isOpen?: boolean }) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <View
+      style={{
+        width: 0,
+        height: 0,
+        borderLeftWidth: size / 2,
+        borderRightWidth: size / 2,
+        borderLeftColor: 'transparent',
+        borderRightColor: 'transparent',
+        ...(isOpen
+          ? {
+              borderBottomWidth: size * 0.8,
+              borderBottomColor: color,
+            }
+          : {
+              borderTopWidth: size * 0.8,
+              borderTopColor: color,
+            }
+        ),
+      }}
+    />
+  </View>
+);
+
 export interface Subcategory {
   id: string;
   name: string;
@@ -28,6 +54,10 @@ interface CategorySelectorProps {
   onCategorySelect: (categoryId: number) => void;
   onSubcategorySelect: (subcategoryId: number) => void;
   onMenuPress?: () => void;
+  onFilterPress?: () => void;
+  selectedAnimalTypeFilter?: string | null;
+  isFilterOpen?: boolean;
+  animalTypes?: Array<{ value: string; label: string }>;
 }
 
 export default function CategorySelector({
@@ -37,10 +67,23 @@ export default function CategorySelector({
   onCategorySelect,
   onSubcategorySelect,
   onMenuPress,
+  onFilterPress,
+  selectedAnimalTypeFilter,
+  isFilterOpen,
+  animalTypes = [],
 }: CategorySelectorProps) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
   const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
+  const selectedSubcategory = selectedCategory?.subCategories.find(sub => sub.id === selectedSubcategoryId);
+
+  // 필터 버튼 텍스트 계산
+  const getFilterButtonText = () => {
+    if (!selectedAnimalTypeFilter) return '전체';
+
+    const selectedType = animalTypes.find(type => type.value === selectedAnimalTypeFilter);
+    return selectedType ? selectedType.label : '전체';
+  };
 
   // ScrollView ref 추가
   const categoryScrollRef = useRef<ScrollView>(null);
@@ -149,13 +192,36 @@ export default function CategorySelector({
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        {/* 필터 버튼 */}
+        {onFilterPress && (
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              selectedAnimalTypeFilter && styles.filterButtonActive
+            ]}
+            onPress={onFilterPress}
+          >
+            <Text style={[
+              styles.filterText,
+              selectedAnimalTypeFilter && styles.filterTextActive
+            ]}>
+              {getFilterButtonText()}
+            </Text>
+            <FilterChevronIcon
+              size={8}
+              color={selectedAnimalTypeFilter ? colors.PRIMARY : colors.GRAY_600}
+              isOpen={isFilterOpen}
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* 소분류 */}
       {selectedCategory && selectedCategory.subCategories.length > 0 && (
-        <ScrollView 
+        <ScrollView
           ref={subcategoryScrollRef}
-          horizontal 
+          horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.subcategoryRow}
           contentContainerStyle={styles.subcategoryContent}
@@ -217,6 +283,32 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   hamburgerButton: {
     paddingHorizontal: SPACING.MD,
     paddingVertical: SPACING.SM,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.SM,
+    paddingVertical: SPACING.XS,
+    borderRadius: BORDER_RADIUS.SM,
+    borderWidth: 1,
+    borderColor: colors.GRAY_300,
+    backgroundColor: colors.WHITE,
+    marginRight: SPACING.SM,
+    gap: SPACING.XS,
+    minWidth: 50,
+  },
+  filterButtonActive: {
+    borderColor: colors.PRIMARY,
+    backgroundColor: colors.GRAY_50,
+  },
+  filterText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+    color: colors.GRAY_600,
+  },
+  filterTextActive: {
+    color: colors.PRIMARY,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
   categoryScroll: {
     flex: 1,

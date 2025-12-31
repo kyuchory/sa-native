@@ -16,11 +16,24 @@ import type {
   UpdatePostRequest,
   UpdatePostResponse,
   BookmarkPostListResponse,
-  BookmarkPostListApiResponse
+  BookmarkPostListApiResponse,
+  AnimalTypesResponse,
+  AnimalTypeOption
 } from '../types/post';
 import type { ApiResponse } from '../types/api';
 
 export class PostService {
+  // 동물 타입 목록 조회
+  static async getAnimalTypes(): Promise<AnimalTypeOption[]> {
+    try {
+      const response = await apiClient.get<ApiResponse<AnimalTypesResponse>>('/posts/animal-types');
+      return response.data?.animal_types || [];
+    } catch (error) {
+      console.error('동물 타입 조회 실패:', error);
+      throw error;
+    }
+  }
+
   // 카테고리 목록 조회
   static async getCategories(): Promise<Category[]> {
     try {
@@ -36,24 +49,32 @@ export class PostService {
   static async getPosts(params?: {
     categoryId?: number;
     subCategoryId?: number;
+    animalType?: string;
     page?: number;
   }): Promise<PostListResponse> {
     try {
+      console.log('📡 게시글 조회 파라미터:', params);
+
       const queryParams = new URLSearchParams();
-      
+
       if (params?.categoryId) {
         queryParams.append('categoryId', params.categoryId.toString());
       }
       if (params?.subCategoryId) {
         queryParams.append('subCategoryId', params.subCategoryId.toString());
       }
+      if (params?.animalType) {
+        queryParams.append('animalType', params.animalType);
+      }
       if (params?.page) {
         queryParams.append('page', params.page.toString());
       }
 
       const endpoint = `/posts${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      console.log('🌐 최종 API 엔드포인트:', endpoint);
+
       const response = await apiClient.get<ApiResponse<PostListResponse>>(endpoint);
-      
+
       return response.data!;
     } catch (error) {
       console.error('게시글 목록 조회 실패:', error);

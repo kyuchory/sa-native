@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
+import type { AnimalTypeOption, AnimalType } from '../types/post';
 
 // 게시물 목록 리프레시 상태 인터페이스
 interface PostState {
@@ -8,6 +9,10 @@ interface PostState {
   // 선택된 카테고리/서브카테고리
   selectedCategoryId?: number;
   selectedSubcategoryId?: number;
+  // 동물 타입 목록
+  animalTypes: AnimalTypeOption[];
+  // 선택된 동물 타입 필터
+  selectedAnimalTypeFilter: AnimalType | null;
   // 비디오 편집 결과 (로컬 데이터)
   videoEditResult: {
     videoUri: string;
@@ -21,6 +26,8 @@ interface PostState {
   // 액션들
   setShouldRefreshPosts: (shouldRefresh: boolean) => void;
   setSelectedCategory: (categoryId?: number, subcategoryId?: number) => void;
+  setAnimalTypes: (types: AnimalTypeOption[]) => void;
+  setSelectedAnimalTypeFilter: (filter: AnimalType | null) => void;
   setVideoEditResult: (result: PostState['videoEditResult']) => void;
 }
 
@@ -31,6 +38,8 @@ const usePostStore = create<PostState>()(
     shouldRefreshPosts: false,
     selectedCategoryId: undefined,
     selectedSubcategoryId: undefined,
+    animalTypes: [],
+    selectedAnimalTypeFilter: null,
     videoEditResult: null,
 
     // 액션들
@@ -43,6 +52,12 @@ const usePostStore = create<PostState>()(
         selectedSubcategoryId,
         shouldRefreshPosts: false // 카테고리 변경 시에는 리프레시 false
       }),
+
+    setAnimalTypes: (animalTypes) =>
+      set({ animalTypes }),
+
+    setSelectedAnimalTypeFilter: (selectedAnimalTypeFilter) =>
+      set({ selectedAnimalTypeFilter }),
 
     setVideoEditResult: (videoEditResult) =>
       set({ videoEditResult }),

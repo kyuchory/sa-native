@@ -24,6 +24,7 @@ export default function CategoryPicker({
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
   const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
+  const selectedSubcategory = selectedCategory?.subCategories.find(sub => sub.id === selectedSubcategoryId);
 
   return (
     <View style={styles.container}>
@@ -114,6 +115,15 @@ export default function CategoryPicker({
           ))}
         </ScrollView>
       )}
+
+      {/* 서브카테고리 설명 */}
+      {selectedSubcategory && selectedSubcategory.description && (
+        <View style={styles.descriptionContainer}>
+          <Text style={styles.descriptionText}>
+            {selectedSubcategory.description}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -181,5 +191,17 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   subcategoryTextActive: {
     color: colors.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
+
+  // 설명 스타일
+  descriptionContainer: {
+    paddingHorizontal: SPACING.MD,
+    paddingBottom: SPACING.SM,
+  },
+  descriptionText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.REGULAR,
+    color: colors.GRAY_500,
+    lineHeight: TYPOGRAPHY.SIZE.MD + 4,
   },
 });

@@ -19,6 +19,7 @@ import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { AuthStackParamList } from '../types/navigation';
 import { PostDetail, PostDetailContentBlock, PostTag } from '../types/post';
 import { useThemeStore } from '../stores/themeStore';
+import usePostStore from '../stores/postStore';
 
 // Components
 import CommonHeader from '../components/CommonHeader';
@@ -44,7 +45,6 @@ import { MenuIcon, ReportIcon, EditIcon, DeleteIcon, MuteIcon, UnmuteIcon } from
 import { Comment } from '../types/post';
 import { ReportTargetType } from '../types/report';
 import { useAuthStore } from '../stores/authStore';
-import usePostStore from '../stores/postStore';
 import useProfileStore from '../stores/profileStore';
 import { ReportService } from '../services/reportService';
 import { useNetworkState, shouldAutoPlayVideo } from '../hooks/useNetworkState';
@@ -277,7 +277,7 @@ export default function PostDetailScreen() {
   const [imageViewerInitialIndex, setImageViewerInitialIndex] = useState(0);
 
   const { user } = useAuthStore();
-  const { setShouldRefreshPosts } = usePostStore();
+  const { setShouldRefreshPosts, animalTypes } = usePostStore();
   const { setShouldRefreshProfilePosts } = useProfileStore();
 
   // ✅ ImageViewer용 mediaItems - 이미지와 비디오 모두 포함
@@ -292,6 +292,13 @@ export default function PostDetailScreen() {
         thumbnailUrl: block.type === 'video' ? block.thumbnail_path : undefined,
       }));
   }, [post]);
+
+  // 동물 타입 라벨 가져오기
+  const animalTypeLabel = useMemo(() => {
+    if (!post?.animal_type || post.animal_type === 'other') return null;
+    const animalTypeOption = animalTypes.find(type => type.value === post.animal_type);
+    return animalTypeOption?.label || null;
+  }, [post?.animal_type, animalTypes]);
 
   useFocusEffect(
     useCallback(() => {
@@ -824,9 +831,17 @@ export default function PostDetailScreen() {
               </View>
             </TouchableOpacity>
             <View style={styles.categoryInfo}>
-              <Text style={styles.categoryText}>
-                {post.sub_category.category.name} {'>'} {post.sub_category.name}
-              </Text>
+              <View style={styles.metaRow}>
+                <Text style={styles.categoryText}>
+                  {post.sub_category.category.name} {'>'} {post.sub_category.name}
+                </Text>
+                {animalTypeLabel && (
+                  <>
+                    <Text style={styles.metaSeparator}> · </Text>
+                    <Text style={styles.animalTypeText}>{animalTypeLabel}</Text>
+                  </>
+                )}
+              </View>
             </View>
           </View>
 
@@ -1071,9 +1086,25 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   categoryInfo: {
     alignSelf: 'flex-start',
   },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+  },
   categoryText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     color: colors.PRIMARY,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
+  metaSeparator: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.GRAY_500,
+    fontWeight: TYPOGRAPHY.WEIGHT.REGULAR,
+    marginHorizontal: 2,
+  },
+  animalTypeText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.SECONDARY || colors.PRIMARY,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
   titleSection: {
