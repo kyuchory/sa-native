@@ -43,6 +43,7 @@ import {
 import { useThemeStore } from '../stores/themeStore';
 
 import { useAuthStore } from '../stores/authStore';
+import { useChatStore } from '../stores/chatStore';
 
 // Services
 import { ChatService } from '../services/chatService';
@@ -568,13 +569,17 @@ export default function ChatDetailScreen() {
 
   // Effects
   useEffect(() => {
-    // 읽음 처리
-    if (!isInitialLoading && unreadCount && unreadCount > 0 && user) {
-      ChatService.markAsRead(chatRoomId).catch(error => {
+    // 읽음 처리 (화면 진입 시 무조건)
+    if (!isInitialLoading && user && !didMarkReadRef.current) {
+      didMarkReadRef.current = true;
+      ChatService.markAsRead(chatRoomId).then(() => {
+        // 읽음 처리 성공 시 MainHeader가 채팅 unread count를 다시 로드하도록 플래그 설정
+        useChatStore.getState().setShouldLoadUnreadCount(true);
+      }).catch(error => {
         console.error('읽음 처리 실패:', error);
       });
     }
-  }, [isInitialLoading, unreadCount, chatRoomId, user]);
+  }, [isInitialLoading, chatRoomId, user]);
 
   // 타이핑 타이머 클린업
   useEffect(() => {
