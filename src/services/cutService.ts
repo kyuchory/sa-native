@@ -27,7 +27,7 @@ import type { ApiResponse } from '../types/api';
 // 컷(세로형 쇼츠) 관련 API 서비스
 export class CutService {
   // 컷츠 업로드
-  static async uploadShorts(shortData: ShortUploadRequest): Promise<ShortUploadResponse> {
+  static async uploadShorts(shortData: ShortUploadRequest, extraHeaders?: Record<string, string>): Promise<ShortUploadResponse> {
     try {
       const formData = new FormData();
 
@@ -78,7 +78,9 @@ export class CutService {
 
       const response = await apiClient.postFormData<ShortUploadApiResponse>(
         '/shorts',
-        formData
+        formData,
+        true,
+        extraHeaders
       );
 
       return response.data!;

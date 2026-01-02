@@ -91,11 +91,13 @@ export class PostService {
   }
 
   // 게시물 작성 (통합 파일 업로드)
-  static async createPostWithFiles(formData: FormData): Promise<CreatePostResponse> {
+  static async createPostWithFiles(formData: FormData, extraHeaders?: Record<string, string>): Promise<CreatePostResponse> {
     try {
       const response = await apiClient.postFormData<ApiResponse<CreatePostResponse>>(
         '/posts/create-with-files',
-        formData
+        formData,
+        true,
+        extraHeaders
       );
       return response.data!;
     } catch (error) {

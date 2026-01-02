@@ -64,8 +64,18 @@ export default function CutPreviewScreen({ route }: { route: CutPreviewRouteProp
     selectedCategories,
   } = route.params;
 
+  // UUID v4 생성 함수 (중복 요청 방지용)
+  const generateUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
   const [isUploading, setIsUploading] = useState(false);
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
+  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
 
   const [containerHeight, setContainerHeight] = useState<number | null>(null);
   const ITEM_HEIGHT = containerHeight ?? SCREEN_HEIGHT;
@@ -133,6 +143,13 @@ export default function CutPreviewScreen({ route }: { route: CutPreviewRouteProp
     try {
       setIsUploading(true);
 
+      // 게시 시도 단위 키 생성/유지 (없는 경우에만 생성)
+      let currentKey = idempotencyKey;
+      if (!currentKey) {
+        currentKey = generateUUID();
+        setIdempotencyKey(currentKey);
+      }
+
       const uploadData = {
         file: { uri: videoUri, type: 'video/mp4', name: `cut_${Date.now()}.mp4` },
         type: 'video' as const,
@@ -143,8 +160,28 @@ export default function CutPreviewScreen({ route }: { route: CutPreviewRouteProp
         cropArea,
       };
 
-      // 실제 업로드 호출 (현재 API 없으므로 목데이터 응답)
-      const response: ShortUploadResponse = await CutService.uploadShorts(uploadData);
+      // 헤더 구성 (null 방지 안전장치)
+      const headers: Record<string, string> = {};
+      if (currentKey) {
+        headers['Idempotency-Key'] = currentKey;
+      }
+
+      // 디버깅: 헤더 및 업로드 데이터 내용 로깅
+      const uploadDataContent = {
+        type: uploadData.type,
+        category_ids: uploadData.category_ids,
+        description: uploadData.description,
+        trimStart: uploadData.trimStart,
+        trimEnd: uploadData.trimEnd,
+        cropArea: uploadData.cropArea,
+        file_name: uploadData.file.name,
+      };
+
+      console.log('컷츠 업로드 - 헤더:', headers);
+      console.log('컷츠 업로드 - 데이터:', uploadDataContent);
+
+      // 실제 업로드 호출 (헤더에 idempotency_key 포함)
+      const response: ShortUploadResponse = await CutService.uploadShorts(uploadData, headers);
 
       setAlertModal({
         visible: true,
@@ -166,7 +203,7 @@ export default function CutPreviewScreen({ route }: { route: CutPreviewRouteProp
       setAlertModal({
         visible: true,
         title: '업로드 실패',
-        message: error.message || '컷츠 업로드에 실패했습니다.',
+        message: error?.axiosMessage || error?.response?.data?.message || error?.message || '컷츠 업로드에 실패했습니다.',
         buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
       });
     } finally {

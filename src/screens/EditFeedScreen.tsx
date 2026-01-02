@@ -382,11 +382,11 @@ export default function EditFeedScreen() {
           }
         }]
       });
-    } catch (error) {
+    } catch (error: any) {
       setAlertModal({
         visible: true,
         title: '오류',
-        message: '피드 수정에 실패했습니다. 다시 시도해주세요.',
+        message: error?.axiosMessage || error?.response?.data?.message || error?.message || '피드 수정에 실패했습니다. 다시 시도해주세요.',
         buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
       });
       console.error('피드 수정 실패:', error);

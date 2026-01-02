@@ -38,10 +38,20 @@ export default function CreateFeedScreen() {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
+  // UUID v4 생성 함수 (중복 요청 방지용)
+  const generateUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
   // 상태 관리
   const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
+  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
 
   // Zustand 스토어
   const { setShouldRefreshFeeds, videoEditResult, setVideoEditResult } = useFeedStore();
@@ -280,6 +290,13 @@ export default function CreateFeedScreen() {
     try {
       setIsLoading(true);
 
+      // 게시 시도 단위 키 생성/유지 (없는 경우에만 생성)
+      let currentKey = idempotencyKey;
+      if (!currentKey) {
+        currentKey = generateUUID();
+        setIdempotencyKey(currentKey);
+      }
+
       // content_blocks 준비 (서버 전송용)
       const processedBlocks = contentBlocks
         .filter(block => block.value.trim()) // 빈 블록 제외
@@ -317,8 +334,27 @@ export default function CreateFeedScreen() {
         formData.append('videos', fileData);
       });
 
-      // 통합 API 호출
-      const result = await FeedService.createFeedWithFiles(formData);
+      // 헤더 구성 (null 방지 안전장치)
+      const headers: Record<string, string> = {};
+      if (currentKey) {
+        headers['Idempotency-Key'] = currentKey;
+      }
+
+      // 디버깅: 헤더 및 FormData 내용 로깅
+      const formDataContent = {
+        content_blocks: JSON.stringify(processedBlocks),
+        images_count: imageBlocks.length,
+        videos_count: videoBlocks.length,
+      };
+
+      console.log('피드 작성 - 헤더:', headers);
+      console.log('피드 작성 - 폼데이터:', formDataContent);
+
+      // 통합 API 호출 (헤더에 idempotency_key 포함)
+      const result = await FeedService.createFeedWithFiles(formData, headers);
+
+      // 성공 시 키 폐기 (새 피드 작성 준비)
+      setIdempotencyKey(null);
 
       // 목록 새로고침 플래그 설정
       setShouldRefreshFeeds(true);
@@ -338,11 +374,11 @@ export default function CreateFeedScreen() {
           }
         }]
       });
-    } catch (error) {
+    } catch (error: any) {
       setAlertModal({
         visible: true,
         title: '오류',
-        message: '피드 작성에 실패했습니다. 다시 시도해주세요.',
+        message: error?.axiosMessage || error?.response?.data?.message || error?.message || '피드 작성에 실패했습니다. 다시 시도해주세요.',
         buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
       });
       console.error('피드 작성 실패:', error);

@@ -74,11 +74,13 @@ export class FeedService {
   }
 
   // 피드 작성 (통합 파일 업로드)
-  static async createFeedWithFiles(formData: FormData): Promise<CreateFeedResponse> {
+  static async createFeedWithFiles(formData: FormData, extraHeaders?: Record<string, string>): Promise<CreateFeedResponse> {
     try {
       const response = await apiClient.postFormData<CreateFeedWithFilesApiResponse>(
         '/feeds/create-with-files',
-        formData
+        formData,
+        true,
+        extraHeaders
       );
       return response.data!;
     } catch (error) {

@@ -95,11 +95,17 @@ class ApiClient {
   }
 
   // FormData 전송용 POST 요청
-  async postFormData<T>(endpoint: string, formData: FormData, includeAuth: boolean = true): Promise<T> {
+  async postFormData<T>(endpoint: string, formData: FormData, includeAuth: boolean = true, extraHeaders?: Record<string, string>): Promise<T> {
     const makeRequest = async () => {
       const headers = await this.getHeaders(includeAuth);
       // FormData 전송 시에는 Content-Type을 제거해야 함 (브라우저가 자동으로 설정)
       delete headers['Content-Type'];
+
+      // 추가 헤더가 있으면 병합
+      if (extraHeaders) {
+        Object.assign(headers, extraHeaders);
+      }
+
       return fetch(`${this.baseURL}${endpoint}`, {
         method: 'POST',
         headers,
