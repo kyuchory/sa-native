@@ -214,6 +214,7 @@ export default function CreatePostScreen() {
         allowsMultipleSelection: false,
         allowsEditing: true, // 이미지 편집 기능 활성화
         quality: 0.8, // 품질 조정
+        exif: false, // EXIF 메타데이터 제거 (용량 절약 및 개인정보 보호)
       });
 
       if (!result.canceled && result.assets.length > 0) {
@@ -273,7 +274,7 @@ export default function CreatePostScreen() {
           aspectRatio: undefined, // trim only
           uploadService: 'post', // post 서비스로 업로드
           editMode: 'trim', // 트림만 사용
-          maxDuration: 180000, // 최대 3분
+          maxDuration: 120000, // 최대 2분
         } as any);
       }
     } catch (error) {

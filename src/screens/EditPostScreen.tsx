@@ -248,8 +248,9 @@ export default function EditPostScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsMultipleSelection: false,
-        quality: 1,
-        aspect: [4, 3],
+        allowsEditing: true, // 이미지 편집 기능 활성화
+        quality: 0.8, // 품질 조정
+        exif: false, // EXIF 메타데이터 제거 (용량 절약 및 개인정보 보호)
       });
 
       if (!result.canceled && result.assets.length > 0) {

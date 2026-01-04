@@ -127,11 +127,11 @@ export default function ProfileImageEditScreen() {
         message: '프로필 이미지가 업데이트되었습니다.',
       });
       setShowNotificationModal(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('프로필 이미지 업로드 실패:', error);
       setNotificationModalContent({
         title: '오류',
-        message: '이미지 업로드에 실패했습니다. 다시 시도해주세요.',
+        message: error?.axiosMessage || error?.response?.data?.message || error?.message || '이미지 업로드에 실패했습니다. 다시 시도해주세요.',
       });
       setShowNotificationModal(true);
     } finally {

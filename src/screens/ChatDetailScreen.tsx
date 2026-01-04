@@ -336,12 +336,12 @@ export default function ChatDetailScreen() {
       if (!result.canceled && result.assets.length > 0 && user) {
         const selectedVideo = result.assets[0];
 
-        // 3분(180초) 초과 비디오 확인
-        if (selectedVideo.duration && selectedVideo.duration > 180 * 1000) {
+        // 2분(120초) 초과 비디오 확인
+        if (selectedVideo.duration && selectedVideo.duration > 120 * 1000) {
           setAlertModal({
             visible: true,
             title: '비디오 길이 제한',
-            message: '3분 이하의 비디오만 채팅에서 전송할 수 있습니다.',
+            message: '2분 이하의 비디오만 채팅에서 전송할 수 있습니다.',
             buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
           });
           setAttachmentActionSheetVisible(false);
@@ -392,9 +392,14 @@ export default function ChatDetailScreen() {
     try {
       const uploadResponse = await ChatService.uploadChatImage(asset.uri);
       await sendMessage(tempMessageId, chatRoomId, 'image', uploadResponse.image_path, []);
-    } catch (error) {
+    } catch (error: any) {
       removePendingMessage(tempMessageId);
-      setAlertModal({ visible: true, title: '전송 실패', message: '이미지를 전송할 수 없습니다. 다시 시도해주세요.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
+      setAlertModal({
+        visible: true,
+        title: '전송 실패',
+        message: error?.axiosMessage || error?.response?.data?.message || error?.message || '이미지를 전송할 수 없습니다. 다시 시도해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   }, [user, chatRoomId, addPendingMessage, removePendingMessage, sendMessage]);
 
@@ -431,9 +436,14 @@ export default function ChatDetailScreen() {
         thumbnail_path: uploadResponse.thumbnail_path
       });
       await sendMessage(tempMessageId, chatRoomId, 'video', content, []);
-    } catch (error) {
+    } catch (error: any) {
       removePendingMessage(tempMessageId);
-      setAlertModal({ visible: true, title: '전송 실패', message: '비디오를 전송할 수 없습니다. 다시 시도해주세요.', buttons: [{ text: '확인', onPress: () => setAlertModal(null) }] });
+      setAlertModal({
+        visible: true,
+        title: '전송 실패',
+        message: error?.axiosMessage || error?.response?.data?.message || error?.message || '비디오를 전송할 수 없습니다. 다시 시도해주세요.',
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
     }
   }, [user, chatRoomId, addPendingMessage, removePendingMessage, sendMessage]);
 

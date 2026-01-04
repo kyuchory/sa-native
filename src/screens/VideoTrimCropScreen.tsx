@@ -127,6 +127,21 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
   const editMode = route?.params?.editMode ?? 'both';
   const maxDuration = route?.params?.maxDuration;
 
+  // 시간 제한 메시지 생성
+  const getTimeLimitMessage = useMemo(() => {
+    if (!maxDuration) return '';
+
+    const maxSeconds = Math.floor(maxDuration / 1000);
+    const serviceName = {
+      post: '게시글',
+      feed: '피드',
+      cuts: '컷츠',
+      story: '데일리 컷'
+    }[uploadService || ''] || '콘텐츠';
+
+    return `(${serviceName}의 영상은 ${maxSeconds}초 이내로 편집해주세요.)`;
+  }, [maxDuration, uploadService]);
+
   const { setVideoEditResult: setFeedVideoEditResult } = useFeedStore();
   const { setVideoEditResult: setPostVideoEditResult } = usePostStore();
 
@@ -437,6 +452,7 @@ export default function VideoTrimCropScreen({ route, navigation }: Props) {
           trimEnd={trimEnd}
           currentPosition={currentPosition}
           thumbnails={thumbnails}
+          timeLimitMessage={getTimeLimitMessage}
           onTrimChange={(start, end) => {
             setTrimStart(start);
             setTrimEnd(end);
@@ -780,10 +796,11 @@ const TrimBar: React.FC<{
   trimEnd: number;
   currentPosition: number;
   thumbnails: string[];
+  timeLimitMessage: string;
   onTrimChange: (start: number, end: number) => void;
   onSeek: (position: number) => void;
   colors: Record<string, string>;
-}> = ({ duration, trimStart, trimEnd, currentPosition, thumbnails, onTrimChange, onSeek, colors }) => {
+}> = ({ duration, trimStart, trimEnd, currentPosition, thumbnails, timeLimitMessage, onTrimChange, onSeek, colors }) => {
   const TRIM_WIDTH = SCREEN_W - SPACING.LG * 2;
   const HANDLE_WIDTH = 20;
 
@@ -877,7 +894,9 @@ const TrimBar: React.FC<{
 
   return (
     <View style={styles.trimContainer}>
-      <Text style={styles.trimLabel}>구간 선택</Text>
+      <Text style={styles.trimLabel}>
+        구간 선택 {timeLimitMessage}
+      </Text>
       <GestureDetector gesture={timelineTapGesture}>
         <View style={styles.timeline}>
           {thumbnails.length > 0 ? (

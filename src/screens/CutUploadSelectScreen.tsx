@@ -62,7 +62,7 @@ export default function CutUploadSelectScreen() {
           aspectRatio: '9:16', // 세로 비율
           uploadService: 'cuts', // 컷츠 전용
           editMode: 'trim', // trim only
-          maxDuration: 30000, // 컷츠는 30초 제한 (VideoTrimCrop에서 ms 단위로 전달)
+          maxDuration: 60000, // 컷츠는 1분 제한 (VideoTrimCrop에서 ms 단위로 전달)
         });
       }
     } catch (error) {
@@ -112,7 +112,7 @@ export default function CutUploadSelectScreen() {
           aspectRatio: '9:16', // 세로 비율
           uploadService: 'cuts', // 컷츠 전용
           editMode: 'trim', // trim only
-          maxDuration: 30000, // 컷츠는 30초 제한 (VideoTrimCrop에서 ms 단위로 전달)
+          maxDuration: 60000, // 컷츠는 1분 제한 (VideoTrimCrop에서 ms 단위로 전달)
         });
       }
     } catch (error) {
@@ -188,7 +188,7 @@ export default function CutUploadSelectScreen() {
               <Text style={styles.noteTitle}>업로드 팁</Text>
             </View>
             <Text style={styles.noteText}>
-              • 30초 이내(필수)의 세로 영상이 가장 좋아요{'\n'}
+              • 1분 이내(필수)의 세로 영상이 가장 좋아요{'\n'}
               • 편집하며 길이를 조절할 수 있습니다{'\n'}
               • 카테고리를 선택하면 더 많은 사람이 볼 수 있어요
             </Text>
