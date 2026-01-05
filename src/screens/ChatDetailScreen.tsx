@@ -87,6 +87,7 @@ export default function ChatDetailScreen() {
   const [selectedMediaItem, setSelectedMediaItem] = useState<{ type: 'image' | 'video'; url: string; thumbnailUrl?: string } | null>(null);
   const [allMediaItems, setAllMediaItems] = useState<Array<{ type: 'image' | 'video'; url: string; thumbnailUrl?: string }>>([]);
   const [initialMediaIndex, setInitialMediaIndex] = useState(0);
+  const [isForegroundSubscribing, setIsForegroundSubscribing] = useState(false);
 
 
   // Alert modal state
@@ -95,8 +96,9 @@ export default function ChatDetailScreen() {
   // Keyboard height for input adjustments
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  // 읽음 처리 중복 방지 플래그
-  const didMarkReadRef = useRef(false);
+  // 읽음 처리 중복 방지 플래그 (입장/퇴장 분리)
+  const didMarkReadOnEnterRef = useRef(false);
+  const didMarkReadOnLeaveRef = useRef(false);
 
   // 타이핑 타이머 ref
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -104,10 +106,13 @@ export default function ChatDetailScreen() {
   // 이전 입력값 ref (타이핑 상태 비교용)
   const prevInputTextRef = useRef<string>('');
 
+  // 구독 시도 중복 방지 ref (앱 포그라운드 복귀 시)
+  const lastSubscriptionAttemptRef = useRef<number>(0);
+
   // ✅ 최적화: 전송 버튼 활성화 상태 캐싱 (매 렌더마다 trim() 호출 방지)
   const isSendButtonEnabled = useMemo(
-    () => inputText.trim().length > 0,
-    [inputText]
+    () => inputText.trim().length > 0 && !isForegroundSubscribing,
+    [inputText, isForegroundSubscribing]
   );
 
   // Custom hooks
@@ -120,7 +125,11 @@ export default function ChatDetailScreen() {
     addPendingMessage,
     removePendingMessage,
     addMessage,
+    setMessages,
+    setHasMoreMessages,
+    setNextCursor,
     setIsInitialLoading,
+    refreshMessages,
   } = useChatMessages({
     chatRoomId,
     userId: user?.id,
@@ -173,9 +182,10 @@ export default function ChatDetailScreen() {
 
   // Event handlers
   const handleBack = useCallback(async () => {
-    // 읽음 처리 (중복 방지)
-    if (!didMarkReadRef.current) {
-      didMarkReadRef.current = true;
+    // 읽음 처리 (퇴장 시 플래그로 중복 방지)
+    if (!didMarkReadOnLeaveRef.current) {
+      didMarkReadOnLeaveRef.current = true;
+      console.log(`✅ 헤더 뒤로가기 버튼으로 읽음 처리 - 채팅방 ${chatRoomId}`);
       try {
         await ChatService.markAsRead(chatRoomId);
       } catch (error) {
@@ -580,8 +590,9 @@ export default function ChatDetailScreen() {
   // Effects
   useEffect(() => {
     // 읽음 처리 (화면 진입 시 무조건)
-    if (!isInitialLoading && user && !didMarkReadRef.current) {
-      didMarkReadRef.current = true;
+    if (!isInitialLoading && user && !didMarkReadOnEnterRef.current) {
+      didMarkReadOnEnterRef.current = true;
+      console.log(`✅ 채팅방 입장 시 읽음 처리 - 채팅방 ${chatRoomId}`);
       ChatService.markAsRead(chatRoomId).then(() => {
         // 읽음 처리 성공 시 MainHeader가 채팅 unread count를 다시 로드하도록 플래그 설정
         useChatStore.getState().setShouldLoadUnreadCount(true);
@@ -662,41 +673,67 @@ export default function ChatDetailScreen() {
   // 백그라운드 복귀 처리
   useAppState({
     onForeground: async () => {
-      try {
-        // 메시지 다시 로드
-        setIsInitialLoading(true);
-        const response = await ChatService.getMessages(chatRoomId);
-        setIsInitialLoading(false);
+      setIsForegroundSubscribing(true);
+      console.log(`📱 ChatDetailScreen 포그라운드 진입 - 메시지 리로드 - 채팅방 ${chatRoomId}`);
 
-        // 채팅방 구독 상태 확인 및 재구독 (백그라운드 복귀 시 구독 복원)
-        if (!subscriptionStatus.isSubscribed && !subscriptionStatus.error) {
-          try {
-            await subscribeToChat();
-          } catch (error) {
-            console.error('❌ 백그라운드 복귀 채팅방 구독 실패:', error);
+      try {
+        // 백그라운드에서 온 최신 메시지를 UI에 반영
+        const response = await ChatService.getMessages(chatRoomId);
+        console.log(`📨 백그라운드 복귀 시 ${response.messages.length}개 메시지 로드됨`);
+
+        // 메시지 상태 업데이트 (UI 반영)
+        setMessages(response.messages);
+        setHasMoreMessages(response.hasNext);
+        setNextCursor(response.nextCursor);
+
+        // 백그라운드 복귀 시 구독 상태 확인 및 재구독
+        // chatSocketService의 자동 재구독(700ms)을 기다린 후 확인
+        setTimeout(async () => {
+          const now = Date.now();
+
+          const currentStatus = chatSocketService.subscriptionStatus;
+          console.log(`📊 백그라운드 복귀 후 구독 상태 확인:`, currentStatus);
+
+          if (!currentStatus.isSubscribed && !currentStatus.isSubscribing && !currentStatus.error) {
+            lastSubscriptionAttemptRef.current = now;
+            try {
+              await subscribeToChat();
+            } catch (error) {
+              console.error('❌ 백그라운드 복귀 채팅방 구독 실패:', error);
+            } finally {
+              setIsForegroundSubscribing(false);
+            }
+          } else {
+            console.log(`✅ 백그라운드 복귀 후 구독 상태 양호:`, currentStatus);
+            setIsForegroundSubscribing(false);
           }
-        }
+        }, 600); // chatSocketService의 자동 재구독(700ms) + 여유 시간
+
       } catch (error) {
-        setIsInitialLoading(false);
+        console.error('❌ 백그라운드 복귀 메시지 로드 실패:', error);
+        setIsForegroundSubscribing(false);
       }
     },
-    onBackground: () => {},
+    onBackground: () => {
+      console.log(`📱 ChatDetailScreen 백그라운드 진입 - 채팅방 ${chatRoomId}`);
+    },
     enableSocketReconnection: true
   });
 
   // 채팅방 나가기 시 읽음 처리 (beforeRemove 이벤트)
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', async (e) => {
-      // 이미 처리했다면 스킵
-      if (didMarkReadRef.current) return;
 
       // 뒤로가기/팝 액션일 때만 처리 (채팅방에서 벗어날 때)
       if (e.data.action.type === 'GO_BACK' || e.data.action.type === 'POP') {
-        didMarkReadRef.current = true;
-        try {
-          await ChatService.markAsRead(chatRoomId);
-        } catch (error) {
-          console.error('❌ beforeRemove 읽음 처리 실패:', error);
+        // 퇴장 시 플래그로 중복 방지
+        if (!didMarkReadOnLeaveRef.current) {
+          didMarkReadOnLeaveRef.current = true;
+          try {
+            await ChatService.markAsRead(chatRoomId);
+          } catch (error) {
+            console.error('❌ beforeRemove 읽음 처리 실패:', error);
+          }
         }
       }
     });

@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  Platform,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -212,7 +213,7 @@ export default function CreatePostScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsMultipleSelection: false,
-        allowsEditing: true, // 이미지 편집 기능 활성화
+        allowsEditing: false, // 이미지 편집 기능 활성화
         quality: 0.8, // 품질 조정
         exif: false, // EXIF 메타데이터 제거 (용량 절약 및 개인정보 보호)
       });
@@ -422,10 +423,19 @@ export default function CreatePostScreen() {
         }
       />
 
-      <ScrollView
+      {/* KeyboardAwareScrollView 사용 */}
+      <KeyboardAwareScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        extraHeight={Platform.OS === 'ios' ? 140 : 120}
+        extraScrollHeight={Platform.OS === 'ios' ? 20 : 20}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        keyboardOpeningTime={0}
+        viewIsInsideTabBar={false}
+        enableResetScrollToCoords={false}
       >
         {/* 제목 입력 */}
         <View style={styles.section}>
@@ -503,12 +513,9 @@ export default function CreatePostScreen() {
             ))}
           </View>
         </View>
+      </KeyboardAwareScrollView>
 
-        {/* 하단 여백 */}
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
-
-      {/* 하단 추가 버튼들 */}
+      {/* 하단 추가 버튼들 - KeyboardAvoidingView 밖으로! */}
       <View style={styles.bottomActions}>
         <TouchableOpacity
           style={styles.addButton}

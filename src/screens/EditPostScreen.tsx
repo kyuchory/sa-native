@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
-  TextInput
+  TextInput,
+  Platform,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -248,7 +249,7 @@ export default function EditPostScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsMultipleSelection: false,
-        allowsEditing: true, // 이미지 편집 기능 활성화
+        allowsEditing: false, // 이미지 편집 기능 활성화
         quality: 0.8, // 품질 조정
         exif: false, // EXIF 메타데이터 제거 (용량 절약 및 개인정보 보호)
       });
@@ -475,10 +476,19 @@ export default function EditPostScreen() {
         }
       />
 
-      <ScrollView
+      {/* KeyboardAwareScrollView 사용 */}
+      <KeyboardAwareScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        extraHeight={Platform.OS === 'ios' ? 140 : 120}
+        extraScrollHeight={Platform.OS === 'ios' ? 20 : 20}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        keyboardOpeningTime={0}
+        viewIsInsideTabBar={false}
+        enableResetScrollToCoords={false}
       >
         {/* 제목 입력 */}
         <View style={styles.section}>
@@ -556,10 +566,7 @@ export default function EditPostScreen() {
             ))}
           </View>
         </View>
-
-        {/* 여백 */}
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* 하단 추가 버튼들 */}
       <View style={styles.bottomActions}>

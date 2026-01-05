@@ -23,6 +23,7 @@ interface UseChatMessagesReturn {
   setHasMoreMessages: React.Dispatch<React.SetStateAction<boolean>>;
   setNextCursor: React.Dispatch<React.SetStateAction<number | null>>;
   setIsInitialLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  refreshMessages: () => Promise<void>; // 백그라운드 복귀 시 메시지 새로고침용
 }
 
 export const useChatMessages = ({
@@ -97,6 +98,18 @@ export const useChatMessages = ({
     }
   }, [chatRoomId, hasMoreMessages, nextCursor, isLoadingMessages]);
 
+  // 메시지 새로고침 (백그라운드 복귀 시 사용)
+  const refreshMessages = useCallback(async () => {
+    try {
+      const response = await ChatService.getMessages(chatRoomId);
+      setMessages(response.messages);
+      setHasMoreMessages(response.hasNext);
+      setNextCursor(response.nextCursor);
+    } catch (error) {
+      console.error('메시지 새로고침 실패:', error);
+    }
+  }, [chatRoomId]);
+
   // 채팅방 초기화 - API로 메시지 로드
   useEffect(() => {
     const initChatRoom = async () => {
@@ -145,5 +158,6 @@ export const useChatMessages = ({
     setHasMoreMessages,
     setNextCursor,
     setIsInitialLoading,
+    refreshMessages,
   };
 };

@@ -60,7 +60,7 @@ export const useChatSocket = ({
 
     cleanupFunctionsRef.current.push(unsubscribe);
     return unsubscribe;
-  }, []);
+  }, [chatRoomId]);
 
   // 메시지 이벤트 리스너 설정
   useEffect(() => {

@@ -20,6 +20,12 @@ interface MessageBubbleProps {
   onProfilePress?: (senderId: number) => void;
 }
 
+// ✅ 공백 렌더링 이슈 해결 함수
+const normalizeText = (text: string) => {
+  // 일반 공백을 non-breaking space(\u00A0)로 변환하여 렌더링 보장
+  return text.replace(/ /g, '\u00A0');
+};
+
 const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
   message,
   isMyMessage,
@@ -40,7 +46,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
       return (
         <View style={styles.systemMessageContainer}>
           <Text style={styles.systemMessageText}>
-            {message.content}
+            {normalizeText(message.content)}
           </Text>
         </View>
       );
@@ -154,9 +160,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
         </TouchableOpacity>
       );
     } else {
+      // ✅ 텍스트 메시지: 공백 이슈 해결
       content = (
         <Text style={isMyMessage ? styles.myMessageText : styles.otherMessageText}>
-          {message.content}
+          {normalizeText(message.content)}
         </Text>
       );
     }
@@ -177,7 +184,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
       <View style={styles.systemMessageWrapper}>
         <View style={styles.systemMessageContainer}>
           <Text style={styles.systemMessageText}>
-            {message.content}
+            {normalizeText(message.content)}
           </Text>
         </View>
       </View>
@@ -314,6 +321,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     paddingVertical: SPACING.SM,
     borderRadius: BORDER_RADIUS.LG,
     backgroundColor: colors.PRIMARY,
+    // ✅ 공백 이슈 해결
+    alignItems: 'flex-start',
+    minWidth: 40,
   },
   otherBubble: {
     paddingHorizontal: SPACING.SMD,
@@ -322,6 +332,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     backgroundColor: colors.WHITE,
     borderWidth: 1,
     borderColor: colors.GRAY_200,
+    // ✅ 공백 이슈 해결
+    alignItems: 'flex-start',
+    minWidth: 40,
   },
   imageContainer: {
     position: 'relative',
@@ -363,11 +376,19 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     fontSize: TYPOGRAPHY.SIZE.MD,
     lineHeight: 20,
     color: colors.WHITE,
+    // ✅ 공백 이슈 해결
+    textAlign: 'left',
+    includeFontPadding: false,
+    flexShrink: 1,
   },
   otherMessageText: {
     fontSize: TYPOGRAPHY.SIZE.MD,
     lineHeight: 20,
     color: colors.GRAY_900,
+    // ✅ 공백 이슈 해결
+    textAlign: 'left',
+    includeFontPadding: false,
+    flexShrink: 1,
   },
   // 시스템 메시지 스타일
   systemMessageWrapper: {
