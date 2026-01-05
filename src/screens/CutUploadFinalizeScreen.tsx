@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -48,7 +48,20 @@ export default function CutUploadFinalizeScreen() {
 
   const [description, setDescription] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<ShortCategory[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
+
+  // 각 분류별 선택 상태 추적
+  const selectedCategoriesByType = useMemo(() => {
+    const byType: Record<string, ShortCategory[]> = {};
+    selectedCategories.forEach(category => {
+      if (!byType[category.category_type]) {
+        byType[category.category_type] = [];
+      }
+      byType[category.category_type].push(category);
+    });
+    return byType;
+  }, [selectedCategories]);
 
   const styles = createStyles(colors);
 
@@ -57,24 +70,78 @@ export default function CutUploadFinalizeScreen() {
     fetchCategories();
   }, [fetchCategories]);
 
+  // 카테고리를 category_type별로 그룹화
+  const groupedCategories = useMemo(() => {
+    const groups: Record<string, ShortCategory[]> = {};
+    categories.forEach(category => {
+      if (!groups[category.category_type]) {
+        groups[category.category_type] = [];
+      }
+      groups[category.category_type].push(category);
+    });
+    return groups;
+  }, [categories]);
+
+  // category_type 표시 이름
+  const getCategoryTypeDisplayName = (categoryType: string) => {
+    const typeNames: Record<string, string> = {
+      'animal': '동물',
+      'topic': '주제',
+      'format': '형식'
+    };
+    return typeNames[categoryType] || categoryType;
+  };
+
   const handleCategorySelect = useCallback((category: ShortCategory) => {
     setSelectedCategories(prev => {
       const isSelected = prev.some(cat => cat.id === category.id);
+
       if (isSelected) {
+        // 선택 해제
+        setSelectedCategoryIds(prevIds => prevIds.filter(id => id !== category.id));
         return prev.filter(cat => cat.id !== category.id);
       } else {
-        if (prev.length >= 3) return prev; // 최대 3개 제한
-        return [...prev, category];
+        // 토픽 분류의 경우 최대 3개까지 선택 가능
+        if (category.category_type === 'topic') {
+          const topicSelected = prev.filter(cat => cat.category_type === 'topic');
+          if (topicSelected.length >= 3) return prev; // 토픽은 최대 3개 제한
+
+          // 새로운 카테고리 추가
+          setSelectedCategoryIds(prevIds => [...prevIds, category.id]);
+          return [...prev, category];
+        } else {
+          // 다른 분류들은 하나씩만 선택 가능 (교체 방식)
+          const sameTypeSelected = prev.find(cat => cat.category_type === category.category_type);
+          let newSelected = prev;
+          let newIds = selectedCategoryIds;
+
+          if (sameTypeSelected) {
+            // 같은 분류의 기존 선택 해제
+            newSelected = prev.filter(cat => cat.id !== sameTypeSelected.id);
+            newIds = selectedCategoryIds.filter(id => id !== sameTypeSelected.id);
+          }
+
+          // 새로운 카테고리 선택
+          setSelectedCategoryIds([...newIds, category.id]);
+          return [...newSelected, category];
+        }
       }
     });
-  }, []);
+  }, [selectedCategoryIds]);
+
+  // 모든 분류에서 하나씩 선택되었는지 확인
+  const isAllCategoriesSelected = useMemo(() => {
+    const totalTypes = Object.keys(groupedCategories).length;
+    const selectedTypes = Object.keys(selectedCategoriesByType).length;
+    return selectedTypes === totalTypes;
+  }, [groupedCategories, selectedCategoriesByType]);
 
   const handlePreviewPress = useCallback(() => {
-    if (selectedCategories.length === 0) {
+    if (!isAllCategoriesSelected) {
       setAlertModal({
         visible: true,
         title: '카테고리 선택',
-        message: '최소 한 개 이상의 카테고리를 선택해주세요.',
+        message: '각 분류별로 카테고리를 하나씩 선택해주세요.',
         buttons: [{
           text: '확인',
           style: 'default',
@@ -92,6 +159,7 @@ export default function CutUploadFinalizeScreen() {
       thumbnailUri,
       description,
       selectedCategories,
+      selectedCategoryIds,
     });
   }, [selectedCategories, navigation, videoUri, trimStart, trimEnd, cropArea, thumbnailUri, description]);
 
@@ -105,7 +173,7 @@ export default function CutUploadFinalizeScreen() {
             <CommonHeaderButton
               title="미리보기"
               onPress={handlePreviewPress}
-              disabled={selectedCategories.length === 0}
+              disabled={!isAllCategoriesSelected}
             />
           }
         />
@@ -116,7 +184,27 @@ export default function CutUploadFinalizeScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-
+          {/* 컷츠 설명 */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>
+              컷츠 설명
+            </Text>
+            <TextInput
+              style={styles.descriptionInput}
+              placeholder="컷츠에 대한 설명을 추가해주세요."
+              placeholderTextColor={colors.GRAY_400}
+              multiline
+              maxLength={300}
+              onChangeText={setDescription}
+              value={description}
+              textAlignVertical="top"
+            />
+            {description.length > 0 && (
+              <Text style={styles.characterCount}>
+                {description.length}/300
+              </Text>
+            )}
+          </View>
 
           {/* 카테고리 선택 */}
           <View style={styles.section}>
@@ -136,46 +224,48 @@ export default function CutUploadFinalizeScreen() {
                 </TouchableOpacity>
               </View>
             ) : (
-              <View style={styles.categoryContainer}>
-                {categories.map(category => (
-                  <TouchableOpacity
-                    key={category.id}
-                    style={[
-                      styles.categoryChip,
-                      selectedCategories.some(cat => cat.id === category.id) && styles.categoryChipSelected
-                    ]}
-                    onPress={() => handleCategorySelect(category)}
-                  >
-                    <Text
-                      style={[
-                        styles.categoryText,
-                        selectedCategories.some(cat => cat.id === category.id) && styles.categoryTextSelected
-                      ]}
-                    >
-                      {category.name}
-                    </Text>
-                  </TouchableOpacity>
+              <View style={styles.categoryGroupsContainer}>
+                {Object.entries(groupedCategories).map(([categoryType, categoryList]) => (
+                  <View key={categoryType} style={styles.categoryGroup}>
+                    <View style={styles.categoryGroupHeader}>
+                      <Text style={styles.categoryGroupTitle}>
+                        {getCategoryTypeDisplayName(categoryType)} 분류
+                      </Text>
+                      {(!selectedCategoriesByType[categoryType] || selectedCategoriesByType[categoryType].length === 0) && (
+                        <Text style={styles.hintText}>
+                          {categoryType === 'topic' ? '•영상 주제를 1~3개 선택하세요' : '• 하나의 카테고리를 선택해주세요'}
+                        </Text>
+                      )}
+                      {categoryType === 'topic' && selectedCategoriesByType[categoryType] && selectedCategoriesByType[categoryType].length > 0 && (
+                        <Text style={styles.selectionCount}>
+                          {selectedCategoriesByType[categoryType].length}/3 선택됨
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.categoryContainer}>
+                      {categoryList.map(category => (
+                        <TouchableOpacity
+                          key={category.id}
+                          style={[
+                            styles.categoryChip,
+                            selectedCategories.some(cat => cat.id === category.id) && styles.categoryChipSelected
+                          ]}
+                          onPress={() => handleCategorySelect(category)}
+                        >
+                          <Text
+                            style={[
+                              styles.categoryText,
+                              selectedCategories.some(cat => cat.id === category.id) && styles.categoryTextSelected
+                            ]}
+                          >
+                            {category.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
                 ))}
               </View>
-            )}
-          </View>
-
-          {/* 설명 입력 */}
-          <View style={styles.section}>
-            <TextInput
-              style={styles.descriptionInput}
-              placeholder="컷츠에 대한 설명을 추가하세요... (필요한 경우)"
-              placeholderTextColor={colors.GRAY_400}
-              multiline
-              maxLength={300}
-              onChangeText={setDescription}
-              value={description}
-              textAlignVertical="top"
-            />
-            {description.length > 0 && (
-              <Text style={styles.characterCount}>
-                {description.length}/300
-              </Text>
             )}
           </View>
         </ScrollView>
@@ -242,7 +332,41 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     marginTop: SPACING.XS,
   },
 
-  // 카테고리
+  // 카테고리 그룹
+  categoryGroupsContainer: {
+    gap: SPACING.SM,
+  },
+  categoryGroup: {
+    backgroundColor: colors.WHITE,
+    borderRadius: BORDER_RADIUS.MD,
+    borderWidth: 1,
+    borderColor: colors.GRAY_200,
+    padding: SPACING.MD,
+  },
+  categoryGroupHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.SM,
+    paddingBottom: SPACING.XS,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.GRAY_100,
+  },
+  categoryGroupTitle: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: colors.GRAY_900,
+  },
+  hintText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.PRIMARY,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
+  selectionCount: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: colors.GRAY_600,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
+  },
   categoryContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',

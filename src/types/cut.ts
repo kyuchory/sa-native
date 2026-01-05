@@ -3,7 +3,11 @@
 // 쇼츠 카테고리 정보
 export interface ShortCategory {
   id: number;
+  code: string;
   name: string;
+  category_type: string;
+  is_active: boolean;
+  sort_order: number;
 }
 
 // 쇼츠 개별 아이템 (API 명세 기반)
@@ -142,7 +146,7 @@ export interface ShareShortRequest {
   platform: 'kakao' | 'instagram' | 'facebook' | 'twitter' | 'link';
 }
 
-// 쇼츠 업로드 요청 (기존 유지)
+// 쇼츠 업로드 요청
 export interface ShortUploadRequest {
   file: any; // File object
   type: 'image' | 'video';

@@ -94,7 +94,8 @@ export type AuthStackParamList = {
     };
     thumbnailUri?: string;
     description: string;
-    selectedCategories: { id: number; name: string }[];
+    selectedCategories: import('./cut').ShortCategory[];
+    selectedCategoryIds: number[];
   };
   SavedItems: undefined;
   PopularPosts: undefined;

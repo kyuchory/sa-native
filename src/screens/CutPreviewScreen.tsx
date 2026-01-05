@@ -62,6 +62,7 @@ export default function CutPreviewScreen({ route }: { route: CutPreviewRouteProp
     thumbnailUri,
     description,
     selectedCategories,
+    selectedCategoryIds,
   } = route.params;
 
   // UUID v4 생성 함수 (중복 요청 방지용)
@@ -153,7 +154,7 @@ export default function CutPreviewScreen({ route }: { route: CutPreviewRouteProp
       const uploadData = {
         file: { uri: videoUri, type: 'video/mp4', name: `cut_${Date.now()}.mp4` },
         type: 'video' as const,
-        category_ids: selectedCategories.map(cat => cat.id),
+        category_ids: selectedCategoryIds,
         description: description.trim(),
         trimStart,
         trimEnd,
@@ -209,7 +210,7 @@ export default function CutPreviewScreen({ route }: { route: CutPreviewRouteProp
     } finally {
       setIsUploading(false);
     }
-  }, [videoUri, trimStart, trimEnd, cropArea, description, selectedCategories, navigation]);
+  }, [videoUri, trimStart, trimEnd, cropArea, description, selectedCategories, selectedCategoryIds, navigation, idempotencyKey]);
 
   // Mock handlers for preview
   const handleLike = useCallback(() => {}, []);
