@@ -36,6 +36,11 @@ export default function HomeScreen() {
 
   const flatListRef = useRef<FlatList>(null);
 
+  // 요청 ID 관리 (레이스 컨디션 방지)
+  const reqIdRef = useRef(0);
+  const adReqIdRef = useRef(0);
+  const latestAdContextKeyRef = useRef<string>('');
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0);
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number>(0);
@@ -68,11 +73,18 @@ export default function HomeScreen() {
 
   const { shouldRefreshPosts, setShouldRefreshPosts, setAnimalTypes, selectedAnimalTypeFilter, setSelectedAnimalTypeFilter, animalTypes } = usePostStore();
 
-  // 광고 상태
-  const [ads, setAds] = useState<NativeAd[]>([]);
+  // 현재 화면에서 사용할 광고 상태 (카테고리/필터/페이지별 2개씩)
+  const [currentAds, setCurrentAds] = useState<NativeAd[]>([]);
+  const currentAdsRef = useRef<NativeAd[]>([]); // cleanup용 ref
+  const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined); // 디바운스 타이머용 ref
+  const [isAdLoading, setIsAdLoading] = useState(false);
 
-  // 피드 아이템 상태 (포스트 + 광고)
-  const [feedItems, setFeedItems] = useState<Array<{type: 'post', data: PostListItem} | {type: 'ad', data: NativeAd}>>([]);
+  // 피드 아이템 상태 (포스트 + 광고 + 광고 로딩)
+  const [feedItems, setFeedItems] = useState<Array<
+    {type: 'post', data: PostListItem} |
+    {type: 'ad', data: NativeAd, key: string} |
+    {type: 'ad_loading', key: string}
+  >>([]);
 
   // ---------- Helper: shallow compare pagination fields ----------
   const isSamePagination = (a: typeof pagination, b: Partial<typeof pagination>) => {
@@ -87,32 +99,150 @@ export default function HomeScreen() {
     );
   };
 
-  // ---------- loadPosts: accept explicit page to avoid closure issues ----------
-  const loadPosts = useCallback(async (opts?: { page?: number; categoryId?: number; subCategoryId?: number; animalType?: string }) => {
-    const pageToLoad = opts?.page ?? pagination.page;
-    const categoryId = opts?.categoryId ?? selectedCategoryId;
-    const subCategoryId = opts?.subCategoryId ?? selectedSubcategoryId;
+  // ---------- postParams: 요청 파라미터를 메모이제이션하여 안정적인 deps 관리 ----------
+  const postParams = React.useMemo(() => ({
+    categoryId: selectedCategoryId,
+    subCategoryId: selectedSubcategoryId,
+    animalType: selectedAnimalTypeFilter ?? undefined
+  }), [selectedCategoryId, selectedSubcategoryId, selectedAnimalTypeFilter]);
+
+  // ---------- adContext: 광고 컨텍스트를 메모이제이션하여 안정적인 deps 관리 ----------
+  const adContext = React.useMemo(() => ({
+    categoryId: selectedCategoryId,
+    subCategoryId: selectedSubcategoryId,
+    animalType: selectedAnimalTypeFilter ?? 'all',
+    page: pagination.page
+  }), [selectedCategoryId, selectedSubcategoryId, selectedAnimalTypeFilter, pagination.page]);
+
+  // ---------- adContextKey: 광고 컨텍스트 키 생성 ----------
+  const adContextKey = React.useMemo(() =>
+    `${adContext.categoryId}-${adContext.subCategoryId}-${adContext.animalType}-${adContext.page}`,
+    [adContext]
+  );
+
+  // ---------- loadAdsForContext: 컨텍스트 기반 광고 로드 (reqId + contextKey 가드) ----------
+  const loadAdsForContext = useCallback(async (contextKey: string) => {
+    // 요청 ID 할당 (레이스 컨디션 방지)
+    const myAdReqId = ++adReqIdRef.current;
+
+    try {
+      setCurrentAds(prev => {
+        prev.forEach(ad => ad?.destroy?.());
+        return [];
+      }); // 기존 광고 클리어 + destroy
+
+      // contextKey 업데이트
+      latestAdContextKeyRef.current = contextKey;
+
+      // 2개 광고 로드 (목표: 카테고리/필터/페이지마다 새로운 2개 광고)
+      const adPromises = [];
+      for (let i = 0; i < 2; i++) {
+        adPromises.push(
+          NativeAd.createForAdRequest(TestIds.NATIVE, {
+            aspectRatio: 1,
+            adChoicesPlacement: 0,
+            startVideoMuted: true,
+          })
+        );
+      }
+
+      const loadedAds = await Promise.all(adPromises);
+
+      // 최신 요청인지 확인 (늦게 도착한 광고들 정리)
+      if (myAdReqId !== adReqIdRef.current) {
+        loadedAds.forEach(ad => ad?.destroy?.());
+        return;
+      }
+
+      // contextKey가 최신인지 확인 (늦게 도착한 응답 방지)
+      if (contextKey !== latestAdContextKeyRef.current) {
+        loadedAds.forEach(ad => ad?.destroy?.());
+        return;
+      }
+
+      // 성공: 상태 업데이트 (이전 광고들 정리)
+      setCurrentAds(prev => {
+        prev.forEach(ad => ad?.destroy?.());
+        return loadedAds;
+      });
+      console.log('광고 로드 성공:', loadedAds.length, '컨텍스트:', contextKey);
+
+    } catch (error) {
+      // 최신 요청인지 확인
+      if (myAdReqId !== adReqIdRef.current) return;
+
+      // contextKey가 최신인지 확인
+      if (contextKey !== latestAdContextKeyRef.current) return;
+
+      console.error('광고 로드 실패:', error);
+      setCurrentAds(prev => {
+        prev.forEach(ad => ad?.destroy?.());
+        return [];
+      }); // 실패 시 빈 배열 + 기존 광고 정리
+
+    } finally {
+      // 최신 요청인지 확인
+      if (myAdReqId === adReqIdRef.current) {
+        setIsAdLoading(false);
+      }
+    }
+  }, []);
+
+  // ---------- 디바운스된 광고 로드 ----------
+  const debouncedLoadAds = useCallback(
+    (() => {
+      return (contextKey: string) => {
+        if (timeoutIdRef.current) {
+          clearTimeout(timeoutIdRef.current);
+        }
+        timeoutIdRef.current = setTimeout(() => {
+          loadAdsForContext(contextKey);
+        }, 300); // 300ms 디바운스
+      };
+    })(),
+    [loadAdsForContext]
+  );
+
+  // ---------- loadPosts: page 필수 + animalType 자동 적용 ----------
+  const loadPosts = useCallback(async (opts: { page: number; categoryId?: number; subCategoryId?: number; animalType?: string }) => {
+    const { page } = opts; // page 필수
+    const categoryId = opts.categoryId ?? selectedCategoryId;
+    const subCategoryId = opts.subCategoryId ?? selectedSubcategoryId;
+    const animalType = opts.animalType ?? selectedAnimalTypeFilter ?? undefined;
+
+    // 요청 ID 할당 (레이스 컨디션 방지)
+    const myReqId = ++reqIdRef.current;
 
     try {
       setIsLoading(true);
       const response = await PostService.getPosts({
         categoryId: categoryId || undefined,
         subCategoryId: subCategoryId || undefined,
-        animalType: opts?.animalType,
-        page: pageToLoad,
+        animalType,
+        page,
       });
+
+      // 최신 요청인지 확인
+      if (myReqId !== reqIdRef.current) return;
+
       setPosts(response.posts ?? []);
 
-      // 서버에서 내려준 pagination이 실제로 다를 때만 상태 업데이트 (참조 변경으로 인한 불필요한 재호출 방지)
-      if (!isSamePagination(pagination, response.pagination)) {
-        setPagination(prev => ({ ...prev, ...response.pagination }));
-      }
+      // 서버에서 내려준 pagination이 실제로 다를 때만 상태 업데이트 (prev 기반 비교로 클로저 이슈 해결)
+      setPagination(prev => {
+        if (!isSamePagination(prev, response.pagination)) {
+          return { ...prev, ...response.pagination };
+        }
+        return prev;
+      });
 
       // 최초 로딩 완료 플래그 설정
       if (isFirstLoad) {
         setIsFirstLoad(false);
       }
     } catch (error) {
+      // 최신 요청인지 확인 (에러도)
+      if (myReqId !== reqIdRef.current) return;
+
       console.error('게시글 로드 실패:', error);
       setAlertModal({
         visible: true,
@@ -126,19 +256,22 @@ export default function HomeScreen() {
         setIsFirstLoad(false);
       }
     } finally {
-      setIsLoading(false);
+      // 최신 요청인지 확인 (finally도)
+      if (myReqId === reqIdRef.current) {
+        setIsLoading(false);
+      }
     }
-  }, [pagination, selectedCategoryId, selectedSubcategoryId]);
+  }, [selectedCategoryId, selectedSubcategoryId, selectedAnimalTypeFilter]);
 
   // ---------- focus 기반 새로고침 (안정적으로 loadPosts 호출) ----------
   useFocusEffect(
     useCallback(() => {
       if (shouldRefreshPosts) {
         // 현재 페이지로 새로고침
-        loadPosts({ page: pagination.page, categoryId: selectedCategoryId, subCategoryId: selectedSubcategoryId });
+        loadPosts({ page: pagination.page });
         setShouldRefreshPosts(false);
       }
-    }, [shouldRefreshPosts, setShouldRefreshPosts, loadPosts, pagination.page, selectedCategoryId, selectedSubcategoryId])
+    }, [shouldRefreshPosts, setShouldRefreshPosts, loadPosts, pagination.page])
   );
 
   // ---------- 컴포넌트 마운트 시: 카테고리와 동물 타입 로드 (의존성 없음) ----------
@@ -171,34 +304,18 @@ export default function HomeScreen() {
     };
 
     init();
+
+    // cleanup: 언마운트 시 광고 리소스 정리 (setState 금지)
+    return () => {
+      currentAdsRef.current.forEach(ad => ad?.destroy?.());
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+      }
+    };
     // 빈 deps -> 마운트 시 1회만 실행, 로드는 category effect에서 담당
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ---------- 광고 로드 ----------
-  useEffect(() => {
-    const loadAds = async () => {
-      try {
-        const adPromises = [];
-        for (let i = 0; i < 8; i++) {
-          adPromises.push(
-            NativeAd.createForAdRequest(TestIds.NATIVE, {
-              aspectRatio: 1,
-              adChoicesPlacement: 0,
-              startVideoMuted: true,
-            })
-          );
-        }
-        const loadedAds = await Promise.all(adPromises);
-        setAds(loadedAds);
-        console.log('광고 로드 성공:', loadedAds.length);
-      } catch (error) {
-        console.error('광고 로드 실패:', error);
-        setAds([]);
-      }
-    };
 
-    loadAds();
-  }, []);
 
   // ---------- 광고 위치 계산 함수 ----------
   const getAdPositions = (postCount: number): number[] => {
@@ -232,10 +349,19 @@ export default function HomeScreen() {
     return [];
   };
 
+  // ---------- currentAds와 ref 동기화 ----------
+  useEffect(() => {
+    currentAdsRef.current = currentAds;
+  }, [currentAds]);
+
   // ---------- 피드 아이템 생성 (포스트 + 광고) ----------
   useEffect(() => {
     const createFeedItems = () => {
-      const items: Array<{type: 'post', data: PostListItem} | {type: 'ad', data: NativeAd}> = [];
+      const items: Array<
+        {type: 'post', data: PostListItem} |
+        {type: 'ad', data: NativeAd, key: string} |
+        {type: 'ad_loading', key: string}
+      > = [];
       const postCount = posts.length;
 
       const adPositions = getAdPositions(postCount);
@@ -248,11 +374,22 @@ export default function HomeScreen() {
           data: posts[i],
         });
 
-        if (adPositions.includes(i) && ads.length > 0) {
-          items.push({
-            type: 'ad',
-            data: ads[adIndex % ads.length],
-          });
+        if (adPositions.includes(i)) {
+          // 광고 로딩 중이거나 광고 아직 없으면 스켈레톤 표시
+          if (isAdLoading || currentAds.length === 0) {
+            items.push({
+              type: 'ad_loading',
+              key: `ad-loading-${adContextKey}-${adIndex}`,
+            });
+          } else {
+            // 광고 있으면 실제 표시
+            const adData = currentAds[adIndex % currentAds.length];
+            items.push({
+              type: 'ad',
+              data: adData,
+              key: `ad-${adContextKey}-${adIndex}`,
+            });
+          }
           adIndex++;
         }
       }
@@ -261,32 +398,25 @@ export default function HomeScreen() {
     };
 
     createFeedItems();
-  }, [posts, ads]);
+  }, [posts, currentAds, isAdLoading]);
 
-  // ---------- 카테고리/소분류/동물 타입 변경: 페이지를 1로 리셋하고 1페이지 로드 ----------
+  // ---------- 광고 컨텍스트 변경: debouncedLoadAds 통합 호출 ----------
+  useEffect(() => {
+    if (categories.length === 0) return; // 카테고리 로드 전까지 대기
+
+    setIsAdLoading(true); // 즉시 스켈레톤 표시
+    debouncedLoadAds(adContextKey);
+  }, [adContextKey, categories.length, debouncedLoadAds]);
+
+  // ---------- 카테고리/소분류/동물 타입 변경: loadPosts 통합 호출 ----------
   useEffect(() => {
     if (categories.length === 0) return;
+    if (shouldRefreshPosts) return; // focus refresh가 우선이면 여기선 스킵
 
-    // 만약 이미 page가 1이면 바로 로드 (페이지 값이 그대로면 setPagination 호출을 안함)
-    if (pagination.page === 1) {
-      loadPosts({
-        page: 1,
-        categoryId: selectedCategoryId,
-        subCategoryId: selectedSubcategoryId,
-        animalType: selectedAnimalTypeFilter || undefined
-      });
-    } else {
-      // page가 1이 아니면 상태를 1로 바꾸고(이후 다른 effect에 의존하지 않음), 바로 1페이지 로드
-      setPagination(prev => ({ ...prev, page: 1 }));
-      loadPosts({
-        page: 1,
-        categoryId: selectedCategoryId,
-        subCategoryId: selectedSubcategoryId,
-        animalType: selectedAnimalTypeFilter || undefined
-      });
-    }
-    // 의존성: 카테고리 선택 값, 동물 타입 필터, categories 존재여부
-  }, [selectedCategoryId, selectedSubcategoryId, selectedAnimalTypeFilter, categories.length]); // loadPosts는 내부에서 사용하되 deps에서 제외해 재실행 루프 방지
+    setPagination(prev => prev.page === 1 ? prev : { ...prev, page: 1 });
+
+    loadPosts({ page: 1 });
+  }, [postParams, categories.length, loadPosts, shouldRefreshPosts]);
 
   // ---------- 페이지 변경 핸들러: 사용자가 버튼 등으로 페이지 바꿀 때 직접 loadPosts 호출 ----------
   const handlePageChange = (page: number) => {
@@ -297,7 +427,7 @@ export default function HomeScreen() {
     setPagination(prev => ({ ...prev, page }));
 
     // 서버에서 해당 페이지 바로 로드 (명시적 호출 -> effect에 의존하지 않음)
-    loadPosts({ page, categoryId: selectedCategoryId, subCategoryId: selectedSubcategoryId });
+    loadPosts({ page });
   };
 
   // ---------- 새로고침 ----------
@@ -415,7 +545,7 @@ export default function HomeScreen() {
     );
   };
 
-  const renderFeedItem = useCallback(({ item }: { item: {type: 'post', data: PostListItem} | {type: 'ad', data: NativeAd} }) => {
+  const renderFeedItem = useCallback(({ item }: { item: typeof feedItems[0] }) => {
     if (item.type === 'post') {
       return (
         <PostCard
@@ -425,9 +555,12 @@ export default function HomeScreen() {
           onAuthorPress={() => handleAuthorPress(item.data)}
         />
       );
-    } else {
+    } else if (item.type === 'ad') {
       return <PostAdCard nativeAd={item.data} />;
+    } else if (item.type === 'ad_loading') {
+      return <PostAdCardSkeleton />;
     }
+    return null;
   }, [handlePostPress, handleCommentPress, handleAuthorPress]);
 
   return (
@@ -460,7 +593,7 @@ export default function HomeScreen() {
             if (item.type === 'post') {
               return item.data.id.toString();
             } else {
-              return `ad-${index}`;
+              return item.key;
             }
           }}
           style={styles.postList}
@@ -574,6 +707,140 @@ export default function HomeScreen() {
     </View>
   );
 }
+
+// PostAdCardSkeleton 컴포넌트
+const PostAdCardSkeleton = () => {
+  const { colors } = useThemeStore();
+  const skeletonStyles = createSkeletonStyles(colors);
+
+  return (
+    <View style={skeletonStyles.container}>
+      {/* 상단: 작성자 정보 스켈레톤 */}
+      <View style={skeletonStyles.header}>
+        <View style={skeletonStyles.authorInfo}>
+          <View style={skeletonStyles.profileImageSkeleton} />
+          <View style={skeletonStyles.authorDetails}>
+            <View style={skeletonStyles.authorNameSkeleton} />
+            <View style={skeletonStyles.adMetaSkeleton} />
+          </View>
+        </View>
+        <View style={skeletonStyles.categorySkeleton} />
+      </View>
+
+      {/* 본문 영역 스켈레톤 */}
+      <View style={skeletonStyles.content}>
+        <View style={skeletonStyles.textContent}>
+          <View style={skeletonStyles.titleSkeleton} />
+          <View style={skeletonStyles.contentSkeleton} />
+        </View>
+        <View style={skeletonStyles.imageSkeleton} />
+      </View>
+
+      {/* 하단: 상호작용 버튼들 스켈레톤 */}
+      <View style={skeletonStyles.footer}>
+        <View style={skeletonStyles.interactionButtons}>
+          <View style={skeletonStyles.interactionSkeleton} />
+          <View style={skeletonStyles.interactionSkeleton} />
+          <View style={skeletonStyles.interactionSkeleton} />
+        </View>
+      </View>
+    </View>
+  );
+};
+
+// 스켈레톤 스타일 생성 함수
+const createSkeletonStyles = (colors: Record<string, string>) => StyleSheet.create({
+  container: {
+    backgroundColor: colors.WHITE,
+    marginHorizontal: SPACING.SM,
+    marginVertical: SPACING.XS,
+    borderRadius: BORDER_RADIUS.LG,
+    padding: SPACING.MD,
+    ...SHADOWS.SMALL,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.SM,
+  },
+  authorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  profileImageSkeleton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.GRAY_200,
+  },
+  authorDetails: {
+    flex: 1,
+    marginLeft: SPACING.SM,
+  },
+  authorNameSkeleton: {
+    height: 14,
+    backgroundColor: colors.GRAY_200,
+    borderRadius: 7,
+    marginBottom: 4,
+    width: '60%',
+  },
+  adMetaSkeleton: {
+    height: 12,
+    backgroundColor: colors.GRAY_200,
+    borderRadius: 6,
+    width: '40%',
+  },
+  categorySkeleton: {
+    height: 12,
+    backgroundColor: colors.GRAY_200,
+    borderRadius: 6,
+    width: 80,
+  },
+  content: {
+    flexDirection: 'row',
+    marginBottom: SPACING.SM,
+  },
+  textContent: {
+    flex: 1,
+    marginRight: SPACING.SM,
+  },
+  titleSkeleton: {
+    height: 16,
+    backgroundColor: colors.GRAY_200,
+    borderRadius: 8,
+    marginBottom: SPACING.XS,
+    width: '90%',
+  },
+  contentSkeleton: {
+    height: 14,
+    backgroundColor: colors.GRAY_200,
+    borderRadius: 7,
+    width: '70%',
+  },
+  imageSkeleton: {
+    width: 120,
+    height: 120,
+    borderRadius: BORDER_RADIUS.MD,
+    backgroundColor: colors.GRAY_200,
+  },
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: colors.GRAY_200,
+    paddingTop: SPACING.SM,
+  },
+  interactionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  interactionSkeleton: {
+    height: 20,
+    backgroundColor: colors.GRAY_200,
+    borderRadius: 10,
+    width: 40,
+  },
+});
 
 // 스타일 생성 함수
 const createStyles = (colors: Record<string, string>) => StyleSheet.create({

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl, Alert, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, FlatList, StyleSheet, RefreshControl, Text, TouchableOpacity, ActivityIndicator, DeviceEventEmitter } from 'react-native';
 import { useNavigation, useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { SPACING, TYPOGRAPHY } from '../constants/theme';
@@ -43,8 +43,6 @@ type FeedStateType = {
   cursor: number | undefined;
   hasNext: boolean;
   loading: boolean;
-  cuts: ShortItem[];
-  randomFeeds: FeedListItem[];
 };
 
 export default function FeedScreen() {
@@ -59,11 +57,32 @@ export default function FeedScreen() {
     cursor: undefined,
     hasNext: true,
     loading: false,
-    cuts: [], // 랜덤 Cut들 저장
-    randomFeeds: [], // 랜덤 추천 피드들 저장
   });
   const [refreshing, setRefreshing] = useState(false);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
+
+  // 삽입 슬롯 상태 - 광고/추천/컷츠 삽입 위치 관리
+  const [insertSlots, setInsertSlots] = useState<Array<{
+    afterFeedId?: number;
+    type: 'ad' | 'random_feed' | 'cut';
+    key: string;
+    data?: any;
+  }>>([]);
+
+  // 빈 상태 전용 슬롯 - afterFeedId 없이 렌더링되는 슬롯들
+  const [emptySlots, setEmptySlots] = useState<Array<{
+    type: 'ad' | 'random_feed' | 'cut';
+    key: string;
+    data?: any;
+  }>>([]);
+
+  // insertSlots ref로 stale state 방지
+  const insertSlotsRef = useRef(insertSlots);
+  useEffect(() => { insertSlotsRef.current = insertSlots; }, [insertSlots]);
+
+  // emptySlots ref로 stale state 방지
+  const emptySlotsRef = useRef(emptySlots);
+  useEffect(() => { emptySlotsRef.current = emptySlots; }, [emptySlots]);
   // 비디오 가시성 상태 관리 - 가장 중앙에 있는 비디오 아이템만 추적 (피드, 컷츠, 추천 피드)
   const [visibleVideoItem, setVisibleVideoItem] = useState<{type: 'feed' | 'cut' | 'random_feed', id: number} | null>(null);
 
@@ -90,155 +109,294 @@ export default function FeedScreen() {
   const feedsRef = useRef<FeedListItem[]>([]);
   useEffect(() => { feedsRef.current = feedState.feeds; }, [feedState.feeds]);
 
+  // FlatList ref for tab re-press scroll to top
+  const flatListRef = useRef<any>(null);
+
+
+
+
+
+  // 광고 생성 프로미스 재사용
+  const adPromiseRef = useRef<Promise<any> | null>(null);
+
+  // 광고 destroy 관리 (WeakSet으로 중복 destroy 방지)
+  const destroyedAdsRef = useRef(new WeakSet<any>());
+
+  const destroyAdIfNeeded = (ad: any) => {
+    if (!ad?.destroy) return;
+    if (destroyedAdsRef.current.has(ad)) return;
+    destroyedAdsRef.current.add(ad);
+    ad.destroy();
+  };
+
+  type SlotType = 'ad' | 'random_feed' | 'cut';
+
+  type SlotBase = {
+    type: SlotType;
+    key: string;
+    data?: any;
+    afterFeedId?: number;
+  };
+
+  const destroyAdsInSlots = (slots: SlotBase[]) => {
+    for (const s of slots) {
+      if (s.type === 'ad') destroyAdIfNeeded(s.data);
+    }
+  };
+
   // Zustand 스토어 상태 및 액션들
   const { shouldRefreshFeeds, setShouldRefreshFeeds } = useFeedStore();
   const { setShouldRefreshProfileFeeds } = useProfileStore();
   const { stories, loading: storyLoading, loadStories, shouldRefreshStories, setShouldRefreshStories } = useStoryStore();
 
-  // 광고 상태
-  const [ads, setAds] = useState<NativeAd[]>([]);
+  // ---------- 광고 생성 함수 (프로미스 재사용) ----------
+  const createAd = async () => {
+    if (adPromiseRef.current) return adPromiseRef.current;
+
+    adPromiseRef.current = NativeAd.createForAdRequest(TestIds.NATIVE, {
+      aspectRatio: 1,
+      adChoicesPlacement: 0,
+      startVideoMuted: true,
+    })
+      .catch(err => {
+        console.error('광고 로드 실패:', err);
+        return null;
+      })
+      .finally(() => {
+        adPromiseRef.current = null;
+      });
+
+    return adPromiseRef.current;
+  };
+
+  // 탭 재터치 시 상단 스크롤
+  const handleTabRePress = useCallback(() => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, []);
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('FeedTab:rePress', handleTabRePress);
+    return () => subscription.remove();
+  }, [handleTabRePress]);
 
   // 피드 아이템은 useMemo로 계산 (성능 최적화)
 
-  // 컴포넌트 마운트 시 피드와 스토리 로드
+  // 컴포넌트 마운트 시 피드와 스토리 로드 (개발환경 이중 호출 방지)
+  const didInitRef = useRef(false);
+
   useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
     loadInitialFeeds();
     loadStories();
   }, []);
 
-  // ---------- 광고 로드 ----------
+  // 컴포넌트 언마운트 시 광고 리소스 정리 (WeakSet으로 중복 destroy 방지)
   useEffect(() => {
-    const loadAds = async () => {
-      try {
-        const adPromises = [];
-        for (let i = 0; i < 8; i++) {
-          adPromises.push(
-            NativeAd.createForAdRequest(TestIds.NATIVE, {
-              aspectRatio: 1,
-              adChoicesPlacement: 0,
-              startVideoMuted: true,
-            })
-          );
-        }
-        const loadedAds = await Promise.all(adPromises);
-        setAds(loadedAds);
-        console.log('피드 광고 로드 성공:', loadedAds.length);
-      } catch (error) {
-        console.error('피드 광고 로드 실패:', error);
-        setAds([]);
-      }
+    return () => {
+      destroyAdsInSlots([...insertSlotsRef.current, ...emptySlotsRef.current]);
     };
-
-    loadAds();
   }, []);
 
-  // ---------- 광고 위치 계산 함수 ----------
-  const getAdPositions = (feedCount: number) => {
-    const positions: number[] = [];
+  // 슬롯 생성 requestId (최신 요청만 유효하게)
+  const slotsReqIdRef = useRef(0);
 
-    if (feedCount < 4) return positions;
+  // ---------- 슬롯 생성 함수들 ----------
+  const createSlotsForNewFeeds = async (
+    newFeeds: FeedListItem[],
+    opts?: { allowEmptyState?: boolean } // 기본 false
+  ) => {
+    const reqId = ++slotsReqIdRef.current;
 
-    // 첫 광고: 4번째 뒤 (index 3)
-    positions.push(3);
+    const allowEmptyState = opts?.allowEmptyState === true;
 
-    // 이후 광고: 5개마다
-    let next = 8; // 4 + 5 - 1 (0-based)
-    while (next < feedCount) {
-      positions.push(next);
-      next += 5;
+    // 무한스크롤에서 빈 페이지(0개)가 오면 슬롯 생성하지 않음
+    if (newFeeds.length === 0 && !allowEmptyState) return;
+
+    const isEmptyState = newFeeds.length === 0;
+
+    // 진입 시점에 로컬 excludeIds 계산 (슬롯 기반으로 중복 방지 강화 + 피드 본문 중복 방지)
+    const excludeFeedIds = new Set([
+      ...feedsRef.current.map(f => f.id),
+      ...newFeeds.map(f => f.id), // ✅ 이번에 막 받은 newFeeds와도 겹치지 않게
+      ...insertSlotsRef.current.filter(s => s.type === 'random_feed' && s.data?.id).map(s => s.data.id),
+      ...emptySlotsRef.current.filter(s => s.type === 'random_feed' && s.data?.id).map(s => s.data.id),
+    ]);
+    const excludeCutIds = new Set([
+      ...insertSlotsRef.current.filter(s => s.type === 'cut' && s.data?.id).map(s => s.data.id),
+      ...emptySlotsRef.current.filter(s => s.type === 'cut' && s.data?.id).map(s => s.data.id),
+    ]);
+
+    // 광고/추천/컷츠를 병렬로 로드
+    const needAd = newFeeds.length >= 3 || isEmptyState;
+    const [ad, randomFeed, cut] = await Promise.all([
+      needAd ? createAd() : Promise.resolve(null),
+      FeedService.getRandomFeed([...excludeFeedIds]),
+      CutService.getRandomCut([...excludeCutIds]),
+    ]);
+
+    // 최신 요청인지 확인 (이전 요청들은 폐기)
+    if (reqId !== slotsReqIdRef.current) {
+      // 더 최신 요청이 생겼으면 광고 정리 후 폐기
+      destroyAdIfNeeded(ad);
+      return;
     }
 
-    return positions;
+    // 슬롯 생성
+    if (isEmptyState) {
+      // 빈 상태: emptySlots에 추가
+      const newEmptySlots: Array<{
+        type: 'ad' | 'random_feed' | 'cut';
+        key: string;
+        data?: any;
+      }> = [];
+
+      if (ad) {
+        newEmptySlots.push({
+          type: 'ad',
+          key: `ad-${Date.now()}`,
+          data: ad,
+        });
+      }
+      if (randomFeed) {
+        newEmptySlots.push({
+          type: 'random_feed',
+          key: `random-feed-${randomFeed.id}`,
+          data: randomFeed,
+        });
+      }
+      if (cut) {
+        newEmptySlots.push({
+          type: 'cut',
+          key: `cut-${cut.id}`,
+          data: cut,
+        });
+      }
+
+      setEmptySlots(newEmptySlots);
+    } else {
+      // 피드 있는 경우: insertSlots에 추가
+      const newSlots: Array<{
+        afterFeedId?: number;
+        type: 'ad' | 'random_feed' | 'cut';
+        key: string;
+        data?: any;
+      }> = [];
+
+      if (ad && newFeeds.length >= 3) {
+        newSlots.push({
+          afterFeedId: newFeeds[2].id,
+          type: 'ad',
+          key: `ad-${Date.now()}`,
+          data: ad,
+        });
+      }
+      if (randomFeed) {
+        newSlots.push({
+          afterFeedId: newFeeds.length >= 5 ? newFeeds[4].id : newFeeds[newFeeds.length - 1].id,
+          type: 'random_feed',
+          key: `random-feed-${randomFeed.id}`,
+          data: randomFeed,
+        });
+      }
+      if (cut) {
+        newSlots.push({
+          afterFeedId: newFeeds.length >= 7 ? newFeeds[6].id : newFeeds[newFeeds.length - 1].id,
+          type: 'cut',
+          key: `cut-${cut.id}`,
+          data: cut,
+        });
+      }
+
+      setInsertSlots(prev => [...prev, ...newSlots]);
+    }
   };
 
-  // ---------- 피드 아이템 생성 (피드 + 광고 + Cut + 추천 피드 + 빈 상태 프롬프트) - useMemo로 성능 최적화 ----------
+  // ---------- 피드 아이템 생성 (피드 + 슬롯 기반 삽입) - useMemo로 성능 최적화 ----------
   const feedItems = useMemo(() => {
     const items: Array<
       {type: 'feed', data: FeedListItem} |
-      {type: 'ad', data: NativeAd} |
-      {type: 'cut', data: ShortItem} |
-      {type: 'random_feed', data: FeedListItem} |
+      {type: 'ad', data: NativeAd, key: string} |
+      {type: 'cut', data: ShortItem, key: string} |
+      {type: 'random_feed', data: FeedListItem, key: string} |
       {type: 'empty_prompt'}
     > = [];
 
     const feeds = feedState.feeds;
-    const cuts = feedState.cuts;
-    const randomFeeds = feedState.randomFeeds;
     const feedCount = feeds.length;
 
+    // 성능 최적화: slotsByAfterId Map 생성 (O(N) → O(1))
+    const slotsByAfterId = new Map<number, typeof insertSlots>();
+    insertSlots.forEach(s => {
+      if (typeof s.afterFeedId === 'number') {
+        const arr = slotsByAfterId.get(s.afterFeedId) ?? [];
+        arr.push(s);
+        slotsByAfterId.set(s.afterFeedId, arr);
+      }
+    });
+
     if (feedCount === 0 && !feedState.loading) {
-      // 피드 로드 완료 후 실제 피드가 없는 경우: 피드 작성 유도 + 추천 콘텐츠
+      // 빈 상태: 유도화면 + emptySlots에서 추천 콘텐츠
       items.push({ type: 'empty_prompt' });
 
-      // 추천 피드 추가
-      if (randomFeeds.length > 0) {
-        items.push({
-          type: 'random_feed',
-          data: randomFeeds[0],
-        });
-      }
-
-      // 추천 컷츠 추가
-      if (cuts.length > 0) {
-        items.push({
-          type: 'cut',
-          data: cuts[0],
-        });
-      }
-
-      // 광고 추가
-      if (ads.length > 0) {
-        items.push({
-          type: 'ad',
-          data: ads[0],
-        });
-      }
-    } else if (feedCount > 0) {
-      // 피드가 있는 경우: 기존 로직 (피드 + 삽입된 추천 피드/컷츠/광고)
-      const adPositions = getAdPositions(feedCount);
-      let adIndex = 0;
-      let cutIndex = 0;
-      let randomFeedIndex = 0;
-
-      for (let i = 0; i < feedCount; i++) {
-        items.push({
-          type: 'feed',
-          data: feeds[i],
-        });
-
-        // 광고 삽입
-        if (adPositions.includes(i) && ads.length > 0) {
-          items.push({
-            type: 'ad',
-            data: ads[adIndex % ads.length],
-          });
-          adIndex++;
-        }
-
-        // 추천 피드 삽입 (랜덤 위치: 피드 개수의 1/4 지점)
-        const randomFeedInsertPosition = Math.floor(feedCount * (1/4));
-        if (i === randomFeedInsertPosition && randomFeedIndex < randomFeeds.length) {
+      // emptySlots에서 추천 콘텐츠 추가
+      emptySlots.forEach(slot => {
+        if (slot.type === 'random_feed' && slot.data) {
           items.push({
             type: 'random_feed',
-            data: randomFeeds[randomFeedIndex],
+            data: slot.data,
+            key: slot.key,
           });
-          randomFeedIndex++;
-        }
-
-        // Cut 삽입 (랜덤 위치: 피드 개수의 1/2 지점)
-        const cutInsertPosition = Math.floor(feedCount * (1/2));
-        if (i === cutInsertPosition && cutIndex < cuts.length) {
+        } else if (slot.type === 'cut' && slot.data) {
           items.push({
             type: 'cut',
-            data: cuts[cutIndex],
+            data: slot.data,
+            key: slot.key,
           });
-          cutIndex++;
+        } else if (slot.type === 'ad' && slot.data) {
+          items.push({
+            type: 'ad',
+            data: slot.data,
+            key: slot.key,
+          });
         }
-      }
+      });
+    } else if (feedCount > 0) {
+      // 피드가 있는 경우: 피드 순회하며 슬롯 삽입 (Map으로 O(1) 접근)
+      feeds.forEach(feed => {
+        items.push({
+          type: 'feed',
+          data: feed,
+        });
+
+        // 해당 피드 뒤에 삽입할 슬롯들 찾기 (O(1) Map 접근)
+        const slotsAfterFeed = slotsByAfterId.get(feed.id) ?? [];
+        slotsAfterFeed.forEach(slot => {
+          if (slot.type === 'random_feed' && slot.data) {
+            items.push({
+              type: 'random_feed',
+              data: slot.data,
+              key: slot.key,
+            });
+          } else if (slot.type === 'cut' && slot.data) {
+            items.push({
+              type: 'cut',
+              data: slot.data,
+              key: slot.key,
+            });
+          } else if (slot.type === 'ad' && slot.data) {
+            items.push({
+              type: 'ad',
+              data: slot.data,
+              key: slot.key,
+            });
+          }
+        });
+      });
     }
 
     return items;
-  }, [feedState.feeds, feedState.cuts, feedState.randomFeeds, feedState.loading, ads]);
+  }, [feedState.feeds, feedState.loading, insertSlots, emptySlots]);
 
   // 스마트한 포커스 기반 새로고침
   useFocusEffect(
@@ -259,22 +417,33 @@ export default function FeedScreen() {
   // 초기 피드 로드 (피드 우선)
   const loadInitialFeeds = async () => {
     try {
+      // 1) 기존 광고 리소스 정리 (WeakSet으로 중복 방지)
+      destroyAdsInSlots([...insertSlotsRef.current, ...emptySlotsRef.current]);
+
+      // 2) 슬롯 초기화 (ref는 effect에 맡김)
+      setInsertSlots([]);
+      setEmptySlots([]);
+
       setFeedState(prev => ({ ...prev, loading: true }));
 
       // 1. 피드 먼저 로드
       const feedsResponse = await FeedService.getFeeds(undefined, 10);
 
-      setFeedState({
+      setFeedState(prev => ({
+        ...prev,
         feeds: feedsResponse.feeds,
         cursor: feedsResponse.pagination.next_cursor || undefined,
         hasNext: feedsResponse.pagination.has_next,
         loading: false,
-        cuts: [], // 초기에는 빈 배열
-        randomFeeds: [], // 초기에는 빈 배열
-      });
+      }));
 
-      // 2. 피드 로드 완료 후 항상 추천 콘텐츠 로드
-      await loadRecommendedContent();
+      // 2. 빈 상태가 아니면 슬롯 생성 및 추천 로드
+      if (feedsResponse.feeds.length > 0) {
+        await createSlotsForNewFeeds(feedsResponse.feeds);
+      } else {
+        // 빈 상태에서도 추천/광고 1개씩 로드
+        await createSlotsForNewFeeds([], { allowEmptyState: true }); // 빈 배열로 호출하여 추천/광고만 로드
+      }
     } catch (error) {
       console.error('피드 로드 실패:', error);
       setAlertModal({
@@ -283,57 +452,34 @@ export default function FeedScreen() {
         message: '피드를 불러오는데 실패했습니다.',
         buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
       });
-      setFeedState(prev => ({ ...prev, loading: false, cuts: [], randomFeeds: [] }));
+      setFeedState(prev => ({ ...prev, loading: false }));
     }
   };
 
-  // 추천 콘텐츠 로드 함수 (피드 성공 시에만 호출)
-  const loadRecommendedContent = async () => {
-    try {
-      // 현재 로드된 컷츠 ID들과 추천 피드 ID들을 제외하고 새로운 콘텐츠 요청
-      const currentCutIds = feedState.cuts.map(cut => cut.id);
-      const currentRandomFeedIds = feedState.randomFeeds.map(f => f.id);
-
-      const [cutResponse, randomFeedResponse] = await Promise.all([
-        CutService.getRandomCut(currentCutIds),
-        FeedService.getRandomFeed(currentRandomFeedIds)
-      ]);
-
-      setFeedState(prev => ({
-        ...prev,
-        cuts: cutResponse ? [...prev.cuts, cutResponse] : prev.cuts,
-        randomFeeds: randomFeedResponse ? [...prev.randomFeeds, randomFeedResponse] : prev.randomFeeds,
-      }));
-    } catch (error) {
-      console.error('추천 콘텐츠 로드 실패:', error);
-      // 추천 콘텐츠 로드 실패해도 피드에는 영향 없음
-    }
-  };
+  // 추천 콘텐츠 로드 함수 (더 이상 사용하지 않음 - createSlotsForNewFeeds로 대체)
 
   // 추가 피드 로드 (무한 스크롤)
   const loadMoreFeeds = async () => {
-    if (feedState.loading || !feedState.hasNext) return;
+    if (isFetchingMore || !feedState.hasNext) return;
 
+    setIsFetchingMore(true);
     try {
-      setFeedState(prev => ({ ...prev, loading: true }));
-
       // 추가 피드 로드
       const feedsResponse = await FeedService.getFeeds(feedState.cursor, 10);
 
       setFeedState(prev => ({
+        ...prev,
         feeds: [...prev.feeds, ...feedsResponse.feeds],
         cursor: feedsResponse.pagination.next_cursor || undefined,
         hasNext: feedsResponse.pagination.has_next,
-        loading: false,
-        cuts: prev.cuts, // cuts는 그대로 유지 (필요시 loadRecommendedContent로 추가)
-        randomFeeds: prev.randomFeeds, // randomFeeds도 그대로 유지
       }));
 
-      // 피드 추가 로드 성공 시 추천 콘텐츠도 로드
-      await loadRecommendedContent();
+      // 피드 추가 로드 성공 시 슬롯 생성 (추천/광고 1개씩 로드)
+      await createSlotsForNewFeeds(feedsResponse.feeds);
     } catch (error) {
       console.error('추가 피드 로드 실패:', error);
-      setFeedState(prev => ({ ...prev, loading: false }));
+    } finally {
+      setIsFetchingMore(false);
     }
   };
 
@@ -342,24 +488,34 @@ export default function FeedScreen() {
     setRefreshing(true);
 
     try {
-      const [feedsResponse, cutResponse, randomFeedResponse] = await Promise.all([
-        FeedService.getFeeds(undefined, 10),
-        CutService.getRandomCut(),
-        FeedService.getRandomFeed([]), // 새로고침 시 새로운 추천 피드 로드
-        loadStories()
-      ]);
+      // 1) 기존 광고 리소스 정리 (WeakSet으로 중복 방지)
+      destroyAdsInSlots([...insertSlotsRef.current, ...emptySlotsRef.current]);
 
-      setFeedState({
+      // 2) 슬롯 초기화 (ref는 effect에 맡김)
+      setInsertSlots([]);
+      setEmptySlots([]);
+
+      const feedsResponse = await FeedService.getFeeds(undefined, 10);
+
+      await loadStories(); // 따로 await하여 Promise.all 결과 개수 불일치 수정
+
+      setFeedState(prev => ({
+        ...prev,
         feeds: feedsResponse.feeds,
         cursor: feedsResponse.pagination.next_cursor || undefined,
         hasNext: feedsResponse.pagination.has_next,
         loading: false,
-        cuts: cutResponse ? [cutResponse] : [],
-        randomFeeds: randomFeedResponse ? [randomFeedResponse] : [], // 새로고침 시 새로운 추천 피드
-      });
+      }));
+
+      // 새 피드 기반 슬롯 생성
+      if (feedsResponse.feeds.length > 0) {
+        await createSlotsForNewFeeds(feedsResponse.feeds);
+      } else {
+        await createSlotsForNewFeeds([], { allowEmptyState: true });
+      }
     } catch (error) {
       console.error('새로고침 실패:', error);
-      setFeedState(prev => ({ ...prev, loading: false, cuts: [], randomFeeds: [] }));
+      setFeedState(prev => ({ ...prev, loading: false }));
     } finally {
       setRefreshing(false);
     }
@@ -423,26 +579,36 @@ export default function FeedScreen() {
     }));
   }, []);
 
-  // 컷츠 댓글 수 업데이트 핸들러
+  // 컷츠 댓글 수 업데이트 핸들러 (슬롯 기반으로 변경)
   const handleCutCommentCountUpdate = useCallback((cutId: number, newCount: number) => {
-    setFeedState(prev => ({
-      ...prev,
-      cuts: prev.cuts.map(cut =>
-        cut.id === cutId
-          ? { ...cut, comment_count: newCount }
-          : cut
-      ),
-    }));
+    // insertSlots 업데이트
+    setInsertSlots(prev => prev.map(slot =>
+      slot.type === 'cut' && slot.data?.id === cutId
+        ? { ...slot, data: { ...slot.data, comment_count: newCount } }
+        : slot
+    ));
+
+    // emptySlots 업데이트
+    setEmptySlots(prev => prev.map(slot =>
+      slot.type === 'cut' && slot.data?.id === cutId
+        ? { ...slot, data: { ...slot.data, comment_count: newCount } }
+        : slot
+    ));
   }, []);
 
-  // 컷츠 댓글 핸들러
+  // 컷츠 댓글 핸들러 (ref 기반으로 최적화)
   const handleCutCommentPress = useCallback((cutId: number) => {
-    const cut = feedState.cuts.find(c => c.id === cutId);
+    const insert = insertSlotsRef.current;
+    const empty = emptySlotsRef.current;
+
+    let cut = insert.find(s => s.type === 'cut' && s.data?.id === cutId)?.data
+              ?? empty.find(s => s.type === 'cut' && s.data?.id === cutId)?.data;
+
     if (cut) {
       setSelectedCut(cut);
       setCutCommentSheetVisible(true);
     }
-  }, [feedState.cuts]);
+  }, []);
 
   const handleUserPress = (userId: number) => {
     navigation.navigate('UserProfile', { userId: String(userId) });
@@ -678,6 +844,7 @@ export default function FeedScreen() {
 
       {/* 피드 목록 */}
       <FlatList
+        ref={flatListRef}
         data={feedItems}
         renderItem={renderFeedItem}
         keyExtractor={(item, index) => {
@@ -690,7 +857,7 @@ export default function FeedScreen() {
           } else if (item.type === 'empty_prompt') {
             return `empty-prompt`;
           } else {
-            return `ad-${index}`;
+            return (item as any).key || `ad-${index}`;
           }
         }}
         style={styles.feedList}
@@ -704,19 +871,7 @@ export default function FeedScreen() {
           />
         )}
         ListHeaderComponent={listHeader}
-        ListEmptyComponent={
-          !feedState.loading && feedState.feeds.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>피드가 없습니다.</Text>
-              <Text style={styles.emptySubText}>새로운 피드를 올려보세요!</Text>
-              <TouchableOpacity style={styles.writeButton} onPress={() => navigation.navigate('CreateFeed')}>
-                <WriteIcon size={20} color={colors.WHITE} />
-                <Text style={styles.buttonText}>피드 작성하기</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null
-        }
-        onEndReached={feedState.feeds.length > 0 && feedState.hasNext ? loadMoreFeeds : undefined}
+        onEndReached={feedState.feeds.length > 0 && feedState.hasNext && !isFetchingMore ? loadMoreFeeds : undefined}
         onEndReachedThreshold={feedState.feeds.length > 0 && feedState.hasNext ? 0.5 : undefined}
         ListFooterComponent={
           feedState.feeds.length > 0 && isFetchingMore ? (

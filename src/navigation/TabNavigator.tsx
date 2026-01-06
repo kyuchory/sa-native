@@ -68,10 +68,22 @@ export default function TabNavigator() {
       <Tab.Screen
         name="FeedTab"
         component={FeedScreen}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            // 이미 FeedTab이 active 상태라면
+            const state = navigation.getState();
+            const currentRoute = state.routes[state.index];
+
+            if (currentRoute.name === 'FeedTab') {
+              // FeedScreen으로 scroll to top 이벤트 전달
+              DeviceEventEmitter.emit('FeedTab:rePress');
+            }
+          },
+        })}
         options={{
           tabBarIcon: ({ focused }) => (
-            <CleanTabIconComponents.FeedTab 
-              size={26} 
+            <CleanTabIconComponents.FeedTab
+              size={26}
               focused={focused}
             />
           ),
