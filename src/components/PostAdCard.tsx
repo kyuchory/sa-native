@@ -108,31 +108,7 @@ const PostAdCard = ({ nativeAd, onPress }: PostAdCardProps) => {
           </View>
         </View>
 
-        {/* 하단: 상호작용 버튼들 (PostCard와 완전히 동일) */}
-        <View style={styles.footer}>
-          <View style={styles.interactionButtons}>
-            <View style={styles.interactionButton}>
-              <View style={styles.iconContainer}>
-                <EmptyHeartIcon size={18} color={colors.GRAY_400} />
-              </View>
-              <Text style={styles.interactionText}>0</Text>
-            </View>
 
-            <View style={styles.interactionButton}>
-              <View style={styles.iconContainer}>
-                <CommentIcon size={18} color={colors.GRAY_400} />
-              </View>
-              <Text style={styles.interactionText}>0</Text>
-            </View>
-
-            <View style={styles.interactionButton}>
-              <View style={styles.iconContainer}>
-                <BookmarkIcon size={18} color={colors.GRAY_400} />
-              </View>
-              <Text style={styles.interactionText}>0</Text>
-            </View>
-          </View>
-        </View>
       </NativeAdView>
     </TouchableOpacity>
   );

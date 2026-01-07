@@ -1,33 +1,19 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, TouchableOpacity, Animated, StyleSheet, Text, Dimensions } from 'react-native';
-import { NativeAd, NativeAdView, NativeAsset, NativeAssetType, NativeMediaView, NativeAdEventType } from 'react-native-google-mobile-ads';
-import { PlayIcon, PauseIcon } from './CutIcons';
-import { ShortActionButtons } from './ShortActionButtons';
-import { ShortBottomAdOverlay } from './ShortBottomAdOverlay';
+import React, { useEffect, useCallback } from 'react';
+import { View, StyleSheet, Dimensions, Text } from 'react-native';
+import { Image } from 'expo-image';
+import { NativeAd, NativeAdView, NativeMediaView, NativeAdEventType, NativeAsset, NativeAssetType } from 'react-native-google-mobile-ads';
+
 import { COLORS, TYPOGRAPHY, SPACING } from '../constants/theme';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: screenWidth } = Dimensions.get('window');
 
 interface ShortItemAdProps {
   nativeAd: NativeAd;
-  onComment?: () => void;
-  onShare?: () => void;
-  onUpload?: () => void;
-  extraBottomMargin?: number;
 }
 
 export const ShortItemAdComponent = React.memo<ShortItemAdProps>(({
   nativeAd,
-  onComment,
-  onShare,
-  onUpload,
-  extraBottomMargin,
 }) => {
-  const [showOverlayIcon, setShowOverlayIcon] = useState(false);
-  const [overlayIsPlaying, setOverlayIsPlaying] = useState(false);
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
-  const overlayAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
-
   useEffect(() => {
     // 광고 이벤트 리스너
     const clickListener = nativeAd.addAdEventListener(NativeAdEventType.CLICKED, () => {
@@ -39,99 +25,76 @@ export const ShortItemAdComponent = React.memo<ShortItemAdProps>(({
     };
   }, [nativeAd]);
 
-  const triggerOverlay = useCallback((isPlayingNow: boolean) => {
-    if (overlayAnimationRef.current) {
-      overlayAnimationRef.current.stop();
-    }
-
-    setOverlayIsPlaying(isPlayingNow);
-    setShowOverlayIcon(true);
-    overlayOpacity.setValue(1);
-
-    overlayAnimationRef.current = Animated.timing(overlayOpacity, {
-      toValue: 0,
-      duration: 1000,
-      useNativeDriver: true,
-    });
-
-    overlayAnimationRef.current.start(({ finished }) => {
-      if (finished) setShowOverlayIcon(false);
-    });
-  }, []);
-
-  const handleTogglePlay = useCallback(() => {
-    // 광고에서는 실제 재생 제어 대신 오버레이만 표시
-    triggerOverlay(!overlayIsPlaying);
-  }, [overlayIsPlaying, triggerOverlay]);
-
-  const handleComment = useCallback(() => onComment?.(), [onComment]);
-  const handleShare = useCallback(() => onShare?.(), [onShare]);
-  const handleUpload = useCallback(() => onUpload?.(), [onUpload]);
-
-  // 더미 데이터들 (실제로는 광고 데이터 사용)
-  const dummyActionData = {
-    isLiked: false,
-    likeCount: 0,
-    isLikeLoading: false,
-    commentCount: 0,
-    isBookmarked: false,
-    isBookmarkLoading: false,
-    viewCount: 0,
-    onLike: () => {},
-    onComment: handleComment,
-    onBookmark: () => {},
-    onShare: handleShare,
-    onUpload: handleUpload,
-    bottomInsets: extraBottomMargin,
-  };
-
-  // 광고용 더미 데이터들 (타임스탬프 대신 SPONSORED 정보 표시)
-  const sponsoredInfo = [
-    'SPONSORED',
-    nativeAd.starRating ? `⭐ ${nativeAd.starRating.toFixed(1)}` : null,
-    nativeAd.store || null,
-  ].filter(Boolean).join(' • ');
-
-  const dummyBottomData = {
-    nickname: nativeAd.advertiser || '광고',
-    profileImg: nativeAd.icon?.url || null,
-    sponsoredInfo: sponsoredInfo, // SPONSORED 정보
-    description: nativeAd.body || nativeAd.headline || '광고 콘텐츠',
-    categories: [{ id: 1, name: 'SPONSORED' }],
-    onProfilePress: () => {},
-    bottomInsets: extraBottomMargin,
-  };
-
   return (
     <View style={styles.container}>
-      <NativeAdView 
-        nativeAd={nativeAd} 
-        style={[StyleSheet.absoluteFill, styles.adViewCenter]}
+      <NativeAdView
+        nativeAd={nativeAd}
+        style={styles.adView}
       >
-        <NativeMediaView style={styles.media} />
-      </NativeAdView>
+        {/* 상단: 미디어 영역 */}
+        <View style={styles.mediaContainer}>
+          <NativeMediaView style={styles.media} />
+        </View>
 
-      <TouchableOpacity
-        style={StyleSheet.absoluteFill}
-        activeOpacity={1}
-        onPress={handleTogglePlay}
-      >
-        {showOverlayIcon && (
-          <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
-            <View style={styles.overlayIcon}>
-              {overlayIsPlaying ? (
-                <PlayIcon size={48} color={COLORS.WHITE} filled />
+        {/* 하단: 광고 콘텐츠 오버레이 (ShortBottomOverlay처럼) */}
+        <View style={styles.bottomOverlay}>
+          {/* 프로필 섹션 */}
+          <View style={styles.profileSection}>
+            <View style={styles.profileImageContainer}>
+              {nativeAd.icon ? (
+                <NativeAsset assetType={NativeAssetType.ICON}>
+                  <Image
+                    source={{ uri: nativeAd.icon.url }}
+                    style={styles.profileImage}
+                  />
+                </NativeAsset>
               ) : (
-                <PauseIcon size={48} color={COLORS.WHITE} filled />
+                <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
+                  <Text style={styles.profileImageText}>광</Text>
+                </View>
               )}
             </View>
-          </Animated.View>
-        )}
-      </TouchableOpacity>
 
-      <ShortActionButtons {...dummyActionData} />
+            <View style={styles.textSection}>
+              <NativeAsset assetType={NativeAssetType.ADVERTISER}>
+                <Text style={styles.nickname}>
+                  {nativeAd.advertiser || '광고'}
+                </Text>
+              </NativeAsset>
+              <Text style={styles.sponsoredText}>SPONSORED</Text>
+            </View>
+          </View>
 
-      <ShortBottomAdOverlay {...dummyBottomData} />
+          {/* 설명 섹션 */}
+          <View style={styles.descriptionSection}>
+            <NativeAsset assetType={NativeAssetType.HEADLINE}>
+              <Text style={styles.title} numberOfLines={2}>
+                {nativeAd.headline}
+              </Text>
+            </NativeAsset>
+
+            {nativeAd.body && (
+              <NativeAsset assetType={NativeAssetType.BODY}>
+                <Text style={styles.description} numberOfLines={3}>
+                  {nativeAd.body}
+                </Text>
+              </NativeAsset>
+            )}
+
+            {/* CTA 버튼 */}
+            {(nativeAd.callToAction || nativeAd.price) && (
+              <NativeAsset assetType={NativeAssetType.CALL_TO_ACTION}>
+                <View style={styles.ctaContainer}>
+                  <Text style={styles.ctaText}>
+                    {nativeAd.callToAction || '자세히 보기'}
+                    {nativeAd.price && ` • ${nativeAd.price}`}
+                  </Text>
+                </View>
+              </NativeAsset>
+            )}
+          </View>
+        </View>
+      </NativeAdView>
     </View>
   );
 });
@@ -143,7 +106,11 @@ const styles = StyleSheet.create({
     position: 'relative',
     backgroundColor: COLORS.BLACK,
   },
-  adViewCenter: {
+  adView: {
+    flex: 1,
+  },
+  mediaContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -151,19 +118,81 @@ const styles = StyleSheet.create({
     width: screenWidth,
     aspectRatio: 1,
   },
-  overlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    pointerEvents: 'box-none',
+  bottomOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: SPACING.SMD,
+    paddingTop: SPACING.MD,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: 25,
+    marginBottom: SPACING.SM,
+    marginHorizontal: SPACING.SM,
   },
-  overlayIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  profileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.SM,
+  },
+  profileImageContainer: {
+    marginRight: SPACING.SM,
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  profileImagePlaceholder: {
+    backgroundColor: COLORS.GRAY_300,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  profileImageText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: COLORS.WHITE,
+  },
+  textSection: {
+    flex: 1,
+  },
+  nickname: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
+    color: COLORS.WHITE,
+  },
+  sponsoredText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: COLORS.WHITE,
+    opacity: 0.7,
+  },
+  descriptionSection: {
+    marginBottom: SPACING.MD,
+  },
+  title: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
+    color: COLORS.WHITE,
+    marginBottom: SPACING.XS,
+    lineHeight: 22,
+  },
+  description: {
+    fontSize: TYPOGRAPHY.SIZE.MD,
+    color: COLORS.WHITE,
+    lineHeight: 20,
+  },
+  ctaContainer: {
+    marginTop: SPACING.SM,
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.SM,
+    backgroundColor: COLORS.PRIMARY,
+    borderRadius: 20,
+    alignItems: 'center',
+  },
+  ctaText: {
+    fontSize: TYPOGRAPHY.SIZE.SM,
+    color: COLORS.WHITE,
+    fontWeight: TYPOGRAPHY.WEIGHT.BOLD,
   },
 });
 

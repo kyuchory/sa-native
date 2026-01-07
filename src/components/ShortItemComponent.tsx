@@ -30,11 +30,29 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
   onProfilePress,
   extraBottomMargin,
 }) => {
-  // 🔥 videoSource를 useMemo로 안정화
-  const videoSource = React.useMemo(() => item.content_url || '', [item.content_url]);
+  // 🔥 비디오 플레이어 - 단순화
+  const player = useVideoPlayer(item.content_url ?? '');
 
-  // 🔥 비디오 플레이어 - 최상위에서 Hook 호출 (규칙 준수)
-  const player = useVideoPlayer(videoSource);
+  const { startTracking, stopTracking, recordAndReset } = useShortViewTracking({
+    shortId: item.id,
+    isActive,
+    onViewComplete,
+  });
+
+  // ✅ 최신 player를 항상 ref에 유지
+  const playerRef = useRef<any>(null);
+  useEffect(() => {
+    playerRef.current = player;
+  }, [player]);
+
+  // ✅ 최신 isActive를 이벤트에서도 쓰기 위한 ref
+  const isActiveRef = useRef(isActive);
+  useEffect(() => {
+    isActiveRef.current = isActive;
+  }, [isActive]);
+
+  // ✅ 비디오 ready 상태 기억용 ref
+  const isReadyRef = useRef(false);
 
   useEffect(() => {
     if (player) {
@@ -42,17 +60,33 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
 
       const handleStatusChange = (payload: any) => {
         if (payload.status === 'readyToPlay') {
-          player.seekBy(0.1);
-          player.removeListener('statusChange', handleStatusChange);
+          isReadyRef.current = true;
+
+          try {
+            playerRef.current?.seekBy?.(0.1);
+          } catch {}
+
+          // ✅ 지금 활성 상태면 재생 보장 + tracking 시작
+          if (isActiveRef.current) {
+            try {
+              playerRef.current?.play?.();
+              startTracking(playerRef.current);
+            } catch {}
+          }
+
+          playerRef.current?.removeListener?.('statusChange', handleStatusChange);
         }
       };
 
       // 🔥 영상 종료 시 처음으로 돌아가기 (iOS 검은 화면 방지)
       const handlePlayToEnd = () => {
-        // 영상이 끝났을 때
-        if (isMountedRef.current && !isCleaningUpRef.current) {
-          player.currentTime = 0.1; // 검은 프레임을 스킵한 위치로 즉시 이동
-          player.play(); // 자동으로 재생 시작
+        if (isMountedRef.current && !isCleaningUpRef.current && isActiveRef.current) {
+          try {
+            const p = playerRef.current;
+            if (!p) return;
+            p.currentTime = 0.1;
+            p.play?.();
+          } catch {}
         }
       };
 
@@ -64,13 +98,7 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
         player.removeListener('playToEnd', handlePlayToEnd);
       };
     }
-  }, [player]);
-
-  const { startTracking, stopTracking, recordAndReset } = useShortViewTracking({
-    shortId: item.id,
-    isActive,
-    onViewComplete,
-  });
+  }, [player, startTracking]);
 
   const {
     isLiked,
@@ -121,51 +149,49 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 🔥 의존성 제거 - overlayOpacity는 ref이므로 안정적
 
-  // 🔥 안전한 pause 함수
+  // ✅ 최신 player 기준으로 제어
   const safePause = useCallback(() => {
-    if (hasCalledPauseRef.current) return; // 이미 pause 호출됨
-    if (isCleaningUpRef.current) return; // cleanup 중
+    if (isCleaningUpRef.current) return;
 
     try {
-      if (player && typeof player.pause === 'function') {
-        player.pause();
-        hasCalledPauseRef.current = true; // 🔥 pause 호출 기록
-      }
-    } catch (error) {
-      // 무시
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 🔥 player 의존성 제거
+      playerRef.current?.pause?.();
+      hasCalledPauseRef.current = true;
+    } catch {}
+  }, []);
+
+  const safePlay = useCallback(() => {
+    if (isCleaningUpRef.current) return;
+
+    try {
+      playerRef.current?.play?.();
+    } catch {}
+  }, []);
 
   // 🔥 재생/정지 제어 - 개선된 버전
   useEffect(() => {
     if (isCleaningUpRef.current) return;
 
     if (isActive) {
-      // pause 플래그 리셋
       hasCalledPauseRef.current = false;
 
-      const playTimer = setTimeout(() => {
+      const t = setTimeout(() => {
         if (!isCleaningUpRef.current && isMountedRef.current) {
-          try {
-            player.play();
-            startTracking(player);
-          } catch (error) {
-            console.warn('Video play error:', error);
+          safePlay();
+
+          // ✅ 추가: 이미 ready 상태면 여기서 tracking 시작
+          if (isReadyRef.current) {
+            startTracking(playerRef.current);
           }
         }
       }, 50);
 
-      return () => {
-        clearTimeout(playTimer);
-      };
+      return () => clearTimeout(t);
     } else {
-      // 🔥 safePause 사용
       safePause();
       stopTracking();
       recordAndReset();
     }
-  }, [isActive, item.id, safePause]);
+  }, [isActive, item.id, safePlay, safePause, stopTracking, recordAndReset, startTracking]);
 
   // 🔥 언마운트 시 정리 - 개선된 버전
   useEffect(() => {
@@ -190,20 +216,22 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
   const handleTogglePlay = useCallback(() => {
     if (!isActive || isCleaningUpRef.current) return;
 
+    const p = playerRef.current;
+    if (!p) return;
+
     try {
-      if (player.playing) {
-        safePause(); // 🔥 safePause 사용
+      if (p.playing) {
+        safePause();
         triggerOverlay(false);
       } else {
-        hasCalledPauseRef.current = false; // play 시 플래그 리셋
-        player.play();
+        hasCalledPauseRef.current = false;
+        p.play?.();
         triggerOverlay(true);
       }
-    } catch (error) {
-      console.warn('Toggle play error:', error);
+    } catch (e) {
+      console.warn('Toggle play error:', e);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, triggerOverlay, safePause]); // 🔥 player 의존성 제거
+  }, [isActive, triggerOverlay, safePause]);
 
   const handleComment = useCallback(() => onComment(item), [onComment, item]);
   const handleShare = useCallback(() => onShare(item), [onShare, item]);
@@ -213,6 +241,7 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
   return (
     <View style={styles.container}>
       <VideoView
+        key={`video-${item.id}`}
         style={styles.media}
         player={player}
         contentFit="cover"
@@ -265,17 +294,7 @@ export const ShortItemComponent = React.memo<ShortItemProps>(({
       />
     </View>
   );
-},
-// 🔥 커스텀 비교 함수
-(prevProps, nextProps) => {
-  return (
-    prevProps.item.id === nextProps.item.id &&
-    prevProps.isActive === nextProps.isActive &&
-    prevProps.extraBottomMargin === nextProps.extraBottomMargin &&
-    prevProps.item.content_url === nextProps.item.content_url
-  );
-}
-);
+});
 
 const styles = StyleSheet.create({
   container: {

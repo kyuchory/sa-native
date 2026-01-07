@@ -27,6 +27,7 @@ export const useShortViewTracking = ({
   });
 
   const rafRef = useRef<number | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // shortId 변경 시 초기화
   useEffect(() => {
@@ -39,8 +40,21 @@ export const useShortViewTracking = ({
 
   const trackingLoop = useCallback((player: any) => {
     if (!player.playing) {
-      rafRef.current = requestAnimationFrame(() => trackingLoop(player));
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+      timeoutRef.current = setTimeout(() => {
+        // stopTracking() 되었으면 rafRef가 null이니까 재스케줄 안 함
+        if (rafRef.current != null) {
+          rafRef.current = requestAnimationFrame(() => trackingLoop(player));
+        }
+      }, 250);
+
       return;
+    }
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
 
     const currentTime = player.currentTime || 0;
@@ -61,6 +75,7 @@ export const useShortViewTracking = ({
 
   const startTracking = useCallback((player: any) => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
     rafRef.current = requestAnimationFrame(() => trackingLoop(player));
   }, [trackingLoop]);
 
@@ -68,6 +83,10 @@ export const useShortViewTracking = ({
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
   }, []);
 
@@ -86,6 +105,10 @@ export const useShortViewTracking = ({
     }
 
     stopTracking();
+
+    // ✅ reset
+    tracking.videoDuration = 0;
+    tracking.watchedSegments = new Set();
   }, [onViewComplete, stopTracking]);
 
   useEffect(() => {

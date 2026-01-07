@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   DeviceEventEmitter,
+  InteractionManager,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
@@ -46,6 +47,10 @@ import { NativeAd, TestIds } from 'react-native-google-mobile-ads';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+type CutListItem =
+  | { type: 'short'; data: ShortItem }
+  | { type: 'ad'; data: NativeAd; adKey: string };
+
 type CutScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'MainApp'>;
 
 export default function CutScreen() {
@@ -69,18 +74,27 @@ export default function CutScreen() {
   const [menuActionSheetVisible, setMenuActionSheetVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
-  
-  // 🔥 리프레시 키 추가 - 리프레시 시마다 변경하여 컴포넌트 강제 재마운트
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [listKey, setListKey] = useState(0);
+
 
   // 광고 상태
   const [ads, setAds] = useState<NativeAd[]>([]);
+  const [adKeys, setAdKeys] = useState<string[]>([]);
 
   // 숏츠 + 광고 아이템 상태
-  const [items, setItems] = useState<Array<{type: 'short', data: ShortItem} | {type: 'ad', data: NativeAd}>>([]);
+  const [items, setItems] = useState<CutListItem[]>([]);
 
   const flatListRef = useRef<any>(null);
   const fetchMoreTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isRefreshingRef = useRef(false);
+  const currentIndexRef = useRef(currentIndex);
+  const adsRef = useRef<NativeAd[]>([]);
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+  useEffect(() => {
+    adsRef.current = ads;
+  }, [ads]);
 
   const LIMIT = 6;
   const PREFETCH_OFFSET = 3;
@@ -92,6 +106,9 @@ export default function CutScreen() {
       setError(null);
 
       const response = await CutService.getShortsFeed(undefined, LIMIT);
+
+      // 디버깅 로그: 반환하는 숏츠 ID 순서대로 출력
+      console.log('🔍 [CutScreen] fetchInitial - 숏츠 ID 순서:', response.data.items.map(item => item.id));
 
       setShorts(response.data.items);
       setNextCursor(response.data.next_cursor);
@@ -116,6 +133,9 @@ export default function CutScreen() {
 
       const response = await CutService.getShortsFeed(currentNextCursor, LIMIT);
 
+      // 디버깅 로그: 반환하는 숏츠 ID 순서대로 출력
+      console.log('🔍 [CutScreen] fetchMore - 숏츠 ID 순서:', response.data.items.map(item => item.id));
+
       setShorts((prev) => {
         const existingIds = new Set(prev.map(short => short.id));
         const newItems = response.data.items.filter(item => !existingIds.has(item.id));
@@ -132,11 +152,20 @@ export default function CutScreen() {
 
   // 프리패칭 로직
   useEffect(() => {
+    if (isRefreshingRef.current) return; // 🔥 새로고침 중 프리패치 금지
     if (!nextCursor) return;
     if (isFetchingMore) return;
     if (shorts.length === 0) return;
+    if (currentIndex < 0) return; // 🔥 광고 페이지 / -1 상태에선 프리패치 안 함
 
-    if (currentIndex >= shorts.length - 1 - PREFETCH_OFFSET) {
+    const currentItem = items[currentIndex];
+    if (!currentItem || currentItem.type !== 'short') return;
+
+    const currentShortId = currentItem.data.id;
+    const shortIdx = shorts.findIndex(s => s.id === currentShortId);
+    if (shortIdx < 0) return;
+
+    if (shortIdx >= shorts.length - 1 - PREFETCH_OFFSET) {
       if (fetchMoreTimeoutRef.current) {
         clearTimeout(fetchMoreTimeoutRef.current);
       }
@@ -151,13 +180,20 @@ export default function CutScreen() {
         clearTimeout(fetchMoreTimeoutRef.current);
       }
     };
-  }, [currentIndex, shorts.length, nextCursor, isFetchingMore]);
+  }, [currentIndex, items, shorts, nextCursor, isFetchingMore]);
 
   useEffect(() => {
     fetchInitial();
   }, []);
 
-  // ---------- 광고 로드 ----------
+  // ✅ 화면 떠날 때 무조건 전체 정지 보장
+  useEffect(() => {
+    if (!isFocused) {
+      setCurrentIndex(-1); // 🔥 화면 나가면 모든 ShortItemComponent isActive=false
+    }
+  }, [isFocused]);
+
+  // ---------- 광고 로드 (1회만) ----------
   useEffect(() => {
     const loadAds = async () => {
       try {
@@ -172,21 +208,33 @@ export default function CutScreen() {
           );
         }
         const loadedAds = await Promise.all(adPromises);
+        const seed = Date.now();
         setAds(loadedAds);
+        setAdKeys(loadedAds.map((_, i) => `native-${seed}-${i}`));
         console.log('컷츠 광고 로드 성공:', loadedAds.length);
       } catch (error) {
         console.error('컷츠 광고 로드 실패:', error);
         setAds([]);
+        setAdKeys([]);
       }
     };
 
     loadAds();
   }, []);
 
+  // ---------- 언마운트 시 광고 리소스 정리 ----------
+  useEffect(() => {
+    return () => {
+      try {
+        adsRef.current.forEach(ad => ad?.destroy?.());
+      } catch {}
+    };
+  }, []);
+
   // ---------- 숏츠 + 광고 아이템 생성 ----------
   useEffect(() => {
     const createItems = () => {
-      const newItems: Array<{type: 'short', data: ShortItem} | {type: 'ad', data: NativeAd}> = [];
+      const newItems: CutListItem[] = [];
       const shortCount = shorts.length;
 
       if (shortCount < 6) {
@@ -196,10 +244,11 @@ export default function CutScreen() {
         // 6개 이상: 광고 삽입 (6번째마다)
         let adIndex = 0;
         for (let i = 0; i < shortCount; i++) {
-          newItems.push({ type: 'short', data: shorts[i] });
+          newItems.push({ type: 'short' as const, data: shorts[i] });
 
-        if ((i + 1) % 6 === 0 && ads.length > 0) {
-          newItems.push({ type: 'ad', data: ads[adIndex % ads.length] });
+        if ((i + 1) % 6 === 0 && ads.length > 0 && adKeys.length === ads.length) {
+          const adDataIndex = adIndex % ads.length;
+          newItems.push({ type: 'ad' as const, data: ads[adDataIndex], adKey: adKeys[adDataIndex] });
           adIndex++;
         }
         }
@@ -209,37 +258,59 @@ export default function CutScreen() {
     };
 
     createItems();
-  }, [shorts, ads]);
+  }, [shorts, ads, adKeys]);
 
-  // 🔥 Pull to refresh - 수정된 버전
+  // ---------- items 생성 후 첫 아이템이 광고면 currentIndex=-1 ----------
+  useEffect(() => {
+    const first = items[0];
+    if (!first) return;
+    if (first.type === 'ad' && currentIndexRef.current !== -1) setCurrentIndex(-1);
+  }, [items]);
+
   const onRefresh = useCallback(async () => {
+    if (isRefreshingRef.current) return;
+
+    isRefreshingRef.current = true;
+    setRefreshing(true);
+    setError(null);
+
+    // ✅ refresh 중 fetchMore 섞이지 않게 타이머 컷
+    if (fetchMoreTimeoutRef.current) {
+      clearTimeout(fetchMoreTimeoutRef.current);
+      fetchMoreTimeoutRef.current = null;
+    }
+
     try {
-      setRefreshing(true);
-      setError(null);
+      // ✅ 1) 전부 정지 (소리/플레이어 꼬임 방지)
+      setCurrentIndex(-1);
 
-      // 🔥 1. 먼저 currentIndex를 0으로 설정
-      setCurrentIndex(0);
+      // ✅ 2) UI는 즉시 맨 위로
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
 
-      // 🔥 2. 데이터 fetch
+      // ✅ 3) fetch
       const response = await CutService.getShortsFeed(undefined, LIMIT);
-      
-      // 🔥 3. refreshKey 증가로 모든 ShortItemComponent 강제 재마운트
-      setRefreshKey(prev => prev + 1);
-      
-      // 🔥 4. 데이터 업데이트
+      console.log('🔍 [CutScreen] onRefresh - 숏츠 ID 순서:', response.data.items.map(i => i.id));
+
+      // ✅ 4) 데이터 교체
       setShorts(response.data.items);
       setNextCursor(response.data.next_cursor);
-      
-      // 🔥 5. 스크롤을 맨 위로 (약간의 지연 후)
-      setTimeout(() => {
+
+      // ✅ 5) FlashList remount (앵커링 제거)
+      setListKey(k => k + 1);
+
+      // ✅ 6) 다음 프레임에 0번 확정
+      requestAnimationFrame(() => {
         flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-      }, 100);
-      
+        setCurrentIndex(0);
+      });
     } catch (e) {
       console.error('컷츠 리프레시 실패:', e);
       setError('컷츠를 새로고침하는 중 오류가 발생했습니다.');
     } finally {
       setRefreshing(false);
+      requestAnimationFrame(() => {
+        isRefreshingRef.current = false;
+      });
     }
   }, [LIMIT]);
 
@@ -313,7 +384,9 @@ export default function CutScreen() {
   };
 
   const handleDeleteCut = useCallback(async () => {
-    const currentShort = shorts[currentIndex];
+    if (currentIndex < 0) return; // 🔥 -1 상태에서 삭제 방지
+    const currentItem = items[currentIndex];
+    const currentShort = currentItem?.type === 'short' ? currentItem.data : null;
     if (!currentShort) return;
 
     setAlertModal({
@@ -335,14 +408,14 @@ export default function CutScreen() {
               setAlertModal(null);
               await CutService.deleteShort(currentShort.id);
 
-              const updatedShorts = shorts.filter(short => short.id !== currentShort.id);
-              setShorts(updatedShorts);
+              // ✅ shorts에서 제거 (items는 useEffect로 다시 만들어짐)
+              setShorts(prev => prev.filter(s => s.id !== currentShort.id));
 
-              if (updatedShorts.length === 0) {
-                setCurrentIndex(0);
-              } else if (currentIndex >= updatedShorts.length) {
-                setCurrentIndex(updatedShorts.length - 1);
-              }
+              // ✅ 삭제 후 인덱스 보정: 일단 맨 위로 보내는 게 제일 안전
+              setCurrentIndex(0);
+              requestAnimationFrame(() => {
+                flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+              });
 
               useProfileStore.getState().setShouldRefreshProfileShorts(true);
 
@@ -366,16 +439,20 @@ export default function CutScreen() {
         }
       ]
     });
-  }, [shorts, currentIndex, colors]);
+  }, [items, currentIndex, colors]);
 
   const handleReportCut = useCallback(() => {
     setMenuActionSheetVisible(false);
     setReportModalVisible(true);
   }, []);
 
+  const currentItem = currentIndex >= 0 ? items[currentIndex] : null;
+  const currentShort = currentItem?.type === 'short' ? currentItem.data : null;
+
   const menuActions = useCallback(() => {
-    const currentShort = shorts[currentIndex];
-    if (!currentShort) return [];
+    const currentItem = currentIndex >= 0 ? items[currentIndex] : null;
+    const currentShort = currentItem?.type === 'short' ? currentItem.data : null;
+    if (!currentShort) return []; // ✅ 광고 페이지면 메뉴 비활성
 
     const actions = [
       {
@@ -408,7 +485,7 @@ export default function CutScreen() {
     }
 
     return actions;
-  }, [shorts, currentIndex, colors, handleDeleteCut, handleReportCut, handleShare]);
+  }, [items, currentIndex, colors, handleDeleteCut, handleReportCut, handleShare]);
 
   const handleViewComplete = useCallback(async (
     shortId: number,
@@ -443,8 +520,27 @@ export default function CutScreen() {
         itemVisiblePercentThreshold: 80,
       },
       onViewableItemsChanged: ({ viewableItems }: any) => {
-        if (viewableItems.length > 0) {
-          setCurrentIndex(viewableItems[0].index ?? 0);
+        if (isRefreshingRef.current) return;
+        if (!viewableItems || viewableItems.length === 0) return;
+
+        // 1) 가장 '지금 페이지'에 가까운 후보를 잡자
+        //    (pagingEnabled라서 보통 1개가 80% 이상이지만, 안전하게 처리)
+        const top = viewableItems
+          .filter((v: any) => v?.isViewable)
+          .sort((a: any, b: any) => (b?.percentVisible ?? 0) - (a?.percentVisible ?? 0))[0];
+
+        if (!top) return;
+
+        // 2) 광고가 현재 페이지면 -> 전부 정지
+        if (top.item?.type === 'ad') {
+          if (currentIndexRef.current !== -1) setCurrentIndex(-1);
+          return;
+        }
+
+        // 3) 숏츠가 현재 페이지면 -> 해당 인덱스 활성화
+        if (top.item?.type === 'short') {
+          const next = top.index ?? 0;
+          if (currentIndexRef.current !== next) setCurrentIndex(next);
         }
       },
     },
@@ -452,18 +548,11 @@ export default function CutScreen() {
 
   const itemContainerStyle = useMemo(() => ({ height: ITEM_HEIGHT }), [ITEM_HEIGHT]);
 
-  // 🔥 keyExtractor에 refreshKey 포함
-  const keyExtractor = useCallback(
-    (item: ShortItem) => `${item.id}-${refreshKey}`,
-    [refreshKey]
-  );
-
   const renderItem = useCallback(
-    ({ item, index }: { item: {type: 'short', data: ShortItem} | {type: 'ad', data: NativeAd}; index: number }) => (
+    ({ item, index }: { item: CutListItem; index: number }) => (
       <View style={itemContainerStyle}>
         {item.type === 'short' ? (
           <ShortItemComponent
-            key={`${item.data.id}-${refreshKey}`}
             item={item.data}
             isActive={isFocused && index === currentIndex}
             onComment={(short) => onCommentRef.current(short)}
@@ -475,14 +564,11 @@ export default function CutScreen() {
         ) : (
           <ShortItemAdComponent
             nativeAd={item.data}
-            onComment={() => {}}
-            onShare={() => {}}
-            onUpload={() => {}}
           />
         )}
       </View>
     ),
-    [itemContainerStyle, isFocused, currentIndex, refreshKey]
+    [itemContainerStyle, isFocused, currentIndex]
   );
 
   // 로딩 중
@@ -575,15 +661,12 @@ export default function CutScreen() {
       </View>
 
       <FlashList
+        key={listKey}
         ref={flatListRef}
         data={items}
         renderItem={renderItem}
-        keyExtractor={(item, index) => {
-          if (item.type === 'short') {
-            return `${item.data.id}-${refreshKey}`;
-          } else {
-            return `ad-${index}`;
-          }
+        keyExtractor={(item) => {
+          return item.type === 'short' ? `short-${item.data.id}` : item.adKey;
         }}
         pagingEnabled
         showsVerticalScrollIndicator={false}
@@ -645,7 +728,7 @@ export default function CutScreen() {
       <ReportModal
         visible={reportModalVisible}
         targetType={ReportTargetType.SHORT}
-        targetId={shorts[currentIndex]?.id || 0}
+        targetId={currentShort?.id ?? 0}
         onSubmit={handleReportSubmit}
         onClose={() => setReportModalVisible(false)}
       />
