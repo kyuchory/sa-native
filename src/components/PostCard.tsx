@@ -193,10 +193,10 @@ const PostCard = ({
         <View style={styles.categoryInfo}>
           <View style={styles.categoryContainer}>
             <Text style={styles.categoryText}>
-             [ {post.sub_category.category.name} {'>'} {post.sub_category.name} ]
+             {post.sub_category.category.name} • {post.sub_category.name}
             </Text>
             {animalTypeLabel && (
-              <Text style={styles.animalTypeText}>[ {animalTypeLabel} ]</Text>
+              <Text style={styles.animalTypeText}>{animalTypeLabel}</Text>
             )}
           </View>
         </View>

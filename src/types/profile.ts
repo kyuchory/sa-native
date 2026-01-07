@@ -87,6 +87,7 @@ export interface UpdateProfileVisibilityApiResponse {
 export interface ProfilePostItem {
   id: number;
   title: string;
+  animal_type: string; // 동물 타입 추가
   created_at: string;
   updated_at: string;
   sub_category: {

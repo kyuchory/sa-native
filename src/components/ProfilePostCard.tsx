@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'rea
 import { Image } from 'expo-image';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { useThemeStore } from '../stores/themeStore';
+import usePostStore from '../stores/postStore';
 import { EmptyHeartIcon, FilledHeartIcon, CommentIcon } from './PostCardIcons';
 import { VideoIcon } from './PostIcons';
 import type { ProfilePostItem } from '../types/profile';
@@ -22,6 +23,7 @@ export default function ProfilePostCard({
   onCommentPress
 }: ProfilePostCardProps) {
   const { colors } = useThemeStore();
+  const { animalTypes } = usePostStore();
   const styles = createStyles(colors);
 
   // 로컬 상태 관리
@@ -97,6 +99,13 @@ export default function ProfilePostCard({
     return num.toString();
   };
 
+  // 동물 타입 라벨 가져오기 - useMemo 메모이제이션
+  const animalTypeLabel = React.useMemo(() => {
+    if (!post.animal_type || post.animal_type === 'other') return null;
+    const animalTypeOption = animalTypes.find(type => type.value === post.animal_type);
+    return animalTypeOption?.label || null;
+  }, [post.animal_type, animalTypes]);
+
   return (
     <TouchableOpacity 
       style={styles.container}
@@ -106,9 +115,14 @@ export default function ProfilePostCard({
       {/* 상단: 카테고리 정보 및 시간 */}
       <View style={styles.header}>
         <View style={styles.categoryInfo}>
-          <Text style={styles.categoryText}>
-            {post.sub_category.category.name} • {post.sub_category.name}
-          </Text>
+          <View style={styles.categoryContainer}>
+            <Text style={styles.categoryText}>
+              {post.sub_category.category.name} • {post.sub_category.name}
+            </Text>
+            {animalTypeLabel && (
+              <Text style={styles.animalTypeText}> [ {animalTypeLabel} ]</Text>
+            )}
+          </View>
           <Text style={styles.timeText}>{formatTime(post.created_at)}</Text>
         </View>
       </View>
@@ -195,10 +209,19 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  categoryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   categoryText: {
     fontSize: TYPOGRAPHY.SIZE.SM,
     fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
     color: colors.GRAY_700, // TEXT_COLORS.SECONDARY
+  },
+  animalTypeText: {
+    fontSize: TYPOGRAPHY.SIZE.XS,
+    color: colors.SECONDARY || colors.PRIMARY,
+    fontWeight: TYPOGRAPHY.WEIGHT.MEDIUM,
   },
   timeText: {
     fontSize: TYPOGRAPHY.SIZE.XS,
