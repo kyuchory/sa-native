@@ -4,6 +4,7 @@ import {
   LoginRequest,
   LogoutRequest,
   KakaoLoginRequest,
+  NaverLoginRequest,
   SignUpApiResponse,
   LoginApiResponse,
   EmailCheckApiResponse,
@@ -11,6 +12,7 @@ import {
   LogoutApiResponse,
   DeleteAccountApiResponse,
   KakaoLoginApiResponse,
+  NaverLoginApiResponse,
 } from '../types/auth';
 
 // 인증 관련 API 서비스
@@ -43,6 +45,11 @@ export class AuthService {
   // 카카오 로그인
   static async kakaoLogin(data: KakaoLoginRequest): Promise<KakaoLoginApiResponse> {
     return apiClient.post<KakaoLoginApiResponse>('/auth/kakao-login', data, false);
+  }
+
+  // 네이버 로그인
+  static async naverLogin(data: NaverLoginRequest): Promise<NaverLoginApiResponse> {
+    return apiClient.post<NaverLoginApiResponse>('/auth/naver-login', data, false);
   }
 
   // 계정 삭제

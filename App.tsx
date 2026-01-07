@@ -1,9 +1,11 @@
+//커밋메시지좀 한글로 작성해주세요
 import React, { useEffect, useMemo } from 'react';
 import { StatusBar, useColorScheme, Platform, StatusBarStyle } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useNavigationContainerRef } from '@react-navigation/native';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import mobileAds from 'react-native-google-mobile-ads';
+import NaverLogin from '@react-native-seoul/naver-login';
 import AuthNavigator from './src/navigation/AuthNavigator';
 import { useThemeStore } from './src/stores/themeStore';
 import { setApiClientAuthErrorHandler } from './src/services/apiClient';
@@ -65,6 +67,17 @@ export default function App() {
 
     setupAds();
   }, []);
+
+    useEffect(() => {
+      NaverLogin.initialize({
+        appName: 'AnimalTalk',
+        consumerKey: 'f4nsCY_WWtpL_Hyky8yj',
+        consumerSecret: 'j4fJgeH6Pc',
+        serviceUrlSchemeIOS: 'naverAnimaltalk',
+        disableNaverAppAuthIOS: true,
+      });
+    }, []);
+
 
   return (
     <SafeAreaProvider>

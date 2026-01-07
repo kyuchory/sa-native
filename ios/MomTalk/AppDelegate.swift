@@ -3,6 +3,7 @@ import React
 import ReactAppDependencyProvider
 import KakaoSDKCommon
 import KakaoSDKAuth
+import NaverThirdPartyLogin
 
 @UIApplicationMain
 public class AppDelegate: ExpoAppDelegate {
@@ -44,6 +45,11 @@ public class AppDelegate: ExpoAppDelegate {
   ) -> Bool {
     if AuthApi.isKakaoTalkLoginUrl(url) {
       return AuthController.handleOpenUrl(url: url)
+    }
+
+    // Naver login URL handling
+    if url.scheme == "naverAnimaltalk" {
+      return NaverThirdPartyLoginConnection.getSharedInstance().application(app, open: url, options: options)
     }
 
     return super.application(app, open: url, options: options) || RCTLinkingManager.application(app, open: url, options: options)

@@ -36,6 +36,16 @@
 				<string>kakao44929c6b1f02b27200d4245c8c09f869</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>naver</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>naverAnimaltalk</string>
+			</array>
+		</dict>
 	</array>
 	<key>KAKAO_APP_KEY</key>
 	<string>44929c6b1f02b27200d4245c8c09f869</string>
@@ -45,6 +55,9 @@
 		<string>kakaokompassauth</string>
 		<string>storykompassauth</string>
 		<string>kakaolink</string>
+
+		<string>naversearchapp</string>
+		<string>naversearchthirdlogin</string>
 	</array>
 	<key>LSMinimumSystemVersion</key>
 	<string>12.0</string>

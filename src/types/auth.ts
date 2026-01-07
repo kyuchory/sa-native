@@ -67,6 +67,11 @@ export interface KakaoLoginRequest {
   accessToken: string;
 }
 
+// 네이버 로그인 요청 타입
+export interface NaverLoginRequest {
+  accessToken: string;
+}
+
 // 카카오 사용자 계정 정보 타입
 export interface KakaoUserAccount {
   has_email: boolean;
@@ -98,6 +103,12 @@ export interface KakaoLoginResponseData {
   tokens: Tokens;
 }
 
+// 네이버 로그인 응답 데이터 타입
+export interface NaverLoginResponseData {
+  user: Omit<User, 'bio'>; // bio 제외하고 User 타입 재사용
+  tokens: Tokens;
+}
+
 // API 응답 타입들
 export type SignUpApiResponse = ApiResponse<SignUpResponse>;
 export type LoginApiResponse = ApiResponse<LoginResponse>;
@@ -107,3 +118,4 @@ export type NicknameCheckApiResponse = ApiResponse<NicknameCheckResponse>;
 export type LogoutApiResponse = ApiResponse<null>;
 export type DeleteAccountApiResponse = ApiResponse<null>;
 export type KakaoLoginApiResponse = ApiResponse<KakaoLoginResponseData>;
+export type NaverLoginApiResponse = ApiResponse<NaverLoginResponseData>;

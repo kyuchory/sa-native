@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { User, Tokens, LoginRequest, SignUpRequest, KakaoLoginRequest } from '../types/auth';
+import { User, Tokens, LoginRequest, SignUpRequest, KakaoLoginRequest, NaverLoginRequest } from '../types/auth';
 import { AuthService } from '../services/authService';
 import { ApiError, handleApiError } from '../utils/apiErrors';
 import { DeviceUtils } from '../utils/deviceUtils';
@@ -21,6 +21,7 @@ interface AuthState {
   login: (user: User, tokens: Tokens) => void;
   loginWithCredentials: (credentials: LoginRequest) => Promise<{ success: boolean; error?: string }>;
   loginWithKakao: (kakaoToken: KakaoLoginRequest) => Promise<{ success: boolean; error?: string }>;
+  loginWithNaver: (naverToken: NaverLoginRequest) => Promise<{ success: boolean; error?: string }>;
   signUp: (data: SignUpRequest) => Promise<{ success: boolean; error?: string }>;
   checkEmail: (email: string) => Promise<{ success: boolean; isAvailable?: boolean; error?: string }>;
   checkNickname: (nickname: string) => Promise<{ success: boolean; isAvailable?: boolean; error?: string }>;
@@ -120,6 +121,34 @@ export const useAuthStore = create<AuthState>()(
           const { user, tokens } = response.data;
 
           // Kakao 응답에 bio 필드가 없으므로 추가
+          const fullUser = { ...user, bio: null } as User;
+
+          set({
+            user: fullUser,
+            tokens,
+            isAuthenticated: true,
+            isLoading: false
+          });
+          tokenStoreSetTokens(tokens);
+
+          // 로그인 성공 이벤트 발행 (소켓 연결은 이벤트 리스너에서 처리)
+          emitAuthLogin({ user: fullUser, tokens });
+
+          return { success: true };
+        } catch (error) {
+          const errorMessage = handleApiError(error);
+          set({ isLoading: false });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      loginWithNaver: async (naverToken: NaverLoginRequest) => {
+        set({ isLoading: true });
+        try {
+          const response = await AuthService.naverLogin(naverToken);
+          const { user, tokens } = response.data;
+
+          // Naver 응답에 bio 필드가 없으므로 추가
           const fullUser = { ...user, bio: null } as User;
 
           set({

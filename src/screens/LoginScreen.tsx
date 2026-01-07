@@ -18,6 +18,7 @@ import CustomButton from '../components/CustomButton';
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { NativeModules } from 'react-native';
 import { login } from '@react-native-seoul/kakao-login';
+import NaverLogin from '@react-native-seoul/naver-login';
 import { AuthService } from '../services/authService';
 
 
@@ -28,7 +29,7 @@ export default function LoginScreen({ navigation }: any) {
   // Custom Alert Modal 상태
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
-  const { loginWithCredentials, loginWithKakao, isLoading } = useAuthStore();
+  const { loginWithCredentials, loginWithKakao, loginWithNaver, isLoading } = useAuthStore();
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
@@ -127,6 +128,55 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
+  const handleNaverLogin = async () => {
+    try {
+      // 네이버 로그인으로 토큰 받기
+      const tokenResult = await NaverLogin.login();
+      const { accessToken } = tokenResult.successResponse || {};
+
+      if (!accessToken) {
+        throw new Error('액세스 토큰을 받을 수 없습니다.');
+      }
+
+      // authStore를 통해 네이버 로그인 처리
+      const result = await loginWithNaver({ accessToken });
+
+      if (result.success) {
+        setAlertModal({
+          visible: true,
+          title: '성공',
+          message: '네이버 로그인이 완료되었습니다.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
+      } else {
+        setAlertModal({
+          visible: true,
+          title: '네이버 로그인 오류',
+          message: '다시 시도해주세요. ' + result.error || '다시 시도해주세요. 네이버 로그인에 실패했습니다.',
+          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+        });
+      }
+
+    } catch (error: any) {
+      console.error('네이버 로그인 오류:', error);
+
+      let errorMessage = '네이버 로그인 중 오류가 발생했습니다.';
+
+      if (error.response?.message) {
+        errorMessage = error.response.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setAlertModal({
+        visible: true,
+        title: '네이버 로그인 오류',
+        message: '다시 시도해주세요.' + errorMessage,
+        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
+      });
+    }
+  };
+
   const handleSignUp = () => {
     navigation.navigate('SignUp');
   };
@@ -196,8 +246,18 @@ export default function LoginScreen({ navigation }: any) {
             style={styles.kakaoButton}
           >
             <Image
-              source={require('../assets/social/kakao_login_large_wide.png')}
-              style={styles.kakaoImage}
+              source={require('../assets/social/kakao_login.png')}
+              style={styles.socialImage}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleNaverLogin}
+            style={styles.naverButton}
+          >
+            <Image
+              source={require('../assets/social/naver_login.png')}
+              style={styles.socialImage}
             />
           </TouchableOpacity>
           </View>
@@ -273,13 +333,37 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     marginTop: SPACING.SM,
     marginBottom: SPACING.XS,
   },
-  kakaoButton: {
+  socialButton: {
     marginTop: SPACING.SM,
-    marginBottom: SPACING.MD,
+    marginBottom: SPACING.XS,
     height: 44,
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: BORDER_RADIUS.MD,
+    borderRadius: 15,
+    overflow: 'hidden',
+  },
+  kakaoButton: {
+    marginTop: SPACING.SM,
+    marginBottom: SPACING.XS,
+    height: 44,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 15,
+    overflow: 'hidden',
+    backgroundColor: '#FEE500',
+  },
+  naverButton: {
+    marginTop: SPACING.SM,
+    marginBottom: SPACING.XS,
+    height: 44,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 15,
+    overflow: 'hidden',
+    backgroundColor: '#03A94D',
   },
   divider: {
     flexDirection: 'row',
@@ -297,7 +381,7 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     color: colors.GRAY_600,
     fontWeight: TYPOGRAPHY.WEIGHT.SEMIBOLD,
   },
-  kakaoImage: {
+  socialImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'contain',

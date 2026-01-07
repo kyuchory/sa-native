@@ -207,6 +207,7 @@ PODS:
     - nanopb/encode (= 3.30910.0)
   - nanopb/decode (3.30910.0)
   - nanopb/encode (3.30910.0)
+  - naveridlogin-sdk-ios (4.2.3)
   - PromisesObjC (2.4.0)
   - RCTDeprecation (0.81.4)
   - RCTRequired (0.81.4)
@@ -2004,6 +2005,29 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - RNNaverLogin (4.2.3):
+    - hermes-engine
+    - naveridlogin-sdk-ios (= 4.2.3)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - RNPermissions (5.4.4):
     - hermes-engine
     - RCTRequired
@@ -2377,6 +2401,7 @@ DEPENDENCIES:
   - "RNFBMessaging (from `../node_modules/@react-native-firebase/messaging`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNGoogleMobileAds (from `../node_modules/react-native-google-mobile-ads`)
+  - "RNNaverLogin (from `../node_modules/@react-native-seoul/naver-login`)"
   - RNPermissions (from `../node_modules/react-native-permissions`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
@@ -2404,6 +2429,7 @@ SPEC REPOS:
     - libdav1d
     - libwebp
     - nanopb
+    - naveridlogin-sdk-ios
     - PromisesObjC
     - SDWebImage
     - SDWebImageAVIFCoder
@@ -2598,6 +2624,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-gesture-handler"
   RNGoogleMobileAds:
     :path: "../node_modules/react-native-google-mobile-ads"
+  RNNaverLogin:
+    :path: "../node_modules/@react-native-seoul/naver-login"
   RNPermissions:
     :path: "../node_modules/react-native-permissions"
   RNReanimated:
@@ -2652,6 +2680,7 @@ SPEC CHECKSUMS:
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
+  naveridlogin-sdk-ios: d9d46d02119d303023d7000cd5963864d5bb89e5
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RCTDeprecation: 7487d6dda857ccd4cb3dd6ecfccdc3170e85dcbc
   RCTRequired: 54128b7df8be566881d48c7234724a78cb9b6157
@@ -2724,6 +2753,7 @@ SPEC CHECKSUMS:
   RNFBMessaging: c304c1d8949f996d3eed1cf4eeba33148d13b4ea
   RNGestureHandler: 2914750df066d89bf9d8f48a10ad5f0051108ac3
   RNGoogleMobileAds: fd9b123c396cfcb1bbec28c41c92c3bcd5c42967
+  RNNaverLogin: 0e455c507f2ec89f80ddd2b8ab66fcd00fdce687
   RNPermissions: 112490fbc59f3f2b68263984faddaf58987a5472
   RNReanimated: 3895a29fdf77bbe2a627e1ed599a5e5d1df76c29
   RNScreens: d8d6f1792f6e7ac12b0190d33d8d390efc0c1845
