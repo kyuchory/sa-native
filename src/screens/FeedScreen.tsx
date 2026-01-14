@@ -34,6 +34,7 @@ import { ReportService } from '../services/reportService';
 
 // AdMob imports
 import { NativeAd, TestIds } from 'react-native-google-mobile-ads';
+import { AdUnits } from '../constants/adUnits';
 
 type FeedScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'MainApp'>;
 
@@ -153,7 +154,7 @@ export default function FeedScreen() {
   const createAd = async () => {
     if (adPromiseRef.current) return adPromiseRef.current;
 
-    adPromiseRef.current = NativeAd.createForAdRequest(TestIds.NATIVE, {
+    adPromiseRef.current = NativeAd.createForAdRequest(AdUnits.POST_LIST, {
       aspectRatio: 1,
       adChoicesPlacement: 0,
       startVideoMuted: true,

@@ -31,5 +31,6 @@ export { default as FeedAdCard } from './FeedAdCard';
 export { default as FeedCutCard } from './FeedCutCard';
 export { default as ShortItemAdComponent } from './ShortItemAdComponent';
 export { default as ShortBottomAdOverlay } from './ShortBottomAdOverlay';
+export { default as NativeBannerAd } from './NativeBannerAd';
 export { default as AnimalTypeSelector } from './AnimalTypeSelector';
 // Other existing exports remain unchanged

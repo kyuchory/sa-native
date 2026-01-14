@@ -31,6 +31,11 @@ import { chatScreenSocketService, onChatSummaryMessage, onChatRoomUpdated, onCha
 // Hooks
 import { useAppState } from '../hooks/useAppState';
 import { useChatStore } from '../stores/chatStore';
+import { NativeBannerAd } from '../components';
+
+// AdMob imports
+import { TestIds } from 'react-native-google-mobile-ads';
+import { AdUnits } from '../constants/adUnits';
 
 type ChatScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Chat'>;
 
@@ -511,6 +516,11 @@ export default function ChatScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.chatListContent}
 
+          ListHeaderComponent={
+            <View style={{ marginHorizontal: -SPACING.LMD, height: 68 }}>
+              <NativeBannerAd unitId={AdUnits.CHAT_HEADER} />
+            </View>
+          }
           ListEmptyComponent={<ChatScreenEmptyState />}
           refreshing={isLoading}
           onRefresh={loadChatRooms}

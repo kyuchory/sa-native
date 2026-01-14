@@ -26,6 +26,7 @@ import type { PostListItem, Category, AnimalType } from '../types/post';
 
 // AdMob imports
 import { NativeAd, TestIds } from 'react-native-google-mobile-ads';
+import { AdUnits } from '../constants/adUnits';
 
 type HomeNavigationProp = StackNavigationProp<AuthStackParamList, 'MainApp'>;
 
@@ -138,7 +139,7 @@ export default function HomeScreen() {
       const adPromises = [];
       for (let i = 0; i < 2; i++) {
         adPromises.push(
-          NativeAd.createForAdRequest(TestIds.NATIVE, {
+          NativeAd.createForAdRequest(AdUnits.POST_LIST, {
             aspectRatio: 1,
             adChoicesPlacement: 0,
             startVideoMuted: true,
@@ -318,36 +319,26 @@ export default function HomeScreen() {
 
 
   // ---------- 광고 위치 계산 함수 ----------
+
   const getAdPositions = (postCount: number): number[] => {
-    if (postCount <= 3) {
-      // 3개 이하 게시물일 땐 광고 없음
-      return [];
-    }
+  // 0~1: 광고 없음
+  if (postCount <= 1) return [];
 
-    if (postCount >= 4 && postCount <= 7) {
-      // 4~7개 게시물일 땐
-      // 1번째 게시물 뒤(0), 2번째 뒤(1), ..., 마지막 바로 전 게시물 뒤(postCount - 2) 까지 광고 삽입
-      const positions = [];
-      for (let i = 0; i <= postCount - 2; i++) {
-        positions.push(i);
-      }
-      return positions;
-    }
+  const first = Math.min(2, postCount - 1); // 기본 3번째 뒤, 부족하면 맨뒤
 
-    if (postCount >= 8 && postCount <= 9) {
-      // 8~9개 게시물일 땐 광고 1개
-      // 7번째 게시물 뒤 (인덱스 6)
-      return [6];
-    }
+  // 2~7: 광고 1개
+  if (postCount <= 7) return [first];
 
-    if (postCount >= 10) {
-      // 10개 이상 게시물일 땐 광고 2개
-      // 7번째 게시물 뒤(6), 마지막 게시물 뒤(postCount -1)
-      return [6, postCount - 1];
-    }
+  // 8 이상: 광고 2개
+  const secondTarget = postCount === 8 ? 7 : 8; // 8개일 때만 7, 그 이후는 8
+  const second = Math.min(secondTarget, postCount - 1); // 안전 보정
 
-    return [];
-  };
+  // 혹시 겹치면 1개로
+  if (first === second) return [first];
+
+  return [first, second];
+};
+
 
   // ---------- currentAds와 ref 동기화 ----------
   useEffect(() => {

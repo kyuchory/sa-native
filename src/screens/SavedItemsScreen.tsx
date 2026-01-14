@@ -15,6 +15,9 @@ import { BookmarkFeedListItem } from '../types/feed';
 import { BookmarkPostListItem, PostListItem } from '../types/post';
 import { BookmarkShortListItem } from '../types/cut';
 import { AuthStackParamList } from '../types/navigation';
+import { NativeBannerAd } from '../components';
+import { TestIds } from 'react-native-google-mobile-ads';
+import { AdUnits } from '../constants/adUnits';
 
 type SavedItemsNavigationProp = StackNavigationProp<AuthStackParamList, 'SavedItems'>;
 
@@ -222,6 +225,9 @@ export default function SavedItemsScreen() {
   return (
     <View style={styles.container}>
       <CommonHeader title="저장된 항목" showBackButton={true} />
+      <View style={styles.adContainer}>
+        <NativeBannerAd unitId={AdUnits.BOOKMARK_HEADER} />
+      </View>
       <SavedItemsTabNavigation
         activeTab={activeTab}
         onTabChange={handleTabChange}
@@ -237,6 +243,9 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.GRAY_50,
+  },
+  adContainer: {
+    marginBottom: SPACING.SM,
   },
   contentContainer: {
     flex: 1,

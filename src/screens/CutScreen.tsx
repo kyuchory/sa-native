@@ -44,6 +44,7 @@ import {
 
 // AdMob imports
 import { NativeAd, TestIds } from 'react-native-google-mobile-ads';
+import { AdUnits } from '../constants/adUnits';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -200,7 +201,7 @@ export default function CutScreen() {
         const adPromises = [];
         for (let i = 0; i < 8; i++) {
           adPromises.push(
-            NativeAd.createForAdRequest(TestIds.NATIVE, {
+            NativeAd.createForAdRequest(AdUnits.SHORT_LIST, {
               aspectRatio: 1,
               adChoicesPlacement: 0,
               startVideoMuted: true,

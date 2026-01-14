@@ -7,6 +7,9 @@ import { useAuthStore } from '../stores/authStore';
 import CommonHeader from '../components/CommonHeader';
 import SettingItem from '../components/SettingItem';
 import CustomAlertModal from '../components/CustomAlertModal';
+import { NativeBannerAd } from '../components';
+import { TestIds } from 'react-native-google-mobile-ads';
+import { AdUnits } from '../constants/adUnits';
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
@@ -126,6 +129,7 @@ export default function SettingsScreen() {
     <View style={styles.container}>
       <CommonHeader title="설정" />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <NativeBannerAd unitId={AdUnits.SETTING_HEADER} />
         {/* 계정 관리 섹션 */}
         <View style={styles.section}>
           <View style={styles.sectionContainer}>

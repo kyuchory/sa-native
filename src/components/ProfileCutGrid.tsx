@@ -63,7 +63,7 @@ export default function ProfileCutGrid({ data = [], loading = false, onItemPress
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>
-          {canViewContent ? '등록된 컷이 없습니다.' : '사용자에 의해 비공개되었습니다.'}
+          {canViewContent ? '등록된 컷츠가 없습니다.' : '사용자에 의해 비공개되었습니다.'}
         </Text>
       </View>
     );

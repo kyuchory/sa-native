@@ -33,45 +33,7 @@ export default function LoginScreen({ navigation }: any) {
   const { colors } = useThemeStore();
   const styles = createStyles(colors);
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      setAlertModal({
-        visible: true,
-        title: '오류',
-        message: '이메일과 비밀번호를 모두 입력해주세요.',
-        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
-      });
-      return;
-    }
 
-    try {
-      const result = await loginWithCredentials({ email, password });
-
-      if (result.success) {
-        setAlertModal({
-          visible: true,
-          title: '성공',
-          message: '로그인이 완료되었습니다.',
-          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
-        });
-      } else {
-        setAlertModal({
-          visible: true,
-          title: '오류',
-          message: result.error || '로그인에 실패했습니다.',
-          buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
-        });
-      }
-
-    } catch (error) {
-      setAlertModal({
-        visible: true,
-        title: '오류',
-        message: '로그인 중 오류가 발생했습니다.',
-        buttons: [{ text: '확인', onPress: () => setAlertModal(null) }]
-      });
-    }
-  };
 
   const handleKakaoLogin = async () => {
     try {
@@ -177,9 +139,7 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
-  const handleSignUp = () => {
-    navigation.navigate('SignUp');
-  };
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -204,36 +164,26 @@ export default function LoginScreen({ navigation }: any) {
           <View style={styles.formContainer}>
           <CustomInput
             label="이메일"
-            placeholder="이메일을 입력하세요"
+            placeholder="별도의 회원가입 없이,"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            editable={false}
           />
 
           <CustomInput
             label="비밀번호"
-            placeholder="비밀번호를 입력하세요"
+            placeholder="편리하게 소셜 로그인을 이용해보세요."
             value={password}
             onChangeText={setPassword}
             secureTextEntry
             autoCapitalize="none"
+            editable={false}
           />
 
-          <CustomButton
-            title={isLoading ? '로그인 중...' : '로그인'}
-            onPress={handleLogin}
-            disabled={isLoading}
-            style={styles.loginButton}
-          />
 
-          <CustomButton
-            title="계정이 없으신가요? 회원가입"
-            variant="outline"
-            onPress={handleSignUp}
-            style={styles.signUpButton}
-          />
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
@@ -325,14 +275,8 @@ const createStyles = (colors: Record<string, string>) => StyleSheet.create({
     borderRadius: BORDER_RADIUS.XL + SPACING.XS,
     ...SHADOWS.MEDIUM,
   },
-  loginButton: {
-    marginTop: SPACING.SM,
-    marginBottom: SPACING.XS,
-  },
-  signUpButton: {
-    marginTop: SPACING.SM,
-    marginBottom: SPACING.XS,
-  },
+
+
   socialButton: {
     marginTop: SPACING.SM,
     marginBottom: SPACING.XS,

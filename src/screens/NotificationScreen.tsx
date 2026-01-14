@@ -12,12 +12,17 @@ import CommonHeader from '../components/CommonHeader';
 import CommonHeaderButton from '../components/CommonHeaderButton';
 import NotificationListItem from '../components/NotificationListItem';
 import { CheckIcon } from '../components/CommonIcons';
+import { NativeBannerAd } from '../components';
 
 // 서비스 imports
 import { NotificationService } from '../services/notificationService';
 import { Notification } from '../types/notification';
 // 알림 store
 import { useNotificationStore, loadNotifications, markAllNotificationsAsRead, markNotificationAsRead } from '../stores/notificationStore';
+
+// AdMob imports
+import { TestIds } from 'react-native-google-mobile-ads';
+import { AdUnits } from '../constants/adUnits';
 
 type NotificationNavigationProp = StackNavigationProp<AuthStackParamList, 'Notifications'>;
 
@@ -249,6 +254,11 @@ export default function NotificationScreen() {
             colors={[colors.PRIMARY]}
           />
         )}
+        ListHeaderComponent={
+          <View style={{ height: 68 }}>
+            <NativeBannerAd unitId={AdUnits.NOTIFICATION_HEADER} />
+          </View>
+        }
         ListEmptyComponent={isLoading ? renderLoadingState : renderEmptyState}
         // 성능 최적화
         removeClippedSubviews={true}
