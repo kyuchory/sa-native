@@ -25,13 +25,9 @@ export default function SettingsScreen() {
   const [alertModal, setAlertModal] = useState<{visible: boolean, title: string, message: string, buttons: any[]} | null>(null);
 
   // 네비게이션 핸들러들
-  const handleProfileEdit = () => {
-    console.log('프로필 편집');
-  };
 
-  const handlePasswordChange = () => {
-    console.log('비밀번호 변경');
-  };
+
+
 
   const handleAccountDelete = () => {
     navigation.navigate('AccountDelete' as never);
@@ -57,9 +53,7 @@ export default function SettingsScreen() {
     navigation.navigate('NotificationSettings' as never);
   };
 
-  const handleLanguage = () => {
-    console.log('언어 설정');
-  };
+
 
   const handleSupport = () => {
     navigation.navigate('SupportList' as never);
@@ -69,25 +63,9 @@ export default function SettingsScreen() {
     navigation.navigate('TermsAndPolicies' as never);
   };
 
-  const handleMediaSelectorTest = () => {
-    navigation.navigate('MediaTest' as never);
-  };
 
-  const handleCanvasEditorTest = () => {
-    navigation.navigate('CanvasEditor' as never);
-  };
 
-  const handleVideoEditorTest = () => {
-    navigation.navigate('VideoTrimCrop' as never);
-  };
 
-  const handleTestAdScreen = () => {
-    navigation.navigate('TestAd' as never);
-  };
-
-  const handleTestCutsAdScreen = () => {
-    navigation.navigate('TestCutsAd' as never);
-  };
 
   const handleLogout = () => {
     setAlertModal({
@@ -139,12 +117,7 @@ export default function SettingsScreen() {
               onPress={handleProfileEdit}
               colors={colors}
             /> */}
-            <SettingItem
-              title="비밀번호 변경"
-              showArrow={true}
-              onPress={handlePasswordChange}
-              colors={colors}
-            />
+
             <SettingItem
               title="차단 목록"
               showArrow={true}
@@ -247,26 +220,7 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* 개발자 도구 섹션 */}
-        <View style={styles.section}>
-          <View style={styles.sectionContainer}>
-            <SettingItem
-              title="광고 테스트"
-              subtitle="Google Mobile Ads 테스트"
-              showArrow={true}
-              onPress={handleTestAdScreen}
-              colors={colors}
-            />
-            <SettingItem
-              title="Cuts 광고 테스트"
-              subtitle="숏츠 스타일 네이티브 광고 테스트"
-              showArrow={true}
-              onPress={handleTestCutsAdScreen}
-              colors={colors}
-              isLast={true}
-            />
-          </View>
-        </View>
+
 
         {/* 위험한 액션들 - 따로 분리 */}
         <View style={styles.dangerSection}>
