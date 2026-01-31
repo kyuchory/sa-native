@@ -254,13 +254,15 @@ export class CutService {
     viewData: RecordShortViewRequest
   ): Promise<RecordShortViewResponse> {
     try {
+      console.log(`📊 [CutService] 시청 기록 전송 시작 - 쇼츠 ID: ${shortId}, 데이터:`, viewData);
+
       const response = await apiClient.post<RecordShortViewResponse>(
         `/shorts/${shortId}/view`,
         viewData
       );
       return response;
     } catch (error) {
-      console.error('쇼츠 시청 기록 저장 실패:', error);
+      console.error(`❌ [CutService] 시청 기록 전송 실패 - 쇼츠 ID: ${shortId}, 데이터:`, viewData, '에러:', error);
       throw error;
     }
   }
