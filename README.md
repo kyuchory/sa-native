@@ -532,6 +532,7 @@ const adUnitId = __DEV__ ? TestIds.BANNER : 'ca-app-pub-xxx/yyy';
 > **설명**: 메인 피드와 카테고리 선택이 가능한 홈 화면
 > 
 > **스크린샷 추가 예정** 📱
+> <img width="590" height="1278" alt="1 home" src="https://github.com/user-attachments/assets/c580f6ac-680e-43e4-ae00-01b999ccb095" />
 > 
 > **주요 UI 요소**:
 > - 상단 헤더 (알림, 프로필)
