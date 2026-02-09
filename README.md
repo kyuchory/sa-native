@@ -656,7 +656,7 @@ loginWithKakao: async (kakaoToken: KakaoLoginRequest) => {
 
 **토큰 저장소 분리 전략:**
 ```typescript
-// authStore: 사용자 정볼만 Persist
+// authStore: 사용자 정보만 Persist
 // tokenStore: 토큰만 별도 Persist
 // 이유: 토큰과 사용자 정보 생명주기가 다를 수 있음
 ```
