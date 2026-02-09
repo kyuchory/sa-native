@@ -854,73 +854,122 @@ export const AdUnits = {
 
 #### 🏠 홈 화면
 > **설명**: 메인 피드와 카테고리 선택이 가능한 홈 화면
-> 
-> **스크린샷 추가 예정** 📱
-> <img width="590" height="1278" alt="1 home" src="https://github.com/user-attachments/assets/c580f6ac-680e-43e4-ae00-01b999ccb095" />
-> 
-> **주요 UI 요소**:
-> - 상단 헤더 (알림, 프로필)
-> - 카테고리 선택기
-> - 게시글 카드 목록
-> - 페이지네이션
+
+<p align="center">
+  <img
+    src="https://github.com/user-attachments/assets/c580f6ac-680e-43e4-ae00-01b999ccb095"
+    alt="홈 화면"
+    width="260"
+  />
+</p>
+
+**주요 UI 요소**:
+- 상단 헤더 (알림, 프로필)
+- 카테고리 선택기
+- 게시글 카드 목록
+- 페이지네이션
+
+---
 
 #### 💬 채팅 화면
 > **설명**: 실시간 채팅방 목록과 관리 기능
-> 
-> <img width="1206" height="2622" alt="9 chat_list" src="https://github.com/user-attachments/assets/a781c3bc-eef3-4d99-9cf3-db694731c549" />
->
-> <img width="590" height="1278" alt="5 chatdetail" src="https://github.com/user-attachments/assets/93eb53b6-c72c-4a35-ab6d-00b5239aed49" />
->
-> **주요 UI 요소**:
-> - 채팅방 목록
-> - 탭 전환 (개인/그룹)
-> - 액션 시트 (채팅방 관리)
-> - 실시간 상태 표시
+
+<p align="center">
+  <img
+    src="https://github.com/user-attachments/assets/a781c3bc-eef3-4d99-9cf3-db694731c549"
+    alt="채팅 목록"
+    width="220"
+  />
+  <img
+    src="https://github.com/user-attachments/assets/93eb53b6-c72c-4a35-ab6d-00b5239aed49"
+    alt="채팅 상세"
+    width="220"
+  />
+</p>
+
+**주요 UI 요소**:
+- 채팅방 목록
+- 탭 전환 (개인/그룹)
+- 액션 시트 (채팅방 관리)
+- 실시간 상태 표시
+
+---
 
 #### 📝 게시글 작성
 > **설명**: 멀티미디어 게시글 작성 화면
-> 
-> <img width="1206" height="2622" alt="10 write_post" src="https://github.com/user-attachments/assets/c80ecb1e-2d14-41fd-83b2-5272af7e3b91" />
->
-> **주요 UI 요소**:
-> - 텍스트 입력 영역
-> - 이미지 업로드 영역
-> - 카테고리 선택
-> - 게시 버튼
+
+<p align="center">
+  <img
+    src="https://github.com/user-attachments/assets/c80ecb1e-2d14-41fd-83b2-5272af7e3b91"
+    alt="게시글 작성"
+    width="260"
+  />
+</p>
+
+**주요 UI 요소**:
+- 텍스트 입력 영역
+- 이미지 업로드 영역
+- 카테고리 선택
+- 게시 버튼
+
+---
 
 #### 👤 프로필 화면
 > **설명**: 사용자 프로필 및 활동 관리
-> 
-> <img width="590" height="1278" alt="4 profile" src="https://github.com/user-attachments/assets/41d073ed-68fd-44cd-9086-f89824b0209a" />
-> 
-> **주요 UI 요소**:
-> - 프로필 헤더
-> - 활동 탭 (게시글, 좋아요)
-> - 설정 버튼
-> - 팔로우 정보
+
+<p align="center">
+  <img
+    src="https://github.com/user-attachments/assets/41d073ed-68fd-44cd-9086-f89824b0209a"
+    alt="프로필 화면"
+    width="260"
+  />
+</p>
+
+**주요 UI 요소**:
+- 프로필 헤더
+- 활동 탭 (게시글, 좋아요)
+- 설정 버튼
+- 팔로우 정보
+
+---
 
 #### 🔍 검색 화면
 > **설명**: 사용자 및 콘텐츠 검색 기능
-> 
-> <img width="590" height="1278" alt="6 search_feed" src="https://github.com/user-attachments/assets/f5b02ea7-6a98-479d-aa55-cd73069b63cf" />
-> 
-> **주요 UI 요소**:
-> - 검색 입력창
-> - 검색 결과 목록
-> - 필터 옵션
+
+<p align="center">
+  <img
+    src="https://github.com/user-attachments/assets/f5b02ea7-6a98-479d-aa55-cd73069b63cf"
+    alt="검색 화면"
+    width="260"
+  />
+</p>
+
+**주요 UI 요소**:
+- 검색 입력창
+- 검색 결과 목록
+- 필터 옵션
+
+---
 
 #### 📹 CUTS 영상 화면
 > **설명**: 세로형 영상 콘텐츠 브라우징 화면
-> 
-> <img width="590" height="1278" alt="3 cut" src="https://github.com/user-attachments/assets/9fbe7ec0-c25b-42b7-acd1-09bc97dd1e4d" />
-> 
-> **주요 UI 요소**:
-> - 영상 그리드 레이아웃
-> - 자동 재생 영상
-> - 상호작용 버튼 (좋아요, 댓글)
-> - 광고 영상 표시
+
+<p align="center">
+  <img
+    src="https://github.com/user-attachments/assets/9fbe7ec0-c25b-42b7-acd1-09bc97dd1e4d"
+    alt="CUTS 영상 화면"
+    width="260"
+  />
+</p>
+
+**주요 UI 요소**:
+- 영상 그리드 레이아웃
+- 자동 재생 영상
+- 상호작용 버튼 (좋아요, 댓글)
+- 광고 영상 표시
 
 ---
+
 
 ## 🛠️ 시작하기
 
