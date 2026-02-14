@@ -1462,7 +1462,7 @@ class FCMService {
     // 2. 기기 고유 ID 획득 (재설치 시에도 동일)
     const deviceId = await this.getStableDeviceId();
 
-    // 3. FCM 토큰 획악 및 변경 감지
+    // 3. FCM 토큰 획득 및 변경 감지
     const fcmToken = await messaging().getToken();
     
     // 4. 서버에 디바이스 등록/업데이트
