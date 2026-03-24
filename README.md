@@ -1654,47 +1654,11 @@ const createPost = async (postData: CreatePostRequest) => {
 
 ---
 
-## 🤝 기여하기
-
-### 개발 환경 설정
-
-```bash
-# 1. 포크 및 클론
-git clone https://github.com/your-username/sa-native.git
-cd sa-native
-
-# 2. 개발 브랜치 생성
-git checkout -b feature/your-feature-name
-
-# 3. 변경사항 커밋
-git add .
-git commit -m "feat: add your feature description"
-
-# 4. Pull Request 생성
-git push origin feature/your-feature-name
-```
-
-### 코딩 컨벤션
-
-- **커밋 메시지**: Conventional Commits 형식 준수
-- **브랜치 명명**: `feature/`, `bugfix/`, `hotfix/` 접두사 사용
-- **코드 리뷰**: 모든 변경사항에 대한 리뷰 필수
-- **테스트**: 새로운 기능에 대한 테스트 코드 작성
-
----
-
-## 📄 라이선스
-
-이 프로젝트는 [MIT 라이선스](LICENSE) 하에 배포됩니다.
-
----
-
 ## 📞 연락처
 
 - **프로젝트 관리자**: [이름]
-- **이메일**: [email@example.com]
-- **GitHub**: [@username]
-- **프로젝트 이슈**: [GitHub Issues](https://github.com/username/sa-native/issues)
+- **이메일**: sls789456@naver.com
+- **GitHub**: @kyuchory
 
 ---
 
