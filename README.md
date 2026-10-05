@@ -1046,55 +1046,7 @@ npm run test:coverage
 
 ## 🎯 핵심 기술적 도전과 해결 (Technical Challenges)
 
-### 도전 1: 대용량 미디어 파일 업로드 및 메모리 최적화
-
-**문제:**
-- 고해상도 이미지/4K 비디오 업로드 시 메모리 부족 (OOM) 발생
-- 네트워크 단절 시 업로드 진행상황 유실
-- 여러 파일 동시 업로드 시 UI 블로킹
-
-**해결책:**
-```typescript
-// MediaUploadService.ts - 청크 업로드 + 압축 전략
-async uploadLargeFile(uri: string, type: 'image' | 'video') {
-  // 1. 파일 크기 확인 및 압축
-  const compressedUri = await this.compressMedia(uri, {
-    image: { maxWidth: 1920, quality: 0.8 },
-    video: { bitrate: 2000000, resolution: '1080p' }
-  });
-  
-  // 2. 메모리 효율적인 청크 분할 업로드
-  const chunkSize = 1024 * 1024; // 1MB chunks
-  const fileInfo = await FileSystem.getInfoAsync(compressedUri);
-  const totalChunks = Math.ceil(fileInfo.size / chunkSize);
-  
-  for (let i = 0; i < totalChunks; i++) {
-    const chunk = await FileSystem.readAsStringAsync(compressedUri, {
-      encoding: FileSystem.EncodingType.Base64,
-      position: i * chunkSize,
-      length: chunkSize
-    });
-    
-    // 3. 개별 청크 업로드 + 진행률 추적
-    await this.uploadChunk(chunk, i, totalChunks, uploadId);
-    
-    // 4. 진행률 콜백 (UI 업데이트)
-    onProgress?.((i + 1) / totalChunks * 100);
-  }
-  
-  // 5. 서버에 청크 조합 요청
-  return await this.finalizeUpload(uploadId);
-}
-```
-
-**성과:**
-- OOM 에러 95% 감소 (대용량 파일 업로드 시)
-- 업로드 성공률 92% → 99.% 개선 (네트워크 불안정 환경에서)
-- 메모리 사용량 60% 감소 (청크 단위 처리)
-
----
-
-### 도전 2: 소켓 재연결 및 채팅방 구독 복원
+### 도전 1: 소켓 재연결 및 채팅방 구독 복원
 
 **문제:**
 - 네트워크 불안정 시 소켓 연결 끊김
@@ -1143,7 +1095,7 @@ private async attemptResubscription(chatRoomId: number, retryCount = 0) {
 
 ---
 
-### 도전 3: 토큰 만료 시 무중단 API 요청
+### 도전 2: 토큰 만료 시 무중단 API 요청
 
 **문제:**
 - API 요청 중 401 에러 발생 시 사용자 경험 저하
@@ -1197,7 +1149,7 @@ class TokenService {
 
 ---
 
-### 도전 4: 영상 시청 추적 및 배터리 최적화
+### 도전 3: 영상 시청 추적 및 배터리 최적화
 
 **문제:**
 - 세로형 영상 플랫폼(CUTS)의 정확한 시청률 추적 필요
@@ -1257,7 +1209,7 @@ export const useShortViewTracking = (shortId: number, duration: number) => {
 
 ---
 
-### 도전 5: 무한 스크롤 FlatList 성능 최적화
+### 도전 4: 무한 스크롤 FlatList 성능 최적화
 
 **문제:**
 - 게시글/피드 목록에서 스크롤 시 프레임 저하 (Jank)
@@ -1321,7 +1273,7 @@ const onViewableItemsChanged = useCallback(({ viewableItems }) => {
 
 ---
 
-### 도전 6: 광고 통합과 UX 사이의 균형
+### 도전 5: 광고 통합과 UX 사이의 균형
 
 **문제:**
 - AdMob 광고 로딩으로 인한 UI 지연
@@ -1376,7 +1328,7 @@ const shouldShowAd = (index: number) => {
 
 ---
 
-### 도전 7: 네이티브 소셜 로그인 통합 (카카오/네이버)
+### 도전 6: 네이티브 소셜 로그인 통합 (카카오/네이버)
 
 **문제:**
 - React Native 네이티브 모듈(iOS/Android) 설정 복잡성
@@ -1443,7 +1395,7 @@ override func application(
 
 ---
 
-### 도전 8: 다중 디바이스 FCM 토큰 관리
+### 도전 7: 다중 디바이스 FCM 토큰 관리
 
 **문제:**
 - 한 사용자가 여러 기기 사용 시 푸시 알림 중복/누락
@@ -1500,7 +1452,7 @@ class FCMService {
 
 ---
 
-### 도전 9: 오프라인 상태 및 네트워크 복구 처리
+### 도전 8: 오프라인 상태 및 네트워크 복구 처리
 
 **문제:**
 - 네트워크 단절 시 사용자가 인지하지 못함
@@ -1577,7 +1529,7 @@ class ChatService {
 
 ---
 
-### 도전 10: 타입 안전한 API 클라이언트 아키텍처
+### 도전 9: 타입 안전한 API 클라이언트 아키텍처
 
 **문제:**
 - API 응답 타입 불일치로 인한 런타임 에러
@@ -1649,7 +1601,6 @@ const createPost = async (postData: CreatePostRequest) => {
 
 **성과:**
 - 런타임 타입 에러 100% 감소 (컴파일 타임 검증)
-- API 통합 개발 시간 30% 단축 (자동 완성 + 타입 추론)
 - 에러 처리 일관성 100% (표준화된 ApiError 타입)
 
 ---
